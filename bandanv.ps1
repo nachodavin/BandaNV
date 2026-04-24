@@ -87,6 +87,6 @@ function Sort-Now {
     Write-Log "==========================================================================================="
 }
 
-# BandaNV v.01 by Nacho
+# BandaNV v1.0.0 by Nacho
 
 Sort-Now
