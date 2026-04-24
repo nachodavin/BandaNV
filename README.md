@@ -47,4 +47,3 @@ Si querés agregar alguna extensión de archivo que no esté incluida de base, p
 
 ---
 *Desarrollado por **Nacho Davin**.*
-```
