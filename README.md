@@ -18,8 +18,8 @@ Abrilo con el Bloc de notas y fijate en las primeras líneas. Cambiá estas ruta
 
 ```powershell
 $global:source = "C:\RUTA_A_TU_CARPETA"  # CARPETA QUE SE VA A ORDENAR (idealmente Descargas)
-$global:logDir = "C:\RUTA_A_TU_CARPETA"     # CARPETA DONDE VA A ESTAR EL SCRIPT GUARDADO
-```
+$global:logDir = "C:\RUTA_A_TU_CARPETA"  # CARPETA DONDE VA A ESTAR EL SCRIPT GUARDADO
+
 
 #### **En el archivo `bandanv.bat`:**
 Hacé click derecho, dale a **Editar** y actualizá la ruta de la línea del medio para que apunte exactamente a donde está el archivo `.ps1`:
