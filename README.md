@@ -31,7 +31,7 @@ powershell.exe -ExecutionPolicy Bypass -File "C:\RUTA_DONDE_ESTA\bandanv.ps1"
 Si querés agregar alguna extensión de archivo que no esté incluida de base, podés buscar en el archivo `.ps1` el apartado **"Diccionario"** y agregar lo que quieras siguiendo la lógica del código:
 
 ```powershell
-"NombreCarpeta" = @(".ext1", ".ext2")
+"NombreCarpeta" = @(".extension1", ".extension2")
 ```
 
 ---
