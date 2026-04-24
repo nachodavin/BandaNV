@@ -45,4 +45,4 @@ Si querés agregar alguna extensión de archivo que no esté incluida de base, p
     * **Nota:** El log está invertido; la ejecución más reciente siempre aparece arriba de todo.
 
 ---
-*Desarrollado por **Nacho Davin**.* ✪
+*Desarrollado por **Nacho Davin** ✪
