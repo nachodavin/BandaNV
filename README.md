@@ -1,10 +1,9 @@
-```markdown
 # 📂 BandaNV - Organizador de Archivos
 **BandaNV** es la solución definitiva para controlar el caos de tus carpetas. Este sistema separa los archivos por tipo, los mueve a una carpeta madre organizada y genera reportes detallados de cada movimiento.
 
 ## 🛠️ Setup e Instalación
 
-1. Ubicar los archivos
+### 1. Ubicar los archivos
 Vas a necesitar guardar dos archivos en tu sistema:
 
 * **El archivo main (`bandanv.ps1`):** Guardá este archivo en una carpeta segura que no vayas a mover (por ejemplo, una carpeta de herramientas portables).
