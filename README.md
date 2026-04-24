@@ -4,7 +4,7 @@
 
 ## 🛠️ Setup e Instalación
 
-### 1. Ubicar los archivos
+1. Ubicar los archivos
 Vas a necesitar guardar dos archivos en tu sistema:
 
 * **El archivo main (`bandanv.ps1`):** Guardá este archivo en una carpeta segura que no vayas a mover (por ejemplo, una carpeta de herramientas portables).
@@ -18,8 +18,8 @@ Abrilo con el Bloc de notas y fijate en las primeras líneas. Cambiá estas ruta
 
 ```powershell
 $global:source = "C:\RUTA_A_TU_CARPETA"  # CARPETA QUE SE VA A ORDENAR (idealmente Descargas)
-$global:logDir = "C:\RUTA_A_TU_CARPETA"  # CARPETA DONDE VA A ESTAR EL SCRIPT GUARDADO
-
+$global:logDir = "C:\RUTA_A_TU_CARPETA"     # CARPETA DONDE VA A ESTAR EL SCRIPT GUARDADO
+```
 
 #### **En el archivo `bandanv.bat`:**
 Hacé click derecho, dale a **Editar** y actualizá la ruta de la línea del medio para que apunte exactamente a donde está el archivo `.ps1`:
