@@ -1,0 +1,40 @@
+﻿BandaNV v1.0 RC1.3.2
+=================
+
+ESTRUCTURA DE PRUEBA
+- BandaNV.ps1       Código fuente de la RC1.3.2.
+- Build_EXE.ps1     Genera BandaNV.exe en Windows.
+- config\           Se crea automáticamente al iniciar.
+- logs\             Se crea automáticamente al iniciar.
+
+COMPILAR
+1. Extraé esta carpeta en una ubicación donde tu usuario tenga permisos normales de escritura.
+2. Abrí PowerShell dentro de esta carpeta.
+3. Ejecutá:
+   powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
+4. Se generará BandaNV.exe.
+
+PORTABILIDAD
+BandaNV está pensado para vivir en una carpeta normal con permisos de usuario (Escritorio, Documentos, otro disco, pendrive, C:\BandaNV, etc.).
+Para respaldarlo, copiá la carpeta completa.
+
+LOGS
+Formato: BandaNV_AAAA-MM-DD____HH-mm.txt
+Si ya existe uno en el mismo minuto: (2), (3), etc.
+
+RC1.3
+- El nombre de cada categoría ya no necesita incluir su número.
+- BandaNV numera automáticamente las carpetas: 1 - NOMBRE, 2 - NOMBRE, etc.
+- Botones ↑ y ↓ para reordenar categorías desde Configuración.
+- Al guardar, las carpetas existentes de ORGANIZADO se renombran de forma segura para reflejar el nuevo orden.
+- Renombrar una categoría desde la interfaz también renombra su carpeta existente.
+- Eliminar una categoría de la configuración NO borra su carpeta ni sus archivos.
+- El botón GUARDAR solo se habilita cuando hay cambios pendientes.
+- Si se intenta cerrar Configuración con cambios sin guardar, BandaNV pide confirmación.
+- Se mantienen la configuración visual por extensiones, el historial simplificado y el motor estable de RC1.2.1.
+
+RC1.3.2 HOTFIX
+- La interfaz guarda nombres de categoria sin numeracion.
+- Las carpetas fisicas se crean siempre como N - CATEGORIA segun el orden visual.
+- El organizador mueve los archivos a esas carpetas numeradas.
+- Compatibilidad con carpetas legacy sin numero y con carpetas ya numeradas.
