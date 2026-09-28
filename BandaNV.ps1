@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 # BandaNV v1.0 RC1
-$script:AppVersion = '1.0 RC1.3.2'
+$script:AppVersion = '1.0 RC1.6.2'
 
 # Determina la carpeta real de BandaNV tanto al ejecutar el .ps1 como el .exe compilado con PS2EXE.
 $script:AppDir = $null
@@ -28,17 +28,17 @@ $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
 
 function Get-DefaultConfig {
     [ordered]@{
-        autoDownloads = $true
+        autoDownloads = $false
         source = ''
         organizedFolder = 'ORGANIZADO'
         categories = [ordered]@{
-            'RAR'        = @('.zip','.rar','.7z','.tar','.gz')
-            'INSTALLERS' = @('.exe','.msi','.msix','.appx')
-            'DOCUMENTS'  = @('.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.txt','.csv','.rtf','.odt','.ods')
-            'IMAGES'     = @('.jpg','.jpeg','.png','.gif','.bmp','.webp','.svg','.ico','.heic')
-            'VIDEOS'     = @('.mp4','.mkv','.avi','.mov','.wmv','.webm','.m4v')
-            'AUDIO'      = @('.mp3','.wav','.flac','.aac','.ogg','.m4a','.wma')
-            'TORRENTS'   = @('.torrent')
+            'RAR'        = @('.zip','.rar','.7z')
+            'INSTALLERS' = @('.exe','.msi','.bat')
+            'DOCUMENTS'  = @('.pdf','.docx','.xlsx','.txt')
+            'IMAGES'     = @('.jpg','.jpeg','.png','.webp','.avif')
+            'GIF'        = @('.gif')
+            'VIDEOS'     = @('.mp4','.mkv','.mov','.avi')
+            'AUDIO'      = @('.mp3','.wav','.flac','.aac','.ogg')
         }
     }
 }
@@ -108,6 +108,17 @@ function Get-OrderedCategoryCards($cards) {
     return @($cards.Controls | Where-Object { $_ -is [Windows.Forms.GroupBox] } | Sort-Object Top,Left)
 }
 
+function Get-UniqueDirectoryPath([string]$parent, [string]$name) {
+    $candidate=Join-Path $parent $name
+    if(-not (Test-Path -LiteralPath $candidate)){ return $candidate }
+    $i=2
+    do {
+        $candidate=Join-Path $parent ("{0} ({1})" -f $name,$i)
+        $i++
+    } while(Test-Path -LiteralPath $candidate)
+    return $candidate
+}
+
 function Sync-CategoryFolders($oldCfg, $cards) {
     $oldSource=Resolve-Source $oldCfg
     if ([string]::IsNullOrWhiteSpace($oldSource) -or -not (Test-Path -LiteralPath $oldSource -PathType Container)) { return }
@@ -117,17 +128,65 @@ function Sync-CategoryFolders($oldCfg, $cards) {
         New-Item -ItemType Directory -Force -Path $oldRoot | Out-Null
     }
 
-    # Mapa del orden anterior, usado como una de varias pistas para localizar cada carpeta.
+    # Inventario de categorias ANTES de aplicar los cambios. La identidad logica
+    # (RAR, VIDEOS, PRUEBA, etc.) se mantiene separada de su numero fisico.
     $oldPositions=@{}
+    $oldNames=New-Object System.Collections.Generic.List[string]
     $oldIndex=1
     foreach($p in $oldCfg.categories.PSObject.Properties) {
         $display=Get-CategoryDisplayName ([string]$p.Name)
         $oldPositions[$display]=Get-CategoryFolderName $oldIndex $display
+        [void]$oldNames.Add($display)
         $oldIndex++
     }
 
-    # Escaneamos las carpetas reales. Esto hace que la sincronizacion no dependa de que
-    # una RC anterior haya dejado exactamente el nombre que esperabamos.
+    # Determinamos que categorias viejas siguen representadas por una tarjeta.
+    # Una tarjeta existente conserva OriginalFolder; las recreadas por RESTAURAR
+    # se enlazan por nombre si esa categoria ya existia.
+    $claimedOld=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    foreach($g in (Get-OrderedCategoryCards $cards)) {
+        $meta=$g.Tag
+        $display=Get-CategoryDisplayName $meta.NameBox.Text.Trim()
+        $oldDisplay=Get-CategoryDisplayName ([string]$meta.OriginalFolder)
+        if(-not [string]::IsNullOrWhiteSpace($oldDisplay)) {
+            [void]$claimedOld.Add($oldDisplay)
+        } elseif($oldPositions.ContainsKey($display)) {
+            [void]$claimedOld.Add($display)
+        }
+    }
+
+    # PRIMERO retiramos las categorias que dejaron de existir. Esto evita que una
+    # carpeta eliminada sea confundida con otra categoria durante la renumeracion.
+    foreach($oldDisplay in @($oldNames)) {
+        if($claimedOld.Contains($oldDisplay)){ continue }
+
+        $removedPath=$null
+        if($oldPositions.ContainsKey($oldDisplay)) {
+            $expected=Join-Path $oldRoot ([string]$oldPositions[$oldDisplay])
+            if(Test-Path -LiteralPath $expected -PathType Container){ $removedPath=$expected }
+        }
+        if($null -eq $removedPath) {
+            $match=Get-ChildItem -LiteralPath $oldRoot -Directory -ErrorAction SilentlyContinue | Where-Object {
+                (Get-CategoryDisplayName $_.Name) -ieq $oldDisplay
+            } | Select-Object -First 1
+            if($null -ne $match){ $removedPath=$match.FullName }
+        }
+        if($null -eq $removedPath){ continue }
+
+        # -Force cuenta tambien archivos/carpetas ocultos: solo se elimina si esta
+        # realmente vacia. Si hay contenido, se preserva quitando el prefijo N - .
+        $hasContent=$null -ne (Get-ChildItem -LiteralPath $removedPath -Force -ErrorAction Stop | Select-Object -First 1)
+        if(-not $hasContent) {
+            Remove-Item -LiteralPath $removedPath -Force -ErrorAction Stop
+        } else {
+            $preservedPath=Get-UniqueDirectoryPath $oldRoot $oldDisplay
+            if($removedPath -ine $preservedPath) {
+                Move-Item -LiteralPath $removedPath -Destination $preservedPath -ErrorAction Stop
+            }
+        }
+    }
+
+    # Reescaneamos despues de retirar/preservar las categorias eliminadas.
     $existing=@(Get-ChildItem -LiteralPath $oldRoot -Directory -ErrorAction SilentlyContinue)
     $moves=New-Object System.Collections.Generic.List[object]
     $reservedOld=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
@@ -138,13 +197,18 @@ function Sync-CategoryFolders($oldCfg, $cards) {
         $display=Get-CategoryDisplayName $meta.NameBox.Text.Trim()
         $newName=Get-CategoryFolderName $index $display
         $finalPath=Join-Path $oldRoot $newName
+
         $oldDisplay=Get-CategoryDisplayName ([string]$meta.OriginalFolder)
-        if([string]::IsNullOrWhiteSpace($oldDisplay)){ $oldDisplay=$display }
+        if([string]::IsNullOrWhiteSpace($oldDisplay) -and $oldPositions.ContainsKey($display)) {
+            $oldDisplay=$display
+        }
 
         $candidateNames=New-Object System.Collections.Generic.List[string]
-        if($oldPositions.ContainsKey($oldDisplay)){[void]$candidateNames.Add([string]$oldPositions[$oldDisplay])}
-        if(-not [string]::IsNullOrWhiteSpace([string]$meta.OriginalFolder)){[void]$candidateNames.Add([string]$meta.OriginalFolder)}
-        [void]$candidateNames.Add($oldDisplay)
+        if(-not [string]::IsNullOrWhiteSpace($oldDisplay)) {
+            if($oldPositions.ContainsKey($oldDisplay)){[void]$candidateNames.Add([string]$oldPositions[$oldDisplay])}
+            if(-not [string]::IsNullOrWhiteSpace([string]$meta.OriginalFolder)){[void]$candidateNames.Add([string]$meta.OriginalFolder)}
+            [void]$candidateNames.Add($oldDisplay)
+        }
 
         $oldPath=$null
         foreach($candidate in $candidateNames){
@@ -153,7 +217,7 @@ function Sync-CategoryFolders($oldCfg, $cards) {
                 $oldPath=$candidatePath; break
             }
         }
-        if($null -eq $oldPath){
+        if($null -eq $oldPath -and -not [string]::IsNullOrWhiteSpace($oldDisplay)){
             foreach($dir in $existing){
                 if($reservedOld.Contains($dir.FullName)){continue}
                 if((Get-CategoryDisplayName $dir.Name) -ieq $oldDisplay){$oldPath=$dir.FullName;break}
@@ -164,14 +228,14 @@ function Sync-CategoryFolders($oldCfg, $cards) {
             [void]$reservedOld.Add($oldPath)
             [void]$moves.Add([PSCustomObject]@{Old=$oldPath;Final=$finalPath;Temp=$null;Name=$display})
         } else {
-            # Categoria nueva: la carpeta se crea al guardar, no hace falta esperar a ORGANIZAR.
+            # Categoria realmente nueva: crear su carpeta final al guardar.
             [void]$moves.Add([PSCustomObject]@{Old=$null;Final=$finalPath;Temp=$null;Name=$display})
         }
         $index++
     }
 
-    # Fase 1: todo lo que deba cambiar de nombre va primero a un nombre temporal unico.
-    # Asi 2 -> 3 y 3 -> 2 nunca colisionan entre si.
+    # Fase 1: todos los renombres pasan por nombres temporales unicos para evitar
+    # colisiones (por ejemplo 7 - VIDEOS -> 6 - VIDEOS mientras cambia AUDIO).
     foreach($m in $moves) {
         if($null -eq $m.Old -or $m.Old -ieq $m.Final){continue}
         $temp=Join-Path $oldRoot ('__BANDANV_TEMP_' + [guid]::NewGuid().ToString('N'))
@@ -179,7 +243,7 @@ function Sync-CategoryFolders($oldCfg, $cards) {
         $m.Temp=$temp
     }
 
-    # Fase 2: aplicamos los nombres definitivos segun el orden VISUAL actual.
+    # Fase 2: nombres definitivos segun el orden visual actual.
     foreach($m in $moves) {
         if(-not [string]::IsNullOrWhiteSpace([string]$m.Temp)){
             if(Test-Path -LiteralPath $m.Final) { throw "Ya existe una carpeta que impide reorganizar: $($m.Final)" }
@@ -192,45 +256,126 @@ function Sync-CategoryFolders($oldCfg, $cards) {
     }
 }
 
-function Invoke-Organizer($statusLabel,$lastLabel,$button) {
+function Get-NaturalNameKey([string]$name) {
+    # Clave de orden "humano": trabaja sobre el nombre sin extensión y rellena
+    # los números para que 10 quede después de 9. Al ordenar descendente, las
+    # copias más altas aparecen primero y el archivo base queda al final.
+    $stem=[IO.Path]::GetFileNameWithoutExtension($name)
+    return [regex]::Replace($stem.ToLowerInvariant(), '\d+', { param($m) $m.Value.PadLeft(20,'0') })
+}
+
+function Sort-FileItemsNewestNaturalDesc($items) {
+    return @($items | Sort-Object `
+        @{Expression={ $_.File.LastWriteTime }; Descending=$true}, `
+        @{Expression={ Get-NaturalNameKey $_.File.Name }; Descending=$true})
+}
+
+function Get-CategoryOrder([string]$category) {
+    if($category -match '^\s*(\d+)\s*-'){ return [int]$Matches[1] }
+    return [int]::MaxValue
+}
+
+function Get-OrganizationPlan {
     $cfg=Load-Config; $source=Resolve-Source $cfg
     if ([string]::IsNullOrWhiteSpace($source) -or -not (Test-Path -LiteralPath $source -PathType Container)) {
-        [System.Windows.Forms.MessageBox]::Show("La carpeta de origen no existe:`n$source`n`nRevisá Configuración.", 'BandaNV', 'OK', 'Error') | Out-Null; return
+        throw "La carpeta de origen no existe:`n$source`n`nRevisá Configuración."
     }
     $organized=[string]$cfg.organizedFolder
     if ([string]::IsNullOrWhiteSpace($organized) -or $organized.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0) {
-        [System.Windows.Forms.MessageBox]::Show('El nombre de la carpeta de organización no es válido.', 'BandaNV', 'OK', 'Error') | Out-Null; return
+        throw 'El nombre de la carpeta de organización no es válido.'
     }
     $destRoot=Join-Path $source $organized
-    New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
-    $map=@{}
+    $map=@{}; $categories=New-Object System.Collections.Generic.List[object]
     $categoryIndex=1
     foreach($p in $cfg.categories.PSObject.Properties) {
-        # El JSON guarda solo el nombre humano; la carpeta fisica se numera por posicion.
         $cat=Get-CategoryFolderName $categoryIndex ([string]$p.Name)
-        New-Item -ItemType Directory -Force -Path (Join-Path $destRoot $cat) | Out-Null
-        foreach($e in $p.Value) { $x=([string]$e).Trim().ToLower(); if($x -and -not $x.StartsWith('.')){$x='.$'+$x}; if($x){$map[$x]=$cat} }
+        [void]$categories.Add([PSCustomObject]@{Index=$categoryIndex;Name=$cat})
+        foreach($e in $p.Value) {
+            $x=([string]$e).Trim().ToLower(); if($x -and -not $x.StartsWith('.')){$x='.$'+$x}; if($x){$map[$x]=$cat}
+        }
         $categoryIndex++
     }
+    $classified=New-Object System.Collections.Generic.List[object]
+    $unclassified=New-Object System.Collections.Generic.List[object]
+    foreach($file in @(Get-ChildItem -LiteralPath $source -File -ErrorAction Stop)) {
+        $ext=$file.Extension.ToLower()
+        if($map.ContainsKey($ext)) {
+            [void]$classified.Add([PSCustomObject]@{File=$file;Category=[string]$map[$ext]})
+        } else {
+            [void]$unclassified.Add([PSCustomObject]@{File=$file})
+        }
+    }
+    return [PSCustomObject]@{Config=$cfg;Source=$source;DestRoot=$destRoot;Categories=$categories.ToArray();Classified=$classified.ToArray();Unclassified=$unclassified.ToArray()}
+}
+
+function Invoke-OrganizationPlan($plan,$statusLabel,$lastLabel,$button,$owner) {
+    New-Item -ItemType Directory -Force -Path $plan.DestRoot | Out-Null
+    foreach($cat in $plan.Categories) { New-Item -ItemType Directory -Force -Path (Join-Path $plan.DestRoot $cat.Name) | Out-Null }
     $start=Get-Date; $log=New-LogPath; $lines=New-Object System.Collections.Generic.List[string]
     $lines.Add('=================================================='); $lines.Add('BandaNV - Registro de ejecución'); $lines.Add('=================================================='); $lines.Add('')
-    $lines.Add('Inicio: '+$start.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add('Origen: '+$source); $lines.Add('Destino: '+$destRoot); $lines.Add(''); $lines.Add('--------------------------------------------------'); $lines.Add('')
+    $lines.Add('Inicio: '+$start.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add('Origen: '+$plan.Source); $lines.Add('Destino: '+$plan.DestRoot); $lines.Add(''); $lines.Add('--------------------------------------------------'); $lines.Add('')
     $button.Enabled=$false; $statusLabel.Text='Estado: Organizando...'; [System.Windows.Forms.Application]::DoEvents()
     $count=0; $errors=0
-    try {
-        foreach($file in Get-ChildItem -LiteralPath $source -File -ErrorAction Stop) {
-            $ext=$file.Extension.ToLower(); if(-not $map.ContainsKey($ext)){continue}
-            $cat=$map[$ext]; $target=Get-UniqueDestination (Join-Path (Join-Path $destRoot $cat) $file.Name)
-            try { Move-Item -LiteralPath $file.FullName -Destination $target -ErrorAction Stop; $count++; $lines.Add("[MOVIDO] $($file.Name)"); $lines.Add("         -> $cat"); $lines.Add(''); $statusLabel.Text="Estado: Organizando... $count archivo(s)"; [System.Windows.Forms.Application]::DoEvents() }
-            catch { $errors++; $lines.Add("[ERROR] $($file.Name) - $($_.Exception.Message)"); $lines.Add('') }
-        }
-    } catch { $errors++; $lines.Add('[ERROR] No se pudo enumerar la carpeta: '+$_.Exception.Message) }
+    foreach($item in $plan.Classified) {
+        $file=$item.File; $cat=$item.Category
+        if(-not (Test-Path -LiteralPath $file.FullName -PathType Leaf)) { $errors++; $lines.Add("[ERROR] $($file.Name) - El archivo ya no existe."); $lines.Add(''); continue }
+        $target=Get-UniqueDestination (Join-Path (Join-Path $plan.DestRoot $cat) $file.Name)
+        try { $modified=$file.LastWriteTime; Move-Item -LiteralPath $file.FullName -Destination $target -ErrorAction Stop; $count++; $lines.Add("[MOVIDO] $($file.Name)"); $lines.Add("         Modificado: $($modified.ToString('yyyy-MM-dd HH:mm:ss.fffffff'))"); $lines.Add("         -> $cat"); $lines.Add(''); $statusLabel.Text="Estado: Organizando... $count archivo(s)"; [System.Windows.Forms.Application]::DoEvents() }
+        catch { $errors++; $lines.Add("[ERROR] $($file.Name) - $($_.Exception.Message)"); $lines.Add('') }
+    }
     $end=Get-Date; $duration=[math]::Round(($end-$start).TotalSeconds,2)
     $lines.Add('--------------------------------------------------'); $lines.Add(''); $lines.Add("Archivos procesados: $count"); $lines.Add("Errores: $errors"); if($count -eq 0 -and $errors -eq 0){$lines.Add('Estado: Sin archivos para organizar.')} elseif($errors -eq 0){$lines.Add('Estado: Finalizada correctamente.')} else {$lines.Add('Estado: Finalizada con errores.')}
     $lines.Add('Finalización: '+$end.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add("Duración: $duration segundos"); $lines.Add(''); $lines.Add('==================================================')
     $lines | Set-Content -LiteralPath $log -Encoding UTF8
     $button.Enabled=$true; $lastLabel.Text=Get-LastRun
     if($errors -gt 0){$statusLabel.Text="Estado: $count organizados, $errors error(es)"} elseif($count -eq 0){$statusLabel.Text='Estado: ✓ Todo limpio'} else {$statusLabel.Text="Estado: ✓ $count archivo(s) organizado(s)"}
+}
+
+function Show-OrganizationPreview($statusLabel,$lastLabel,$mainButton,$owner) {
+    try { $plan=Get-OrganizationPlan }
+    catch { [Windows.Forms.MessageBox]::Show($_.Exception.Message,'BandaNV','OK','Error')|Out-Null; return }
+
+    if($plan.Classified.Count -eq 0 -and $plan.Unclassified.Count -eq 0) {
+        [Windows.Forms.MessageBox]::Show('✓ TODO LIMPIO'+[Environment]::NewLine+[Environment]::NewLine+'No hay archivos pendientes de organizar.','BandaNV','OK','Information')|Out-Null
+        return
+    }
+
+    $form=New-Object Windows.Forms.Form; $form.Text='BandaNV — Vista previa'; $form.Size=New-Object Drawing.Size(720,650); $form.StartPosition='CenterParent'; $form.MinimumSize=New-Object Drawing.Size(620,500)
+    $title=New-Object Windows.Forms.Label; $title.Text='VISTA PREVIA'; $title.Font=New-Object Drawing.Font('Segoe UI',18,[Drawing.FontStyle]::Bold); $title.Location=New-Object Drawing.Point(22,18); $title.AutoSize=$true
+    $summary=New-Object Windows.Forms.Label; $summary.Location=New-Object Drawing.Point(25,60); $summary.Size=New-Object Drawing.Size(650,42); $summary.Anchor='Top,Left,Right'
+    if($plan.Classified.Count -eq 1){$summary.Text='Se encontró 1 archivo para organizar.'}else{$summary.Text="Se encontraron $($plan.Classified.Count) archivos para organizar."}
+    if($plan.Unclassified.Count -gt 0){$summary.Text += "  $($plan.Unclassified.Count) sin clasificar."}
+
+    $preview=New-Object Windows.Forms.RichTextBox; $preview.Location=New-Object Drawing.Point(25,105); $preview.Size=New-Object Drawing.Size(650,445); $preview.Anchor='Top,Bottom,Left,Right'; $preview.ReadOnly=$true; $preview.WordWrap=$false; $preview.ScrollBars='ForcedVertical'; $preview.Font=New-Object Drawing.Font('Consolas',10); $preview.BackColor=[Drawing.Color]::White; $preview.DetectUrls=$false
+    $sb=New-Object Text.StringBuilder
+    foreach($cat in $plan.Categories) {
+        $items=Sort-FileItemsNewestNaturalDesc @($plan.Classified | Where-Object {$_.Category -eq $cat.Name})
+        if($items.Count -eq 0){continue}
+        [void]$sb.AppendLine($cat.Name); [void]$sb.AppendLine(('─' * 62))
+        foreach($item in $items) {
+            $name=$item.File.Name; if($name.Length -gt 43){$name=$name.Substring(0,40)+'...'}
+            [void]$sb.AppendLine(('{0,-46}{1}' -f $name,$item.File.LastWriteTime.ToString('dd/MM/yyyy HH:mm')))
+        }
+        [void]$sb.AppendLine('')
+    }
+    if($plan.Unclassified.Count -gt 0) {
+        [void]$sb.AppendLine('SIN CLASIFICAR — NO SE MOVERÁN'); [void]$sb.AppendLine(('─' * 62))
+        foreach($item in (Sort-FileItemsNewestNaturalDesc @($plan.Unclassified))) {
+            $name=$item.File.Name; if($name.Length -gt 43){$name=$name.Substring(0,40)+'...'}
+            [void]$sb.AppendLine(('{0,-46}{1}' -f $name,$item.File.LastWriteTime.ToString('dd/MM/yyyy HH:mm')))
+        }
+    }
+    $preview.Text=$sb.ToString(); $preview.SelectionStart=0; $preview.SelectionLength=0
+
+    $cancel=New-Object Windows.Forms.Button; $cancel.Text='CANCELAR'; $cancel.Location=New-Object Drawing.Point(415,565); $cancel.Size=New-Object Drawing.Size(120,34); $cancel.Anchor='Bottom,Right'; $cancel.Add_Click({$form.Close()})
+    $confirm=New-Object Windows.Forms.Button; $confirm.Text='ORGANIZAR'; $confirm.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $confirm.Location=New-Object Drawing.Point(555,565); $confirm.Size=New-Object Drawing.Size(120,34); $confirm.Anchor='Bottom,Right'; $confirm.Enabled=($plan.Classified.Count -gt 0)
+    $confirm.Add_Click({ $form.Hide(); Invoke-OrganizationPlan $plan $statusLabel $lastLabel $mainButton $owner; $form.Close() })
+    $form.Controls.AddRange(@($title,$summary,$preview,$cancel,$confirm))
+    $form.Add_Shown({
+        $preview.SelectionStart=0; $preview.SelectionLength=0; $preview.ScrollToCaret()
+        $cancel.Select(); [void]$cancel.Focus()
+    })
+    [void]$form.ShowDialog($owner)
 }
 
 function Get-LogSummary([System.IO.FileInfo]$file) {
@@ -246,18 +391,47 @@ function Get-LogSummary([System.IO.FileInfo]$file) {
     if ($file.BaseName -match '^BandaNV_(\d{4})-(\d{2})-(\d{2})____(\d{2})-(\d{2})') {
         $dateText = "$($Matches[3])/$($Matches[2])/$($Matches[1]) - $($Matches[4]):$($Matches[5])"
     }
-    $source=''; $destination=''; $duration=''; $moved=New-Object System.Collections.Generic.List[string]; $categoryCounts=@{}; $pendingFile=$null
+
+    $source=''; $destination=''; $duration=''; $records=New-Object System.Collections.Generic.List[object]; $categoryCounts=@{}
+    $pendingFile=$null; $pendingModified=$null
     foreach($line in ($raw -split "`r?`n")) {
         if($line -match '^Origen:\s*(.+)$'){$source=$Matches[1].Trim();continue}
         if($line -match '^Destino:\s*(.+)$'){$destination=$Matches[1].Trim();continue}
         if($line -match '^Duración:\s*(.+)$'){$duration=$Matches[1].Trim();continue}
-        if($line -match '^\[MOVIDO\]\s*(.+)$'){$pendingFile=$Matches[1].Trim();continue}
-        if($null -ne $pendingFile -and $line -match '^\s*->\s*(.+)$'){$cat=$Matches[1].Trim(); [void]$moved.Add("$pendingFile  ->  $cat"); if($categoryCounts.ContainsKey($cat)){$categoryCounts[$cat]++}else{$categoryCounts[$cat]=1}; $pendingFile=$null}
+        if($line -match '^\[MOVIDO\]\s*(.+)$'){$pendingFile=$Matches[1].Trim();$pendingModified=$null;continue}
+        if($null -ne $pendingFile -and $line -match '^\s*Modificado:\s*(.+)$'){
+            $dt=[datetime]::MinValue
+            if([datetime]::TryParse($Matches[1].Trim(),[ref]$dt)){$pendingModified=$dt}
+            continue
+        }
+        if($null -ne $pendingFile -and $line -match '^\s*->\s*(.+)$'){
+            $cat=$Matches[1].Trim()
+            [void]$records.Add([PSCustomObject]@{Name=$pendingFile;Category=$cat;Modified=$pendingModified})
+            if($categoryCounts.ContainsKey($cat)){$categoryCounts[$cat]++}else{$categoryCounts[$cat]=1}
+            $pendingFile=$null; $pendingModified=$null
+        }
     }
+
     $friendly=New-Object System.Collections.Generic.List[string]
     if($source){$friendly.Add('Origen: '+$source)}; if($destination){$friendly.Add('Destino: '+$destination)}; $friendly.Add(''); $friendly.Add('Resultado: '+$statusText); if($duration){$friendly.Add('Duración: '+$duration)}
-    if($categoryCounts.Count -gt 0){$friendly.Add(''); $friendly.Add('Por categoría:'); foreach($k in ($categoryCounts.Keys | Sort-Object)){$friendly.Add(('  {0}: {1}' -f $k, $categoryCounts[$k]))}}
-    if($moved.Count -gt 0){$friendly.Add(''); $friendly.Add('Archivos movidos:'); foreach($m in $moved){$friendly.Add('  '+$m)}}
+    if($categoryCounts.Count -gt 0){
+        $friendly.Add(''); $friendly.Add('Por categoría:')
+        foreach($k in @($categoryCounts.Keys | Sort-Object @{Expression={Get-CategoryOrder $_};Ascending=$true}, @{Expression={$_};Ascending=$true})){$friendly.Add(('  {0}: {1}' -f $k, $categoryCounts[$k]))}
+    }
+    if($records.Count -gt 0){
+        $friendly.Add(''); $friendly.Add('Archivos movidos:')
+        $groups=@($records | Group-Object Category | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+        foreach($g in $groups){
+            $friendly.Add(''); $friendly.Add('  '+$g.Name)
+            $sorted=@($g.Group | Sort-Object `
+                @{Expression={ if($null -eq $_.Modified){[datetime]::MinValue}else{$_.Modified} };Descending=$true}, `
+                @{Expression={ Get-NaturalNameKey $_.Name };Descending=$true})
+            foreach($r in $sorted){
+                if($null -ne $r.Modified){$friendly.Add(('    {0}    {1}' -f $r.Name,$r.Modified.ToString('dd/MM/yyyy HH:mm')))}
+                else {$friendly.Add('    '+$r.Name)}
+            }
+        }
+    }
     if($errors -gt 0){$friendly.Add(''); $friendly.Add('Para revisar los errores completos, abrí el archivo de log.')}
     return [PSCustomObject]@{ File=$file; Date=$dateText; Count=$count; Errors=$errors; Status=$statusText; Raw=($friendly -join [Environment]::NewLine) }
 }
@@ -268,7 +442,12 @@ function Show-HistoryDetail($summary, $owner) {
     $state=New-Object Windows.Forms.Label; $state.Text=$summary.Status; $state.Font=New-Object Drawing.Font('Segoe UI',10); $state.Location=New-Object Drawing.Point(25,58); $state.AutoSize=$true
     $detail=New-Object Windows.Forms.TextBox; $detail.Location=New-Object Drawing.Point(25,95); $detail.Size=New-Object Drawing.Size(585,365); $detail.Multiline=$true; $detail.ReadOnly=$true; $detail.ScrollBars='Vertical'; $detail.Anchor='Top,Bottom,Left,Right'; $detail.Font=New-Object Drawing.Font('Consolas',9); $detail.Text=$summary.Raw
     $close=New-Object Windows.Forms.Button; $close.Text='CERRAR'; $close.Location=New-Object Drawing.Point(490,475); $close.Size=New-Object Drawing.Size(120,32); $close.Anchor='Bottom,Right'; $close.Add_Click({$form.Close()})
-    $form.Controls.AddRange(@($title,$state,$detail,$close)); [void]$form.ShowDialog($owner)
+    $form.Controls.AddRange(@($title,$state,$detail,$close))
+    $form.Add_Shown({
+        $detail.SelectionStart=0; $detail.SelectionLength=0; $detail.ScrollToCaret()
+        $close.Select(); [void]$close.Focus()
+    })
+    [void]$form.ShowDialog($owner)
 }
 
 function Show-History {
@@ -288,6 +467,97 @@ function Show-History {
     $open=New-Object Windows.Forms.Button; $open.Text='Abrir carpeta de logs'; $open.Location=New-Object Drawing.Point(160,470); $open.Size=New-Object Drawing.Size(155,32); $open.Anchor='Bottom,Left'; $open.Add_Click({Start-Process explorer.exe -ArgumentList ('"'+$script:LogsDir+'"')})
     $close=New-Object Windows.Forms.Button; $close.Text='CERRAR'; $close.Location=New-Object Drawing.Point(490,470); $close.Size=New-Object Drawing.Size(120,32); $close.Anchor='Bottom,Right'; $close.Add_Click({$form.Close()})
     $form.Controls.AddRange(@($title,$hint,$list,$detailBtn,$open,$close)); [void]$form.ShowDialog()
+}
+
+function Show-FileSearch($owner) {
+    $cfg=Load-Config
+    $source=Resolve-Source $cfg
+    if ([string]::IsNullOrWhiteSpace($source) -or -not (Test-Path -LiteralPath $source -PathType Container)) {
+        [Windows.Forms.MessageBox]::Show("La carpeta de origen no existe:`n$source`n`nRevisá Configuración.",'BandaNV','OK','Warning') | Out-Null
+        return
+    }
+    $root=Join-Path $source ([string]$cfg.organizedFolder)
+
+    $form=New-Object Windows.Forms.Form; $form.Text='BandaNV — Buscador'; $form.Size=New-Object Drawing.Size(700,610); $form.StartPosition='CenterParent'; $form.MinimumSize=New-Object Drawing.Size(620,500)
+    $title=New-Object Windows.Forms.Label; $title.Text='BUSCAR ARCHIVOS'; $title.Font=New-Object Drawing.Font('Segoe UI',18,[Drawing.FontStyle]::Bold); $title.Location=New-Object Drawing.Point(22,18); $title.AutoSize=$true
+    $hint=New-Object Windows.Forms.Label; $hint.Text='Buscá por nombre. Doble clic en un resultado para mostrarlo en el Explorador.'; $hint.Location=New-Object Drawing.Point(25,58); $hint.AutoSize=$true
+    $query=New-Object Windows.Forms.TextBox; $query.Location=New-Object Drawing.Point(25,88); $query.Size=New-Object Drawing.Size(505,27); $query.Anchor='Top,Left,Right'
+    $search=New-Object Windows.Forms.Button; $search.Text='BUSCAR'; $search.Location=New-Object Drawing.Point(545,86); $search.Size=New-Object Drawing.Size(110,30); $search.Anchor='Top,Right'
+    $status=New-Object Windows.Forms.Label; $status.Text='Escribí parte del nombre de un archivo para buscar.'; $status.Location=New-Object Drawing.Point(25,128); $status.Size=New-Object Drawing.Size(630,22); $status.Anchor='Top,Left,Right'
+
+    $list=New-Object Windows.Forms.ListView; $list.Location=New-Object Drawing.Point(25,158); $list.Size=New-Object Drawing.Size(630,345); $list.View='Details'; $list.FullRowSelect=$true; $list.GridLines=$false; $list.HideSelection=$false; $list.Anchor='Top,Bottom,Left,Right'; $list.ShowGroups=$true
+    [void]$list.Columns.Add('Archivo',430); [void]$list.Columns.Add('Date modified',165)
+
+    $close=New-Object Windows.Forms.Button; $close.Text='CERRAR'; $close.Location=New-Object Drawing.Point(535,520); $close.Size=New-Object Drawing.Size(120,32); $close.Anchor='Bottom,Right'; $close.Add_Click({$form.Close()})
+
+    $runSearch={
+        $term=$query.Text.Trim()
+        $list.BeginUpdate()
+        try {
+            $list.Items.Clear(); $list.Groups.Clear()
+            if([string]::IsNullOrWhiteSpace($term)){
+                $status.Text='Escribí parte del nombre de un archivo para buscar.'
+                return
+            }
+            if(-not (Test-Path -LiteralPath $root -PathType Container)){
+                $status.Text='La carpeta ORGANIZADO todavía no existe.'
+                return
+            }
+
+            $matches=New-Object System.Collections.Generic.List[object]
+            foreach($f in @(Get-ChildItem -LiteralPath $root -File -Recurse -ErrorAction SilentlyContinue)){
+                if($f.Name.IndexOf($term,[StringComparison]::OrdinalIgnoreCase) -lt 0){continue}
+                $relative=$f.FullName.Substring($root.Length).TrimStart([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
+                $parts=$relative -split '[\\/]'
+                if($parts.Count -gt 1){$groupName=$parts[0]}else{$groupName=[string]$cfg.organizedFolder}
+                $order=Get-CategoryOrder $groupName
+                [void]$matches.Add([PSCustomObject]@{File=$f;Group=$groupName;Order=$order})
+            }
+
+            $ordered=@($matches | Sort-Object `
+                @{Expression={$_.Order};Descending=$false}, `
+                @{Expression={$_.Group};Descending=$false}, `
+                @{Expression={$_.File.LastWriteTime};Descending=$true}, `
+                @{Expression={Get-NaturalNameKey $_.File.Name};Descending=$true})
+
+            $groups=@{}
+            foreach($m in $ordered){
+                if(-not $groups.ContainsKey($m.Group)){
+                    $g=New-Object Windows.Forms.ListViewGroup($m.Group,[Windows.Forms.HorizontalAlignment]::Left)
+                    [void]$list.Groups.Add($g); $groups[$m.Group]=$g
+                }
+                $item=New-Object Windows.Forms.ListViewItem($m.File.Name)
+                [void]$item.SubItems.Add($m.File.LastWriteTime.ToString('dd/MM/yyyy HH:mm'))
+                $item.Group=$groups[$m.Group]
+                $item.Tag=$m.File.FullName
+                [void]$list.Items.Add($item)
+            }
+            if($ordered.Count -eq 1){$status.Text='1 archivo encontrado.'}else{$status.Text=("{0} archivos encontrados." -f $ordered.Count)}
+        }
+        catch {
+            $status.Text='No se pudo completar la búsqueda.'
+            [Windows.Forms.MessageBox]::Show("No se pudo completar la búsqueda:`n$($_.Exception.Message)",'BandaNV','OK','Error') | Out-Null
+        }
+        finally {$list.EndUpdate()}
+    }
+
+    $search.Add_Click($runSearch)
+    $query.Add_KeyDown({param($sender,$e) if($e.KeyCode -eq [Windows.Forms.Keys]::Enter){$e.SuppressKeyPress=$true; & $runSearch}})
+    $list.Add_DoubleClick({
+        if($list.SelectedItems.Count -eq 0){return}
+        $path=[string]$list.SelectedItems[0].Tag
+        if([string]::IsNullOrWhiteSpace($path)){return}
+        if(-not (Test-Path -LiteralPath $path -PathType Leaf)){
+            [Windows.Forms.MessageBox]::Show('El archivo ya no existe en esa ubicación. Volvé a ejecutar la búsqueda para actualizar los resultados.','BandaNV','OK','Information') | Out-Null
+            return
+        }
+        Start-Process explorer.exe -ArgumentList ('/select,"'+$path+'"')
+    })
+
+    $form.AcceptButton=$search
+    $form.Controls.AddRange(@($title,$hint,$query,$search,$status,$list,$close))
+    $form.Add_Shown({$query.Select(); [void]$query.Focus()})
+    [void]$form.ShowDialog($owner)
 }
 
 function Add-ExtensionField($panel, [string]$value, $markDirty) {
@@ -369,6 +639,22 @@ function Show-Config {
 
     $addCat=New-Object Windows.Forms.Button; $addCat.Text='+ Agregar categoría'; $addCat.Location=New-Object Drawing.Point(25,608); $addCat.Size=New-Object Drawing.Size(150,32); $addCat.Anchor='Bottom,Left'; $addCat.Add_Click({Add-CategoryCard $cards '' @('') '' $markDirty; & $markDirty})
 
+    $restore=New-Object Windows.Forms.Button; $restore.Text='RESTAURAR PREDETERMINADOS'; $restore.Location=New-Object Drawing.Point(185,608); $restore.Size=New-Object Drawing.Size(205,32); $restore.Anchor='Bottom,Left'
+    $restore.Add_Click({
+        $d=Get-DefaultConfig
+        foreach($control in @($cards.Controls)){ $cards.Controls.Remove($control); $control.Dispose() }
+        foreach($p in $d.categories.GetEnumerator()){
+            $defaultName=Get-CategoryDisplayName ([string]$p.Key)
+            $original=''
+            foreach($oldProp in $cfg.categories.PSObject.Properties){
+                if((Get-CategoryDisplayName ([string]$oldProp.Name)) -ieq $defaultName){ $original=[string]$oldProp.Name; break }
+            }
+            Add-CategoryCard $cards $defaultName $p.Value $original $markDirty
+        }
+        Update-CategoryNumbers $cards
+        $script:ConfigDirty=$true; $save.Enabled=$true
+    })
+
     $save.Add_Click({
         if($manual.Checked -and ([string]::IsNullOrWhiteSpace($source.Text) -or -not (Test-Path -LiteralPath $source.Text -PathType Container))){[Windows.Forms.MessageBox]::Show('Elegí una carpeta manual válida.','BandaNV','OK','Warning')|Out-Null;return}
         if([string]::IsNullOrWhiteSpace($org.Text) -or $org.Text.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0){[Windows.Forms.MessageBox]::Show('El nombre de la carpeta organizada no es válido.','BandaNV','OK','Warning')|Out-Null;return}
@@ -403,13 +689,13 @@ function Show-Config {
             if($r -ne [Windows.Forms.DialogResult]::Yes){$e.Cancel=$true}
         }
     })
-    $form.Controls.AddRange(@($title,$auto,$manual,$source,$browse,$orgLbl,$org,$catsLbl,$cards,$addCat,$save)); [void]$form.ShowDialog()
+    $form.Controls.AddRange(@($title,$auto,$manual,$source,$browse,$orgLbl,$org,$catsLbl,$cards,$addCat,$restore,$save)); [void]$form.ShowDialog()
 }
 
 Ensure-AppData
 $main=New-Object Windows.Forms.Form; $main.Text='BandaNV'; $main.Size=New-Object Drawing.Size(520,430); $main.StartPosition='CenterScreen'; $main.FormBorderStyle='FixedSingle'; $main.MaximizeBox=$false
 $title=New-Object Windows.Forms.Label; $title.Text='BandaNV'; $title.Font=New-Object Drawing.Font('Segoe UI',24,[Drawing.FontStyle]::Bold); $title.Location=New-Object Drawing.Point(28,22); $title.AutoSize=$true
-$ver=New-Object Windows.Forms.Label; $ver.Text='v1.0 RC1.3.1'; $ver.Location=New-Object Drawing.Point(420,35); $ver.AutoSize=$true
+$ver=New-Object Windows.Forms.Label; $ver.Text='v1.0 RC1.6.2'; $ver.Location=New-Object Drawing.Point(420,35); $ver.AutoSize=$true
 $subtitle=New-Object Windows.Forms.Label; $subtitle.Text='Organizador de archivos'; $subtitle.Location=New-Object Drawing.Point(32,70); $subtitle.AutoSize=$true
 $folderLabel=New-Object Windows.Forms.Label; $folderLabel.Text='Carpeta'; $folderLabel.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $folderLabel.Location=New-Object Drawing.Point(32,112); $folderLabel.AutoSize=$true
 $folder=New-Object Windows.Forms.Label; $folder.Location=New-Object Drawing.Point(32,135); $folder.Size=New-Object Drawing.Size(445,36); $folder.AutoEllipsis=$true
@@ -418,7 +704,8 @@ $status=New-Object Windows.Forms.Label; $status.Text='Estado: Listo para organiz
 $lastTitle=New-Object Windows.Forms.Label; $lastTitle.Text='Última ejecución'; $lastTitle.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $lastTitle.Location=New-Object Drawing.Point(32,295); $lastTitle.AutoSize=$true
 $last=New-Object Windows.Forms.Label; $last.Location=New-Object Drawing.Point(32,318); $last.Size=New-Object Drawing.Size(445,22); $last.Text=Get-LastRun
 $history=New-Object Windows.Forms.Button; $history.Text='Historial'; $history.Location=New-Object Drawing.Point(32,355); $history.Size=New-Object Drawing.Size(130,30)
+$finder=New-Object Windows.Forms.Button; $finder.Text='Buscador'; $finder.Location=New-Object Drawing.Point(190,355); $finder.Size=New-Object Drawing.Size(130,30)
 $config=New-Object Windows.Forms.Button; $config.Text='Configuración'; $config.Location=New-Object Drawing.Point(347,355); $config.Size=New-Object Drawing.Size(130,30)
 function Refresh-Main { $c=Load-Config; $folder.Text=Resolve-Source $c; $last.Text=Get-LastRun }
-$organize.Add_Click({Invoke-Organizer $status $last $organize}); $history.Add_Click({Show-History; Refresh-Main}); $config.Add_Click({Show-Config; Refresh-Main})
-$main.Add_Shown({Refresh-Main}); $main.Controls.AddRange(@($title,$ver,$subtitle,$folderLabel,$folder,$organize,$status,$lastTitle,$last,$history,$config)); [void]$main.ShowDialog()
+$organize.Add_Click({Show-OrganizationPreview $status $last $organize $main}); $history.Add_Click({Show-History; Refresh-Main}); $finder.Add_Click({Show-FileSearch $main; Refresh-Main}); $config.Add_Click({Show-Config; Refresh-Main})
+$main.Add_Shown({Refresh-Main}); $main.Controls.AddRange(@($title,$ver,$subtitle,$folderLabel,$folder,$organize,$status,$lastTitle,$last,$history,$finder,$config)); [void]$main.ShowDialog()

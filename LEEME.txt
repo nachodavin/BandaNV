@@ -1,40 +1,22 @@
-﻿BandaNV v1.0 RC1.3.2
-=================
+﻿BandaNV v1.0 RC1.6.2
 
-ESTRUCTURA DE PRUEBA
-- BandaNV.ps1       Código fuente de la RC1.3.2.
-- Build_EXE.ps1     Genera BandaNV.exe en Windows.
-- config\           Se crea automáticamente al iniciar.
-- logs\             Se crea automáticamente al iniciar.
+Novedad principal: BUSCADOR de archivos actuales.
 
-COMPILAR
-1. Extraé esta carpeta en una ubicación donde tu usuario tenga permisos normales de escritura.
-2. Abrí PowerShell dentro de esta carpeta.
-3. Ejecutá:
-   powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
-4. Se generará BandaNV.exe.
+Buscador:
+1. Abrí BUSCADOR desde la pantalla principal.
+2. Escribí parte del nombre de un archivo y presioná Enter o BUSCAR.
+3. BandaNV busca directamente dentro de ORGANIZADO y sus subcarpetas.
+4. Los resultados se agrupan por categoría/carpeta y muestran nombre + Date modified.
+5. La ruta completa no se muestra, pero BandaNV la conserva internamente para distinguir archivos iguales.
+6. Doble clic sobre un resultado abre Explorer y selecciona ese archivo exacto.
+7. El Buscador es solo lectura y no depende de los logs.
 
-PORTABILIDAD
-BandaNV está pensado para vivir en una carpeta normal con permisos de usuario (Escritorio, Documentos, otro disco, pendrive, C:\BandaNV, etc.).
-Para respaldarlo, copiá la carpeta completa.
+Se mantienen la Vista previa, Historial, Configuración, logs individuales y sincronización física de categorías.
 
-LOGS
-Formato: BandaNV_AAAA-MM-DD____HH-mm.txt
-Si ya existe uno en el mismo minuto: (2), (3), etc.
+Hotfix RC1.6.2:
+- RESTAURAR PREDETERMINADOS restaura solo Categorías y no muestra confirmación.
+- Categorías eliminadas: carpeta vacía se borra; con contenido se preserva sin prefijo numérico.
+- La renumeración ocurre después de resolver las categorías eliminadas para evitar colisiones.
 
-RC1.3
-- El nombre de cada categoría ya no necesita incluir su número.
-- BandaNV numera automáticamente las carpetas: 1 - NOMBRE, 2 - NOMBRE, etc.
-- Botones ↑ y ↓ para reordenar categorías desde Configuración.
-- Al guardar, las carpetas existentes de ORGANIZADO se renombran de forma segura para reflejar el nuevo orden.
-- Renombrar una categoría desde la interfaz también renombra su carpeta existente.
-- Eliminar una categoría de la configuración NO borra su carpeta ni sus archivos.
-- El botón GUARDAR solo se habilita cuando hay cambios pendientes.
-- Si se intenta cerrar Configuración con cambios sin guardar, BandaNV pide confirmación.
-- Se mantienen la configuración visual por extensiones, el historial simplificado y el motor estable de RC1.2.1.
-
-RC1.3.2 HOTFIX
-- La interfaz guarda nombres de categoria sin numeracion.
-- Las carpetas fisicas se crean siempre como N - CATEGORIA segun el orden visual.
-- El organizador mueve los archivos a esas carpetas numeradas.
-- Compatibilidad con carpetas legacy sin numero y con carpetas ya numeradas.
+Compilación:
+powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
