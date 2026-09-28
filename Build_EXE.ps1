@@ -2,8 +2,9 @@
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $source = Join-Path $root 'BandaNV.ps1'
 $output = Join-Path $root 'BandaNV.exe'
+$icon = Join-Path $root 'assets\BandaNV.ico'
 
-Write-Host 'BandaNV v1.0 RC1.6.2 - Compilador' -ForegroundColor Cyan
+Write-Host 'BandaNV v1.0 RC1.7.5 - Compilador' -ForegroundColor Cyan
 
 try {
     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
@@ -19,11 +20,15 @@ try {
         throw "No se encontró el código fuente: $source"
     }
 
+    if (-not (Test-Path -LiteralPath $icon -PathType Leaf)) {
+        throw "No se encontró el icono de BandaNV: $icon"
+    }
+
     if (Test-Path -LiteralPath $output) {
         Remove-Item -LiteralPath $output -Force -ErrorAction Stop
     }
 
-    Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -title 'BandaNV' -product 'BandaNV' -version '1.0.0.62' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
+    Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -iconFile $icon -title 'BandaNV' -product 'BandaNV' -version '1.0.0.75' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
 
     if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
         throw 'PS2EXE terminó sin generar BandaNV.exe.'

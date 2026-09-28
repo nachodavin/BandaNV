@@ -1,22 +1,51 @@
-﻿BandaNV v1.0 RC1.6.2
+﻿BandaNV v1.0 RC1.7.5
 
-Novedad principal: BUSCADOR de archivos actuales.
+RC1.7.5 — Hotfix visual de header y firma
 
-Buscador:
-1. Abrí BUSCADOR desde la pantalla principal.
-2. Escribí parte del nombre de un archivo y presioná Enter o BUSCAR.
-3. BandaNV busca directamente dentro de ORGANIZADO y sus subcarpetas.
-4. Los resultados se agrupan por categoría/carpeta y muestran nombre + Date modified.
-5. La ruta completa no se muestra, pero BandaNV la conserva internamente para distinguir archivos iguales.
-6. Doble clic sobre un resultado abre Explorer y selecciona ese archivo exacto.
-7. El Buscador es solo lectura y no depende de los logs.
+Esta build parte de RC1.7 estable. No cambia el motor de organización,
+la clasificación, el Buscador, el Historial, los logs ni la sincronización
+física de categorías.
 
-Se mantienen la Vista previa, Historial, Configuración, logs individuales y sincronización física de categorías.
+HOTFIX RC1.7.5
+- BandaNV_Logo bajado 6 px adicionales en la pantalla Principal.
+- El separador teal se reubicó debajo del branding y se fuerza al frente para que vuelva a verse completo.
+- La firma ahora se muestra como "v1.0 RC1.7.5 by Nacho", sin viñeta.
+- "Nacho" se renderiza en negrita y el resto de la firma en peso regular.
+- La firma usa medición explícita de texto y un margen derecho real de 30 px para evitar recortes.
+- Los bloques inferiores de la Principal se desplazaron levemente para conservar el espaciado.
+- Logo, mascota e icono NV permanecen sin modificaciones.
+- Sin cambios funcionales.
 
-Hotfix RC1.6.2:
-- RESTAURAR PREDETERMINADOS restaura solo Categorías y no muestra confirmación.
-- Categorías eliminadas: carpeta vacía se borra; con contenido se preserva sin prefijo numérico.
-- La renumeración ocurre después de resolver las categorías eliminadas para evitar colisiones.
+NUEVA IDENTIDAD VISUAL
+- Estética Dark Elegant.
+- Paleta grafito/antracita con acento teal oficial (#3BD2B9).
+- Wordmark BandaNV original integrado en la pantalla principal.
+- Icono NV oficial integrado como icono de BandaNV.
+- El arte provisto se usa sin redibujarlo ni reinterpretarlo.
+- Icono aplicado al EXE y a las ventanas.
+- Barra de título oscura cuando Windows la soporta.
+- Botones, inputs, listas, categorías y paneles con estilo coherente.
+- Acciones principales (ORGANIZAR, BUSCAR, GUARDAR) resaltadas en teal.
+- Texto secundario y estados usan jerarquía visual más limpia.
+
+PANTALLA PRINCIPAL
+- Nuevo encabezado gráfico con el logo BandaNV.
+- Fondo dark y separador teal.
+- Carpeta actual, estado y última ejecución con nueva jerarquía visual.
+- Botones Historial, Buscador y Configuración unificados visualmente.
+
+VENTANAS SECUNDARIAS
+- Vista previa, Historial, Detalle, Buscador y Configuración adoptan
+  la misma identidad Dark Elegant.
+- Se mantiene el foco/selección corregido de RC1.4.3.
+- No se modifica el contenido ni la lógica de estas herramientas.
+
+ASSETS DE FUENTE
+- assets\BandaNV_Logo.png: wordmark original.
+- assets\BandaNV_Mascot.png: personaje original de branding.
+- assets\BandaNV_AppIcon.png: icono NV original provisto, sin modificaciones.
+- assets\BandaNV.ico: icono NV multirresolución para Windows.
+Los PNG de fuente se conservan sin modificación artística.
 
 Compilación:
 powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
