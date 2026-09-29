@@ -502,6 +502,7 @@ function Start-BandaNVInstaller($result,$workspace) {
         '-StagedExe', (Quote-NVArg ([string]$workspace.StagedExe)),
         '-BackupPath', (Quote-NVArg ([string]$workspace.BackupPath)),
         '-ConfirmPath', (Quote-NVArg ([string]$workspace.ConfirmPath)),
+        '-WorkspaceRoot', (Quote-NVArg ([string]$workspace.Root)),
         '-UpdateToken', (Quote-NVArg ([string]$workspace.Token)),
         '-ExpectedVersion', (Quote-NVArg ([string]$result.Available)),
         '-ReleaseTag', (Quote-NVArg ([string]$result.Tag))
