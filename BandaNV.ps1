@@ -443,8 +443,14 @@ function Expand-BandaNVAutoUpdate([string]$zipPath,[string]$extractDir) {
 
     # Estructura intencionalmente estricta en Phase 2:
     # AutoUpdate.zip debe contener BandaNV.exe en la raíz.
-    $archive=[IO.Compression.ZipFile]::OpenRead($zipPath)
+    $archive=$null
     try {
+        try {
+            $archive=[IO.Compression.ZipFile]::OpenRead($zipPath)
+        } catch {
+            throw 'El paquete AutoUpdate está dañado o no es un archivo ZIP válido.'
+        }
+
         $files=@($archive.Entries | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) })
         $names=@($files | ForEach-Object { $_.FullName.Replace('/','\') })
 
@@ -460,7 +466,7 @@ function Expand-BandaNVAutoUpdate([string]$zipPath,[string]$extractDir) {
             }
         }
     } finally {
-        $archive.Dispose()
+        if($null -ne $archive){ $archive.Dispose() }
     }
 
     [IO.Compression.ZipFile]::ExtractToDirectory($zipPath,$extractDir)
