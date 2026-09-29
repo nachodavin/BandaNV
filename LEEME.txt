@@ -74,3 +74,11 @@ HARDENING — ROLLBACK LOOP
 - BUSCAR ACTUALIZACIONES informa que esa versión fue omitida tras un rollback.
 - Una Release posterior sí vuelve a ofrecerse normalmente.
 - Si la versión instalada alcanza o supera la versión marcada como fallida, el estado se limpia automáticamente.
+
+
+HARDENING — TEMP WORKSPACE CLEANUP
+- BandaNV pasa explícitamente a NVupdate la raíz del workspace temporal.
+- NVupdate valida que el workspace esté dentro de %TEMP%\BandaNV\update-*.
+- Después de una actualización confirmada se elimina el workspace completo: AutoUpdate.zip, archivos extraídos, confirmación y backup.
+- Después de un rollback exitoso también se elimina el workspace completo.
+- La limpieza es best-effort: un fallo al borrar temporales nunca invalida una actualización ya confirmada ni un rollback ya completado.
