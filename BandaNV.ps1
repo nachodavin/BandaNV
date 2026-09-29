@@ -3,7 +3,9 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 # BandaNV v1.0 RC1
-$script:AppVersion = '1.0 RC1.8.2'
+$script:AppVersion = '1.0 RC1.9'
+$script:GitHubRepo = 'nachodavin/BandaNV'
+$script:GitHubApiBase = 'https://api.github.com/repos/nachodavin/BandaNV'
 
 # Determina la carpeta real de BandaNV tanto al ejecutar el .ps1 como el .exe compilado con PS2EXE.
 $script:AppDir = $null
@@ -27,7 +29,7 @@ $script:LogsDir = Join-Path $script:AppDir 'logs'
 $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
 
 # ============================================================
-# BandaNV RC1.8.2 - Identidad visual Dark Elegant + Deshacer última ejecución
+# BandaNV RC1.9 - Identidad visual Dark Elegant + Updater Phase 1
 # Paleta grafito + teal tomada del branding oficial.
 # Los PNG originales del usuario se conservan sin redibujarlos:
 # el wordmark se incrusta como bytes PNG y el icono NV provisto
@@ -164,6 +166,10 @@ function Apply-DarkTheme($control) {
         $control.BackColor=$control.Parent.BackColor
         $control.ForeColor=$script:ThemeText
         $control.UseVisualStyleBackColor=$false
+    } elseif($control -is [Windows.Forms.CheckBox]) {
+        $control.BackColor=$control.Parent.BackColor
+        $control.ForeColor=$script:ThemeText
+        $control.UseVisualStyleBackColor=$false
     } elseif($control -is [Windows.Forms.Panel]) {
         $control.BackColor=$script:ThemeSurface
         $control.ForeColor=$script:ThemeText
@@ -185,11 +191,329 @@ function Initialize-ThemedForm($form) {
 
 
 
+
+# ============================================================
+# BandaNV Updater - Phase 1
+# GitHub Releases es la única fuente de verdad.
+# Esta fase detecta versiones y muestra la UI; todavía NO instala.
+# ============================================================
+
+$script:UpdateCheckJob=$null
+$script:UpdateCheckTimer=$null
+
+function Test-BandaNVPrereleaseVersion([string]$version=$script:AppVersion) {
+    return -not [string]::IsNullOrWhiteSpace($version) -and ($version -match '(?i)\bRC[0-9]')
+}
+
+function ConvertTo-BandaNVVersionInfo([string]$value) {
+    if([string]::IsNullOrWhiteSpace($value)){ return $null }
+    $raw=$value.Trim()
+    if($raw -notmatch '^[vV]?(?<major>\d+)\.(?<minor>\d+)(?:\.(?<patch>\d+))?(?:[-\s]*(?i:rc)(?<rc>\d+(?:\.\d+)*))?$'){
+        return $null
+    }
+
+    $rcParts=@()
+    if(-not [string]::IsNullOrWhiteSpace([string]$Matches['rc'])) {
+        $rcParts=@(([string]$Matches['rc']).Split('.') | ForEach-Object { [int]$_ })
+    }
+
+    [PSCustomObject]@{
+        Raw=$raw
+        Major=[int]$Matches['major']
+        Minor=[int]$Matches['minor']
+        Patch=if([string]::IsNullOrWhiteSpace([string]$Matches['patch'])){0}else{[int]$Matches['patch']}
+        IsPrerelease=($rcParts.Count -gt 0)
+        RcParts=$rcParts
+    }
+}
+
+function Compare-BandaNVVersionInfo($a,$b) {
+    if($null -eq $a -or $null -eq $b){ throw 'No se puede comparar una versión inválida.' }
+
+    foreach($p in @('Major','Minor','Patch')) {
+        $av=[int]$a.$p
+        $bv=[int]$b.$p
+        if($av -gt $bv){ return 1 }
+        if($av -lt $bv){ return -1 }
+    }
+
+    if([bool]$a.IsPrerelease -and -not [bool]$b.IsPrerelease){ return -1 }
+    if(-not [bool]$a.IsPrerelease -and [bool]$b.IsPrerelease){ return 1 }
+    if(-not [bool]$a.IsPrerelease -and -not [bool]$b.IsPrerelease){ return 0 }
+
+    $ap=@($a.RcParts)
+    $bp=@($b.RcParts)
+    $max=[Math]::Max($ap.Count,$bp.Count)
+    for($i=0;$i -lt $max;$i++) {
+        $av=if($i -lt $ap.Count){[int]$ap[$i]}else{0}
+        $bv=if($i -lt $bp.Count){[int]$bp[$i]}else{0}
+        if($av -gt $bv){ return 1 }
+        if($av -lt $bv){ return -1 }
+    }
+    return 0
+}
+
+function Format-BandaNVReleaseTag([string]$tag) {
+    if([string]::IsNullOrWhiteSpace($tag)){ return '' }
+    $display=$tag.Trim()
+    if($display -notmatch '^[vV]'){ $display='v'+$display }
+    $display=[regex]::Replace($display,'(?i)-rc',' RC')
+    return $display
+}
+
+function Get-BandaNVReleaseApiUri {
+    if(Test-BandaNVPrereleaseVersion) {
+        return ($script:GitHubApiBase + '/releases?per_page=30')
+    }
+    return ($script:GitHubApiBase + '/releases/latest')
+}
+
+function Invoke-BandaNVReleaseRequest {
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    } catch {}
+
+    $headers=@{
+        Accept='application/vnd.github+json'
+        'X-GitHub-Api-Version'='2022-11-28'
+    }
+
+    return Invoke-RestMethod -Uri (Get-BandaNVReleaseApiUri) -Method Get -Headers $headers -UserAgent 'BandaNV-Updater/1.0' -TimeoutSec 8 -ErrorAction Stop
+}
+
+function Select-BandaNVTargetRelease($payload) {
+    $bestRelease=$null
+    $bestVersion=$null
+
+    foreach($release in @($payload)) {
+        if($null -eq $release){ continue }
+        if([bool]$release.draft){ continue }
+
+        # Una versión estable usa /releases/latest, que ya excluye pre-releases.
+        # Una RC consulta /releases y puede ver tanto RCs como una estable más nueva.
+        $version=ConvertTo-BandaNVVersionInfo ([string]$release.tag_name)
+        if($null -eq $version){ continue }
+
+        if($null -eq $bestVersion -or (Compare-BandaNVVersionInfo $version $bestVersion) -gt 0) {
+            $bestVersion=$version
+            $bestRelease=$release
+        }
+    }
+
+    return $bestRelease
+}
+
+function Get-BandaNVUpdateResultFromPayload($payload) {
+    $currentVersion=ConvertTo-BandaNVVersionInfo $script:AppVersion
+    if($null -eq $currentVersion) {
+        return [PSCustomObject]@{Status='Error';Message='La versión instalada de BandaNV no tiene un formato reconocido.'}
+    }
+
+    $release=Select-BandaNVTargetRelease $payload
+    if($null -eq $release) {
+        return [PSCustomObject]@{Status='Error';Message='GitHub no devolvió ninguna Release compatible de BandaNV.'}
+    }
+
+    $availableVersion=ConvertTo-BandaNVVersionInfo ([string]$release.tag_name)
+    if($null -eq $availableVersion) {
+        return [PSCustomObject]@{Status='Error';Message='La última Release de GitHub tiene un tag que BandaNV no reconoce.'}
+    }
+
+    $comparison=Compare-BandaNVVersionInfo $availableVersion $currentVersion
+    $status=if($comparison -gt 0){'Available'}elseif($comparison -eq 0){'Current'}else{'LocalNewer'}
+
+    $assets=@($release.assets)
+    $asset=$assets | Where-Object { ([string]$_.name) -match '(?i)_Update\.zip$' } | Select-Object -First 1
+    if($null -eq $asset) {
+        $asset=$assets | Where-Object { ([string]$_.name) -match '(?i)_Portable\.zip$' } | Select-Object -First 1
+    }
+
+    [PSCustomObject]@{
+        Status=$status
+        Installed=('v'+$script:AppVersion)
+        Available=(Format-BandaNVReleaseTag ([string]$release.tag_name))
+        Tag=[string]$release.tag_name
+        ReleaseName=[string]$release.name
+        ReleaseUrl=[string]$release.html_url
+        IsPrerelease=[bool]$release.prerelease
+        AssetName=if($null -ne $asset){[string]$asset.name}else{''}
+        AssetUrl=if($null -ne $asset){[string]$asset.browser_download_url}else{''}
+        Digest=if($null -ne $asset -and $null -ne $asset.PSObject.Properties['digest']){[string]$asset.digest}else{''}
+        Message=''
+    }
+}
+
+function Invoke-BandaNVUpdateCheck {
+    try {
+        $payload=Invoke-BandaNVReleaseRequest
+        return Get-BandaNVUpdateResultFromPayload $payload
+    } catch {
+        return [PSCustomObject]@{
+            Status='Error'
+            Message=('No se pudo consultar GitHub Releases. ' + $_.Exception.Message)
+        }
+    }
+}
+
+function Show-BandaNVUpdateDialog($result,$owner=$null) {
+    if($null -eq $result -or $result.Status -ne 'Available'){ return }
+
+    $form=New-Object Windows.Forms.Form
+    $form.Text='BandaNV — Nueva versión disponible'
+    $form.Size=New-Object Drawing.Size(520,315)
+    $form.StartPosition='CenterParent'
+    $form.FormBorderStyle='FixedDialog'
+    $form.MaximizeBox=$false
+    $form.MinimizeBox=$false
+    Initialize-ThemedForm $form
+
+    $title=New-Object Windows.Forms.Label
+    $title.Text='NUEVA VERSIÓN DISPONIBLE'
+    $title.Font=New-Object Drawing.Font('Segoe UI',15,[Drawing.FontStyle]::Bold)
+    $title.Location=New-Object Drawing.Point(24,22)
+    $title.AutoSize=$true
+    $title.ForeColor=$script:ThemeAccent
+
+    $installedLbl=New-Object Windows.Forms.Label
+    $installedLbl.Text='Instalada'
+    $installedLbl.Location=New-Object Drawing.Point(28,78)
+    $installedLbl.AutoSize=$true
+    $installedLbl.ForeColor=$script:ThemeTextMuted
+
+    $installed=New-Object Windows.Forms.Label
+    $installed.Text=[string]$result.Installed
+    $installed.Font=New-Object Drawing.Font('Segoe UI',11,[Drawing.FontStyle]::Bold)
+    $installed.Location=New-Object Drawing.Point(28,99)
+    $installed.AutoSize=$true
+
+    $availableLbl=New-Object Windows.Forms.Label
+    $availableLbl.Text='Disponible'
+    $availableLbl.Location=New-Object Drawing.Point(275,78)
+    $availableLbl.AutoSize=$true
+    $availableLbl.ForeColor=$script:ThemeTextMuted
+
+    $available=New-Object Windows.Forms.Label
+    $available.Text=[string]$result.Available
+    $available.Font=New-Object Drawing.Font('Segoe UI',11,[Drawing.FontStyle]::Bold)
+    $available.Location=New-Object Drawing.Point(275,99)
+    $available.AutoSize=$true
+    $available.ForeColor=$script:ThemeAccent
+
+    $note=New-Object Windows.Forms.Label
+    $note.Text='Phase 1: detección desde GitHub lista. La instalación automática se incorpora en la siguiente fase.'
+    $note.Location=New-Object Drawing.Point(28,148)
+    $note.Size=New-Object Drawing.Size(450,48)
+    $note.ForeColor=$script:ThemeTextMuted
+
+    $later=New-Object Windows.Forms.Button
+    $later.Text='MÁS TARDE'
+    $later.Location=New-Object Drawing.Point(236,218)
+    $later.Size=New-Object Drawing.Size(115,34)
+    Set-SecondaryButtonStyle $later
+    $later.Add_Click({$form.Close()})
+
+    $update=New-Object Windows.Forms.Button
+    $update.Text='ACTUALIZAR'
+    $update.Location=New-Object Drawing.Point(363,218)
+    $update.Size=New-Object Drawing.Size(115,34)
+    Set-PrimaryButtonStyle $update
+    $update.Add_Click({
+        $nl=[Environment]::NewLine
+        [Windows.Forms.MessageBox]::Show(
+            'El Update Checker ya confirmó la nueva Release.'+$nl+$nl+
+            'La descarga e instalación automática se habilitarán en la siguiente fase de RC1.9.',
+            'BandaNV — Updater Phase 1','OK','Information'
+        ) | Out-Null
+    })
+
+    $form.Controls.AddRange(@($title,$installedLbl,$installed,$availableLbl,$available,$note,$later,$update))
+    Apply-DarkTheme $form
+    $title.ForeColor=$script:ThemeAccent
+    $installedLbl.ForeColor=$script:ThemeTextMuted
+    $availableLbl.ForeColor=$script:ThemeTextMuted
+    $available.ForeColor=$script:ThemeAccent
+    $note.ForeColor=$script:ThemeTextMuted
+    Set-SecondaryButtonStyle $later
+    Set-PrimaryButtonStyle $update
+
+    if($null -ne $owner -and -not $owner.IsDisposed){ [void]$form.ShowDialog($owner) }
+    else { [void]$form.ShowDialog() }
+}
+
+function Start-BandaNVStartupUpdateCheck($ownerForm) {
+    if($null -ne $script:UpdateCheckJob){ return }
+
+    $uri=Get-BandaNVReleaseApiUri
+    try {
+        $script:UpdateCheckJob=Start-Job -ScriptBlock {
+            param($requestUri)
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            } catch {}
+            $headers=@{
+                Accept='application/vnd.github+json'
+                'X-GitHub-Api-Version'='2022-11-28'
+            }
+            $payload=Invoke-RestMethod -Uri $requestUri -Method Get -Headers $headers -UserAgent 'BandaNV-Updater/1.0' -TimeoutSec 8 -ErrorAction Stop
+            ConvertTo-Json -InputObject $payload -Depth 12 -Compress
+        } -ArgumentList $uri -ErrorAction Stop
+    } catch {
+        $script:UpdateCheckJob=$null
+        return
+    }
+
+    $timer=New-Object Windows.Forms.Timer
+    $timer.Interval=300
+    $script:UpdateCheckTimer=$timer
+    $ownerRef=$ownerForm
+
+    $handler={
+        if($null -eq $script:UpdateCheckJob) {
+            $timer.Stop()
+            $timer.Dispose()
+            $script:UpdateCheckTimer=$null
+            return
+        }
+
+        $state=[string]$script:UpdateCheckJob.State
+        if($state -eq 'Completed') {
+            try {
+                $json=Receive-Job -Job $script:UpdateCheckJob -ErrorAction Stop | Select-Object -Last 1
+                if(-not [string]::IsNullOrWhiteSpace([string]$json)) {
+                    $payload=([string]$json | ConvertFrom-Json)
+                    $result=Get-BandaNVUpdateResultFromPayload $payload
+                    if($result.Status -eq 'Available' -and $null -ne $ownerRef -and -not $ownerRef.IsDisposed) {
+                        Show-BandaNVUpdateDialog $result $ownerRef
+                    }
+                }
+            } catch {}
+            finally {
+                Remove-Job -Job $script:UpdateCheckJob -Force -ErrorAction SilentlyContinue
+                $script:UpdateCheckJob=$null
+                $timer.Stop()
+                $timer.Dispose()
+                $script:UpdateCheckTimer=$null
+            }
+        } elseif($state -in @('Failed','Stopped','Disconnected')) {
+            Remove-Job -Job $script:UpdateCheckJob -Force -ErrorAction SilentlyContinue
+            $script:UpdateCheckJob=$null
+            $timer.Stop()
+            $timer.Dispose()
+            $script:UpdateCheckTimer=$null
+        }
+    }.GetNewClosure()
+
+    $timer.Add_Tick($handler)
+    $timer.Start()
+}
+
+
 function Get-DefaultConfig {
     [ordered]@{
         autoDownloads = $false
         source = ''
         organizedFolder = 'ORGANIZADO'
+        checkUpdatesOnStartup = $true
         categories = [ordered]@{
             'RAR'        = @('.zip','.rar','.7z')
             'INSTALLERS' = @('.exe','.msi','.bat')
@@ -212,7 +536,16 @@ function Save-Config($cfg) {
 }
 function Load-Config {
     Ensure-AppData
-    try { return (Get-Content -LiteralPath $script:ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json) }
+    try {
+        $cfg=(Get-Content -LiteralPath $script:ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+        $migrated=$false
+        if($null -eq $cfg.PSObject.Properties['checkUpdatesOnStartup']) {
+            Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'checkUpdatesOnStartup' -Value $true
+            $migrated=$true
+        }
+        if($migrated){ Save-Config $cfg }
+        return $cfg
+    }
     catch {
         $bad = Join-Path $script:ConfigDir ('bandanv_config_corrupt_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.json')
         try { Copy-Item $script:ConfigPath $bad -Force } catch {}
@@ -1266,7 +1599,7 @@ function Add-CategoryCard($cards, [string]$name, $extensions, [string]$originalF
 
 function Show-Config {
     $cfg=Load-Config
-    $form=New-Object Windows.Forms.Form; $form.Text='BandaNV — Configuración'; $form.Size=New-Object Drawing.Size(800,720); $form.StartPosition='CenterParent'; $form.MinimumSize=New-Object Drawing.Size(750,620); Initialize-ThemedForm $form
+    $form=New-Object Windows.Forms.Form; $form.Text='BandaNV — Configuración'; $form.Size=New-Object Drawing.Size(800,820); $form.StartPosition='CenterParent'; $form.MinimumSize=New-Object Drawing.Size(750,760); Initialize-ThemedForm $form
     $script:ConfigDirty=$false; $script:ConfigSaving=$false
     $markDirty={ $script:ConfigDirty=$true; if($null -ne $save){$save.Enabled=$true} }
 
@@ -1278,8 +1611,65 @@ function Show-Config {
     $orgLbl=New-Object Windows.Forms.Label; $orgLbl.Text='Nombre de carpeta organizada'; $orgLbl.Location=New-Object Drawing.Point(25,132); $orgLbl.AutoSize=$true
     $org=New-Object Windows.Forms.TextBox; $org.Location=New-Object Drawing.Point(25,154); $org.Size=New-Object Drawing.Size(730,24); $org.Text=[string]$cfg.organizedFolder; $org.Anchor='Top,Left,Right'
     $catsLbl=New-Object Windows.Forms.Label; $catsLbl.Text='CATEGORÍAS — usá ↑ y ↓ para definir el orden de las carpetas'; $catsLbl.Font=New-Object Drawing.Font('Segoe UI',11,[Drawing.FontStyle]::Bold); $catsLbl.Location=New-Object Drawing.Point(25,194); $catsLbl.AutoSize=$true
-    $cards=New-Object Windows.Forms.FlowLayoutPanel; $cards.Location=New-Object Drawing.Point(25,222); $cards.Size=New-Object Drawing.Size(730,370); $cards.FlowDirection='TopDown'; $cards.WrapContents=$false; $cards.AutoScroll=$true; $cards.Anchor='Top,Bottom,Left,Right'
-    $save=New-Object Windows.Forms.Button; $save.Text='GUARDAR'; $save.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $save.Size=New-Object Drawing.Size(120,34); $save.Location=New-Object Drawing.Point(635,608); $save.Anchor='Bottom,Right'; $save.Enabled=$false
+    $cards=New-Object Windows.Forms.FlowLayoutPanel; $cards.Location=New-Object Drawing.Point(25,222); $cards.Size=New-Object Drawing.Size(730,325); $cards.FlowDirection='TopDown'; $cards.WrapContents=$false; $cards.AutoScroll=$true; $cards.Anchor='Top,Left,Right'
+    $save=New-Object Windows.Forms.Button; $save.Text='GUARDAR'; $save.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $save.Size=New-Object Drawing.Size(120,34); $save.Location=New-Object Drawing.Point(635,708); $save.Anchor='Bottom,Right'; $save.Enabled=$false
+
+    $updates=New-Object Windows.Forms.GroupBox
+    $updates.Text='ACTUALIZACIONES'
+    $updates.Location=New-Object Drawing.Point(25,560)
+    $updates.Size=New-Object Drawing.Size(730,125)
+    $updates.Anchor='Bottom,Left,Right'
+
+    $updatesVersion=New-Object Windows.Forms.Label
+    $updatesVersion.Text=('Versión actual: v'+$script:AppVersion)
+    $updatesVersion.Location=New-Object Drawing.Point(18,28)
+    $updatesVersion.AutoSize=$true
+
+    $updatesCheck=New-Object Windows.Forms.CheckBox
+    $updatesCheck.Text='Buscar actualizaciones al iniciar'
+    $updatesCheck.Location=New-Object Drawing.Point(18,54)
+    $updatesCheck.AutoSize=$true
+    $updatesCheck.Checked=[bool]$cfg.checkUpdatesOnStartup
+
+    $updatesStatus=New-Object Windows.Forms.Label
+    $updatesStatus.Text='Estado: Sin comprobar'
+    $updatesStatus.Location=New-Object Drawing.Point(18,82)
+    $updatesStatus.Size=New-Object Drawing.Size(475,24)
+    $updatesStatus.AutoEllipsis=$true
+
+    $updatesButton=New-Object Windows.Forms.Button
+    $updatesButton.Text='BUSCAR ACTUALIZACIONES'
+    $updatesButton.Location=New-Object Drawing.Point(505,48)
+    $updatesButton.Size=New-Object Drawing.Size(205,36)
+    $updatesButton.Anchor='Top,Right'
+
+    $updatesButton.Add_Click({
+        $updatesButton.Enabled=$false
+        $updatesStatus.Text='Estado: Consultando GitHub Releases...'
+        [Windows.Forms.Application]::DoEvents()
+        try {
+            $result=Invoke-BandaNVUpdateCheck
+            if($result.Status -eq 'Available') {
+                $updatesStatus.Text=('Estado: Nueva versión disponible — '+[string]$result.Available)
+                Show-BandaNVUpdateDialog $result $form
+            } elseif($result.Status -eq 'Current') {
+                $updatesStatus.Text='Estado: Estás usando la última versión'
+                [Windows.Forms.MessageBox]::Show('Estás usando la última versión disponible de BandaNV.','BandaNV — Actualizaciones','OK','Information') | Out-Null
+            } elseif($result.Status -eq 'LocalNewer') {
+                $updatesStatus.Text='Estado: Esta build es más nueva que la última Release'
+                [Windows.Forms.MessageBox]::Show('Esta build de BandaNV es más nueva que la última Release publicada en GitHub.','BandaNV — Actualizaciones','OK','Information') | Out-Null
+            } else {
+                $updatesStatus.Text='Estado: No se pudo consultar GitHub'
+                [Windows.Forms.MessageBox]::Show([string]$result.Message,'BandaNV — Actualizaciones','OK','Warning') | Out-Null
+            }
+        } finally {
+            $updatesButton.Enabled=$true
+        }
+    })
+
+    $updatesCheck.Add_CheckedChanged($markDirty)
+    $updates.Controls.AddRange(@($updatesVersion,$updatesCheck,$updatesStatus,$updatesButton))
+
 
     $auto.Add_CheckedChanged($markDirty); $manual.Add_CheckedChanged($markDirty); $source.Add_TextChanged($markDirty); $org.Add_TextChanged($markDirty)
     $toggle={ $source.Enabled=$manual.Checked; $browse.Enabled=$manual.Checked }; $auto.Add_CheckedChanged($toggle); $manual.Add_CheckedChanged($toggle); & $toggle
@@ -1292,9 +1682,9 @@ function Show-Config {
     # La creación inicial de controles no cuenta como edición.
     $script:ConfigDirty=$false; $save.Enabled=$false
 
-    $addCat=New-Object Windows.Forms.Button; $addCat.Text='+ Agregar categoría'; $addCat.Location=New-Object Drawing.Point(25,608); $addCat.Size=New-Object Drawing.Size(150,32); $addCat.Anchor='Bottom,Left'; $addCat.Add_Click({Add-CategoryCard $cards '' @('') '' $markDirty; & $markDirty})
+    $addCat=New-Object Windows.Forms.Button; $addCat.Text='+ Agregar categoría'; $addCat.Location=New-Object Drawing.Point(25,708); $addCat.Size=New-Object Drawing.Size(150,32); $addCat.Anchor='Bottom,Left'; $addCat.Add_Click({Add-CategoryCard $cards '' @('') '' $markDirty; & $markDirty})
 
-    $restore=New-Object Windows.Forms.Button; $restore.Text='RESTAURAR PREDETERMINADOS'; $restore.Location=New-Object Drawing.Point(185,608); $restore.Size=New-Object Drawing.Size(205,32); $restore.Anchor='Bottom,Left'
+    $restore=New-Object Windows.Forms.Button; $restore.Text='RESTAURAR PREDETERMINADOS'; $restore.Location=New-Object Drawing.Point(185,708); $restore.Size=New-Object Drawing.Size(205,32); $restore.Anchor='Bottom,Left'
     $restore.Add_Click({
         $d=Get-DefaultConfig
         foreach($control in @($cards.Controls)){ $cards.Controls.Remove($control); $control.Dispose() }
@@ -1328,7 +1718,7 @@ function Show-Config {
         if($newCats.Count -eq 0){[Windows.Forms.MessageBox]::Show('Debe existir al menos una categoría.','BandaNV','OK','Warning')|Out-Null;return}
         try {
             Sync-CategoryFolders $cfg $cards
-            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();categories=$newCats}
+            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;categories=$newCats}
             Save-Config $new
             $script:ConfigDirty=$false; $save.Enabled=$false
             [Windows.Forms.MessageBox]::Show('Configuración guardada y orden de carpetas sincronizado.','BandaNV','OK','Information')|Out-Null
@@ -1344,7 +1734,7 @@ function Show-Config {
             if($r -ne [Windows.Forms.DialogResult]::Yes){$e.Cancel=$true}
         }
     })
-    $form.Controls.AddRange(@($title,$auto,$manual,$source,$browse,$orgLbl,$org,$catsLbl,$cards,$addCat,$restore,$save)); Apply-DarkTheme $form; $title.ForeColor=$script:ThemeAccent; $catsLbl.ForeColor=$script:ThemeAccent; $orgLbl.ForeColor=$script:ThemeTextMuted; Set-PrimaryButtonStyle $save; [void]$form.ShowDialog()
+    $form.Controls.AddRange(@($title,$auto,$manual,$source,$browse,$orgLbl,$org,$catsLbl,$cards,$updates,$addCat,$restore,$save)); Apply-DarkTheme $form; $title.ForeColor=$script:ThemeAccent; $catsLbl.ForeColor=$script:ThemeAccent; $orgLbl.ForeColor=$script:ThemeTextMuted; $updatesVersion.ForeColor=$script:ThemeText; $updatesStatus.ForeColor=$script:ThemeTextMuted; Set-SecondaryButtonStyle $updatesButton; Set-PrimaryButtonStyle $save; [void]$form.ShowDialog()
 }
 
 Ensure-AppData
@@ -1435,5 +1825,11 @@ Set-SecondaryButtonStyle $history
 Set-SecondaryButtonStyle $finder
 Set-SecondaryButtonStyle $config
 
-$main.Add_Shown({Refresh-Main})
+$main.Add_Shown({
+    Refresh-Main
+    try {
+        $startupCfg=Load-Config
+        if([bool]$startupCfg.checkUpdatesOnStartup){ Start-BandaNVStartupUpdateCheck $main }
+    } catch {}
+})
 [void]$main.ShowDialog()
