@@ -10,8 +10,12 @@ ACTUALIZACIONES
 - Las builds RC pueden detectar Releases normales y Pre-releases posteriores.
 - Las builds finales consultarán únicamente Releases estables.
 - "Buscar actualizaciones al iniciar" está activado por defecto y puede desactivarse desde Configuración.
+- "Comprobar si hay versiones beta disponibles" está desactivado por defecto.
+- Con beta desactivada, BandaNV consulta únicamente la Latest Release estable.
+- Con beta activada, BandaNV compara Releases estables y Pre-releases y ofrece la versión válida más nueva.
+- Desactivar beta nunca provoca un downgrade a una versión estable anterior.
 - El chequeo automático es silencioso cuando no hay novedades o GitHub no responde.
-- El botón BUSCAR ACTUALIZACIONES permite comprobar manualmente el estado.
+- El botón BUSCAR ACTUALIZACIONES utiliza el canal seleccionado en Configuración.
 
 PAQUETES
 - BandaNV_vX.Y_Portable.zip
