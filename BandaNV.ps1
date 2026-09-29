@@ -1738,7 +1738,7 @@ function Show-Config {
 }
 
 Ensure-AppData
-$main=New-Object Windows.Forms.Form; $main.Text='BandaNV'; $main.Size=New-Object Drawing.Size(570,535); $main.StartPosition='CenterScreen'; $main.FormBorderStyle='FixedSingle'; $main.MaximizeBox=$false; Initialize-ThemedForm $main
+$main=New-Object Windows.Forms.Form; $main.Text='BandaNV'; $main.Size=New-Object Drawing.Size(570,535); $main.StartPosition='CenterScreen'; $main.FormBorderStyle='FixedSingle'; $main.MaximizeBox=$false; $main.Opacity=0; Initialize-ThemedForm $main
 
 $brand=New-Object Windows.Forms.PictureBox
 $brand.Location=New-Object Drawing.Point(31,36)
@@ -1827,6 +1827,14 @@ Set-SecondaryButtonStyle $config
 
 $main.Add_Shown({
     Refresh-Main
+
+    # Evita el flash blanco del primer frame: la ventana se vuelve visible
+    # recién cuando controles, branding y Dark Elegant ya están aplicados.
+    $main.BeginInvoke([Action]{
+        $main.Opacity=1
+        $main.Refresh()
+    }) | Out-Null
+
     try {
         $startupCfg=Load-Config
         if([bool]$startupCfg.checkUpdatesOnStartup){ Start-BandaNVStartupUpdateCheck $main }
