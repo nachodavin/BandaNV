@@ -907,6 +907,7 @@ function Get-DefaultConfig {
         checkUpdatesOnStartup = $true
         checkBetaUpdates = $false
         lastUpdateCheck = ''
+        initialSetupPromptShown = $false
         categories = [ordered]@{
             'RAR'        = @('.zip','.rar','.7z')
             'INSTALLERS' = @('.exe','.msi','.bat')
@@ -942,6 +943,12 @@ function Load-Config {
         }
         if($null -eq $cfg.PSObject.Properties['lastUpdateCheck']) {
             Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'lastUpdateCheck' -Value ''
+            $migrated=$true
+        }
+        if($null -eq $cfg.PSObject.Properties['initialSetupPromptShown']) {
+            # Configs existentes se consideran ya onboardeadas.
+            # Solo una config creada desde cero muestra el aviso inicial.
+            Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'initialSetupPromptShown' -Value $true
             $migrated=$true
         }
         if($migrated){ Save-Config $cfg }
@@ -2159,7 +2166,7 @@ function Show-Config {
         if($newCats.Count -eq 0){[Windows.Forms.MessageBox]::Show('Debe existir al menos una categoría.','BandaNV','OK','Warning')|Out-Null;return}
         try {
             Sync-CategoryFolders $cfg $cards
-            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;checkBetaUpdates=[bool]$updatesBeta.Checked;lastUpdateCheck=[string]$updateUiState.LastUpdateCheck;categories=$newCats}
+            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;checkBetaUpdates=[bool]$updatesBeta.Checked;lastUpdateCheck=[string]$updateUiState.LastUpdateCheck;initialSetupPromptShown=[bool]$cfg.initialSetupPromptShown;categories=$newCats}
             Save-Config $new
             $script:ConfigDirty=$false; $save.Enabled=$false
             [Windows.Forms.MessageBox]::Show('Configuración guardada y orden de carpetas sincronizado.','BandaNV','OK','Information')|Out-Null
@@ -2233,11 +2240,90 @@ $history=New-Object Windows.Forms.Button; $history.Text='Historial'; $history.Lo
 $finder=New-Object Windows.Forms.Button; $finder.Text='Buscador'; $finder.Location=New-Object Drawing.Point(205,447); $finder.Size=New-Object Drawing.Size(150,34)
 $config=New-Object Windows.Forms.Button; $config.Text='Configuración'; $config.Location=New-Object Drawing.Point(378,447); $config.Size=New-Object Drawing.Size(150,34)
 
+function Test-BandaNVSourceReady($cfg) {
+    if($null -eq $cfg){ return $false }
+    $resolved=Resolve-Source $cfg
+    return -not [string]::IsNullOrWhiteSpace($resolved) -and (Test-Path -LiteralPath $resolved -PathType Container)
+}
+
 function Refresh-Main {
     $c=Load-Config
     $resolved=Resolve-Source $c
-    if([string]::IsNullOrWhiteSpace($resolved)){$folder.Text='Sin carpeta seleccionada'}else{$folder.Text=$resolved}
+    $ready=Test-BandaNVSourceReady $c
+
+    if($ready) {
+        $folder.Text=$resolved
+        $folder.ForeColor=$script:ThemeTextMuted
+        $organize.Enabled=$true
+        $status.Text='Estado: Listo para organizar'
+        $status.ForeColor=$script:ThemeAccent
+        $config.Text='Configuración'
+        Set-PrimaryButtonStyle $organize
+        Set-SecondaryButtonStyle $config
+    } else {
+        $folder.Text='⚠ Elegí una carpeta en Configuración para comenzar'
+        $folder.ForeColor=$script:ThemeAccent
+        $organize.Enabled=$false
+        $status.Text='Configurá una carpeta para empezar a usar BandaNV'
+        $status.ForeColor=$script:ThemeTextMuted
+        $config.Text='CONFIGURAR CARPETA'
+        Set-ButtonAvailability $organize $false
+        Set-PrimaryButtonStyle $config
+    }
+
     $last.Text=Get-LastRun
+}
+
+function Show-BandaNVInitialSetupPrompt($owner=$null) {
+    $cfg=Load-Config
+    if([bool]$cfg.initialSetupPromptShown -or (Test-BandaNVSourceReady $cfg)){ return }
+
+    # Lo marcamos antes de mostrar el diálogo para que cerrar con X no lo repita.
+    $cfg.initialSetupPromptShown=$true
+    Save-Config $cfg
+
+    $form=New-Object Windows.Forms.Form
+    $form.Text='BandaNV — Configuración inicial'
+    $form.Size=New-Object Drawing.Size(520,270)
+    $form.StartPosition='CenterParent'
+    $form.FormBorderStyle='FixedDialog'
+    $form.MaximizeBox=$false
+    $form.MinimizeBox=$false
+    Initialize-ThemedForm $form
+
+    $title=New-Object Windows.Forms.Label
+    $title.Text='CONFIGURACIÓN INICIAL'
+    $title.Font=New-Object Drawing.Font('Segoe UI',15,[Drawing.FontStyle]::Bold)
+    $title.Location=New-Object Drawing.Point(24,22)
+    $title.AutoSize=$true
+    $title.ForeColor=$script:ThemeAccent
+
+    $info=New-Object Windows.Forms.Label
+    $info.Text='Para empezar a usar BandaNV, elegí la carpeta que querés organizar.'+[Environment]::NewLine+[Environment]::NewLine+'Podés usar Descargas automáticamente o seleccionar otra carpeta.'
+    $info.Location=New-Object Drawing.Point(28,72)
+    $info.Size=New-Object Drawing.Size(450,82)
+    $info.ForeColor=$script:ThemeTextMuted
+
+    $configure=New-Object Windows.Forms.Button
+    $configure.Text='CONFIGURAR CARPETA'
+    $configure.Location=New-Object Drawing.Point(303,180)
+    $configure.Size=New-Object Drawing.Size(175,36)
+    Set-PrimaryButtonStyle $configure
+
+    $configure.Add_Click({
+        $form.Close()
+        Show-Config
+        Refresh-Main
+    })
+
+    $form.Controls.AddRange(@($title,$info,$configure))
+    Apply-DarkTheme $form
+    $title.ForeColor=$script:ThemeAccent
+    $info.ForeColor=$script:ThemeTextMuted
+    Set-PrimaryButtonStyle $configure
+
+    if($null -ne $owner -and -not $owner.IsDisposed){ [void]$form.ShowDialog($owner) }
+    else { [void]$form.ShowDialog() }
 }
 
 $organize.Add_Click({Show-OrganizationPreview $status $last $organize $main})
@@ -2281,6 +2367,9 @@ $main.Add_Shown({
     Clear-BandaNVFailedUpdateStateIfObsolete
 
     try {
+        Show-BandaNVInitialSetupPrompt $main
+        Refresh-Main
+
         $startupCfg=Load-Config
         if([bool]$startupCfg.checkUpdatesOnStartup){ Start-BandaNVStartupUpdateCheck $main ([bool]$startupCfg.checkBetaUpdates) }
     } catch {}
