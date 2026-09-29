@@ -4,6 +4,7 @@ param(
     [string]$StagedExe = '',
     [string]$BackupPath = '',
     [string]$ConfirmPath = '',
+    [string]$WorkspaceRoot = '',
     [string]$UpdateToken = '',
     [string]$ExpectedVersion = '',
     [string]$ReleaseTag = '',
@@ -62,6 +63,27 @@ function Write-NVFailedUpdateState([string]$appPath,[string]$releaseTag,[string]
     }
 }
 
+
+function Remove-NVUpdateWorkspace([string]$workspaceRoot) {
+    if([string]::IsNullOrWhiteSpace($workspaceRoot)){ return }
+
+    try {
+        $tempBase=[IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetTempPath()) 'BandaNV'))
+        $candidate=[IO.Path]::GetFullPath($workspaceRoot)
+        $leaf=[IO.Path]::GetFileName($candidate.TrimEnd('\','/'))
+
+        if(-not $candidate.StartsWith($tempBase,[StringComparison]::OrdinalIgnoreCase)){ return }
+        if($leaf -notlike 'update-*'){ return }
+
+        if(Test-Path -LiteralPath $candidate -PathType Container) {
+            Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    } catch {
+        # La limpieza es best-effort y nunca debe convertir una actualización
+        # ya confirmada/restaurada en un fallo.
+    }
+}
+
 function Wait-NVProcessExit([int]$processId,[int]$timeoutSec) {
     if($processId -le 0){ return $true }
     try {
@@ -111,6 +133,7 @@ if($ParentPid -le 0 -or
    [string]::IsNullOrWhiteSpace($StagedExe) -or
    [string]::IsNullOrWhiteSpace($BackupPath) -or
    [string]::IsNullOrWhiteSpace($ConfirmPath) -or
+   [string]::IsNullOrWhiteSpace($WorkspaceRoot) -or
    [string]::IsNullOrWhiteSpace($UpdateToken)) {
     Show-NVUpdateInfo 'NVupdate.exe es el actualizador auxiliar de BandaNV y se ejecuta automáticamente cuando instalás una actualización desde la aplicación.'
     exit 0
@@ -121,6 +144,18 @@ try {
     $stagedFull=[IO.Path]::GetFullPath($StagedExe)
     $backupFull=[IO.Path]::GetFullPath($BackupPath)
     $confirmFull=[IO.Path]::GetFullPath($ConfirmPath)
+    $workspaceFull=[IO.Path]::GetFullPath($WorkspaceRoot)
+
+    $tempBase=[IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetTempPath()) 'BandaNV'))
+    $workspaceLeaf=[IO.Path]::GetFileName($workspaceFull.TrimEnd('\','/'))
+    if(-not $workspaceFull.StartsWith($tempBase,[StringComparison]::OrdinalIgnoreCase) -or $workspaceLeaf -notlike 'update-*') {
+        throw 'La carpeta temporal de actualización no es válida.'
+    }
+    foreach($updatePath in @($stagedFull,$backupFull,$confirmFull)) {
+        if(-not $updatePath.StartsWith(($workspaceFull.TrimEnd('\')+'\'),[StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Los archivos temporales de actualización no pertenecen al workspace esperado.'
+        }
+    }
 
     if([IO.Path]::GetFileName($appFull) -ine 'BandaNV.exe'){
         throw 'La ruta objetivo no corresponde a BandaNV.exe.'
@@ -178,10 +213,9 @@ try {
         throw 'La nueva versión no confirmó un inicio correcto dentro del tiempo esperado.'
     }
 
-    # Confirmación recibida: recién ahora se elimina el backup.
-    Remove-Item -LiteralPath $backupFull -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $confirmFull -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $stagedFull -Force -ErrorAction SilentlyContinue
+    # Confirmación recibida: la actualización ya es válida.
+    # Limpiamos TODO el workspace (ZIP, extracción, confirmación y backup).
+    Remove-NVUpdateWorkspace $workspaceFull
     exit 0
 }
 catch {
@@ -199,6 +233,7 @@ catch {
             Write-NVFailedUpdateState $appFull $ReleaseTag $failure
 
             Start-Process -FilePath $appFull -WorkingDirectory ([IO.Path]::GetDirectoryName($appFull)) | Out-Null
+            Remove-NVUpdateWorkspace $workspaceFull
             Show-NVUpdateError ("La actualización no pudo completarse y BandaNV restauró automáticamente la versión anterior.`r`n`r`nDetalle: " + $failure)
             exit 2
         } catch {
