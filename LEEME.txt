@@ -1,46 +1,49 @@
 BandaNV v1.0 RC1.9
 
-RC1.9 — BandaNV Updater / Phase 1: Update Checker
+RC1.9 — BandaNV Updater / Phase 2A: NVupdate + rollback foundation
 
 NOVEDAD PRINCIPAL
-- GitHub Releases pasa a ser la única fuente oficial de actualizaciones.
-- BandaNV consulta el repositorio oficial nachodavin/BandaNV.
-- Las builds RC pueden detectar Releases normales y Pre-releases.
-- Las versiones estables consultarán únicamente la Latest Release estable.
-- Se comparan versiones sin depender de un version.json externo.
+- Se incorpora NVupdate.exe como ejecutable auxiliar permanente de BandaNV.
+- NVupdate espera el cierre completo de BandaNV antes de reemplazar el programa.
+- Antes de instalar una versión nueva crea un backup del ejecutable actual.
+- El backup se conserva hasta que la nueva BandaNV confirma que abrió correctamente.
+- Si la nueva versión no confirma el arranque, NVupdate intenta restaurar automáticamente la versión anterior.
 
-CONFIGURACIÓN
-- Nuevo bloque ACTUALIZACIONES.
-- Muestra la versión instalada.
-- Opción "Buscar actualizaciones al iniciar", activada por defecto.
-- Botón "BUSCAR ACTUALIZACIONES" para comprobación manual.
-- Configuraciones antiguas se migran sin perder origen, categorías ni historial.
+HANDSHAKE DE ARRANQUE
+- NVupdate inicia la nueva BandaNV con un token único.
+- BandaNV confirma el token recién cuando la ventana principal llegó a mostrarse.
+- Solo después de esa confirmación el backup puede eliminarse.
+- Si la confirmación no llega dentro del tiempo esperado, se activa rollback.
 
-COMPROBACIÓN AL INICIAR
-- La consulta se ejecuta en segundo plano.
-- Si no hay una versión nueva, BandaNV no interrumpe al usuario.
-- Si GitHub no responde, el inicio continúa normalmente.
-- Si existe una versión superior, aparece el aviso de nueva versión.
+ESTRUCTURA PORTABLE
+BandaNV/
+- BandaNV.exe
+- NVupdate.exe
+- LEEME.txt
+- config/
+- logs/
 
-PHASE 1
-- Esta versión DETECTA actualizaciones y valida la interfaz.
-- Todavía NO descarga ni reemplaza BandaNV.exe.
-- El botón ACTUALIZAR informa que la instalación automática llegará en la siguiente fase.
-- La futura Phase 2 incorporará descarga, verificación SHA-256, updater externo y rollback.
+PAQUETES DE RELEASE
+- BandaNV_vX.Y_Portable.zip: descarga manual / instalación nueva.
+- BandaNV_vX.Y_AutoUpdate.zip: paquete exclusivo para el actualizador automático.
 
-FUENTE OFICIAL
-GitHub:
-https://github.com/nachodavin/BandaNV
+SEGURIDAD
+- config\ y logs\ nunca forman parte del reemplazo.
+- La instalación actual no se toca hasta que BandaNV haya descargado y verificado el paquete.
+- El rollback restaura BandaNV.exe desde el backup si la nueva build no logra arrancar correctamente.
 
-PORTABILIDAD
-- BandaNV continúa siendo portable.
-- config\ y logs\ permanecen junto al ejecutable.
-- El sistema de actualizaciones no modifica esos datos en esta fase.
+ESTADO DE PHASE 2
+- Phase 2A implementa NVupdate, backup, handshake y rollback.
+- La siguiente etapa conecta ACTUALIZAR con descarga real de *_AutoUpdate.zip y verificación SHA-256 desde GitHub Releases.
 
-GENERAR EL EXE
+GENERAR LOS EXE
 Ejecutá desde PowerShell en la carpeta de BandaNV:
 
 powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
+
+El mismo comando genera:
+- BandaNV.exe
+- NVupdate.exe
 
 VERSIÓN
 BandaNV v1.0 RC1.9
