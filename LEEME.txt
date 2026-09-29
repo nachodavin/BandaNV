@@ -1,84 +1,95 @@
 BandaNV v1.0 RC1.9
 
-RC1.9 — BandaNV Updater / Phase 2B: AutoUpdate real
+RELEASE CANDIDATE — ACTUALIZADOR AUTOMÁTICO
 
-NOVEDADES
-- NVupdate.exe permanece como ejecutable auxiliar permanente junto a BandaNV.exe.
-- El botón ACTUALIZAR ya intenta usar el paquete oficial *_AutoUpdate.zip de la Release detectada.
-- Portable.zip nunca se utiliza como fallback para una actualización automática.
-- La descarga muestra progreso y porcentaje.
-- El paquete descargado se verifica contra el SHA-256 publicado por GitHub en assets[].digest.
-- Si falta el digest o no coincide, la actualización se cancela sin tocar la instalación actual.
-- AutoUpdate.zip se prepara en una carpeta temporal.
-- En esta fase el paquete debe contener BandaNV.exe en la raíz.
-- config\ y logs\ están explícitamente protegidos y nunca forman parte del reemplazo.
+NOVEDAD PRINCIPAL
+BandaNV incorpora un sistema de actualización portable basado exclusivamente en GitHub Releases.
 
-FLUJO
-1. BandaNV detecta una Release superior.
-2. ACTUALIZAR busca únicamente *_AutoUpdate.zip.
-3. Descarga el paquete desde GitHub.
-4. Verifica SHA-256.
-5. Extrae y valida BandaNV.exe.
-6. Muestra ACTUALIZACIÓN LISTA.
-7. El usuario elige MÁS TARDE o REINICIAR Y ACTUALIZAR.
-8. NVupdate.exe espera el cierre de BandaNV.
-9. Crea backup de BandaNV.exe.
-10. Instala el nuevo ejecutable.
-11. Inicia la nueva versión con un token único.
-12. La nueva BandaNV confirma el arranque al mostrar su ventana principal.
-13. Si confirma, se elimina el backup.
-14. Si no confirma, NVupdate intenta rollback y reabre la versión anterior.
+ACTUALIZACIONES
+- GitHub Releases es la fuente oficial de versiones.
+- Las builds RC pueden detectar Releases normales y Pre-releases posteriores.
+- Las builds finales consultarán únicamente Releases estables.
+- "Buscar actualizaciones al iniciar" está activado por defecto y puede desactivarse desde Configuración.
+- El chequeo automático es silencioso cuando no hay novedades o GitHub no responde.
+- El botón BUSCAR ACTUALIZACIONES permite comprobar manualmente el estado.
 
-PAQUETES DE RELEASE
+PAQUETES
 - BandaNV_vX.Y_Portable.zip
-  Para descarga manual / instalación nueva.
+  Descarga manual para una instalación nueva.
 
 - BandaNV_vX.Y_AutoUpdate.zip
-  Exclusivo para el actualizador automático.
+  Paquete exclusivo del actualizador automático.
 
-Para RCs se mantiene la misma convención:
-- BandaNV_v1.0_RC1.9.1_Portable.zip
-- BandaNV_v1.0_RC1.9.1_AutoUpdate.zip
+BandaNV nunca usa Portable.zip como reemplazo de AutoUpdate.zip.
+
+NVUPDATE
+- NVupdate.exe es el helper permanente del actualizador.
+- Espera a que BandaNV.exe cierre antes de reemplazarlo.
+- Crea un backup del ejecutable anterior.
+- Inicia la versión nueva con un token único de confirmación.
+- El backup se elimina solo después de que la nueva BandaNV muestra correctamente su ventana principal.
+- Si la nueva versión no confirma el arranque, se restaura automáticamente la versión anterior.
+
+SEGURIDAD E INTEGRIDAD
+- AutoUpdate.zip debe provenir de la Release detectada en el repositorio oficial.
+- BandaNV exige el SHA-256 publicado por GitHub en assets[].digest.
+- Si el hash falta o no coincide, la instalación se cancela.
+- El ZIP se valida antes de ejecutar NVupdate.
+- BandaNV.exe debe estar en la raíz del AutoUpdate.zip.
+- config\ y logs\ nunca se reemplazan.
+- Se rechazan rutas inseguras dentro del ZIP.
+- Un ZIP corrupto o inválido se rechaza antes de tocar la instalación.
+- Si falta NVupdate.exe, BandaNV permanece abierta y no modifica el ejecutable actual.
+
+ROLLBACK
+- Una actualización que no confirma un arranque correcto activa rollback.
+- La Release que provocó el rollback queda registrada en config\bandanv_update_state.json.
+- Esa misma Release no se vuelve a ofrecer automáticamente.
+- BUSCAR ACTUALIZACIONES informa que fue omitida tras un rollback.
+- Una Release posterior vuelve a ofrecerse normalmente.
+
+TEMPORALES
+- Las descargas se preparan en %TEMP%\BandaNV\update-*.
+- CANCELAR interrumpe la descarga sin modificar la instalación.
+- Después de una actualización exitosa o rollback exitoso se limpia el workspace completo.
+- La carpeta general %TEMP%\BandaNV puede permanecer vacía.
 
 ESTRUCTURA PORTABLE
 BandaNV/
 - BandaNV.exe
 - NVupdate.exe
 - LEEME.txt
-- config/
-- logs/
-
-SEGURIDAD
-- GitHub Releases es la única fuente oficial de actualizaciones.
-- No se instala nada sin SHA-256 válido.
-- La instalación actual no se modifica durante la descarga ni la verificación.
-- config\ y logs\ no se reemplazan.
-- Hay backup y rollback automático si la nueva BandaNV no confirma un inicio correcto.
+- config/   (se crea al usar la aplicación)
+- logs/     (se crea al usar la aplicación)
 
 GENERAR LOS EXE
-Ejecutá desde PowerShell en la carpeta de BandaNV:
+Ejecutá desde PowerShell en la carpeta del proyecto:
 
 powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
 
-El mismo comando genera:
+El comando genera:
 - BandaNV.exe
 - NVupdate.exe
 
+GENERAR LOS PAQUETES DE RELEASE
+Después de compilar:
+
+powershell.exe -ExecutionPolicy Bypass -File ".\Package_Release.ps1"
+
+Se generan dentro de dist\:
+- BandaNV_v1.0_RC1.9_Portable.zip
+- BandaNV_v1.0_RC1.9_AutoUpdate.zip
+
+HARDENING VALIDADO
+- Actualización end-to-end desde GitHub.
+- Verificación SHA-256 y rechazo de archivo alterado.
+- Rechazo de paquete sin BandaNV.exe.
+- Rechazo de ZIP corrupto.
+- Protección ante NVupdate.exe ausente.
+- Cancelación de descarga.
+- Rollback automático.
+- Supresión de loop tras rollback.
+- Limpieza de temporales tras cancelación y actualización exitosa.
+
 VERSIÓN
 BandaNV v1.0 RC1.9
-
-
-HARDENING — ROLLBACK LOOP
-- NVupdate registra la Release que provocó un rollback en config\bandanv_update_state.json.
-- El checker automático no vuelve a ofrecer inmediatamente esa misma Release.
-- BUSCAR ACTUALIZACIONES informa que esa versión fue omitida tras un rollback.
-- Una Release posterior sí vuelve a ofrecerse normalmente.
-- Si la versión instalada alcanza o supera la versión marcada como fallida, el estado se limpia automáticamente.
-
-
-HARDENING — TEMP WORKSPACE CLEANUP
-- BandaNV pasa explícitamente a NVupdate la raíz del workspace temporal.
-- NVupdate valida que el workspace esté dentro de %TEMP%\BandaNV\update-*.
-- Después de una actualización confirmada se elimina el workspace completo: AutoUpdate.zip, archivos extraídos, confirmación y backup.
-- Después de un rollback exitoso también se elimina el workspace completo.
-- La limpieza es best-effort: un fallo al borrar temporales nunca invalida una actualización ya confirmada ni un rollback ya completado.
