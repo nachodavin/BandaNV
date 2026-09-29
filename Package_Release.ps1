@@ -14,13 +14,20 @@ try {
         }
     }
 
-    $sourceText = Get-Content -LiteralPath $appSource -Raw -Encoding UTF8
-    $match = [regex]::Match($sourceText, "\$script:AppVersion\s*=\s*'([^']+)'")
-    if(-not $match.Success) {
+    $versionLine = Get-Content -LiteralPath $appSource -Encoding UTF8 |
+        Where-Object { $_.TrimStart().StartsWith('$script:AppVersion') } |
+        Select-Object -First 1
+
+    if([string]::IsNullOrWhiteSpace($versionLine)) {
         throw 'No se pudo detectar la versión desde BandaNV.ps1.'
     }
 
-    $version = $match.Groups[1].Value.Trim()
+    $parts = $versionLine -split '=', 2
+    if($parts.Count -ne 2) {
+        throw 'La línea de versión de BandaNV.ps1 no tiene el formato esperado.'
+    }
+
+    $version = $parts[1].Trim().Trim("'").Trim('"')
     if([string]::IsNullOrWhiteSpace($version)) {
         throw 'La versión detectada está vacía.'
     }
