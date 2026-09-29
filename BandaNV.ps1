@@ -34,7 +34,7 @@ $script:LogsDir = Join-Path $script:AppDir 'logs'
 $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
 
 # ============================================================
-# BandaNV RC1.9 - Identidad visual Dark Elegant + Updater Phase 1
+# BandaNV RC1.9 - Identidad visual Dark Elegant + Updater Phase 2
 # Paleta grafito + teal tomada del branding oficial.
 # Los PNG originales del usuario se conservan sin redibujarlos:
 # el wordmark se incrusta como bytes PNG y el icono NV provisto
@@ -327,10 +327,9 @@ function Get-BandaNVUpdateResultFromPayload($payload) {
     $status=if($comparison -gt 0){'Available'}elseif($comparison -eq 0){'Current'}else{'LocalNewer'}
 
     $assets=@($release.assets)
-    $asset=$assets | Where-Object { ([string]$_.name) -match '(?i)_Update\.zip$' } | Select-Object -First 1
-    if($null -eq $asset) {
-        $asset=$assets | Where-Object { ([string]$_.name) -match '(?i)_Portable\.zip$' } | Select-Object -First 1
-    }
+    # El actualizador automático NUNCA usa Portable.zip como fallback.
+    # Solo acepta el paquete oficial *_AutoUpdate.zip de la misma Release.
+    $asset=$assets | Where-Object { ([string]$_.name) -match '(?i)_AutoUpdate\.zip$' } | Select-Object -First 1
 
     [PSCustomObject]@{
         Status=$status
@@ -355,6 +354,371 @@ function Invoke-BandaNVUpdateCheck {
         return [PSCustomObject]@{
             Status='Error'
             Message=('No se pudo consultar GitHub Releases. ' + $_.Exception.Message)
+        }
+    }
+}
+
+
+function New-BandaNVUpdateWorkspace {
+    $token=[Guid]::NewGuid().ToString('N')
+    $root=Join-Path ([IO.Path]::GetTempPath()) ('BandaNV\update-'+$token)
+    $extract=Join-Path $root 'extracted'
+    $backup=Join-Path $root 'backup\BandaNV.exe'
+    $confirm=Join-Path $root 'confirmed.json'
+    $zip=Join-Path $root 'AutoUpdate.zip'
+
+    New-Item -ItemType Directory -Force -Path $root,$extract,(Split-Path -Parent $backup) | Out-Null
+
+    [PSCustomObject]@{
+        Token=$token
+        Root=$root
+        ZipPath=$zip
+        ExtractDir=$extract
+        BackupPath=$backup
+        ConfirmPath=$confirm
+        StagedExe=(Join-Path $extract 'BandaNV.exe')
+    }
+}
+
+function Remove-BandaNVUpdateWorkspace($workspace) {
+    if($null -eq $workspace -or [string]::IsNullOrWhiteSpace([string]$workspace.Root)){ return }
+    try {
+        $tempBase=[IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetTempPath()) 'BandaNV'))
+        $candidate=[IO.Path]::GetFullPath([string]$workspace.Root)
+        if($candidate.StartsWith($tempBase,[StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $candidate)) {
+            Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    } catch {}
+}
+
+function Test-BandaNVUpdateDigest([string]$filePath,[string]$digest) {
+    if([string]::IsNullOrWhiteSpace($digest)){ throw 'GitHub no publicó el SHA-256 del paquete AutoUpdate.' }
+    if($digest -notmatch '^(?i)sha256:(?<hash>[a-f0-9]{64})$'){ throw 'El SHA-256 publicado por GitHub no tiene un formato válido.' }
+
+    $expected=$Matches['hash'].ToLowerInvariant()
+    $actual=(Get-FileHash -LiteralPath $filePath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+    if($actual -cne $expected){ throw 'La verificación SHA-256 falló. El paquete descargado no coincide con el publicado por GitHub.' }
+    return $true
+}
+
+function Expand-BandaNVAutoUpdate([string]$zipPath,[string]$extractDir) {
+    Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+
+    if(Test-Path -LiteralPath $extractDir){ Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction Stop }
+    New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
+
+    # Estructura intencionalmente estricta en Phase 2:
+    # AutoUpdate.zip debe contener BandaNV.exe en la raíz.
+    $archive=[IO.Compression.ZipFile]::OpenRead($zipPath)
+    try {
+        $files=@($archive.Entries | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) })
+        $names=@($files | ForEach-Object { $_.FullName.Replace('/','\') })
+
+        if($names -notcontains 'BandaNV.exe') {
+            throw 'El paquete AutoUpdate no contiene BandaNV.exe en la raíz.'
+        }
+        foreach($name in $names) {
+            if($name -match '^(?i)(config|logs)\\') {
+                throw 'El paquete AutoUpdate contiene datos que nunca deben reemplazarse (config o logs).'
+            }
+            if($name -match '(^|\\)\.\.(\\|$)' -or [IO.Path]::IsPathRooted($name)) {
+                throw 'El paquete AutoUpdate contiene una ruta no segura.'
+            }
+        }
+    } finally {
+        $archive.Dispose()
+    }
+
+    [IO.Compression.ZipFile]::ExtractToDirectory($zipPath,$extractDir)
+    $staged=Join-Path $extractDir 'BandaNV.exe'
+    if(-not (Test-Path -LiteralPath $staged -PathType Leaf)) {
+        throw 'No se pudo preparar BandaNV.exe desde AutoUpdate.zip.'
+    }
+    return $staged
+}
+
+function Start-BandaNVInstaller($result,$workspace) {
+    $helper=Join-Path $script:AppDir 'NVupdate.exe'
+    $app=Join-Path $script:AppDir 'BandaNV.exe'
+
+    if(-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
+        throw 'No se encontró NVupdate.exe junto a BandaNV.exe.'
+    }
+    if(-not (Test-Path -LiteralPath $app -PathType Leaf)) {
+        throw 'No se pudo localizar BandaNV.exe para actualizarlo.'
+    }
+    if($null -eq $workspace -or -not (Test-Path -LiteralPath $workspace.StagedExe -PathType Leaf)) {
+        throw 'La actualización preparada ya no está disponible.'
+    }
+
+    function Quote-NVArg([string]$value) {
+        if($null -eq $value){ return '""' }
+        return '"' + $value.Replace('"','\"') + '"'
+    }
+
+    $args=@(
+        '-ParentPid', [string]$PID,
+        '-AppPath', (Quote-NVArg $app),
+        '-StagedExe', (Quote-NVArg ([string]$workspace.StagedExe)),
+        '-BackupPath', (Quote-NVArg ([string]$workspace.BackupPath)),
+        '-ConfirmPath', (Quote-NVArg ([string]$workspace.ConfirmPath)),
+        '-UpdateToken', (Quote-NVArg ([string]$workspace.Token)),
+        '-ExpectedVersion', (Quote-NVArg ([string]$result.Available))
+    ) -join ' '
+
+    Start-Process -FilePath $helper -ArgumentList $args -WorkingDirectory $script:AppDir | Out-Null
+
+    # NVupdate queda esperando a que este proceso termine.
+    [Windows.Forms.Application]::Exit()
+}
+
+function Show-BandaNVUpdateReadyDialog($result,$workspace,$owner=$null) {
+    $form=New-Object Windows.Forms.Form
+    $form.Text='BandaNV — Actualización lista'
+    $form.Size=New-Object Drawing.Size(520,275)
+    $form.StartPosition='CenterParent'
+    $form.FormBorderStyle='FixedDialog'
+    $form.MaximizeBox=$false
+    $form.MinimizeBox=$false
+    Initialize-ThemedForm $form
+
+    $title=New-Object Windows.Forms.Label
+    $title.Text='ACTUALIZACIÓN LISTA'
+    $title.Font=New-Object Drawing.Font('Segoe UI',15,[Drawing.FontStyle]::Bold)
+    $title.Location=New-Object Drawing.Point(24,22)
+    $title.AutoSize=$true
+
+    $info=New-Object Windows.Forms.Label
+    $info.Text=([string]$result.Available+' fue descargada y verificada correctamente.'+[Environment]::NewLine+[Environment]::NewLine+'BandaNV debe reiniciarse para completar la actualización.')
+    $info.Location=New-Object Drawing.Point(28,72)
+    $info.Size=New-Object Drawing.Size(450,75)
+
+    $later=New-Object Windows.Forms.Button
+    $later.Text='MÁS TARDE'
+    $later.Location=New-Object Drawing.Point(236,182)
+    $later.Size=New-Object Drawing.Size(115,34)
+
+    $restart=New-Object Windows.Forms.Button
+    $restart.Text='REINICIAR Y ACTUALIZAR'
+    $restart.Location=New-Object Drawing.Point(363,182)
+    $restart.Size=New-Object Drawing.Size(115,34)
+
+    $later.Add_Click({
+        Remove-BandaNVUpdateWorkspace $workspace
+        $form.Close()
+    })
+
+    $restart.Add_Click({
+        try {
+            $restart.Enabled=$false
+            Start-BandaNVInstaller $result $workspace
+            $form.Close()
+        } catch {
+            $restart.Enabled=$true
+            [Windows.Forms.MessageBox]::Show(
+                ('No se pudo iniciar NVupdate.'+[Environment]::NewLine+[Environment]::NewLine+$_.Exception.Message),
+                'BandaNV — Actualización','OK','Error'
+            ) | Out-Null
+        }
+    })
+
+    $form.Add_FormClosing({
+        if($form.DialogResult -eq [Windows.Forms.DialogResult]::None -and $restart.Enabled) {
+            # Cerrar con X equivale a Más tarde: no dejamos temporales abandonados.
+            Remove-BandaNVUpdateWorkspace $workspace
+        }
+    })
+
+    $form.Controls.AddRange(@($title,$info,$later,$restart))
+    Apply-DarkTheme $form
+    $title.ForeColor=$script:ThemeAccent
+    $info.ForeColor=$script:ThemeTextMuted
+    Set-SecondaryButtonStyle $later
+    Set-PrimaryButtonStyle $restart
+
+    if($null -ne $owner -and -not $owner.IsDisposed){ [void]$form.ShowDialog($owner) }
+    else { [void]$form.ShowDialog() }
+}
+
+function Show-BandaNVUpdateDownload($result,$owner=$null) {
+    if([string]::IsNullOrWhiteSpace([string]$result.AssetUrl) -or [string]::IsNullOrWhiteSpace([string]$result.AssetName)) {
+        [Windows.Forms.MessageBox]::Show(
+            'La Release detectada no incluye el paquete oficial *_AutoUpdate.zip.'+[Environment]::NewLine+[Environment]::NewLine+
+            'No se descargó ni modificó ningún archivo.',
+            'BandaNV — Actualización','OK','Warning'
+        ) | Out-Null
+        return
+    }
+    if([string]::IsNullOrWhiteSpace([string]$result.Digest)) {
+        [Windows.Forms.MessageBox]::Show(
+            'GitHub no informó un SHA-256 para el paquete AutoUpdate. Por seguridad, BandaNV no lo instalará.',
+            'BandaNV — Actualización','OK','Warning'
+        ) | Out-Null
+        return
+    }
+
+    $workspace=$null
+    try { $workspace=New-BandaNVUpdateWorkspace }
+    catch {
+        [Windows.Forms.MessageBox]::Show(('No se pudo preparar la actualización.'+[Environment]::NewLine+[Environment]::NewLine+$_.Exception.Message),'BandaNV — Actualización','OK','Error')|Out-Null
+        return
+    }
+
+    $form=New-Object Windows.Forms.Form
+    $form.Text='BandaNV — Descargando actualización'
+    $form.Size=New-Object Drawing.Size(520,270)
+    $form.StartPosition='CenterParent'
+    $form.FormBorderStyle='FixedDialog'
+    $form.MaximizeBox=$false
+    $form.MinimizeBox=$false
+    Initialize-ThemedForm $form
+
+    $title=New-Object Windows.Forms.Label
+    $title.Text='DESCARGANDO ACTUALIZACIÓN'
+    $title.Font=New-Object Drawing.Font('Segoe UI',15,[Drawing.FontStyle]::Bold)
+    $title.Location=New-Object Drawing.Point(24,22)
+    $title.AutoSize=$true
+
+    $version=New-Object Windows.Forms.Label
+    $version.Text=[string]$result.Available
+    $version.Location=New-Object Drawing.Point(28,65)
+    $version.AutoSize=$true
+
+    $bar=New-Object Windows.Forms.ProgressBar
+    $bar.Location=New-Object Drawing.Point(28,100)
+    $bar.Size=New-Object Drawing.Size(450,24)
+    $bar.Minimum=0
+    $bar.Maximum=100
+    $bar.Value=0
+
+    $percent=New-Object Windows.Forms.Label
+    $percent.Text='0 %'
+    $percent.Location=New-Object Drawing.Point(28,132)
+    $percent.Size=New-Object Drawing.Size(450,24)
+    $percent.TextAlign='MiddleCenter'
+
+    $state=New-Object Windows.Forms.Label
+    $state.Text='Descargando desde GitHub...'
+    $state.Location=New-Object Drawing.Point(28,158)
+    $state.Size=New-Object Drawing.Size(450,24)
+    $state.TextAlign='MiddleCenter'
+
+    $cancel=New-Object Windows.Forms.Button
+    $cancel.Text='CANCELAR'
+    $cancel.Location=New-Object Drawing.Point(363,194)
+    $cancel.Size=New-Object Drawing.Size(115,32)
+
+    $context=[PSCustomObject]@{
+        Finished=$false
+        Success=$false
+        CancelRequested=$false
+        Error=''
+        StagedExe=''
+    }
+
+    $wc=New-Object Net.WebClient
+    $wc.Headers.Add('User-Agent','BandaNV-Updater/1.0')
+    $wc.Headers.Add('Accept','application/octet-stream')
+
+    $progressHandler=[Net.DownloadProgressChangedEventHandler]{
+        param($sender,$e)
+        if($context.Finished){ return }
+        $p=[Math]::Max(0,[Math]::Min(100,[int]$e.ProgressPercentage))
+        $bar.Value=$p
+        $percent.Text=($p.ToString()+' %')
+    }
+
+    $completedHandler=[ComponentModel.AsyncCompletedEventHandler]{
+        param($sender,$e)
+        if($context.Finished){ return }
+
+        try {
+            if($e.Cancelled -or $context.CancelRequested) {
+                $context.Error='Cancelado por el usuario.'
+                return
+            }
+            if($null -ne $e.Error) {
+                throw $e.Error
+            }
+
+            $bar.Value=100
+            $percent.Text='100 %'
+            $state.Text='Verificando integridad SHA-256...'
+            [Windows.Forms.Application]::DoEvents()
+
+            [void](Test-BandaNVUpdateDigest ([string]$workspace.ZipPath) ([string]$result.Digest))
+
+            $state.Text='Preparando actualización...'
+            [Windows.Forms.Application]::DoEvents()
+
+            $context.StagedExe=Expand-BandaNVAutoUpdate ([string]$workspace.ZipPath) ([string]$workspace.ExtractDir)
+            $workspace.StagedExe=$context.StagedExe
+            $context.Success=$true
+        } catch {
+            $context.Error=$_.Exception.Message
+        } finally {
+            $context.Finished=$true
+            try { $form.Close() } catch {}
+        }
+    }.GetNewClosure()
+
+    $wc.add_DownloadProgressChanged($progressHandler)
+    $wc.add_DownloadFileCompleted($completedHandler)
+
+    $cancel.Add_Click({
+        if(-not $context.Finished) {
+            $context.CancelRequested=$true
+            $cancel.Enabled=$false
+            $state.Text='Cancelando...'
+            try { $wc.CancelAsync() } catch {}
+        }
+    })
+
+    $form.Add_FormClosing({
+        param($sender,$e)
+        if(-not $context.Finished) {
+            $e.Cancel=$true
+            if(-not $context.CancelRequested) {
+                $context.CancelRequested=$true
+                $cancel.Enabled=$false
+                $state.Text='Cancelando...'
+                try { $wc.CancelAsync() } catch {}
+            }
+        }
+    })
+
+    $form.Controls.AddRange(@($title,$version,$bar,$percent,$state,$cancel))
+    Apply-DarkTheme $form
+    $title.ForeColor=$script:ThemeAccent
+    $version.ForeColor=$script:ThemeText
+    $percent.ForeColor=$script:ThemeAccent
+    $state.ForeColor=$script:ThemeTextMuted
+    Set-SecondaryButtonStyle $cancel
+
+    try {
+        $wc.DownloadFileAsync([Uri][string]$result.AssetUrl,[string]$workspace.ZipPath)
+        if($null -ne $owner -and -not $owner.IsDisposed){ [void]$form.ShowDialog($owner) }
+        else { [void]$form.ShowDialog() }
+    } catch {
+        $context.Error=$_.Exception.Message
+        $context.Finished=$true
+    } finally {
+        try { $wc.remove_DownloadProgressChanged($progressHandler) } catch {}
+        try { $wc.remove_DownloadFileCompleted($completedHandler) } catch {}
+        try { $wc.Dispose() } catch {}
+        try { $form.Dispose() } catch {}
+    }
+
+    if($context.Success) {
+        Show-BandaNVUpdateReadyDialog $result $workspace $owner
+    } else {
+        Remove-BandaNVUpdateWorkspace $workspace
+        if(-not $context.CancelRequested -and -not [string]::IsNullOrWhiteSpace([string]$context.Error)) {
+            [Windows.Forms.MessageBox]::Show(
+                ('No se pudo preparar la actualización.'+[Environment]::NewLine+[Environment]::NewLine+[string]$context.Error+[Environment]::NewLine+[Environment]::NewLine+'Tu instalación actual no fue modificada.'),
+                'BandaNV — Actualización','OK','Error'
+            ) | Out-Null
         }
     }
 }
@@ -404,7 +768,7 @@ function Show-BandaNVUpdateDialog($result,$owner=$null) {
     $available.ForeColor=$script:ThemeAccent
 
     $note=New-Object Windows.Forms.Label
-    $note.Text='Phase 1: detección desde GitHub lista. La instalación automática se incorpora en la siguiente fase.'
+    $note.Text='La actualización se descargará desde GitHub, se verificará con SHA-256 y no modificará tu instalación hasta que esté lista.'
     $note.Location=New-Object Drawing.Point(28,148)
     $note.Size=New-Object Drawing.Size(450,48)
     $note.ForeColor=$script:ThemeTextMuted
@@ -422,12 +786,12 @@ function Show-BandaNVUpdateDialog($result,$owner=$null) {
     $update.Size=New-Object Drawing.Size(115,34)
     Set-PrimaryButtonStyle $update
     $update.Add_Click({
-        $nl=[Environment]::NewLine
-        [Windows.Forms.MessageBox]::Show(
-            'El Update Checker ya confirmó la nueva Release.'+$nl+$nl+
-            'La descarga e instalación automática se habilitarán en la siguiente fase de RC1.9.',
-            'BandaNV — Updater Phase 1','OK','Information'
-        ) | Out-Null
+        $update.Enabled=$false
+        try {
+            Show-BandaNVUpdateDownload $result $form
+        } finally {
+            if(-not $form.IsDisposed){ $update.Enabled=$true }
+        }
     })
 
     $form.Controls.AddRange(@($title,$installedLbl,$installed,$availableLbl,$available,$note,$later,$update))
