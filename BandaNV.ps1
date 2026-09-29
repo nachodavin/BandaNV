@@ -198,8 +198,6 @@ function Initialize-ThemedForm($form) {
 # Esta fase detecta versiones y muestra la UI; todavía NO instala.
 # ============================================================
 
-$script:UpdateCheckTask=$null
-$script:UpdateCheckHttpClient=$null
 $script:UpdateCheckTimer=$null
 
 function Test-BandaNVPrereleaseVersion([string]$version=$script:AppVersion) {
@@ -442,65 +440,32 @@ function Show-BandaNVUpdateDialog($result,$owner=$null) {
 }
 
 function Start-BandaNVStartupUpdateCheck($ownerForm) {
-    if($null -ne $script:UpdateCheckTask){ return }
-
-    try {
-        Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
-        try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-        } catch {}
-
-        $client=New-Object System.Net.Http.HttpClient
-        $client.Timeout=[TimeSpan]::FromSeconds(8)
-        $client.DefaultRequestHeaders.UserAgent.ParseAdd('BandaNV-Updater/1.0')
-        $client.DefaultRequestHeaders.Accept.ParseAdd('application/vnd.github+json')
-        [void]$client.DefaultRequestHeaders.TryAddWithoutValidation('X-GitHub-Api-Version','2022-11-28')
-
-        $script:UpdateCheckHttpClient=$client
-        $script:UpdateCheckTask=$client.GetStringAsync((Get-BandaNVReleaseApiUri))
-    } catch {
-        try { if($null -ne $script:UpdateCheckHttpClient){$script:UpdateCheckHttpClient.Dispose()} } catch {}
-        $script:UpdateCheckHttpClient=$null
-        $script:UpdateCheckTask=$null
-        return
-    }
+    # El chequeo automático usa EXACTAMENTE el mismo camino que el botón manual.
+    # Se difiere hasta que la ventana principal ya está visible para evitar
+    # problemas de ciclo de vida durante el arranque del EXE compilado.
+    if($null -ne $script:UpdateCheckTimer){ return }
 
     $timer=New-Object Windows.Forms.Timer
-    $timer.Interval=250
+    $timer.Interval=1200
     $script:UpdateCheckTimer=$timer
     $ownerRef=$ownerForm
 
     $handler={
-        if($null -eq $script:UpdateCheckTask) {
-            $timer.Stop()
-            $timer.Dispose()
-            $script:UpdateCheckTimer=$null
-            return
-        }
+        $timer.Stop()
+        $timer.Dispose()
+        $script:UpdateCheckTimer=$null
 
-        if(-not $script:UpdateCheckTask.IsCompleted){ return }
+        if($null -eq $ownerRef -or $ownerRef.IsDisposed){ return }
 
         try {
-            if(-not $script:UpdateCheckTask.IsCanceled -and -not $script:UpdateCheckTask.IsFaulted) {
-                $json=[string]$script:UpdateCheckTask.Result
-                if(-not [string]::IsNullOrWhiteSpace($json)) {
-                    $payload=$json | ConvertFrom-Json
-                    $result=Get-BandaNVUpdateResultFromPayload $payload
-                    if($result.Status -eq 'Available' -and $null -ne $ownerRef -and -not $ownerRef.IsDisposed) {
-                        Show-BandaNVUpdateDialog $result $ownerRef
-                    }
-                }
+            $result=Invoke-BandaNVUpdateCheck
+            if($result.Status -eq 'Available') {
+                Show-BandaNVUpdateDialog $result $ownerRef
             }
+            # Current / LocalNewer / Error son silenciosos en el arranque.
+            # El botón manual de Configuración sigue mostrando el resultado.
         } catch {
-            # El chequeo automático es silencioso ante errores:
-            # BandaNV debe iniciar normalmente aunque GitHub o la red fallen.
-        } finally {
-            try { if($null -ne $script:UpdateCheckHttpClient){$script:UpdateCheckHttpClient.Dispose()} } catch {}
-            $script:UpdateCheckHttpClient=$null
-            $script:UpdateCheckTask=$null
-            $timer.Stop()
-            $timer.Dispose()
-            $script:UpdateCheckTimer=$null
+            # Nunca bloquear el inicio de BandaNV por un error de red/GitHub.
         }
     }.GetNewClosure()
 
@@ -1828,12 +1793,11 @@ Set-SecondaryButtonStyle $config
 $main.Add_Shown({
     Refresh-Main
 
-    # Evita el flash blanco del primer frame: la ventana se vuelve visible
-    # recién cuando controles, branding y Dark Elegant ya están aplicados.
-    $main.BeginInvoke([Action]{
-        $main.Opacity=1
-        $main.Refresh()
-    }) | Out-Null
+    # La UI ya está completamente tematizada en este punto.
+    # Mostramos la ventana inmediatamente y recién después programamos
+    # el chequeo de actualizaciones.
+    $main.Opacity=1
+    $main.Refresh()
 
     try {
         $startupCfg=Load-Config
