@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 # BandaNV v1.0 RC1
-$script:AppVersion = '1.0 RC1.7.5'
+$script:AppVersion = '1.0 RC1.8.2'
 
 # Determina la carpeta real de BandaNV tanto al ejecutar el .ps1 como el .exe compilado con PS2EXE.
 $script:AppDir = $null
@@ -27,7 +27,7 @@ $script:LogsDir = Join-Path $script:AppDir 'logs'
 $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
 
 # ============================================================
-# BandaNV RC1.7.5 - Identidad visual Dark Elegant
+# BandaNV RC1.8.2 - Identidad visual Dark Elegant + Deshacer última ejecución
 # Paleta grafito + teal tomada del branding oficial.
 # Los PNG originales del usuario se conservan sin redibujarlos:
 # el wordmark se incrusta como bytes PNG y el icono NV provisto
@@ -119,6 +119,19 @@ function Set-PrimaryButtonStyle($button) {
     $button.FlatAppearance.MouseOverBackColor=$script:ThemeAccentHover
     $button.FlatAppearance.MouseDownBackColor=$script:ThemeAccentPressed
     $button.Cursor=[Windows.Forms.Cursors]::Hand
+}
+
+function Set-UndoButtonAvailability($button,[bool]$available) {
+    if($null -eq $button){return}
+    $button.Enabled=$available
+    if($available) {
+        Set-PrimaryButtonStyle $button
+    } else {
+        Set-SecondaryButtonStyle $button
+        $button.BackColor=$script:ThemeSurfaceAlt
+        $button.ForeColor=$script:ThemeTextMuted
+        $button.Cursor=[Windows.Forms.Cursors]::Default
+    }
 }
 
 function Set-DangerButtonStyle($button) {
@@ -421,6 +434,382 @@ function Get-CategoryOrder([string]$category) {
     return [int]::MaxValue
 }
 
+
+# ============================================================
+# RC1.8 - Deshacer última ejecución
+# Solo las ejecuciones creadas desde RC1.8 incluyen metadatos
+# suficientes para un undo seguro. Las ejecuciones anteriores
+# siguen visibles en Historial, pero no se intentan revertir.
+# ============================================================
+function Get-UndoMoveRecords([System.IO.FileInfo]$file) {
+    $raw=''
+    try { $raw=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 } catch { return $null }
+    if($raw -notmatch '(?m)^UndoMeta:\s*1\s*$'){ return $null }
+    if($raw -match '(?m)^Tipo:\s*DESHACER\s*$'){ return $null }
+
+    $sourceRoot=''; $destRoot=''
+    if($raw -match '(?m)^Origen:\s*(.+)$'){ $sourceRoot=$Matches[1].Trim() }
+    if($raw -match '(?m)^Destino:\s*(.+)$'){ $destRoot=$Matches[1].Trim() }
+    $records=New-Object System.Collections.Generic.List[object]
+    $pending=$null
+    foreach($line in ($raw -split "`r?`n")) {
+        if($line -match '^\[MOVIDO\]\s*(.+)$') {
+            $pending=[ordered]@{Name=$Matches[1].Trim();UndoID='';OriginalPath='';FinalPath='';Size=-1;ModifiedUtcTicks=0L;Modified=$null;Category=''}
+            continue
+        }
+        if($null -eq $pending){ continue }
+        if($line -match '^\s*UndoID:\s*(.+)$'){ $pending.UndoID=$Matches[1].Trim(); continue }
+        if($line -match '^\s*Original:\s*(.+)$'){ $pending.OriginalPath=$Matches[1].Trim(); continue }
+        if($line -match '^\s*Final:\s*(.+)$'){ $pending.FinalPath=$Matches[1].Trim(); continue }
+        if($line -match '^\s*Tamaño:\s*(\d+)\s*$'){ $pending.Size=[int64]$Matches[1]; continue }
+        if($line -match '^\s*ModificadoUTC:\s*(\d+)\s*$'){ $pending.ModifiedUtcTicks=[int64]$Matches[1]; continue }
+        if($line -match '^\s*Modificado:\s*(.+)$'){
+            $dt=[datetime]::MinValue
+            if([datetime]::TryParse($Matches[1].Trim(),[ref]$dt)){ $pending.Modified=$dt }
+            continue
+        }
+        if($line -match '^\s*->\s*(.+)$'){
+            $pending.Category=$Matches[1].Trim()
+            if(-not [string]::IsNullOrWhiteSpace([string]$pending.UndoID) -and
+               -not [string]::IsNullOrWhiteSpace([string]$pending.OriginalPath) -and
+               -not [string]::IsNullOrWhiteSpace([string]$pending.FinalPath) -and
+               [int64]$pending.Size -ge 0 -and [int64]$pending.ModifiedUtcTicks -gt 0) {
+                [void]$records.Add([PSCustomObject]$pending)
+            }
+            $pending=$null
+        }
+    }
+    if($records.Count -eq 0){ return $null }
+    return [PSCustomObject]@{Log=$file;SourceRoot=$sourceRoot;DestRoot=$destRoot;Records=$records.ToArray()}
+}
+
+function Get-ResolvedUndoIds([string]$originalLogName) {
+    $ids=[System.Collections.Generic.HashSet[string]]::new()
+    foreach($f in @(Get-ChildItem -LiteralPath $script:LogsDir -Filter 'BandaNV_*.txt' -File -ErrorAction SilentlyContinue)) {
+        $raw=''
+        try { $raw=Get-Content -LiteralPath $f.FullName -Raw -Encoding UTF8 } catch { continue }
+        if($raw -notmatch '(?m)^Tipo:\s*DESHACER\s*$'){ continue }
+        $ref=''
+        if($raw -match '(?m)^Log original:\s*(.+)$'){ $ref=$Matches[1].Trim() }
+        if($ref -ne $originalLogName){ continue }
+        $accept=$false
+        foreach($line in ($raw -split "`r?`n")) {
+            if($line -match '^\[(RESTAURADO|YA_RESTAURADO)\]'){ $accept=$true; continue }
+            if($line -match '^\['){ $accept=$false; continue }
+            if($accept -and $line -match '^\s*UndoID:\s*(.+)$'){ [void]$ids.Add($Matches[1].Trim()); $accept=$false }
+        }
+    }
+    return ,$ids
+}
+
+function Test-UndoRecordPaths($execution,$record) {
+    try {
+        if([string]::IsNullOrWhiteSpace([string]$execution.SourceRoot) -or [string]::IsNullOrWhiteSpace([string]$execution.DestRoot)){ return $false }
+        $sourceFull=[IO.Path]::GetFullPath([string]$execution.SourceRoot).TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
+        $destFull=[IO.Path]::GetFullPath([string]$execution.DestRoot).TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
+        $originalFull=[IO.Path]::GetFullPath([string]$record.OriginalPath)
+        $finalFull=[IO.Path]::GetFullPath([string]$record.FinalPath)
+        $originalParent=[IO.Path]::GetDirectoryName($originalFull).TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
+        if(-not $originalParent.Equals($sourceFull,[StringComparison]::OrdinalIgnoreCase)){ return $false }
+        $destPrefix=$destFull+[IO.Path]::DirectorySeparatorChar
+        if(-not $finalFull.StartsWith($destPrefix,[StringComparison]::OrdinalIgnoreCase)){ return $false }
+        return $true
+    } catch { return $false }
+}
+
+function Get-UndoStateLabel([string]$state) {
+    switch($state) {
+        'Conflict' { return 'CONFLICTO' }
+        'Modified' { return 'MODIFICADO' }
+        'Ambiguous' { return 'AMBIGUO' }
+        'SourceMissing' { return 'ORIGEN NO DISPONIBLE' }
+        'Missing' { return 'NO ENCONTRADO' }
+        'Invalid' { return 'REGISTRO INVÁLIDO' }
+        default { return $state.ToUpperInvariant() }
+    }
+}
+
+function Test-UndoFileMatch([string]$path,$record) {
+    if([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)){ return $false }
+    try {
+        $f=Get-Item -LiteralPath $path -ErrorAction Stop
+        if([int64]$f.Length -ne [int64]$record.Size){ return $false }
+        # Tolerancia de 2 segundos para sistemas de archivos con menor precisión temporal.
+        $delta=[math]::Abs([double]($f.LastWriteTimeUtc.Ticks - [int64]$record.ModifiedUtcTicks))
+        return ($delta -le 20000000)
+    } catch { return $false }
+}
+
+function Get-LastUndoableExecution {
+    Ensure-AppData
+    $files=@(Get-ChildItem -LiteralPath $script:LogsDir -Filter 'BandaNV_*.txt' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+    foreach($f in $files) {
+        $meta=Get-UndoMoveRecords $f
+        if($null -eq $meta){ continue }
+        $resolved=Get-ResolvedUndoIds $f.Name
+        $remaining=@($meta.Records | Where-Object { -not $resolved.Contains([string]$_.UndoID) })
+        if($remaining.Count -gt 0) {
+            return [PSCustomObject]@{Log=$f;SourceRoot=$meta.SourceRoot;DestRoot=$meta.DestRoot;Records=$remaining;AllRecords=$meta.Records;Resolved=$resolved}
+        }
+    }
+    return $null
+}
+
+function Get-UndoEvaluation($execution) {
+    if($null -eq $execution){ return @() }
+    $destFiles=@()
+    if(-not [string]::IsNullOrWhiteSpace([string]$execution.DestRoot) -and (Test-Path -LiteralPath $execution.DestRoot -PathType Container)) {
+        $destFiles=@(Get-ChildItem -LiteralPath $execution.DestRoot -File -Recurse -ErrorAction SilentlyContinue)
+    }
+    $items=New-Object System.Collections.Generic.List[object]
+    foreach($record in @($execution.Records)) {
+        $state='Missing'; $current=''; $reason='No se encontró el archivo.'
+        if(-not (Test-UndoRecordPaths $execution $record)) {
+            [void]$items.Add([PSCustomObject]@{Record=$record;State='Invalid';CurrentPath='';Reason='El registro de esta operación no es válido para un deshacer seguro.'})
+            continue
+        }
+        $originalParent=[IO.Path]::GetDirectoryName([string]$record.OriginalPath)
+        $originalExists=Test-Path -LiteralPath $record.OriginalPath -PathType Leaf
+        $finalExists=Test-Path -LiteralPath $record.FinalPath -PathType Leaf
+
+        if($originalExists) {
+            if($finalExists) {
+                $state='Conflict'; $reason='Ya existe un archivo en el origen y también sigue existiendo el archivo organizado.'
+            } elseif(Test-UndoFileMatch $record.OriginalPath $record) {
+                $state='AlreadyRestored'; $current=$record.OriginalPath; $reason='El archivo ya está en su ubicación original.'
+            } else {
+                $state='Conflict'; $reason='Ya existe otro archivo con ese nombre en la ubicación original.'
+            }
+        } elseif([string]::IsNullOrWhiteSpace($originalParent) -or -not (Test-Path -LiteralPath $originalParent -PathType Container)) {
+            $state='SourceMissing'; $reason='La carpeta original ya no existe.'
+        } elseif($finalExists) {
+            if(Test-UndoFileMatch $record.FinalPath $record) {
+                $state='SafeExact'; $current=$record.FinalPath; $reason='Listo para restaurar.'
+            } else {
+                $state='Modified'; $current=$record.FinalPath; $reason='El archivo cambió desde que BandaNV lo organizó.'
+            }
+        } else {
+            $leaf=[IO.Path]::GetFileName([string]$record.FinalPath)
+            $candidates=@($destFiles | Where-Object {
+                $_.Name -eq $leaf -and [int64]$_.Length -eq [int64]$record.Size -and
+                [math]::Abs([double]($_.LastWriteTimeUtc.Ticks - [int64]$record.ModifiedUtcTicks)) -le 20000000
+            })
+            if($candidates.Count -eq 1) {
+                $state='SafeMoved'; $current=$candidates[0].FullName; $reason='Se encontró el archivo movido dentro de ORGANIZADO.'
+            } elseif($candidates.Count -gt 1) {
+                $state='Ambiguous'; $reason='Hay más de un archivo posible dentro de ORGANIZADO.'
+            }
+        }
+        [void]$items.Add([PSCustomObject]@{Record=$record;State=$state;CurrentPath=$current;Reason=$reason})
+    }
+    return $items.ToArray()
+}
+
+function Invoke-UndoExecution($execution,$owner) {
+    $evaluation=@(Get-UndoEvaluation $execution)
+    $actionable=@($evaluation | Where-Object { $_.State -in @('SafeExact','SafeMoved','AlreadyRestored') })
+    if($actionable.Count -eq 0) {
+        [Windows.Forms.MessageBox]::Show('No hay archivos que BandaNV pueda restaurar de forma segura en este momento.','BandaNV','OK','Information') | Out-Null
+        return
+    }
+
+    $start=Get-Date; $log=New-LogPath
+    $originalSummary=Get-LogSummary $execution.Log
+    $results=New-Object System.Collections.Generic.List[object]
+    $restored=0; $already=0; $conflicts=0; $modified=0; $missing=0; $ambiguous=0; $sourceMissing=0; $errors=0
+
+    foreach($item in $evaluation) {
+        $r=$item.Record
+        switch($item.State) {
+            'SafeExact' {
+                try {
+                    if(Test-Path -LiteralPath $r.OriginalPath -PathType Leaf){ throw 'Apareció un archivo en la ubicación original. No se sobrescribió.' }
+                    if(-not (Test-UndoFileMatch $item.CurrentPath $r)){ throw 'El archivo cambió antes de completar el deshacer.' }
+                    Move-Item -LiteralPath $item.CurrentPath -Destination $r.OriginalPath -ErrorAction Stop
+                    $restored++
+                    [void]$results.Add([PSCustomObject]@{State='RESTAURADO';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=''})
+                } catch {
+                    $errors++
+                    [void]$results.Add([PSCustomObject]@{State='ERROR';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=$_.Exception.Message})
+                }
+            }
+            'SafeMoved' {
+                try {
+                    if(Test-Path -LiteralPath $r.OriginalPath -PathType Leaf){ throw 'Apareció un archivo en la ubicación original. No se sobrescribió.' }
+                    if(-not (Test-UndoFileMatch $item.CurrentPath $r)){ throw 'El archivo cambió antes de completar el deshacer.' }
+                    Move-Item -LiteralPath $item.CurrentPath -Destination $r.OriginalPath -ErrorAction Stop
+                    $restored++
+                    [void]$results.Add([PSCustomObject]@{State='RESTAURADO';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=''})
+                } catch {
+                    $errors++
+                    [void]$results.Add([PSCustomObject]@{State='ERROR';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=$_.Exception.Message})
+                }
+            }
+            'AlreadyRestored' {
+                $already++
+                [void]$results.Add([PSCustomObject]@{State='YA_RESTAURADO';Record=$r;FromPath=$r.OriginalPath;ToPath=$r.OriginalPath;Reason='El archivo ya estaba en su ubicación original.'})
+            }
+            'Conflict' {
+                $conflicts++
+                [void]$results.Add([PSCustomObject]@{State='CONFLICTO';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=$item.Reason})
+            }
+            'Modified' {
+                $modified++
+                [void]$results.Add([PSCustomObject]@{State='MODIFICADO';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=$item.Reason})
+            }
+            'Ambiguous' {
+                $ambiguous++
+                [void]$results.Add([PSCustomObject]@{State='AMBIGUO';Record=$r;FromPath='';ToPath=$r.OriginalPath;Reason=$item.Reason})
+            }
+            'SourceMissing' {
+                $sourceMissing++
+                [void]$results.Add([PSCustomObject]@{State='ORIGEN_NO_DISPONIBLE';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=$item.Reason})
+            }
+            'Invalid' {
+                $errors++
+                [void]$results.Add([PSCustomObject]@{State='ERROR';Record=$r;FromPath=$item.CurrentPath;ToPath=$r.OriginalPath;Reason=$item.Reason})
+            }
+            default {
+                $missing++
+                [void]$results.Add([PSCustomObject]@{State='NO_ENCONTRADO';Record=$r;FromPath='';ToPath=$r.OriginalPath;Reason=$item.Reason})
+            }
+        }
+    }
+
+    $pending=$conflicts+$modified+$missing+$ambiguous+$sourceMissing+$errors
+    $end=Get-Date; $duration=[math]::Round(($end-$start).TotalSeconds,2)
+    $lines=New-Object System.Collections.Generic.List[string]
+    $lines.Add('=================================================='); $lines.Add('BandaNV - Registro de deshacer'); $lines.Add('=================================================='); $lines.Add('')
+    $lines.Add('Tipo: DESHACER'); $lines.Add('Inicio: '+$start.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add('Ejecución original: '+$originalSummary.Date); $lines.Add('Log original: '+$execution.Log.Name); $lines.Add(''); $lines.Add('--------------------------------------------------')
+
+    $categoryGroups=@($results | Group-Object -Property {$_.Record.Category} | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+    if($categoryGroups.Count -gt 0) {
+        $lines.Add(''); $lines.Add('Por categoría:')
+        foreach($g in $categoryGroups) {
+            $ok=@($g.Group | Where-Object {$_.State -eq 'RESTAURADO'}).Count
+            $was=@($g.Group | Where-Object {$_.State -eq 'YA_RESTAURADO'}).Count
+            $wait=@($g.Group | Where-Object {$_.State -notin @('RESTAURADO','YA_RESTAURADO')}).Count
+            $parts=New-Object System.Collections.Generic.List[string]
+            if($ok -gt 0){$parts.Add("$ok restaurado(s)")}
+            if($was -gt 0){$parts.Add("$was ya restaurado(s)")}
+            if($wait -gt 0){$parts.Add("$wait pendiente(s)")}
+            if($parts.Count -eq 0){$parts.Add('0 cambios')}
+            $lines.Add(('  {0}: {1}' -f $g.Name,($parts -join ', ')))
+        }
+    }
+
+    $resolvedItems=@($results | Where-Object {$_.State -in @('RESTAURADO','YA_RESTAURADO')})
+    if($resolvedItems.Count -gt 0) {
+        $lines.Add(''); $lines.Add('Archivos restaurados:')
+        $resolvedGroups=@($resolvedItems | Group-Object -Property {$_.Record.Category} | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+        foreach($g in $resolvedGroups) {
+            $lines.Add(''); $lines.Add('  '+$g.Name)
+            $sorted=@($g.Group | Sort-Object @{Expression={if($null -eq $_.Record.Modified){[datetime]::MinValue}else{$_.Record.Modified}};Descending=$true}, @{Expression={Get-NaturalNameKey $_.Record.Name};Descending=$true})
+            foreach($entry in $sorted) {
+                $r=$entry.Record
+                $lines.Add(('['+$entry.State+'] '+$r.Name))
+                $lines.Add('         UndoID: '+$r.UndoID)
+                $lines.Add('         Categoría: '+$r.Category)
+                if($null -ne $r.Modified){$lines.Add('         Modificado: '+$r.Modified.ToString('yyyy-MM-dd HH:mm:ss.fffffff'))}
+                if($entry.State -eq 'RESTAURADO') {
+                    $lines.Add('         Desde: '+$entry.FromPath)
+                    $lines.Add('         Hacia: '+$entry.ToPath)
+                } else {
+                    $lines.Add('         Ruta: '+$r.OriginalPath)
+                }
+                $lines.Add('')
+            }
+        }
+    }
+
+    $attentionItems=@($results | Where-Object {$_.State -notin @('RESTAURADO','YA_RESTAURADO')})
+    if($attentionItems.Count -gt 0) {
+        $lines.Add(''); $lines.Add('Requieren atención:')
+        $attentionGroups=@($attentionItems | Group-Object -Property {$_.Record.Category} | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+        foreach($g in $attentionGroups) {
+            $lines.Add(''); $lines.Add('  '+$g.Name)
+            $sorted=@($g.Group | Sort-Object @{Expression={if($null -eq $_.Record.Modified){[datetime]::MinValue}else{$_.Record.Modified}};Descending=$true}, @{Expression={Get-NaturalNameKey $_.Record.Name};Descending=$true})
+            foreach($entry in $sorted) {
+                $r=$entry.Record
+                $lines.Add(('['+$entry.State+'] '+$r.Name))
+                $lines.Add('         UndoID: '+$r.UndoID)
+                $lines.Add('         Categoría: '+$r.Category)
+                if($null -ne $r.Modified){$lines.Add('         Modificado: '+$r.Modified.ToString('yyyy-MM-dd HH:mm:ss.fffffff'))}
+                if(-not [string]::IsNullOrWhiteSpace([string]$entry.Reason)){$lines.Add('         Motivo: '+$entry.Reason)}
+                $lines.Add('')
+            }
+        }
+    }
+
+    $lines.Add('--------------------------------------------------'); $lines.Add(''); $lines.Add("Restaurados: $restored"); $lines.Add("Ya restaurados: $already"); $lines.Add("Conflictos: $conflicts"); $lines.Add("Modificados: $modified"); $lines.Add("No encontrados: $missing"); $lines.Add("Ambiguos: $ambiguous"); $lines.Add("Origen no disponible: $sourceMissing"); $lines.Add("Errores: $errors"); $lines.Add("Pendientes: $pending"); $lines.Add('Finalización: '+$end.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add("Duración: $duration segundos"); $lines.Add(''); $lines.Add('==================================================')
+    $lines | Set-Content -LiteralPath $log -Encoding UTF8
+
+    $msg="$restored archivo(s) restaurado(s)."
+    if($already -gt 0){ $msg += "`n$already ya estaban restaurados." }
+    if($pending -gt 0){ $msg += "`n`n$pending archivo(s) requieren atención y no fueron modificados." }
+    $icon=if($pending -gt 0){'Warning'}else{'Information'}
+    [Windows.Forms.MessageBox]::Show($msg,'BandaNV - Deshacer','OK',$icon) | Out-Null
+}
+
+function Show-UndoPreview($owner) {
+    $execution=Get-LastUndoableExecution
+    if($null -eq $execution) {
+        [Windows.Forms.MessageBox]::Show('No hay una ejecución compatible pendiente de deshacer. Las ejecuciones anteriores a RC1.8 no se revierten automáticamente.','BandaNV','OK','Information') | Out-Null
+        return
+    }
+    $evaluation=@(Get-UndoEvaluation $execution)
+    $safe=@($evaluation | Where-Object { $_.State -in @('SafeExact','SafeMoved') })
+    $already=@($evaluation | Where-Object { $_.State -eq 'AlreadyRestored' })
+    $attention=@($evaluation | Where-Object { $_.State -notin @('SafeExact','SafeMoved','AlreadyRestored') })
+    $originalSummary=Get-LogSummary $execution.Log
+
+    # La vista previa de Deshacer usa las mismas dimensiones que Historial.
+    # Sigue siendo modal y mantiene la ventana de Historial abierta detrás.
+    $form=New-Object Windows.Forms.Form; $form.Text='BandaNV — Deshacer última ejecución'; $form.Size=New-Object Drawing.Size(650,560); $form.StartPosition='CenterParent'; $form.MinimumSize=New-Object Drawing.Size(580,460); $form.ShowInTaskbar=$false; Initialize-ThemedForm $form
+    $title=New-Object Windows.Forms.Label; $title.Text='DESHACER ÚLTIMA EJECUCIÓN'; $title.Font=New-Object Drawing.Font('Segoe UI',16,[Drawing.FontStyle]::Bold); $title.Location=New-Object Drawing.Point(22,18); $title.AutoSize=$true
+    $summary=New-Object Windows.Forms.Label; $summary.Location=New-Object Drawing.Point(25,58); $summary.Size=New-Object Drawing.Size(585,46); $summary.Anchor='Top,Left,Right'; $summary.Text="Ejecución: $($originalSummary.Date)   •   Restaurables: $($safe.Count)   •   Ya restaurados: $($already.Count)   •   Atención: $($attention.Count)"
+    $preview=New-Object Windows.Forms.RichTextBox; $preview.Location=New-Object Drawing.Point(25,105); $preview.Size=New-Object Drawing.Size(585,348); $preview.Anchor='Top,Bottom,Left,Right'; $preview.ReadOnly=$true; $preview.WordWrap=$false; $preview.ScrollBars='ForcedVertical'; $preview.Font=New-Object Drawing.Font('Consolas',9); $preview.BackColor=$script:ThemeInput; $preview.ForeColor=$script:ThemeText; $preview.DetectUrls=$false
+
+    $sb=New-Object Text.StringBuilder
+    if($safe.Count -gt 0) {
+        [void]$sb.AppendLine('SE PUEDEN RESTAURAR'); [void]$sb.AppendLine(('─' * 70))
+        $groups=@($safe | Group-Object -Property {$_.Record.Category} | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+        foreach($g in $groups) {
+            [void]$sb.AppendLine($g.Name)
+            $sorted=@($g.Group | Sort-Object @{Expression={if($null -eq $_.Record.Modified){[datetime]::MinValue}else{$_.Record.Modified}};Descending=$true}, @{Expression={Get-NaturalNameKey $_.Record.Name};Descending=$true})
+            foreach($item in $sorted) { [void]$sb.AppendLine('  '+$item.Record.Name); [void]$sb.AppendLine('    -> '+$item.Record.OriginalPath) }
+            [void]$sb.AppendLine('')
+        }
+    }
+    if($already.Count -gt 0) {
+        [void]$sb.AppendLine('YA ESTÁN EN SU UBICACIÓN ORIGINAL'); [void]$sb.AppendLine(('─' * 70))
+        foreach($item in $already) { [void]$sb.AppendLine('  '+$item.Record.Name); [void]$sb.AppendLine('    '+$item.Record.OriginalPath) }
+        [void]$sb.AppendLine('')
+    }
+    if($attention.Count -gt 0) {
+        [void]$sb.AppendLine('REQUIEREN ATENCIÓN — NO SE MOVERÁN'); [void]$sb.AppendLine(('─' * 70))
+        foreach($item in $attention) { $stateLabel=Get-UndoStateLabel $item.State; [void]$sb.AppendLine(('  {0}  [{1}]' -f $item.Record.Name,$stateLabel)); [void]$sb.AppendLine('    '+$item.Reason) }
+    }
+    $preview.Text=$sb.ToString(); $preview.SelectionStart=0; $preview.SelectionLength=0
+
+    $cancel=New-Object Windows.Forms.Button; $cancel.Text='CANCELAR'; $cancel.Location=New-Object Drawing.Point(370,470); $cancel.Size=New-Object Drawing.Size(110,34); $cancel.Anchor='Bottom,Right'; $cancel.Add_Click({$form.Close()})
+    $confirm=New-Object Windows.Forms.Button; $confirm.Text='DESHACER'; $confirm.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $confirm.Location=New-Object Drawing.Point(500,470); $confirm.Size=New-Object Drawing.Size(110,34); $confirm.Anchor='Bottom,Right'; $confirm.Enabled=(($safe.Count+$already.Count) -gt 0)
+    $confirm.Add_Click({
+        $confirm.Enabled=$false; $cancel.Enabled=$false
+        Invoke-UndoExecution $execution $owner
+        $form.Close()
+    })
+    $form.Controls.AddRange(@($title,$summary,$preview,$cancel,$confirm)); Apply-DarkTheme $form; $title.ForeColor=$script:ThemeAccent; $summary.ForeColor=$script:ThemeTextMuted; Set-SecondaryButtonStyle $cancel; Set-PrimaryButtonStyle $confirm
+    $form.Add_Shown({$preview.SelectionStart=0;$preview.SelectionLength=0;$preview.ScrollToCaret();$cancel.Select();[void]$cancel.Focus()})
+
+    if($null -ne $owner -and -not $owner.IsDisposed) {
+        if($owner.WindowState -eq [Windows.Forms.FormWindowState]::Minimized){$owner.WindowState=[Windows.Forms.FormWindowState]::Normal}
+        if(-not $owner.Visible){$owner.Show()}
+        $owner.Activate()
+    }
+    [void]$form.ShowDialog($owner)
+}
+
 function Get-OrganizationPlan {
     $cfg=Load-Config; $source=Resolve-Source $cfg
     if ([string]::IsNullOrWhiteSpace($source) -or -not (Test-Path -LiteralPath $source -PathType Container)) {
@@ -459,14 +848,33 @@ function Invoke-OrganizationPlan($plan,$statusLabel,$lastLabel,$button,$owner) {
     foreach($cat in $plan.Categories) { New-Item -ItemType Directory -Force -Path (Join-Path $plan.DestRoot $cat.Name) | Out-Null }
     $start=Get-Date; $log=New-LogPath; $lines=New-Object System.Collections.Generic.List[string]
     $lines.Add('=================================================='); $lines.Add('BandaNV - Registro de ejecución'); $lines.Add('=================================================='); $lines.Add('')
-    $lines.Add('Inicio: '+$start.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add('Origen: '+$plan.Source); $lines.Add('Destino: '+$plan.DestRoot); $lines.Add(''); $lines.Add('--------------------------------------------------'); $lines.Add('')
+    $lines.Add('Tipo: ORGANIZAR'); $lines.Add('UndoMeta: 1'); $lines.Add('Inicio: '+$start.ToString('dd/MM/yyyy HH:mm:ss')); $lines.Add('Origen: '+$plan.Source); $lines.Add('Destino: '+$plan.DestRoot); $lines.Add(''); $lines.Add('--------------------------------------------------'); $lines.Add('')
     $button.Enabled=$false; $statusLabel.Text='Estado: Organizando...'; $statusLabel.ForeColor=$script:ThemeAccent; [System.Windows.Forms.Application]::DoEvents()
     $count=0; $errors=0
     foreach($item in $plan.Classified) {
         $file=$item.File; $cat=$item.Category
         if(-not (Test-Path -LiteralPath $file.FullName -PathType Leaf)) { $errors++; $lines.Add("[ERROR] $($file.Name) - El archivo ya no existe."); $lines.Add(''); continue }
+        $originalPath=$file.FullName
+        $size=[int64]$file.Length
+        $modified=$file.LastWriteTime
+        $modifiedUtcTicks=[int64]$file.LastWriteTimeUtc.Ticks
         $target=Get-UniqueDestination (Join-Path (Join-Path $plan.DestRoot $cat) $file.Name)
-        try { $modified=$file.LastWriteTime; Move-Item -LiteralPath $file.FullName -Destination $target -ErrorAction Stop; $count++; $lines.Add("[MOVIDO] $($file.Name)"); $lines.Add("         Modificado: $($modified.ToString('yyyy-MM-dd HH:mm:ss.fffffff'))"); $lines.Add("         -> $cat"); $lines.Add(''); $statusLabel.Text="Estado: Organizando... $count archivo(s)"; [System.Windows.Forms.Application]::DoEvents() }
+        $undoId=[guid]::NewGuid().ToString('N')
+        try {
+            Move-Item -LiteralPath $originalPath -Destination $target -ErrorAction Stop
+            $count++
+            $finalName=[IO.Path]::GetFileName($target)
+            $lines.Add("[MOVIDO] $finalName")
+            $lines.Add("         UndoID: $undoId")
+            $lines.Add("         Original: $originalPath")
+            $lines.Add("         Final: $target")
+            $lines.Add("         Tamaño: $size")
+            $lines.Add("         ModificadoUTC: $modifiedUtcTicks")
+            $lines.Add("         Modificado: $($modified.ToString('yyyy-MM-dd HH:mm:ss.fffffff'))")
+            $lines.Add("         -> $cat")
+            $lines.Add('')
+            $statusLabel.Text="Estado: Organizando... $count archivo(s)"; [System.Windows.Forms.Application]::DoEvents()
+        }
         catch { $errors++; $lines.Add("[ERROR] $($file.Name) - $($_.Exception.Message)"); $lines.Add('') }
     }
     $end=Get-Date; $duration=[math]::Round(($end-$start).TotalSeconds,2)
@@ -530,16 +938,94 @@ function Show-OrganizationPreview($statusLabel,$lastLabel,$mainButton,$owner) {
 function Get-LogSummary([System.IO.FileInfo]$file) {
     $raw = ''
     try { $raw = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 } catch {}
+    $dateText = $file.LastWriteTime.ToString('dd/MM/yyyy - HH:mm')
+    if ($file.BaseName -match '^BandaNV_(\d{4})-(\d{2})-(\d{2})____(\d{2})-(\d{2})') {
+        $dateText = "$($Matches[3])/$($Matches[2])/$($Matches[1]) - $($Matches[4]):$($Matches[5])"
+    }
+
+    if($raw -match '(?m)^Tipo:\s*DESHACER\s*$') {
+        $restored=0;$already=0;$pending=0;$duration='';$original=''
+        if($raw -match '(?m)^Restaurados:\s*(\d+)'){ $restored=[int]$Matches[1] }
+        if($raw -match '(?m)^Ya restaurados:\s*(\d+)'){ $already=[int]$Matches[1] }
+        if($raw -match '(?m)^Pendientes:\s*(\d+)'){ $pending=[int]$Matches[1] }
+        if($raw -match '(?m)^Duración:\s*(.+)$'){ $duration=$Matches[1].Trim() }
+        if($raw -match '(?m)^Ejecución original:\s*(.+)$'){ $original=$Matches[1].Trim() }
+        if($pending -gt 0){ $statusText="↩ $restored restaurado(s) - $pending pendiente(s)" }
+        elseif($restored -gt 0){ $statusText="↩ $restored archivo(s) restaurado(s)" }
+        else { $statusText="↩ $already archivo(s) ya restaurado(s)" }
+
+        $records=New-Object System.Collections.Generic.List[object]
+        $pendingRecord=$null
+        foreach($line in ($raw -split "`r?`n")) {
+            if($line -match '^\[(RESTAURADO|YA_RESTAURADO|CONFLICTO|MODIFICADO|NO_ENCONTRADO|AMBIGUO|ORIGEN_NO_DISPONIBLE|ERROR)\]\s*(.+)$') {
+                if($null -ne $pendingRecord){[void]$records.Add([PSCustomObject]$pendingRecord)}
+                $pendingRecord=[ordered]@{State=$Matches[1];Name=$Matches[2].Trim();Category='SIN CATEGORÍA';Modified=$null;Reason=''}
+                continue
+            }
+            if($null -eq $pendingRecord){continue}
+            if($line -match '^\s*Categoría:\s*(.+)$'){$pendingRecord.Category=$Matches[1].Trim();continue}
+            if($line -match '^\s*Modificado:\s*(.+)$'){
+                $dt=[datetime]::MinValue
+                if([datetime]::TryParse($Matches[1].Trim(),[ref]$dt)){$pendingRecord.Modified=$dt}
+                continue
+            }
+            if($line -match '^\s*Motivo:\s*(.+)$'){$pendingRecord.Reason=$Matches[1].Trim();continue}
+        }
+        if($null -ne $pendingRecord){[void]$records.Add([PSCustomObject]$pendingRecord)}
+
+        $friendly=New-Object System.Collections.Generic.List[string]
+        if($original){$friendly.Add('Ejecución original: '+$original)}
+        $friendly.Add(''); $friendly.Add('Resultado: '+$statusText); if($duration){$friendly.Add('Duración: '+$duration)}
+        $friendly.Add(''); $friendly.Add(('Restaurados: {0}' -f $restored)); $friendly.Add(('Ya restaurados: {0}' -f $already)); $friendly.Add(('Pendientes: {0}' -f $pending))
+
+        if($records.Count -gt 0) {
+            $categoryGroups=@($records | Group-Object Category | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+            $friendly.Add(''); $friendly.Add('Por categoría:')
+            foreach($g in $categoryGroups) {
+                $ok=@($g.Group | Where-Object {$_.State -eq 'RESTAURADO'}).Count
+                $was=@($g.Group | Where-Object {$_.State -eq 'YA_RESTAURADO'}).Count
+                $wait=@($g.Group | Where-Object {$_.State -notin @('RESTAURADO','YA_RESTAURADO')}).Count
+                $parts=New-Object System.Collections.Generic.List[string]
+                if($ok -gt 0){$parts.Add("$ok restaurado(s)")}; if($was -gt 0){$parts.Add("$was ya restaurado(s)")}; if($wait -gt 0){$parts.Add("$wait pendiente(s)")}
+                $friendly.Add(('  {0}: {1}' -f $g.Name,($parts -join ', ')))
+            }
+
+            $resolved=@($records | Where-Object {$_.State -in @('RESTAURADO','YA_RESTAURADO')})
+            if($resolved.Count -gt 0) {
+                $friendly.Add(''); $friendly.Add('Archivos restaurados:')
+                $groups=@($resolved | Group-Object Category | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+                foreach($g in $groups) {
+                    $friendly.Add(''); $friendly.Add('  '+$g.Name)
+                    $sorted=@($g.Group | Sort-Object @{Expression={if($null -eq $_.Modified){[datetime]::MinValue}else{$_.Modified}};Descending=$true}, @{Expression={Get-NaturalNameKey $_.Name};Descending=$true})
+                    foreach($r in $sorted) {
+                        $label=if($r.State -eq 'YA_RESTAURADO'){'YA RESTAURADO'}else{'RESTAURADO'}
+                        if($null -ne $r.Modified){$friendly.Add(('    [{0}] {1}    {2}' -f $label,$r.Name,$r.Modified.ToString('dd/MM/yyyy HH:mm')))}else{$friendly.Add(('    [{0}] {1}' -f $label,$r.Name))}
+                    }
+                }
+            }
+
+            $attention=@($records | Where-Object {$_.State -notin @('RESTAURADO','YA_RESTAURADO')})
+            if($attention.Count -gt 0) {
+                $friendly.Add(''); $friendly.Add('Requieren atención:')
+                $groups=@($attention | Group-Object Category | Sort-Object @{Expression={Get-CategoryOrder $_.Name};Ascending=$true}, @{Expression={$_.Name};Ascending=$true})
+                foreach($g in $groups) {
+                    $friendly.Add(''); $friendly.Add('  '+$g.Name)
+                    foreach($r in @($g.Group | Sort-Object @{Expression={Get-NaturalNameKey $_.Name};Descending=$true})) {
+                        $friendly.Add(('    [{0}] {1}' -f $r.State,$r.Name))
+                        if(-not [string]::IsNullOrWhiteSpace([string]$r.Reason)){$friendly.Add('      '+$r.Reason)}
+                    }
+                }
+            }
+        }
+        return [PSCustomObject]@{ File=$file; Date=$dateText; Count=$restored; Errors=$pending; Status=$statusText; Raw=($friendly -join [Environment]::NewLine); Type='UNDO' }
+    }
+
     $count = 0; $errors = 0; $statusText = 'Ejecución registrada'
     if ($raw -match 'Archivos procesados:\s*(\d+)') { $count = [int]$Matches[1] }
     if ($raw -match 'Errores:\s*(\d+)') { $errors = [int]$Matches[1] }
     if ($errors -gt 0) { $statusText = "$count archivo(s) - $errors error(es)" }
     elseif ($count -eq 0) { $statusText = '0 archivos - Todo limpio' }
     else { $statusText = "$count archivo(s) organizado(s)" }
-    $dateText = $file.LastWriteTime.ToString('dd/MM/yyyy - HH:mm')
-    if ($file.BaseName -match '^BandaNV_(\d{4})-(\d{2})-(\d{2})____(\d{2})-(\d{2})') {
-        $dateText = "$($Matches[3])/$($Matches[2])/$($Matches[1]) - $($Matches[4]):$($Matches[5])"
-    }
 
     $source=''; $destination=''; $duration=''; $records=New-Object System.Collections.Generic.List[object]; $categoryCounts=@{}
     $pendingFile=$null; $pendingModified=$null
@@ -582,7 +1068,7 @@ function Get-LogSummary([System.IO.FileInfo]$file) {
         }
     }
     if($errors -gt 0){$friendly.Add(''); $friendly.Add('Para revisar los errores completos, abrí el archivo de log.')}
-    return [PSCustomObject]@{ File=$file; Date=$dateText; Count=$count; Errors=$errors; Status=$statusText; Raw=($friendly -join [Environment]::NewLine) }
+    return [PSCustomObject]@{ File=$file; Date=$dateText; Count=$count; Errors=$errors; Status=$statusText; Raw=($friendly -join [Environment]::NewLine); Type='ORGANIZE' }
 }
 
 function Show-HistoryDetail($summary, $owner) {
@@ -609,16 +1095,29 @@ function Show-History {
     $hint=New-Object Windows.Forms.Label; $hint.Text='Doble clic en una ejecución para ver el detalle.'; $hint.Location=New-Object Drawing.Point(25,58); $hint.AutoSize=$true
     $list=New-Object Windows.Forms.ListView; $list.Location=New-Object Drawing.Point(25,88); $list.Size=New-Object Drawing.Size(585,365); $list.View='Details'; $list.FullRowSelect=$true; $list.GridLines=$false; $list.HideSelection=$false; $list.Anchor='Top,Bottom,Left,Right'
     [void]$list.Columns.Add('Fecha y hora',190); [void]$list.Columns.Add('Resultado',355)
-    $files=@(Get-ChildItem -LiteralPath $script:LogsDir -Filter 'BandaNV_*.txt' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
-    foreach($f in $files){
-        $s=Get-LogSummary $f; $item=New-Object Windows.Forms.ListViewItem($s.Date); [void]$item.SubItems.Add($s.Status); $item.Tag=$s; [void]$list.Items.Add($item)
-    }
-    if($list.Items.Count -eq 0){ $item=New-Object Windows.Forms.ListViewItem('Sin ejecuciones'); [void]$item.SubItems.Add('Todavía no hay actividad registrada.'); $item.ForeColor=[Drawing.Color]::Gray; [void]$list.Items.Add($item) }
-    $list.Add_DoubleClick({ if($list.SelectedItems.Count -gt 0 -and $null -ne $list.SelectedItems[0].Tag){ Show-HistoryDetail $list.SelectedItems[0].Tag $form } })
-    $detailBtn=New-Object Windows.Forms.Button; $detailBtn.Text='Ver detalle'; $detailBtn.Location=New-Object Drawing.Point(25,470); $detailBtn.Size=New-Object Drawing.Size(120,32); $detailBtn.Anchor='Bottom,Left'; $detailBtn.Add_Click({if($list.SelectedItems.Count -gt 0 -and $null -ne $list.SelectedItems[0].Tag){Show-HistoryDetail $list.SelectedItems[0].Tag $form}})
-    $open=New-Object Windows.Forms.Button; $open.Text='Abrir carpeta de logs'; $open.Location=New-Object Drawing.Point(160,470); $open.Size=New-Object Drawing.Size(155,32); $open.Anchor='Bottom,Left'; $open.Add_Click({Start-Process explorer.exe -ArgumentList ('"'+$script:LogsDir+'"')})
+
+    $detailBtn=New-Object Windows.Forms.Button; $detailBtn.Text='Ver detalle'; $detailBtn.Location=New-Object Drawing.Point(25,470); $detailBtn.Size=New-Object Drawing.Size(115,32); $detailBtn.Anchor='Bottom,Left'; $detailBtn.Add_Click({if($list.SelectedItems.Count -gt 0 -and $null -ne $list.SelectedItems[0].Tag){Show-HistoryDetail $list.SelectedItems[0].Tag $form}})
+    $open=New-Object Windows.Forms.Button; $open.Text='Logs'; $open.Location=New-Object Drawing.Point(150,470); $open.Size=New-Object Drawing.Size(70,32); $open.Anchor='Bottom,Left'; $open.Add_Click({Start-Process explorer.exe -ArgumentList ('"'+$script:LogsDir+'"')})
+    $undo=New-Object Windows.Forms.Button; $undo.Text='↩ Deshacer última ejecución'; $undo.Location=New-Object Drawing.Point(230,470); $undo.Size=New-Object Drawing.Size(225,32); $undo.Anchor='Bottom,Left'
     $close=New-Object Windows.Forms.Button; $close.Text='CERRAR'; $close.Location=New-Object Drawing.Point(490,470); $close.Size=New-Object Drawing.Size(120,32); $close.Anchor='Bottom,Right'; $close.Add_Click({$form.Close()})
-    $form.Controls.AddRange(@($title,$hint,$list,$detailBtn,$open,$close)); Apply-DarkTheme $form; $title.ForeColor=$script:ThemeAccent; $hint.ForeColor=$script:ThemeTextMuted; [void]$form.ShowDialog()
+
+    $refreshHistory={
+        $list.BeginUpdate()
+        try {
+            $list.Items.Clear()
+            $files=@(Get-ChildItem -LiteralPath $script:LogsDir -Filter 'BandaNV_*.txt' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+            foreach($f in $files){
+                $s=Get-LogSummary $f; $item=New-Object Windows.Forms.ListViewItem($s.Date); [void]$item.SubItems.Add($s.Status); $item.Tag=$s; [void]$list.Items.Add($item)
+            }
+            if($list.Items.Count -eq 0){ $item=New-Object Windows.Forms.ListViewItem('Sin ejecuciones'); [void]$item.SubItems.Add('Todavía no hay actividad registrada.'); $item.ForeColor=[Drawing.Color]::Gray; [void]$list.Items.Add($item) }
+            $canUndo=($null -ne (Get-LastUndoableExecution)); Set-UndoButtonAvailability $undo $canUndo
+        } finally { $list.EndUpdate() }
+    }
+    $list.Add_DoubleClick({ if($list.SelectedItems.Count -gt 0 -and $null -ne $list.SelectedItems[0].Tag){ Show-HistoryDetail $list.SelectedItems[0].Tag $form } })
+    $undo.Add_Click({ Show-UndoPreview $form; & $refreshHistory })
+    $form.Controls.AddRange(@($title,$hint,$list,$detailBtn,$open,$undo,$close)); Apply-DarkTheme $form; $title.ForeColor=$script:ThemeAccent; $hint.ForeColor=$script:ThemeTextMuted; Set-SecondaryButtonStyle $undo; Set-SecondaryButtonStyle $detailBtn; Set-SecondaryButtonStyle $open; Set-SecondaryButtonStyle $close
+    & $refreshHistory
+    [void]$form.ShowDialog()
 }
 
 function Show-FileSearch($owner) {

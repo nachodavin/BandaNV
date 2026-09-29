@@ -1,51 +1,34 @@
-﻿BandaNV v1.0 RC1.7.5
+﻿BandaNV v1.0 RC1.8.2
 
-RC1.7.5 — Hotfix visual de header y firma
+RC1.8.2 — Hotfix visual de Deshacer última ejecución
 
-Esta build parte de RC1.7 estable. No cambia el motor de organización,
-la clasificación, el Buscador, el Historial, los logs ni la sincronización
-física de categorías.
+NOVEDAD PRINCIPAL
+- Historial incorpora el botón "↩ Deshacer última ejecución".
+- "Abrir carpeta de logs" se muestra como "Logs".
+- El botón Deshacer utiliza teal únicamente cuando existe una ejecución disponible para revertir.
+- La Vista previa de Deshacer se abre con el mismo tamaño que Historial, manteniendo Historial abierto detrás.
+- Los logs de Deshacer ahora respetan la estructura por categorías de BandaNV.
 
-HOTFIX RC1.7.5
-- BandaNV_Logo bajado 6 px adicionales en la pantalla Principal.
-- El separador teal se reubicó debajo del branding y se fuerza al frente para que vuelva a verse completo.
-- La firma ahora se muestra como "v1.0 RC1.7.5 by Nacho", sin viñeta.
-- "Nacho" se renderiza en negrita y el resto de la firma en peso regular.
-- La firma usa medición explícita de texto y un margen derecho real de 30 px para evitar recortes.
-- Los bloques inferiores de la Principal se desplazaron levemente para conservar el espaciado.
-- Logo, mascota e icono NV permanecen sin modificaciones.
-- Sin cambios funcionales.
+REGLAS DE SEGURIDAD
+- No sobrescribe archivos existentes.
+- No recrea carpetas originales eliminadas.
+- No mueve automáticamente archivos que fueron modificados.
+- Puede localizar un archivo movido manualmente dentro de ORGANIZADO si existe un único candidato seguro.
+- Si hay ambigüedad, conflicto o falta información, el archivo queda quieto.
+- El deshacer puede ser parcial y volver a intentarse luego.
 
-NUEVA IDENTIDAD VISUAL
-- Estética Dark Elegant.
-- Paleta grafito/antracita con acento teal oficial (#3BD2B9).
-- Wordmark BandaNV original integrado en la pantalla principal.
-- Icono NV oficial integrado como icono de BandaNV.
-- El arte provisto se usa sin redibujarlo ni reinterpretarlo.
-- Icono aplicado al EXE y a las ventanas.
-- Barra de título oscura cuando Windows la soporta.
-- Botones, inputs, listas, categorías y paneles con estilo coherente.
-- Acciones principales (ORGANIZAR, BUSCAR, GUARDAR) resaltadas en teal.
-- Texto secundario y estados usan jerarquía visual más limpia.
+COMPATIBILIDAD
+- Solo las ejecuciones de organización creadas desde RC1.8 son compatibles con el deshacer automático.
+- Los logs anteriores siguen apareciendo normalmente en Historial.
 
-PANTALLA PRINCIPAL
-- Nuevo encabezado gráfico con el logo BandaNV.
-- Fondo dark y separador teal.
-- Carpeta actual, estado y última ejecución con nueva jerarquía visual.
-- Botones Historial, Buscador y Configuración unificados visualmente.
+PORTABILIDAD
+- BandaNV continúa siendo portable.
+- Conservá config\ y logs\ junto al ejecutable si querés mantener configuración e historial.
 
-VENTANAS SECUNDARIAS
-- Vista previa, Historial, Detalle, Buscador y Configuración adoptan
-  la misma identidad Dark Elegant.
-- Se mantiene el foco/selección corregido de RC1.4.3.
-- No se modifica el contenido ni la lógica de estas herramientas.
+GENERAR EL EXE
+Ejecutá desde PowerShell en la carpeta de BandaNV:
 
-ASSETS DE FUENTE
-- assets\BandaNV_Logo.png: wordmark original.
-- assets\BandaNV_Mascot.png: personaje original de branding.
-- assets\BandaNV_AppIcon.png: icono NV original provisto, sin modificaciones.
-- assets\BandaNV.ico: icono NV multirresolución para Windows.
-Los PNG de fuente se conservan sin modificación artística.
-
-Compilación:
 powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
+
+VERSIÓN
+BandaNV v1.0 RC1.8.2
