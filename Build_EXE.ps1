@@ -4,7 +4,7 @@ $source = Join-Path $root 'BandaNV.ps1'
 $output = Join-Path $root 'BandaNV.exe'
 $icon = Join-Path $root 'assets\BandaNV.ico'
 
-Write-Host 'BandaNV v1.0 RC1.8.2 - Compilador' -ForegroundColor Cyan
+Write-Host 'BandaNV v1.0 RC1.9 - Compilador' -ForegroundColor Cyan
 
 try {
     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
@@ -28,7 +28,7 @@ try {
         Remove-Item -LiteralPath $output -Force -ErrorAction Stop
     }
 
-    Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -iconFile $icon -title 'BandaNV' -product 'BandaNV' -version '1.0.0.81' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
+    Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -iconFile $icon -title 'BandaNV' -product 'BandaNV' -version '1.0.0.90' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
 
     if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
         throw 'PS2EXE terminó sin generar BandaNV.exe.'
