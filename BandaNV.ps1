@@ -129,7 +129,7 @@ function Set-PrimaryButtonStyle($button) {
     $button.Cursor=[Windows.Forms.Cursors]::Hand
 }
 
-function Set-UndoButtonAvailability($button,[bool]$available) {
+function Set-ButtonAvailability($button,[bool]$available) {
     if($null -eq $button){return}
     $button.Enabled=$available
     if($available) {
@@ -140,6 +140,10 @@ function Set-UndoButtonAvailability($button,[bool]$available) {
         $button.ForeColor=$script:ThemeTextMuted
         $button.Cursor=[Windows.Forms.Cursors]::Default
     }
+}
+
+function Set-UndoButtonAvailability($button,[bool]$available) {
+    Set-ButtonAvailability $button $available
 }
 
 function Set-DangerButtonStyle($button) {
