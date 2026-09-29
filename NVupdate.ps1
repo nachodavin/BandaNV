@@ -1,10 +1,10 @@
 param(
-    [Parameter(Mandatory=$true)][int]$ParentPid,
-    [Parameter(Mandatory=$true)][string]$AppPath,
-    [Parameter(Mandatory=$true)][string]$StagedExe,
-    [Parameter(Mandatory=$true)][string]$BackupPath,
-    [Parameter(Mandatory=$true)][string]$ConfirmPath,
-    [Parameter(Mandatory=$true)][string]$UpdateToken,
+    [int]$ParentPid = 0,
+    [string]$AppPath = '',
+    [string]$StagedExe = '',
+    [string]$BackupPath = '',
+    [string]$ConfirmPath = '',
+    [string]$UpdateToken = '',
     [string]$ExpectedVersion = '',
     [int]$ParentExitTimeoutSec = 30,
     [int]$ConfirmTimeoutSec = 20
@@ -24,6 +24,17 @@ function Show-NVUpdateError([string]$message) {
     } catch {}
 }
 
+function Show-NVUpdateInfo([string]$message) {
+    try {
+        [System.Windows.Forms.MessageBox]::Show(
+            $message,
+            'BandaNV — NVupdate',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+    } catch {}
+}
+
 function Wait-NVProcessExit([int]$processId,[int]$timeoutSec) {
     if($processId -le 0){ return $true }
     try {
@@ -39,11 +50,13 @@ function Wait-NVProcessExit([int]$processId,[int]$timeoutSec) {
     }
 }
 
-function Test-NVConfirmation([string]$path,[string]$token) {
+function Test-NVConfirmation([string]$path,[string]$token,[string]$expectedVersion) {
     if(-not (Test-Path -LiteralPath $path -PathType Leaf)){ return $false }
     try {
         $data=Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
-        return ([string]$data.token -ceq $token)
+        if([string]$data.token -cne $token){ return $false }
+        if(-not [string]::IsNullOrWhiteSpace($expectedVersion) -and [string]$data.version -cne $expectedVersion){ return $false }
+        return $true
     } catch {
         return $false
     }
@@ -65,6 +78,16 @@ function Stop-NVProcessSafely($process) {
 
 $backupCreated=$false
 $newProcess=$null
+
+if($ParentPid -le 0 -or
+   [string]::IsNullOrWhiteSpace($AppPath) -or
+   [string]::IsNullOrWhiteSpace($StagedExe) -or
+   [string]::IsNullOrWhiteSpace($BackupPath) -or
+   [string]::IsNullOrWhiteSpace($ConfirmPath) -or
+   [string]::IsNullOrWhiteSpace($UpdateToken)) {
+    Show-NVUpdateInfo 'NVupdate.exe es el actualizador auxiliar de BandaNV y se ejecuta automáticamente cuando instalás una actualización desde la aplicación.'
+    exit 0
+}
 
 try {
     $appFull=[IO.Path]::GetFullPath($AppPath)
@@ -102,17 +125,16 @@ try {
     # El archivo preparado ya fue descargado/verificado por BandaNV.
     Copy-Item -LiteralPath $stagedFull -Destination $appFull -Force
 
-    $launchArgs=@(
-        '-UpdateConfirmPath', $confirmFull,
-        '-UpdateToken', $UpdateToken
-    )
+    $safeConfirm=$confirmFull.Replace('"','\"')
+    $safeToken=$UpdateToken.Replace('"','\"')
+    $launchArgs='-UpdateConfirmPath "'+$safeConfirm+'" -UpdateToken "'+$safeToken+'"'
     $newProcess=Start-Process -FilePath $appFull -ArgumentList $launchArgs -WorkingDirectory ([IO.Path]::GetDirectoryName($appFull)) -PassThru
 
     $deadline=(Get-Date).AddSeconds([Math]::Max(3,$ConfirmTimeoutSec))
     $confirmed=$false
 
     while((Get-Date) -lt $deadline) {
-        if(Test-NVConfirmation $confirmFull $UpdateToken) {
+        if(Test-NVConfirmation $confirmFull $UpdateToken $ExpectedVersion) {
             $confirmed=$true
             break
         }
