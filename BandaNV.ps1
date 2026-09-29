@@ -266,14 +266,14 @@ function Format-BandaNVReleaseTag([string]$tag) {
     return $display
 }
 
-function Get-BandaNVReleaseApiUri {
-    if(Test-BandaNVPrereleaseVersion) {
+function Get-BandaNVReleaseApiUri([bool]$includeBeta=$false) {
+    if($includeBeta) {
         return ($script:GitHubApiBase + '/releases?per_page=30')
     }
     return ($script:GitHubApiBase + '/releases/latest')
 }
 
-function Invoke-BandaNVReleaseRequest {
+function Invoke-BandaNVReleaseRequest([bool]$includeBeta=$false) {
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     } catch {}
@@ -283,19 +283,18 @@ function Invoke-BandaNVReleaseRequest {
         'X-GitHub-Api-Version'='2022-11-28'
     }
 
-    return Invoke-RestMethod -Uri (Get-BandaNVReleaseApiUri) -Method Get -Headers $headers -UserAgent 'BandaNV-Updater/1.0' -TimeoutSec 8 -ErrorAction Stop
+    return Invoke-RestMethod -Uri (Get-BandaNVReleaseApiUri $includeBeta) -Method Get -Headers $headers -UserAgent 'BandaNV-Updater/1.0' -TimeoutSec 8 -ErrorAction Stop
 }
 
-function Select-BandaNVTargetRelease($payload) {
+function Select-BandaNVTargetRelease($payload,[bool]$includeBeta=$false) {
     $bestRelease=$null
     $bestVersion=$null
 
     foreach($release in @($payload)) {
         if($null -eq $release){ continue }
         if([bool]$release.draft){ continue }
+        if(-not $includeBeta -and [bool]$release.prerelease){ continue }
 
-        # Una versión estable usa /releases/latest, que ya excluye pre-releases.
-        # Una RC consulta /releases y puede ver tanto RCs como una estable más nueva.
         $version=ConvertTo-BandaNVVersionInfo ([string]$release.tag_name)
         if($null -eq $version){ continue }
 
@@ -333,13 +332,13 @@ function Clear-BandaNVFailedUpdateStateIfObsolete {
     } catch {}
 }
 
-function Get-BandaNVUpdateResultFromPayload($payload) {
+function Get-BandaNVUpdateResultFromPayload($payload,[bool]$includeBeta=$false) {
     $currentVersion=ConvertTo-BandaNVVersionInfo $script:AppVersion
     if($null -eq $currentVersion) {
         return [PSCustomObject]@{Status='Error';Message='La versión instalada de BandaNV no tiene un formato reconocido.'}
     }
 
-    $release=Select-BandaNVTargetRelease $payload
+    $release=Select-BandaNVTargetRelease $payload $includeBeta
     if($null -eq $release) {
         return [PSCustomObject]@{Status='Error';Message='GitHub no devolvió ninguna Release compatible de BandaNV.'}
     }
@@ -379,10 +378,10 @@ function Get-BandaNVUpdateResultFromPayload($payload) {
     }
 }
 
-function Invoke-BandaNVUpdateCheck {
+function Invoke-BandaNVUpdateCheck([bool]$includeBeta=$false) {
     try {
-        $payload=Invoke-BandaNVReleaseRequest
-        return Get-BandaNVUpdateResultFromPayload $payload
+        $payload=Invoke-BandaNVReleaseRequest $includeBeta
+        return Get-BandaNVUpdateResultFromPayload $payload $includeBeta
     } catch {
         return [PSCustomObject]@{
             Status='Error'
@@ -849,7 +848,7 @@ function Show-BandaNVUpdateDialog($result,$owner=$null) {
     else { [void]$form.ShowDialog() }
 }
 
-function Start-BandaNVStartupUpdateCheck($ownerForm) {
+function Start-BandaNVStartupUpdateCheck($ownerForm,[bool]$includeBeta=$false) {
     # El chequeo automático usa EXACTAMENTE el mismo camino que el botón manual.
     # Se difiere hasta que la ventana principal ya está visible para evitar
     # problemas de ciclo de vida durante el arranque del EXE compilado.
@@ -868,7 +867,7 @@ function Start-BandaNVStartupUpdateCheck($ownerForm) {
         if($null -eq $ownerRef -or $ownerRef.IsDisposed){ return }
 
         try {
-            $result=Invoke-BandaNVUpdateCheck
+            $result=Invoke-BandaNVUpdateCheck $includeBeta
             if($result.Status -eq 'Available') {
                 Show-BandaNVUpdateDialog $result $ownerRef
             }
@@ -907,6 +906,7 @@ function Get-DefaultConfig {
         source = ''
         organizedFolder = 'ORGANIZADO'
         checkUpdatesOnStartup = $true
+        checkBetaUpdates = $false
         categories = [ordered]@{
             'RAR'        = @('.zip','.rar','.7z')
             'INSTALLERS' = @('.exe','.msi','.bat')
@@ -934,6 +934,10 @@ function Load-Config {
         $migrated=$false
         if($null -eq $cfg.PSObject.Properties['checkUpdatesOnStartup']) {
             Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'checkUpdatesOnStartup' -Value $true
+            $migrated=$true
+        }
+        if($null -eq $cfg.PSObject.Properties['checkBetaUpdates']) {
+            Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'checkBetaUpdates' -Value $false
             $migrated=$true
         }
         if($migrated){ Save-Config $cfg }
@@ -2024,6 +2028,12 @@ function Show-Config {
     $updatesCheck.AutoSize=$true
     $updatesCheck.Checked=[bool]$cfg.checkUpdatesOnStartup
 
+    $updatesBeta=New-Object Windows.Forms.CheckBox
+    $updatesBeta.Text='Comprobar si hay versiones beta disponibles'
+    $updatesBeta.Location=New-Object Drawing.Point(245,54)
+    $updatesBeta.AutoSize=$true
+    $updatesBeta.Checked=[bool]$cfg.checkBetaUpdates
+
     $updatesStatus=New-Object Windows.Forms.Label
     $updatesStatus.Text='Estado: Sin comprobar'
     $updatesStatus.Location=New-Object Drawing.Point(18,82)
@@ -2041,7 +2051,7 @@ function Show-Config {
         $updatesStatus.Text='Estado: Consultando GitHub Releases...'
         [Windows.Forms.Application]::DoEvents()
         try {
-            $result=Invoke-BandaNVUpdateCheck
+            $result=Invoke-BandaNVUpdateCheck ([bool]$updatesBeta.Checked)
             if($result.Status -eq 'Available') {
                 $updatesStatus.Text=('Estado: Nueva versión disponible — '+[string]$result.Available)
                 Show-BandaNVUpdateDialog $result $form
@@ -2068,7 +2078,8 @@ function Show-Config {
     })
 
     $updatesCheck.Add_CheckedChanged($markDirty)
-    $updates.Controls.AddRange(@($updatesVersion,$updatesCheck,$updatesStatus,$updatesButton))
+    $updatesBeta.Add_CheckedChanged($markDirty)
+    $updates.Controls.AddRange(@($updatesVersion,$updatesCheck,$updatesBeta,$updatesStatus,$updatesButton))
 
 
     $auto.Add_CheckedChanged($markDirty); $manual.Add_CheckedChanged($markDirty); $source.Add_TextChanged($markDirty); $org.Add_TextChanged($markDirty)
@@ -2118,7 +2129,7 @@ function Show-Config {
         if($newCats.Count -eq 0){[Windows.Forms.MessageBox]::Show('Debe existir al menos una categoría.','BandaNV','OK','Warning')|Out-Null;return}
         try {
             Sync-CategoryFolders $cfg $cards
-            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;categories=$newCats}
+            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;checkBetaUpdates=[bool]$updatesBeta.Checked;categories=$newCats}
             Save-Config $new
             $script:ConfigDirty=$false; $save.Enabled=$false
             [Windows.Forms.MessageBox]::Show('Configuración guardada y orden de carpetas sincronizado.','BandaNV','OK','Information')|Out-Null
@@ -2241,7 +2252,7 @@ $main.Add_Shown({
 
     try {
         $startupCfg=Load-Config
-        if([bool]$startupCfg.checkUpdatesOnStartup){ Start-BandaNVStartupUpdateCheck $main }
+        if([bool]$startupCfg.checkUpdatesOnStartup){ Start-BandaNVStartupUpdateCheck $main ([bool]$startupCfg.checkBetaUpdates) }
     } catch {}
 })
 [void]$main.ShowDialog()
