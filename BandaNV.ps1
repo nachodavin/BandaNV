@@ -377,7 +377,10 @@ function Get-BandaNVUpdateResultFromPayload($payload,[bool]$includeBeta=$false) 
 function Invoke-BandaNVUpdateCheck([bool]$includeBeta=$false) {
     try {
         $payload=Invoke-BandaNVReleaseRequest $includeBeta
-        return Get-BandaNVUpdateResultFromPayload $payload $includeBeta
+        $result=Get-BandaNVUpdateResultFromPayload $payload $includeBeta
+        $checkedAt=Set-BandaNVLastUpdateCheck
+        Add-Member -InputObject $result -MemberType NoteProperty -Name 'CheckedAt' -Value $checkedAt -Force
+        return $result
     } catch {
         return [PSCustomObject]@{
             Status='Error'
@@ -903,6 +906,7 @@ function Get-DefaultConfig {
         organizedFolder = 'ORGANIZADO'
         checkUpdatesOnStartup = $true
         checkBetaUpdates = $false
+        lastUpdateCheck = ''
         categories = [ordered]@{
             'RAR'        = @('.zip','.rar','.7z')
             'INSTALLERS' = @('.exe','.msi','.bat')
@@ -936,6 +940,10 @@ function Load-Config {
             Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'checkBetaUpdates' -Value $false
             $migrated=$true
         }
+        if($null -eq $cfg.PSObject.Properties['lastUpdateCheck']) {
+            Add-Member -InputObject $cfg -MemberType NoteProperty -Name 'lastUpdateCheck' -Value ''
+            $migrated=$true
+        }
         if($migrated){ Save-Config $cfg }
         return $cfg
     }
@@ -947,6 +955,28 @@ function Load-Config {
         return (Get-Content -LiteralPath $script:ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json)
     }
 }
+function Format-BandaNVLastUpdateCheck([string]$value) {
+    if([string]::IsNullOrWhiteSpace($value)) { return 'Última comprobación: Nunca' }
+    try {
+        $dt=[datetime]::Parse($value)
+        return ('Última comprobación: '+$dt.ToString('dd/MM/yyyy HH:mm:ss'))
+    } catch {
+        return 'Última comprobación: Nunca'
+    }
+}
+
+function Set-BandaNVLastUpdateCheck {
+    $stamp=(Get-Date).ToString('o')
+    try {
+        $cfg=Load-Config
+        $cfg.lastUpdateCheck=$stamp
+        Save-Config $cfg
+        return $stamp
+    } catch {
+        return ''
+    }
+}
+
 function Get-DownloadsFolder {
     try {
         $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
@@ -2030,8 +2060,10 @@ function Show-Config {
     $updatesBeta.AutoSize=$true
     $updatesBeta.Checked=[bool]$cfg.checkBetaUpdates
 
+    $updateUiState=[PSCustomObject]@{ LastUpdateCheck=[string]$cfg.lastUpdateCheck }
+
     $updatesStatus=New-Object Windows.Forms.Label
-    $updatesStatus.Text='Estado: Sin comprobar'
+    $updatesStatus.Text=Format-BandaNVLastUpdateCheck $updateUiState.LastUpdateCheck
     $updatesStatus.Location=New-Object Drawing.Point(18,108)
     $updatesStatus.Size=New-Object Drawing.Size(475,24)
     $updatesStatus.AutoEllipsis=$true
@@ -2044,31 +2076,33 @@ function Show-Config {
 
     $updatesButton.Add_Click({
         $updatesButton.Enabled=$false
-        $updatesStatus.Text='Estado: Consultando GitHub Releases...'
+        $updatesStatus.Text='Comprobando actualizaciones...'
         [Windows.Forms.Application]::DoEvents()
         try {
             $result=Invoke-BandaNVUpdateCheck ([bool]$updatesBeta.Checked)
+
+            if($result.Status -ne 'Error' -and -not [string]::IsNullOrWhiteSpace([string]$result.CheckedAt)) {
+                $updateUiState.LastUpdateCheck=[string]$result.CheckedAt
+            }
+            $updatesStatus.Text=Format-BandaNVLastUpdateCheck $updateUiState.LastUpdateCheck
+
             if($result.Status -eq 'Available') {
-                $updatesStatus.Text=('Estado: Nueva versión disponible — '+[string]$result.Available)
                 Show-BandaNVUpdateDialog $result $form
             } elseif($result.Status -eq 'Current') {
-                $updatesStatus.Text='Estado: Estás usando la última versión'
                 [Windows.Forms.MessageBox]::Show('Estás usando la última versión disponible de BandaNV.','BandaNV — Actualizaciones','OK','Information') | Out-Null
             } elseif($result.Status -eq 'LocalNewer') {
-                $updatesStatus.Text='Estado: Esta build es más nueva que la última Release'
                 [Windows.Forms.MessageBox]::Show('Esta build de BandaNV es más nueva que la última Release publicada en GitHub.','BandaNV — Actualizaciones','OK','Information') | Out-Null
             } elseif($result.Status -eq 'FailedSuppressed') {
-                $updatesStatus.Text=('Estado: '+[string]$result.Available+' omitida tras un rollback')
                 [Windows.Forms.MessageBox]::Show(
                     ('La versión '+[string]$result.Available+' fue omitida porque una instalación anterior no pudo completarse.'+[Environment]::NewLine+[Environment]::NewLine+
                     'BandaNV volverá a ofrecer una actualización cuando GitHub publique una versión posterior.'),
                     'BandaNV — Actualizaciones','OK','Warning'
                 ) | Out-Null
             } else {
-                $updatesStatus.Text='Estado: No se pudo consultar GitHub'
                 [Windows.Forms.MessageBox]::Show([string]$result.Message,'BandaNV — Actualizaciones','OK','Warning') | Out-Null
             }
         } finally {
+            $updatesStatus.Text=Format-BandaNVLastUpdateCheck $updateUiState.LastUpdateCheck
             $updatesButton.Enabled=$true
         }
     })
@@ -2125,7 +2159,7 @@ function Show-Config {
         if($newCats.Count -eq 0){[Windows.Forms.MessageBox]::Show('Debe existir al menos una categoría.','BandaNV','OK','Warning')|Out-Null;return}
         try {
             Sync-CategoryFolders $cfg $cards
-            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;checkBetaUpdates=[bool]$updatesBeta.Checked;categories=$newCats}
+            $new=[ordered]@{autoDownloads=[bool]$auto.Checked;source=$source.Text.Trim();organizedFolder=$org.Text.Trim();checkUpdatesOnStartup=[bool]$updatesCheck.Checked;checkBetaUpdates=[bool]$updatesBeta.Checked;lastUpdateCheck=[string]$updateUiState.LastUpdateCheck;categories=$newCats}
             Save-Config $new
             $script:ConfigDirty=$false; $save.Enabled=$false
             [Windows.Forms.MessageBox]::Show('Configuración guardada y orden de carpetas sincronizado.','BandaNV','OK','Information')|Out-Null
