@@ -1,29 +1,41 @@
-﻿BandaNV v1.0 RC1.8.2
+BandaNV v1.0 RC1.9
 
-RC1.8.2 — Hotfix visual de Deshacer última ejecución
+RC1.9 — BandaNV Updater / Phase 1: Update Checker
 
 NOVEDAD PRINCIPAL
-- Historial incorpora el botón "↩ Deshacer última ejecución".
-- "Abrir carpeta de logs" se muestra como "Logs".
-- El botón Deshacer utiliza teal únicamente cuando existe una ejecución disponible para revertir.
-- La Vista previa de Deshacer se abre con el mismo tamaño que Historial, manteniendo Historial abierto detrás.
-- Los logs de Deshacer ahora respetan la estructura por categorías de BandaNV.
+- GitHub Releases pasa a ser la única fuente oficial de actualizaciones.
+- BandaNV consulta el repositorio oficial nachodavin/BandaNV.
+- Las builds RC pueden detectar Releases normales y Pre-releases.
+- Las versiones estables consultarán únicamente la Latest Release estable.
+- Se comparan versiones sin depender de un version.json externo.
 
-REGLAS DE SEGURIDAD
-- No sobrescribe archivos existentes.
-- No recrea carpetas originales eliminadas.
-- No mueve automáticamente archivos que fueron modificados.
-- Puede localizar un archivo movido manualmente dentro de ORGANIZADO si existe un único candidato seguro.
-- Si hay ambigüedad, conflicto o falta información, el archivo queda quieto.
-- El deshacer puede ser parcial y volver a intentarse luego.
+CONFIGURACIÓN
+- Nuevo bloque ACTUALIZACIONES.
+- Muestra la versión instalada.
+- Opción "Buscar actualizaciones al iniciar", activada por defecto.
+- Botón "BUSCAR ACTUALIZACIONES" para comprobación manual.
+- Configuraciones antiguas se migran sin perder origen, categorías ni historial.
 
-COMPATIBILIDAD
-- Solo las ejecuciones de organización creadas desde RC1.8 son compatibles con el deshacer automático.
-- Los logs anteriores siguen apareciendo normalmente en Historial.
+COMPROBACIÓN AL INICIAR
+- La consulta se ejecuta en segundo plano.
+- Si no hay una versión nueva, BandaNV no interrumpe al usuario.
+- Si GitHub no responde, el inicio continúa normalmente.
+- Si existe una versión superior, aparece el aviso de nueva versión.
+
+PHASE 1
+- Esta versión DETECTA actualizaciones y valida la interfaz.
+- Todavía NO descarga ni reemplaza BandaNV.exe.
+- El botón ACTUALIZAR informa que la instalación automática llegará en la siguiente fase.
+- La futura Phase 2 incorporará descarga, verificación SHA-256, updater externo y rollback.
+
+FUENTE OFICIAL
+GitHub:
+https://github.com/nachodavin/BandaNV
 
 PORTABILIDAD
 - BandaNV continúa siendo portable.
-- Conservá config\ y logs\ junto al ejecutable si querés mantener configuración e historial.
+- config\ y logs\ permanecen junto al ejecutable.
+- El sistema de actualizaciones no modifica esos datos en esta fase.
 
 GENERAR EL EXE
 Ejecutá desde PowerShell en la carpeta de BandaNV:
@@ -31,4 +43,4 @@ Ejecutá desde PowerShell en la carpeta de BandaNV:
 powershell.exe -ExecutionPolicy Bypass -File ".\Build_EXE.ps1"
 
 VERSIÓN
-BandaNV v1.0 RC1.8.2
+BandaNV v1.0 RC1.9
