@@ -32,6 +32,7 @@ if ([string]::IsNullOrWhiteSpace($script:AppDir)) {
 $script:ConfigDir = Join-Path $script:AppDir 'config'
 $script:LogsDir = Join-Path $script:AppDir 'logs'
 $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
+$script:UpdateStatePath = Join-Path $script:ConfigDir 'bandanv_update_state.json'
 
 # ============================================================
 # BandaNV RC1.9 - Identidad visual Dark Elegant + Updater Phase 2
@@ -307,6 +308,31 @@ function Select-BandaNVTargetRelease($payload) {
     return $bestRelease
 }
 
+
+function Get-BandaNVFailedUpdateTag {
+    if(-not (Test-Path -LiteralPath $script:UpdateStatePath -PathType Leaf)){ return '' }
+    try {
+        $state=Get-Content -LiteralPath $script:UpdateStatePath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if($null -eq $state -or $null -eq $state.PSObject.Properties['failedUpdateTag']){ return '' }
+        return [string]$state.failedUpdateTag
+    } catch {
+        return ''
+    }
+}
+
+function Clear-BandaNVFailedUpdateStateIfObsolete {
+    $failedTag=Get-BandaNVFailedUpdateTag
+    if([string]::IsNullOrWhiteSpace($failedTag)){ return }
+
+    try {
+        $failedVersion=ConvertTo-BandaNVVersionInfo $failedTag
+        $currentVersion=ConvertTo-BandaNVVersionInfo $script:AppVersion
+        if($null -ne $failedVersion -and $null -ne $currentVersion -and (Compare-BandaNVVersionInfo $currentVersion $failedVersion) -ge 0) {
+            Remove-Item -LiteralPath $script:UpdateStatePath -Force -ErrorAction SilentlyContinue
+        }
+    } catch {}
+}
+
 function Get-BandaNVUpdateResultFromPayload($payload) {
     $currentVersion=ConvertTo-BandaNVVersionInfo $script:AppVersion
     if($null -eq $currentVersion) {
@@ -325,6 +351,13 @@ function Get-BandaNVUpdateResultFromPayload($payload) {
 
     $comparison=Compare-BandaNVVersionInfo $availableVersion $currentVersion
     $status=if($comparison -gt 0){'Available'}elseif($comparison -eq 0){'Current'}else{'LocalNewer'}
+
+    # Si NVupdate hizo rollback de esta misma Release, no la ofrecemos otra vez
+    # automáticamente. Una Release posterior sí vuelve a estar disponible.
+    $failedTag=Get-BandaNVFailedUpdateTag
+    if($status -eq 'Available' -and -not [string]::IsNullOrWhiteSpace($failedTag) -and ([string]$release.tag_name -ieq $failedTag)) {
+        $status='FailedSuppressed'
+    }
 
     $assets=@($release.assets)
     # El actualizador automático NUNCA usa Portable.zip como fallback.
@@ -464,7 +497,8 @@ function Start-BandaNVInstaller($result,$workspace) {
         '-BackupPath', (Quote-NVArg ([string]$workspace.BackupPath)),
         '-ConfirmPath', (Quote-NVArg ([string]$workspace.ConfirmPath)),
         '-UpdateToken', (Quote-NVArg ([string]$workspace.Token)),
-        '-ExpectedVersion', (Quote-NVArg ([string]$result.Available))
+        '-ExpectedVersion', (Quote-NVArg ([string]$result.Available)),
+        '-ReleaseTag', (Quote-NVArg ([string]$result.Tag))
     ) -join ' '
 
     Start-Process -FilePath $helper -ArgumentList $args -WorkingDirectory $script:AppDir | Out-Null
@@ -831,7 +865,7 @@ function Start-BandaNVStartupUpdateCheck($ownerForm) {
             if($result.Status -eq 'Available') {
                 Show-BandaNVUpdateDialog $result $ownerRef
             }
-            # Current / LocalNewer / Error son silenciosos en el arranque.
+            # Current / LocalNewer / FailedSuppressed / Error son silenciosos al iniciar.
             # El botón manual de Configuración sigue mostrando el resultado.
         } catch {
             # Nunca bloquear el inicio de BandaNV por un error de red/GitHub.
@@ -2010,6 +2044,13 @@ function Show-Config {
             } elseif($result.Status -eq 'LocalNewer') {
                 $updatesStatus.Text='Estado: Esta build es más nueva que la última Release'
                 [Windows.Forms.MessageBox]::Show('Esta build de BandaNV es más nueva que la última Release publicada en GitHub.','BandaNV — Actualizaciones','OK','Information') | Out-Null
+            } elseif($result.Status -eq 'FailedSuppressed') {
+                $updatesStatus.Text=('Estado: '+[string]$result.Available+' omitida tras un rollback')
+                [Windows.Forms.MessageBox]::Show(
+                    ('La versión '+[string]$result.Available+' fue omitida porque una instalación anterior no pudo completarse.'+[Environment]::NewLine+[Environment]::NewLine+
+                    'BandaNV volverá a ofrecer una actualización cuando GitHub publique una versión posterior.'),
+                    'BandaNV — Actualizaciones','OK','Warning'
+                ) | Out-Null
             } else {
                 $updatesStatus.Text='Estado: No se pudo consultar GitHub'
                 [Windows.Forms.MessageBox]::Show([string]$result.Message,'BandaNV — Actualizaciones','OK','Warning') | Out-Null
@@ -2189,6 +2230,7 @@ $main.Add_Shown({
     # Handshake con NVupdate.exe: recién confirmamos cuando la nueva
     # BandaNV llegó realmente a mostrar su ventana principal.
     Confirm-PendingUpdate
+    Clear-BandaNVFailedUpdateStateIfObsolete
 
     try {
         $startupCfg=Load-Config
