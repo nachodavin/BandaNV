@@ -1,4 +1,9 @@
-﻿Add-Type -AssemblyName System.Windows.Forms
+﻿param(
+    [string]$UpdateConfirmPath = '',
+    [string]$UpdateToken = ''
+)
+
+Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
@@ -471,6 +476,24 @@ function Start-BandaNVStartupUpdateCheck($ownerForm) {
 
     $timer.Add_Tick($handler)
     $timer.Start()
+}
+
+
+function Confirm-PendingUpdate {
+    if([string]::IsNullOrWhiteSpace($UpdateConfirmPath) -or [string]::IsNullOrWhiteSpace($UpdateToken)){ return }
+
+    try {
+        $confirmDir=[IO.Path]::GetDirectoryName($UpdateConfirmPath)
+        if([string]::IsNullOrWhiteSpace($confirmDir) -or -not (Test-Path -LiteralPath $confirmDir -PathType Container)){ return }
+
+        $payload=[ordered]@{
+            token=$UpdateToken
+            version=('v'+$script:AppVersion)
+            confirmedAt=(Get-Date).ToString('o')
+            pid=$PID
+        }
+        $payload | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $UpdateConfirmPath -Encoding UTF8 -Force
+    } catch {}
 }
 
 function Get-DefaultConfig {
@@ -1798,6 +1821,10 @@ $main.Add_Shown({
     # el chequeo de actualizaciones.
     $main.Opacity=1
     $main.Refresh()
+
+    # Handshake con NVupdate.exe: recién confirmamos cuando la nueva
+    # BandaNV llegó realmente a mostrar su ventana principal.
+    Confirm-PendingUpdate
 
     try {
         $startupCfg=Load-Config
