@@ -2010,7 +2010,7 @@ function Show-Config {
     $updates=New-Object Windows.Forms.GroupBox
     $updates.Text='ACTUALIZACIONES'
     $updates.Location=New-Object Drawing.Point(25,560)
-    $updates.Size=New-Object Drawing.Size(730,125)
+    $updates.Size=New-Object Drawing.Size(730,145)
     $updates.Anchor='Bottom,Left,Right'
 
     $updatesVersion=New-Object Windows.Forms.Label
@@ -2026,13 +2026,13 @@ function Show-Config {
 
     $updatesBeta=New-Object Windows.Forms.CheckBox
     $updatesBeta.Text='Comprobar si hay versiones beta disponibles'
-    $updatesBeta.Location=New-Object Drawing.Point(245,54)
+    $updatesBeta.Location=New-Object Drawing.Point(18,78)
     $updatesBeta.AutoSize=$true
     $updatesBeta.Checked=[bool]$cfg.checkBetaUpdates
 
     $updatesStatus=New-Object Windows.Forms.Label
     $updatesStatus.Text='Estado: Sin comprobar'
-    $updatesStatus.Location=New-Object Drawing.Point(18,82)
+    $updatesStatus.Location=New-Object Drawing.Point(18,108)
     $updatesStatus.Size=New-Object Drawing.Size(475,24)
     $updatesStatus.AutoEllipsis=$true
 
