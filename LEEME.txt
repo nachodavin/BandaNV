@@ -16,6 +16,9 @@ ACTUALIZACIONES
 - Desactivar beta nunca provoca un downgrade a una versión estable anterior.
 - El chequeo automático es silencioso cuando no hay novedades o GitHub no responde.
 - El botón BUSCAR ACTUALIZACIONES utiliza el canal seleccionado en Configuración.
+- Configuración muestra la fecha y hora de la última comprobación exitosa.
+- La última comprobación se conserva entre ejecuciones.
+- Si GitHub no responde, la fecha anterior no se reemplaza.
 
 PAQUETES
 - BandaNV_vX.Y_Portable.zip
