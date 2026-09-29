@@ -35,7 +35,7 @@ $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
 $script:UpdateStatePath = Join-Path $script:ConfigDir 'bandanv_update_state.json'
 
 # ============================================================
-# BandaNV RC1.9 - Identidad visual Dark Elegant + Updater Phase 2
+# BandaNV RC1.9 - Identidad visual Dark Elegant + actualizador integrado
 # Paleta grafito + teal tomada del branding oficial.
 # Los PNG originales del usuario se conservan sin redibujarlos:
 # el wordmark se incrusta como bytes PNG y el icono NV provisto
@@ -199,9 +199,9 @@ function Initialize-ThemedForm($form) {
 
 
 # ============================================================
-# BandaNV Updater - Phase 1
+# BandaNV Updater
 # GitHub Releases es la única fuente de verdad.
-# Esta fase detecta versiones y muestra la UI; todavía NO instala.
+# Detecta, descarga, verifica e instala actualizaciones mediante NVupdate.exe.
 # ============================================================
 
 $script:UpdateCheckTimer=$null
@@ -441,7 +441,7 @@ function Expand-BandaNVAutoUpdate([string]$zipPath,[string]$extractDir) {
     if(Test-Path -LiteralPath $extractDir){ Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction Stop }
     New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
 
-    # Estructura intencionalmente estricta en Phase 2:
+    # Estructura intencionalmente estricta del paquete AutoUpdate:
     # AutoUpdate.zip debe contener BandaNV.exe en la raíz.
     $archive=$null
     try {
