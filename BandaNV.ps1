@@ -206,10 +206,6 @@ function Initialize-ThemedForm($form) {
 
 $script:UpdateCheckTimer=$null
 
-function Test-BandaNVPrereleaseVersion([string]$version=$script:AppVersion) {
-    return -not [string]::IsNullOrWhiteSpace($version) -and ($version -match '(?i)\bRC[0-9]')
-}
-
 function ConvertTo-BandaNVVersionInfo([string]$value) {
     if([string]::IsNullOrWhiteSpace($value)){ return $null }
     $raw=$value.Trim()
