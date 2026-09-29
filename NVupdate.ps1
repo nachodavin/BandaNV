@@ -6,6 +6,7 @@ param(
     [string]$ConfirmPath = '',
     [string]$UpdateToken = '',
     [string]$ExpectedVersion = '',
+    [string]$ReleaseTag = '',
     [int]$ParentExitTimeoutSec = 30,
     [int]$ConfirmTimeoutSec = 20
 )
@@ -33,6 +34,32 @@ function Show-NVUpdateInfo([string]$message) {
             [System.Windows.Forms.MessageBoxIcon]::Information
         ) | Out-Null
     } catch {}
+}
+
+
+function Write-NVFailedUpdateState([string]$appPath,[string]$releaseTag,[string]$detail) {
+    if([string]::IsNullOrWhiteSpace($releaseTag)){ return }
+
+    try {
+        $appDir=[IO.Path]::GetDirectoryName($appPath)
+        if([string]::IsNullOrWhiteSpace($appDir)){ return }
+
+        $configDir=Join-Path $appDir 'config'
+        New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+
+        $statePath=Join-Path $configDir 'bandanv_update_state.json'
+        $tempPath=$statePath+'.tmp'
+        $state=[ordered]@{
+            failedUpdateTag=$releaseTag
+            failedAt=(Get-Date).ToString('o')
+            detail=$detail
+        }
+
+        $state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $tempPath -Encoding UTF8 -Force
+        Move-Item -LiteralPath $tempPath -Destination $statePath -Force
+    } catch {
+        # Registrar el fallo es útil para UX, pero jamás debe impedir el rollback.
+    }
 }
 
 function Wait-NVProcessExit([int]$processId,[int]$timeoutSec) {
@@ -166,6 +193,11 @@ catch {
         try {
             Copy-Item -LiteralPath $backupFull -Destination $appFull -Force
             Remove-Item -LiteralPath $confirmFull -Force -ErrorAction SilentlyContinue
+
+            # Recordamos la Release que provocó el rollback para que BandaNV
+            # no la vuelva a ofrecer inmediatamente al reiniciar.
+            Write-NVFailedUpdateState $appFull $ReleaseTag $failure
+
             Start-Process -FilePath $appFull -WorkingDirectory ([IO.Path]::GetDirectoryName($appFull)) | Out-Null
             Show-NVUpdateError ("La actualización no pudo completarse y BandaNV restauró automáticamente la versión anterior.`r`n`r`nDetalle: " + $failure)
             exit 2
