@@ -2035,7 +2035,7 @@ function Show-Config {
     $org=New-Object Windows.Forms.TextBox; $org.Location=New-Object Drawing.Point(25,154); $org.Size=New-Object Drawing.Size(730,24); $org.Text=[string]$cfg.organizedFolder; $org.Anchor='Top,Left,Right'
     $catsLbl=New-Object Windows.Forms.Label; $catsLbl.Text='CATEGORÍAS — usá ↑ y ↓ para definir el orden de las carpetas'; $catsLbl.Font=New-Object Drawing.Font('Segoe UI',11,[Drawing.FontStyle]::Bold); $catsLbl.Location=New-Object Drawing.Point(25,194); $catsLbl.AutoSize=$true
     $cards=New-Object Windows.Forms.FlowLayoutPanel; $cards.Location=New-Object Drawing.Point(25,222); $cards.Size=New-Object Drawing.Size(730,325); $cards.FlowDirection='TopDown'; $cards.WrapContents=$false; $cards.AutoScroll=$true; $cards.Anchor='Top,Left,Right'
-    $save=New-Object Windows.Forms.Button; $save.Text='GUARDAR'; $save.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $save.Size=New-Object Drawing.Size(120,34); $save.Location=New-Object Drawing.Point(635,708); $save.Anchor='Bottom,Right'; $save.Enabled=$false
+    $save=New-Object Windows.Forms.Button; $save.Text='GUARDAR'; $save.Font=New-Object Drawing.Font('Segoe UI',9,[Drawing.FontStyle]::Bold); $save.Size=New-Object Drawing.Size(120,34); $save.Location=New-Object Drawing.Point(635,728); $save.Anchor='Bottom,Right'; $save.Enabled=$false
 
     $updates=New-Object Windows.Forms.GroupBox
     $updates.Text='ACTUALIZACIONES'
@@ -2123,9 +2123,9 @@ function Show-Config {
     # La creación inicial de controles no cuenta como edición.
     $script:ConfigDirty=$false; $save.Enabled=$false
 
-    $addCat=New-Object Windows.Forms.Button; $addCat.Text='+ Agregar categoría'; $addCat.Location=New-Object Drawing.Point(25,708); $addCat.Size=New-Object Drawing.Size(150,32); $addCat.Anchor='Bottom,Left'; $addCat.Add_Click({Add-CategoryCard $cards '' @('') '' $markDirty; & $markDirty})
+    $addCat=New-Object Windows.Forms.Button; $addCat.Text='+ Agregar categoría'; $addCat.Location=New-Object Drawing.Point(25,728); $addCat.Size=New-Object Drawing.Size(150,32); $addCat.Anchor='Bottom,Left'; $addCat.Add_Click({Add-CategoryCard $cards '' @('') '' $markDirty; & $markDirty})
 
-    $restore=New-Object Windows.Forms.Button; $restore.Text='RESTAURAR PREDETERMINADOS'; $restore.Location=New-Object Drawing.Point(185,708); $restore.Size=New-Object Drawing.Size(205,32); $restore.Anchor='Bottom,Left'
+    $restore=New-Object Windows.Forms.Button; $restore.Text='RESTAURAR PREDETERMINADOS'; $restore.Location=New-Object Drawing.Point(185,728); $restore.Size=New-Object Drawing.Size(205,32); $restore.Anchor='Bottom,Left'
     $restore.Add_Click({
         $d=Get-DefaultConfig
         foreach($control in @($cards.Controls)){ $cards.Controls.Remove($control); $control.Dispose() }
