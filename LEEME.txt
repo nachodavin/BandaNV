@@ -5,6 +5,12 @@ RELEASE CANDIDATE — ACTUALIZADOR AUTOMÁTICO
 NOVEDAD PRINCIPAL
 BandaNV incorpora un sistema de actualización portable basado exclusivamente en GitHub Releases.
 
+CONFIGURACIÓN INICIAL
+- En una instalación nueva, BandaNV guía al usuario para elegir la carpeta que desea organizar.
+- Mientras no haya una carpeta válida, ORGANIZAR permanece deshabilitado.
+- El botón Configuración se destaca temporalmente como CONFIGURAR CARPETA.
+- El aviso inicial se muestra una sola vez; la guía visual permanece hasta configurar una carpeta válida.
+
 ACTUALIZACIONES
 - GitHub Releases es la fuente oficial de versiones.
 - El canal de actualizaciones ya no depende de si la build instalada es RC o Final.
