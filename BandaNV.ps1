@@ -2310,10 +2310,10 @@ function Show-BandaNVInitialSetupPrompt($owner=$null) {
     $configure.Size=New-Object Drawing.Size(175,36)
     Set-PrimaryButtonStyle $configure
 
+    $setupState=[PSCustomObject]@{ OpenConfig=$false }
     $configure.Add_Click({
+        $setupState.OpenConfig=$true
         $form.Close()
-        Show-Config
-        Refresh-Main
     })
 
     $form.Controls.AddRange(@($title,$info,$configure))
@@ -2324,6 +2324,11 @@ function Show-BandaNVInitialSetupPrompt($owner=$null) {
 
     if($null -ne $owner -and -not $owner.IsDisposed){ [void]$form.ShowDialog($owner) }
     else { [void]$form.ShowDialog() }
+
+    if($setupState.OpenConfig) {
+        Show-Config
+        Refresh-Main
+    }
 }
 
 $organize.Add_Click({Show-OrganizationPreview $status $last $organize $main})
