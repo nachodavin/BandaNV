@@ -198,7 +198,8 @@ function Initialize-ThemedForm($form) {
 # Esta fase detecta versiones y muestra la UI; todavía NO instala.
 # ============================================================
 
-$script:UpdateCheckJob=$null
+$script:UpdateCheckTask=$null
+$script:UpdateCheckHttpClient=$null
 $script:UpdateCheckTimer=$null
 
 function Test-BandaNVPrereleaseVersion([string]$version=$script:AppVersion) {
@@ -441,62 +442,62 @@ function Show-BandaNVUpdateDialog($result,$owner=$null) {
 }
 
 function Start-BandaNVStartupUpdateCheck($ownerForm) {
-    if($null -ne $script:UpdateCheckJob){ return }
+    if($null -ne $script:UpdateCheckTask){ return }
 
-    $uri=Get-BandaNVReleaseApiUri
     try {
-        $script:UpdateCheckJob=Start-Job -ScriptBlock {
-            param($requestUri)
-            try {
-                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-            } catch {}
-            $headers=@{
-                Accept='application/vnd.github+json'
-                'X-GitHub-Api-Version'='2022-11-28'
-            }
-            $payload=Invoke-RestMethod -Uri $requestUri -Method Get -Headers $headers -UserAgent 'BandaNV-Updater/1.0' -TimeoutSec 8 -ErrorAction Stop
-            ConvertTo-Json -InputObject $payload -Depth 12 -Compress
-        } -ArgumentList $uri -ErrorAction Stop
+        Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        } catch {}
+
+        $client=New-Object System.Net.Http.HttpClient
+        $client.Timeout=[TimeSpan]::FromSeconds(8)
+        $client.DefaultRequestHeaders.UserAgent.ParseAdd('BandaNV-Updater/1.0')
+        $client.DefaultRequestHeaders.Accept.ParseAdd('application/vnd.github+json')
+        [void]$client.DefaultRequestHeaders.TryAddWithoutValidation('X-GitHub-Api-Version','2022-11-28')
+
+        $script:UpdateCheckHttpClient=$client
+        $script:UpdateCheckTask=$client.GetStringAsync((Get-BandaNVReleaseApiUri))
     } catch {
-        $script:UpdateCheckJob=$null
+        try { if($null -ne $script:UpdateCheckHttpClient){$script:UpdateCheckHttpClient.Dispose()} } catch {}
+        $script:UpdateCheckHttpClient=$null
+        $script:UpdateCheckTask=$null
         return
     }
 
     $timer=New-Object Windows.Forms.Timer
-    $timer.Interval=300
+    $timer.Interval=250
     $script:UpdateCheckTimer=$timer
     $ownerRef=$ownerForm
 
     $handler={
-        if($null -eq $script:UpdateCheckJob) {
+        if($null -eq $script:UpdateCheckTask) {
             $timer.Stop()
             $timer.Dispose()
             $script:UpdateCheckTimer=$null
             return
         }
 
-        $state=[string]$script:UpdateCheckJob.State
-        if($state -eq 'Completed') {
-            try {
-                $json=Receive-Job -Job $script:UpdateCheckJob -ErrorAction Stop | Select-Object -Last 1
-                if(-not [string]::IsNullOrWhiteSpace([string]$json)) {
-                    $payload=([string]$json | ConvertFrom-Json)
+        if(-not $script:UpdateCheckTask.IsCompleted){ return }
+
+        try {
+            if(-not $script:UpdateCheckTask.IsCanceled -and -not $script:UpdateCheckTask.IsFaulted) {
+                $json=[string]$script:UpdateCheckTask.Result
+                if(-not [string]::IsNullOrWhiteSpace($json)) {
+                    $payload=$json | ConvertFrom-Json
                     $result=Get-BandaNVUpdateResultFromPayload $payload
                     if($result.Status -eq 'Available' -and $null -ne $ownerRef -and -not $ownerRef.IsDisposed) {
                         Show-BandaNVUpdateDialog $result $ownerRef
                     }
                 }
-            } catch {}
-            finally {
-                Remove-Job -Job $script:UpdateCheckJob -Force -ErrorAction SilentlyContinue
-                $script:UpdateCheckJob=$null
-                $timer.Stop()
-                $timer.Dispose()
-                $script:UpdateCheckTimer=$null
             }
-        } elseif($state -in @('Failed','Stopped','Disconnected')) {
-            Remove-Job -Job $script:UpdateCheckJob -Force -ErrorAction SilentlyContinue
-            $script:UpdateCheckJob=$null
+        } catch {
+            # El chequeo automático es silencioso ante errores:
+            # BandaNV debe iniciar normalmente aunque GitHub o la red fallen.
+        } finally {
+            try { if($null -ne $script:UpdateCheckHttpClient){$script:UpdateCheckHttpClient.Dispose()} } catch {}
+            $script:UpdateCheckHttpClient=$null
+            $script:UpdateCheckTask=$null
             $timer.Stop()
             $timer.Dispose()
             $script:UpdateCheckTimer=$null
@@ -506,7 +507,6 @@ function Start-BandaNVStartupUpdateCheck($ownerForm) {
     $timer.Add_Tick($handler)
     $timer.Start()
 }
-
 
 function Get-DefaultConfig {
     [ordered]@{
