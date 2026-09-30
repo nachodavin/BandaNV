@@ -4,7 +4,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appSource = Join-Path $root 'BandaNV.ps1'
 $appExe = Join-Path $root 'BandaNV.exe'
 $updaterExe = Join-Path $root 'NVupdate.exe'
-$readme = Join-Path $root 'LEEME.txt'
+$readme = Join-Path $root 'LEEME IMPORTANTE.txt'
 $dist = Join-Path $root 'dist'
 
 try {
@@ -32,56 +32,49 @@ try {
         throw 'La versión detectada está vacía.'
     }
 
-    $versionToken = 'v' + $version.Replace(' ','_')
-    $portableName = 'BandaNV_' + $versionToken + '_Portable.zip'
-    $autoUpdateName = 'BandaNV_' + $versionToken + '_AutoUpdate.zip'
+    if($version -match '^(?<base>\d+\.\d+)\s+RC(?<rc>\d+)$') {
+        $versionToken = 'v' + $Matches['base'] + '-rc' + $Matches['rc']
+    } else {
+        $versionToken = 'v' + $version.Replace(' ','-').ToLowerInvariant()
+    }
+
+    $packageName = 'BandaNV_' + $versionToken + '.zip'
 
     if(Test-Path -LiteralPath $dist) {
         Remove-Item -LiteralPath $dist -Recurse -Force
     }
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
-    $portableStage = Join-Path $dist '_portable'
-    $autoStage = Join-Path $dist '_autoupdate'
-    New-Item -ItemType Directory -Force -Path $portableStage,$autoStage | Out-Null
+    $stage = Join-Path $dist '_release'
+    $appStage = Join-Path $stage 'BandaNV'
+    New-Item -ItemType Directory -Force -Path $appStage | Out-Null
 
-    Copy-Item -LiteralPath $appExe -Destination (Join-Path $portableStage 'BandaNV.exe') -Force
-    Copy-Item -LiteralPath $updaterExe -Destination (Join-Path $portableStage 'NVupdate.exe') -Force
-    Copy-Item -LiteralPath $readme -Destination (Join-Path $portableStage 'LEEME.txt') -Force
+    Copy-Item -LiteralPath $appExe -Destination (Join-Path $appStage 'BandaNV.exe') -Force
+    Copy-Item -LiteralPath $updaterExe -Destination (Join-Path $appStage 'NVupdate.exe') -Force
+    Copy-Item -LiteralPath $readme -Destination (Join-Path $stage 'LEEME IMPORTANTE.txt') -Force
 
-    Copy-Item -LiteralPath $appExe -Destination (Join-Path $autoStage 'BandaNV.exe') -Force
+    $packageZip = Join-Path $dist $packageName
+    Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $packageZip -CompressionLevel Optimal -Force
 
-    $portableZip = Join-Path $dist $portableName
-    $autoUpdateZip = Join-Path $dist $autoUpdateName
+    Remove-Item -LiteralPath $stage -Recurse -Force
 
-    Compress-Archive -Path (Join-Path $portableStage '*') -DestinationPath $portableZip -CompressionLevel Optimal -Force
-    Compress-Archive -Path (Join-Path $autoStage '*') -DestinationPath $autoUpdateZip -CompressionLevel Optimal -Force
-
-    Remove-Item -LiteralPath $portableStage,$autoStage -Recurse -Force
-
-    if(-not (Test-Path -LiteralPath $portableZip -PathType Leaf)) {
-        throw 'No se generó Portable.zip.'
-    }
-    if(-not (Test-Path -LiteralPath $autoUpdateZip -PathType Leaf)) {
-        throw 'No se generó AutoUpdate.zip.'
+    if(-not (Test-Path -LiteralPath $packageZip -PathType Leaf)) {
+        throw 'No se generó el ZIP de Release.'
     }
 
     Write-Host ''
-    Write-Host 'LISTO: paquetes de Release generados correctamente.' -ForegroundColor Green
-    Write-Host "Portable:   $portableZip"
-    Write-Host "AutoUpdate: $autoUpdateZip"
+    Write-Host 'LISTO: paquete de Release generado correctamente.' -ForegroundColor Green
+    Write-Host "Paquete: $packageZip"
     Write-Host ''
-    Write-Host 'Contenido Portable:' -ForegroundColor Cyan
-    Write-Host '  BandaNV.exe'
-    Write-Host '  NVupdate.exe'
-    Write-Host '  LEEME.txt'
-    Write-Host ''
-    Write-Host 'Contenido AutoUpdate:' -ForegroundColor Cyan
-    Write-Host '  BandaNV.exe'
+    Write-Host 'Contenido:' -ForegroundColor Cyan
+    Write-Host '  BandaNV\'
+    Write-Host '    BandaNV.exe'
+    Write-Host '    NVupdate.exe'
+    Write-Host '  LEEME IMPORTANTE.txt'
 }
 catch {
     Write-Host ''
-    Write-Host 'ERROR: no se pudieron generar los paquetes de Release.' -ForegroundColor Red
+    Write-Host 'ERROR: no se pudo generar el paquete de Release.' -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }
