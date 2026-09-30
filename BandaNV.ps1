@@ -359,9 +359,11 @@ function Get-BandaNVUpdateResultFromPayload($payload,[bool]$includeBeta=$false) 
     }
 
     $assets=@($release.assets)
-    # El actualizador automático NUNCA usa Portable.zip como fallback.
-    # Solo acepta el paquete oficial *_AutoUpdate.zip de la misma Release.
-    $asset=$assets | Where-Object { ([string]$_.name) -match '(?i)_AutoUpdate\.zip$' } | Select-Object -First 1
+    # Cada Release publica un único paquete oficial:
+    # BandaNV_<tag>.zip (por ejemplo BandaNV_v1.0.zip).
+    # Ese mismo ZIP sirve para descarga manual y actualización automática.
+    $expectedAssetName='BandaNV_'+([string]$release.tag_name)+'.zip'
+    $asset=$assets | Where-Object { ([string]$_.name) -ieq $expectedAssetName } | Select-Object -First 1
 
     [PSCustomObject]@{
         Status=$status
@@ -400,7 +402,7 @@ function New-BandaNVUpdateWorkspace {
     $extract=Join-Path $root 'extracted'
     $backup=Join-Path $root 'backup\BandaNV.exe'
     $confirm=Join-Path $root 'confirmed.json'
-    $zip=Join-Path $root 'AutoUpdate.zip'
+    $zip=Join-Path $root 'BandaNV.zip'
 
     New-Item -ItemType Directory -Force -Path $root,$extract,(Split-Path -Parent $backup) | Out-Null
 
@@ -411,7 +413,7 @@ function New-BandaNVUpdateWorkspace {
         ExtractDir=$extract
         BackupPath=$backup
         ConfirmPath=$confirm
-        StagedExe=(Join-Path $extract 'BandaNV.exe')
+        StagedExe=(Join-Path $extract 'BandaNV\BandaNV.exe')
     }
 }
 
@@ -427,7 +429,7 @@ function Remove-BandaNVUpdateWorkspace($workspace) {
 }
 
 function Test-BandaNVUpdateDigest([string]$filePath,[string]$digest) {
-    if([string]::IsNullOrWhiteSpace($digest)){ throw 'GitHub no publicó el SHA-256 del paquete AutoUpdate.' }
+    if([string]::IsNullOrWhiteSpace($digest)){ throw 'GitHub no publicó el SHA-256 del paquete oficial de BandaNV.' }
     if($digest -notmatch '^(?i)sha256:(?<hash>[a-f0-9]{64})$'){ throw 'El SHA-256 publicado por GitHub no tiene un formato válido.' }
 
     $expected=$Matches['hash'].ToLowerInvariant()
@@ -436,35 +438,53 @@ function Test-BandaNVUpdateDigest([string]$filePath,[string]$digest) {
     return $true
 }
 
-function Expand-BandaNVAutoUpdate([string]$zipPath,[string]$extractDir) {
+function Expand-BandaNVReleasePackage([string]$zipPath,[string]$extractDir) {
     Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
     Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
 
     if(Test-Path -LiteralPath $extractDir){ Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction Stop }
     New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
 
-    # Estructura intencionalmente estricta del paquete AutoUpdate:
-    # AutoUpdate.zip debe contener BandaNV.exe en la raíz.
+    # Estructura oficial y estricta del único ZIP de cada Release:
+    # BandaNV\BandaNV.exe
+    # BandaNV\NVupdate.exe
+    # LEEME IMPORTANTE.txt
+    $required=@(
+        'BandaNV\BandaNV.exe',
+        'BandaNV\NVupdate.exe',
+        'LEEME IMPORTANTE.txt'
+    )
+
     $archive=$null
     try {
         try {
             $archive=[IO.Compression.ZipFile]::OpenRead($zipPath)
         } catch {
-            throw 'El paquete AutoUpdate está dañado o no es un archivo ZIP válido.'
+            throw 'El paquete de BandaNV está dañado o no es un archivo ZIP válido.'
         }
 
         $files=@($archive.Entries | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) })
         $names=@($files | ForEach-Object { $_.FullName.Replace('/','\') })
 
-        if($names -notcontains 'BandaNV.exe') {
-            throw 'El paquete AutoUpdate no contiene BandaNV.exe en la raíz.'
-        }
         foreach($name in $names) {
-            if($name -match '^(?i)(config|logs)\\') {
-                throw 'El paquete AutoUpdate contiene datos que nunca deben reemplazarse (config o logs).'
-            }
             if($name -match '(^|\\)\.\.(\\|$)' -or [IO.Path]::IsPathRooted($name)) {
-                throw 'El paquete AutoUpdate contiene una ruta no segura.'
+                throw 'El paquete de BandaNV contiene una ruta no segura.'
+            }
+            if($name -match '(?i)(^|\\)(config|logs)(\\|$)') {
+                throw 'El paquete de BandaNV contiene datos que nunca deben reemplazarse (config o logs).'
+            }
+            if($required -notcontains $name) {
+                throw ('El paquete de BandaNV contiene un archivo inesperado: '+$name)
+            }
+        }
+
+        if($names.Count -ne $required.Count -or @($names | Select-Object -Unique).Count -ne $required.Count) {
+            throw 'El paquete de BandaNV no tiene la estructura oficial esperada.'
+        }
+
+        foreach($requiredName in $required) {
+            if($names -notcontains $requiredName) {
+                throw ('El paquete de BandaNV no contiene '+$requiredName+'.')
             }
         }
     } finally {
@@ -472,9 +492,9 @@ function Expand-BandaNVAutoUpdate([string]$zipPath,[string]$extractDir) {
     }
 
     [IO.Compression.ZipFile]::ExtractToDirectory($zipPath,$extractDir)
-    $staged=Join-Path $extractDir 'BandaNV.exe'
+    $staged=Join-Path $extractDir 'BandaNV\BandaNV.exe'
     if(-not (Test-Path -LiteralPath $staged -PathType Leaf)) {
-        throw 'No se pudo preparar BandaNV.exe desde AutoUpdate.zip.'
+        throw 'No se pudo preparar BandaNV.exe desde el paquete oficial.'
     }
     return $staged
 }
@@ -587,7 +607,7 @@ function Show-BandaNVUpdateReadyDialog($result,$workspace,$owner=$null) {
 function Show-BandaNVUpdateDownload($result,$owner=$null) {
     if([string]::IsNullOrWhiteSpace([string]$result.AssetUrl) -or [string]::IsNullOrWhiteSpace([string]$result.AssetName)) {
         [Windows.Forms.MessageBox]::Show(
-            'La Release detectada no incluye el paquete oficial *_AutoUpdate.zip.'+[Environment]::NewLine+[Environment]::NewLine+
+            ('La Release detectada no incluye el paquete oficial BandaNV_'+[string]$result.Tag+'.zip.')+[Environment]::NewLine+[Environment]::NewLine+
             'No se descargó ni modificó ningún archivo.',
             'BandaNV — Actualización','OK','Warning'
         ) | Out-Null
@@ -595,7 +615,7 @@ function Show-BandaNVUpdateDownload($result,$owner=$null) {
     }
     if([string]::IsNullOrWhiteSpace([string]$result.Digest)) {
         [Windows.Forms.MessageBox]::Show(
-            'GitHub no informó un SHA-256 para el paquete AutoUpdate. Por seguridad, BandaNV no lo instalará.',
+            'GitHub no informó un SHA-256 para el paquete oficial. Por seguridad, BandaNV no lo instalará.',
             'BandaNV — Actualización','OK','Warning'
         ) | Out-Null
         return
@@ -695,7 +715,7 @@ function Show-BandaNVUpdateDownload($result,$owner=$null) {
             $state.Text='Preparando actualización...'
             [Windows.Forms.Application]::DoEvents()
 
-            $context.StagedExe=Expand-BandaNVAutoUpdate ([string]$workspace.ZipPath) ([string]$workspace.ExtractDir)
+            $context.StagedExe=Expand-BandaNVReleasePackage ([string]$workspace.ZipPath) ([string]$workspace.ExtractDir)
             $workspace.StagedExe=$context.StagedExe
             $context.Success=$true
         } catch {
