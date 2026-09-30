@@ -7,7 +7,7 @@ $updaterSource = Join-Path $root 'NVupdate.ps1'
 $updaterOutput = Join-Path $root 'NVupdate.exe'
 $icon = Join-Path $root 'assets\BandaNV.ico'
 
-Write-Host 'BandaNV v1.0 RC1.9 - Compilador' -ForegroundColor Cyan
+Write-Host 'BandaNV v1.0 - Compilador' -ForegroundColor Cyan
 
 try {
     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
@@ -36,10 +36,10 @@ try {
     }
 
     Write-Host 'Compilando BandaNV.exe...'
-    Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -iconFile $icon -title 'BandaNV' -product 'BandaNV' -version '1.0.0.90' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
+    Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -iconFile $icon -title 'BandaNV' -product 'BandaNV' -version '1.0.0.100' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
 
     Write-Host 'Compilando NVupdate.exe...'
-    Invoke-ps2exe -inputFile $updaterSource -outputFile $updaterOutput -noConsole -iconFile $icon -title 'NVupdate' -product 'BandaNV' -version '1.0.0.90' -description 'NVupdate - Actualizador seguro de BandaNV' -ErrorAction Stop
+    Invoke-ps2exe -inputFile $updaterSource -outputFile $updaterOutput -noConsole -iconFile $icon -title 'NVupdate' -product 'BandaNV' -version '1.0.0.100' -description 'NVupdate - Actualizador seguro de BandaNV' -ErrorAction Stop
 
     if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
         throw 'PS2EXE terminó sin generar BandaNV.exe.'
