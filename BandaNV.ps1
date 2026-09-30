@@ -7,8 +7,8 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-# BandaNV v1.0 RC1
-$script:AppVersion = '1.0 RC1.9'
+# BandaNV v1.0
+$script:AppVersion = '1.0'
 $script:GitHubRepo = 'nachodavin/BandaNV'
 $script:GitHubApiBase = 'https://api.github.com/repos/nachodavin/BandaNV'
 
@@ -35,7 +35,7 @@ $script:ConfigPath = Join-Path $script:ConfigDir 'bandanv_config.json'
 $script:UpdateStatePath = Join-Path $script:ConfigDir 'bandanv_update_state.json'
 
 # ============================================================
-# BandaNV RC1.9 - Identidad visual Dark Elegant + actualizador integrado
+# BandaNV v1.0 - Identidad visual Dark Elegant + actualizador integrado
 # Paleta grafito + teal tomada del branding oficial.
 # Los PNG originales del usuario se conservan sin redibujarlos:
 # el wordmark se incrusta como bytes PNG y el icono NV provisto
