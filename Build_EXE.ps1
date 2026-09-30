@@ -39,7 +39,7 @@ try {
     Invoke-ps2exe -inputFile $source -outputFile $output -noConsole -iconFile $icon -title 'BandaNV' -product 'BandaNV' -version '1.0.0.100' -description 'BandaNV - Organizador de archivos portable' -ErrorAction Stop
 
     Write-Host 'Compilando NVupdate.exe...'
-    Invoke-ps2exe -inputFile $updaterSource -outputFile $updaterOutput -noConsole -iconFile $icon -title 'NVupdate' -product 'BandaNV' -version '1.0.0.100' -description 'NVupdate - Actualizador seguro de BandaNV' -ErrorAction Stop
+    Invoke-ps2exe -inputFile $updaterSource -outputFile $updaterOutput -noConsole -title 'NVupdate' -product 'BandaNV' -version '1.0.0.100' -description 'NVupdate - Actualizador seguro de BandaNV' -ErrorAction Stop
 
     if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
         throw 'PS2EXE terminó sin generar BandaNV.exe.'
