@@ -54,7 +54,7 @@ try {
     Write-Host "NVupdate: $updaterOutput"
     Write-Host 'Conservá config\ y logs\ junto a los ejecutables.'
     Write-Host ''
-    Write-Host 'Para generar los ZIP de Release ejecutá:' -ForegroundColor Cyan
+    Write-Host 'Para generar el ZIP de Release ejecutá:' -ForegroundColor Cyan
     Write-Host 'powershell.exe -ExecutionPolicy Bypass -File ".\Package_Release.ps1"'
 }
 catch {
