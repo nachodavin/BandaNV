@@ -1,6 +1,6 @@
-BandaNV v1.0 RC1.9
+BandaNV v1.0
 
-RELEASE CANDIDATE — ACTUALIZADOR AUTOMÁTICO
+LANZAMIENTO ESTABLE — BANDA NV v1.0
 
 NOVEDAD PRINCIPAL
 BandaNV incorpora un sistema de actualización portable basado exclusivamente en GitHub Releases.
@@ -90,8 +90,8 @@ Después de compilar:
 powershell.exe -ExecutionPolicy Bypass -File ".\Package_Release.ps1"
 
 Se generan dentro de dist\:
-- BandaNV_v1.0_RC1.9_Portable.zip
-- BandaNV_v1.0_RC1.9_AutoUpdate.zip
+- BandaNV_v1.0_Portable.zip
+- BandaNV_v1.0_AutoUpdate.zip
 
 HARDENING VALIDADO
 - Actualización end-to-end desde GitHub.
@@ -105,4 +105,4 @@ HARDENING VALIDADO
 - Limpieza de temporales tras cancelación y actualización exitosa.
 
 VERSIÓN
-BandaNV v1.0 RC1.9
+BandaNV v1.0
