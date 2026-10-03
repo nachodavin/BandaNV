@@ -1,0 +1,136 @@
+<Page
+    x:Class="BandaNV.App.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BandaBackgroundBrush}">
+
+    <ScrollViewer>
+        <Grid Padding="40,32,40,48" MaxWidth="1500" HorizontalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="6">
+                <TextBlock
+                    Text="Inicio"
+                    Style="{StaticResource BandaSectionTitleStyle}" />
+                <TextBlock
+                    Text="Todo lo importante de tu organización, en un solo lugar."
+                    Style="{StaticResource BandaMutedTextStyle}"
+                    FontSize="14" />
+            </StackPanel>
+
+            <Border Grid.Row="1" Style="{StaticResource BandaCardStyle}" Margin="0,28,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="7">
+                        <TextBlock
+                            Text="CARPETA ACTUAL"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="12"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="Sin carpeta configurada"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="19"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="BandaNV v2.0 conectará aquí la configuración migrada desde v1.0."
+                            Style="{StaticResource BandaMutedTextStyle}" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        Content="CONFIGURAR"
+                        VerticalAlignment="Center"
+                        Padding="20,10" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2" Margin="0,18,0,0" ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="ARCHIVOS PENDIENTES" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                        <TextBlock Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="ÚLTIMA ORGANIZACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                        <TextBlock Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="ORGANIZADOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                        <TextBlock Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="3" Style="{StaticResource BandaCardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="CATEGORÍAS" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                        <TextBlock Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="3" Margin="0,18,0,0" ColumnSpacing="18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}">
+                    <StackPanel Spacing="18">
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                Text="Organizar"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="Revisá qué va a pasar antes de mover un solo archivo."
+                                Style="{StaticResource BandaMutedTextStyle}" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="PREVISUALIZAR" Padding="20,11" />
+                            <Button Content="ORGANIZAR" Padding="20,11" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}">
+                    <StackPanel Spacing="10">
+                        <TextBlock
+                            Text="Actividad reciente"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="20"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="Todavía no hay actividad cargada en v2.0."
+                            Style="{StaticResource BandaMutedTextStyle}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>
