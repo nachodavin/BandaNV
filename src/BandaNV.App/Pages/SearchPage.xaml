@@ -4,18 +4,428 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
-    <Grid Padding="40,32,40,48">
-        <StackPanel Spacing="18">
-            <StackPanel Spacing="6">
-                <TextBlock Text="Buscar" Style="{StaticResource BandaSectionTitleStyle}" />
-                <TextBlock Text="Búsqueda rápida dentro de los archivos organizados." Style="{StaticResource BandaMutedTextStyle}" />
-            </StackPanel>
+    <Grid
+        Padding="34,32,34,40"
+        RowSpacing="16">
 
-            <TextBox PlaceholderText="Buscar archivos..." MaxWidth="780" HorizontalAlignment="Left" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource BandaCardStyle}">
-                <TextBlock Text="Los resultados aparecerán acá con categoría, ubicación, tamaño y fecha." Style="{StaticResource BandaMutedTextStyle}" />
-            </Border>
+        <!-- Encabezado -->
+        <StackPanel Spacing="5">
+            <TextBlock
+                Text="Buscar"
+                Style="{StaticResource BandaSectionTitleStyle}"
+                FontSize="32" />
+
+            <TextBlock
+                Text="Encontrá y explorá los archivos organizados por BandaNV."
+                Style="{StaticResource BandaMutedTextStyle}"
+                FontSize="14" />
         </StackPanel>
+
+        <!-- Resumen por categoría -->
+        <Grid
+            Grid.Row="1"
+            ColumnSpacing="12">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Grid.Column="0"
+                Padding="0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Background="Transparent"
+                BorderThickness="0"
+                CornerRadius="18">
+
+                <Border
+                    Padding="18"
+                    CornerRadius="18"
+                    Background="{StaticResource BandaAccentCardBrush}"
+                    BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                    BorderThickness="1">
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Text="IMÁGENES"
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="11" />
+
+                            <Border
+                                Grid.Column="1"
+                                Width="32"
+                                Height="32"
+                                CornerRadius="10"
+                                Background="{StaticResource BandaAccentSoftBrush}">
+                                <TextBlock
+                                    Text="IMG"
+                                    Foreground="{StaticResource BandaAccentBrush}"
+                                    FontSize="9"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Text="—"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="32"
+                            FontWeight="SemiBold"
+                            Margin="0,10,0,0" />
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Text="archivos"
+                            Style="{StaticResource BandaMutedTextStyle}"
+                            FontSize="11" />
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Grid.Column="1" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="18">
+                <Border Padding="18" CornerRadius="18" Background="{StaticResource BandaCardBrush}" BorderBrush="{StaticResource BandaBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="DOCUMENTOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <TextBlock Text="DOC" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="32" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Grid.Row="2" Text="archivos" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Grid.Column="2" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="18">
+                <Border Padding="18" CornerRadius="18" Background="{StaticResource BandaCardBrush}" BorderBrush="{StaticResource BandaBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="VIDEOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <TextBlock Text="VID" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="32" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Grid.Row="2" Text="archivos" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Grid.Column="3" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="18">
+                <Border Padding="18" CornerRadius="18" Background="{StaticResource BandaCardBrush}" BorderBrush="{StaticResource BandaBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="AUDIO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <TextBlock Text="AUD" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="32" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Grid.Row="2" Text="archivos" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Grid.Column="4" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderThickness="0" CornerRadius="18">
+                <Border Padding="18" CornerRadius="18" Background="{StaticResource BandaCardBrush}" BorderBrush="{StaticResource BandaBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="INSTALLERS" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <TextBlock Text="EXE" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="32" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Grid.Row="2" Text="archivos" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                    </Grid>
+                </Border>
+            </Button>
+        </Grid>
+
+        <!-- Herramientas de búsqueda -->
+        <Grid
+            Grid.Row="2"
+            ColumnSpacing="12">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.1*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                Grid.Column="0"
+                PlaceholderText="Buscar por nombre, extensión o categoría..."
+                FontSize="14"
+                Padding="14,10"
+                MinHeight="44" />
+
+            <Border
+                Grid.Column="1"
+                Padding="14,0"
+                CornerRadius="12"
+                Background="{StaticResource BandaCardBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1"
+                VerticalAlignment="Stretch">
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="5"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                        Text="0"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontWeight="SemiBold" />
+                    <TextBlock
+                        Text="archivos"
+                        Style="{StaticResource BandaMutedTextStyle}" />
+                </StackPanel>
+            </Border>
+
+            <Button
+                Grid.Column="2"
+                Content="Filtros"
+                Padding="16,10"
+                MinHeight="44"
+                CornerRadius="12" />
+
+            <ComboBox
+                Grid.Column="3"
+                MinWidth="170"
+                MinHeight="44"
+                PlaceholderText="Ordenar por">
+                <ComboBoxItem Content="Nombre" />
+                <ComboBoxItem Content="Fecha" />
+                <ComboBoxItem Content="Tamaño" />
+                <ComboBoxItem Content="Categoría" />
+            </ComboBox>
+        </Grid>
+
+        <!-- Tabla principal de resultados -->
+        <Border
+            Grid.Row="3"
+            Style="{StaticResource BandaCardStyle}"
+            Padding="0"
+            MinHeight="400">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Chips / filtros activos -->
+                <Grid
+                    Padding="18,14"
+                    ColumnSpacing="8">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Grid.Column="0"
+                        Padding="12,6"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaAccentSoftBrush}">
+                        <TextBlock
+                            Text="Todas"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="12"
+                            FontWeight="SemiBold" />
+                    </Border>
+
+                    <Border
+                        Grid.Column="1"
+                        Padding="12,6"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaNavIconBrush}">
+                        <TextBlock
+                            Text="Sin filtros"
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="12" />
+                    </Border>
+
+                    <Button
+                        Grid.Column="3"
+                        Content="Limpiar filtros"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{StaticResource BandaMutedBrush}"
+                        Padding="10,6" />
+                </Grid>
+
+                <!-- Encabezado de tabla -->
+                <Border
+                    Grid.Row="1"
+                    Margin="14,0,14,14"
+                    CornerRadius="14"
+                    Background="{StaticResource BandaCardAltBrush}"
+                    BorderBrush="{StaticResource BandaBorderBrush}"
+                    BorderThickness="1">
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="48" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid
+                            Padding="16,0"
+                            ColumnSpacing="16"
+                            VerticalAlignment="Stretch">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2.4*" />
+                                <ColumnDefinition Width="1.05*" />
+                                <ColumnDefinition Width="0.8*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="36" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="5" Text="" />
+                        </Grid>
+
+                        <Grid
+                            Grid.Row="1"
+                            MinHeight="330">
+
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Spacing="10">
+
+                                <Border
+                                    Width="46"
+                                    Height="46"
+                                    CornerRadius="15"
+                                    Background="{StaticResource BandaAccentSoftBrush}">
+                                    <TextBlock
+                                        Text="⌕"
+                                        Foreground="{StaticResource BandaAccentBrush}"
+                                        FontSize="22"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="Todavía no hay archivos para mostrar"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="15"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Center" />
+
+                                <TextBlock
+                                    Text="Cuando conectemos el motor, tus resultados aparecerán acá."
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="12"
+                                    HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Pie de tabla -->
+                <Grid
+                    Grid.Row="2"
+                    Padding="18,0,18,16">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Text="0 resultados"
+                        Style="{StaticResource BandaMutedTextStyle}"
+                        FontSize="12"
+                        VerticalAlignment="Center" />
+
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <Button Content="‹" Width="34" Height="32" Padding="0" IsEnabled="False" />
+                        <TextBlock Text="1 de 1" Style="{StaticResource BandaMutedTextStyle}" VerticalAlignment="Center" />
+                        <Button Content="›" Width="34" Height="32" Padding="0" IsEnabled="False" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Page>
