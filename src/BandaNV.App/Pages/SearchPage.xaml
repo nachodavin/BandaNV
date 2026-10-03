@@ -1,0 +1,21 @@
+<Page
+    x:Class="BandaNV.App.Pages.SearchPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BandaBackgroundBrush}">
+
+    <Grid Padding="40,32,40,48">
+        <StackPanel Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Buscar" Style="{StaticResource BandaSectionTitleStyle}" />
+                <TextBlock Text="Búsqueda rápida dentro de los archivos organizados." Style="{StaticResource BandaMutedTextStyle}" />
+            </StackPanel>
+
+            <TextBox PlaceholderText="Buscar archivos..." MaxWidth="780" HorizontalAlignment="Left" />
+
+            <Border Style="{StaticResource BandaCardStyle}">
+                <TextBlock Text="Los resultados aparecerán acá con categoría, ubicación, tamaño y fecha." Style="{StaticResource BandaMutedTextStyle}" />
+            </Border>
+        </StackPanel>
+    </Grid>
+</Page>
