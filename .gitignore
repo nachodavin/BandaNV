@@ -18,3 +18,11 @@ logs/
 # Sistema
 Thumbs.db
 .DS_Store
+
+# .NET / Visual Studio (BandaNV v2.0)
+.vs/
+**/bin/
+**/obj/
+**/publish/
+*.user
+*.suo
