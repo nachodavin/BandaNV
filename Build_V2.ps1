@@ -1,7 +1,12 @@
 $ErrorActionPreference = 'Stop'
 
+try {
+    [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+    $OutputEncoding = [Text.UTF8Encoding]::new($false)
+} catch {}
+
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$solution = Join-Path $root 'BandaNV.slnx'
+$appProject = Join-Path $root 'src\BandaNV.App\BandaNV.App.csproj'
 
 try {
     Write-Host ''
@@ -9,19 +14,22 @@ try {
     Write-Host ''
 
     if(-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-        throw 'No se encontró dotnet. Instalá Visual Studio 2026 con .NET desktop development / Windows App SDK o el .NET 10 SDK.'
+        throw 'No se encontró dotnet. Instalá Visual Studio 2026 con WinUI application development o el .NET 10 SDK.'
     }
 
-    if(-not (Test-Path -LiteralPath $solution -PathType Leaf)) {
-        throw "No se encontró la solución: $solution"
+    if(-not (Test-Path -LiteralPath $appProject -PathType Leaf)) {
+        throw "No se encontró el proyecto: $appProject"
     }
 
     Push-Location $root
     try {
-        dotnet restore $solution
+        # Compilamos el proyecto de la app directamente.
+        # BandaNV.Core se compila automáticamente por ProjectReference.
+        # Esto evita forzar una configuración Debug|x64 inexistente a nivel solución.
+        dotnet restore $appProject
         if($LASTEXITCODE -ne 0){ throw 'dotnet restore falló.' }
 
-        dotnet build $solution -c Debug -p:Platform=x64
+        dotnet build $appProject -c Debug --no-restore
         if($LASTEXITCODE -ne 0){ throw 'dotnet build falló.' }
     }
     finally {
