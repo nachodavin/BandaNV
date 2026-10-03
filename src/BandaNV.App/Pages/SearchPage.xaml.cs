@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using BandaNV.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,8 +12,6 @@ public sealed partial class SearchPage : Page
 
     private readonly List<SearchCategorySummary> _allCategoryCards = new();
     private int _currentCategoryPage;
-
-    public ObservableCollection<SearchCategorySummary> VisibleCategoryCards { get; } = new();
 
     public SearchPage()
     {
@@ -49,14 +46,39 @@ public sealed partial class SearchPage : Page
 
     private void UpdateCategoryPage()
     {
-        VisibleCategoryCards.Clear();
+        CategoryCardsGrid.Children.Clear();
+        CategoryCardsGrid.ColumnDefinitions.Clear();
+
+        // Diez columnas iguales hacen que la tanda ocupe todo el ancho disponible
+        // sin achicar de más las tarjetas ni dejar espacio muerto a la derecha.
+        for (var column = 0; column < CategoriesPerPage; column++)
+        {
+            CategoryCardsGrid.ColumnDefinitions.Add(new ColumnDefinition
+            {
+                Width = new GridLength(1, GridUnitType.Star)
+            });
+        }
 
         var start = _currentCategoryPage * CategoriesPerPage;
-        foreach (var category in _allCategoryCards
-                     .Skip(start)
-                     .Take(CategoriesPerPage))
+        var visibleCategories = _allCategoryCards
+            .Skip(start)
+            .Take(CategoriesPerPage)
+            .ToList();
+
+        var template = (DataTemplate)Resources["CategoryCardTemplate"];
+
+        for (var index = 0; index < visibleCategories.Count; index++)
         {
-            VisibleCategoryCards.Add(category);
+            var presenter = new ContentControl
+            {
+                Content = visibleCategories[index],
+                ContentTemplate = template,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+
+            Grid.SetColumn(presenter, index);
+            CategoryCardsGrid.Children.Add(presenter);
         }
 
         var hasMultiplePages = CategoryPageCount > 1;
