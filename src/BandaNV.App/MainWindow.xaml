@@ -154,6 +154,7 @@
                     <Button
                         x:Name="QuickUpdateButton"
                         Click="QuickUpdateButton_Click"
+                        Visibility="Collapsed"
                         Margin="0,0,0,10"
                         Padding="0"
                         HorizontalAlignment="Stretch"
@@ -193,14 +194,14 @@
                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                     <TextBlock
                                         x:Name="QuickUpdateTitle"
-                                        Text="BandaNV actualizado"
+                                        Text="Nueva actualización"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="12"
                                         FontWeight="SemiBold" />
 
                                     <TextBlock
                                         x:Name="QuickUpdateSubtitle"
-                                        Text="Versión actual: v2.0"
+                                        Text="Última versión: v2.0"
                                         Foreground="{StaticResource BandaMutedBrush}"
                                         FontSize="10.5" />
                                 </StackPanel>
