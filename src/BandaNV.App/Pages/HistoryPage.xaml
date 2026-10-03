@@ -1,0 +1,19 @@
+<Page
+    x:Class="BandaNV.App.Pages.HistoryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BandaBackgroundBrush}">
+
+    <Grid Padding="40,32,40,48">
+        <StackPanel Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Historial" Style="{StaticResource BandaSectionTitleStyle}" />
+                <TextBlock Text="Ejecuciones, detalle y deshacer dentro de la misma pantalla." Style="{StaticResource BandaMutedTextStyle}" />
+            </StackPanel>
+
+            <Border Style="{StaticResource BandaCardStyle}">
+                <TextBlock Text="Acá migraremos el historial cronológico de v1.0 y su sistema de Undo." Style="{StaticResource BandaMutedTextStyle}" />
+            </Border>
+        </StackPanel>
+    </Grid>
+</Page>
