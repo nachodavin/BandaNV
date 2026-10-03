@@ -4,71 +4,202 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid Background="{StaticResource BandaBackgroundBrush}">
-        <NavigationView
-            x:Name="Navigation"
-            PaneDisplayMode="Left"
-            IsBackButtonVisible="Collapsed"
-            IsSettingsVisible="False"
-            IsPaneToggleButtonVisible="True"
-            OpenPaneLength="220"
-            CompactPaneLength="64"
-            SelectionChanged="Navigation_SelectionChanged">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="226" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-            <NavigationView.PaneHeader>
-                <StackPanel Margin="8,16,8,18">
-                    <TextBlock
-                        Text="BandaNV"
-                        Foreground="{StaticResource BandaTextBrush}"
-                        FontSize="22"
-                        FontWeight="SemiBold" />
-                    <TextBlock
-                        Text="v2.0"
-                        Foreground="{StaticResource BandaAccentBrush}"
-                        FontSize="12" />
+        <!-- Sidebar propio de BandaNV -->
+        <Border
+            Grid.Column="0"
+            Background="{StaticResource BandaSidebarBrush}"
+            BorderBrush="{StaticResource BandaBorderBrush}"
+            BorderThickness="0,0,1,0">
+
+            <Grid Padding="16,18,16,18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Margin="4,2,4,28">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="42" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Width="38"
+                        Height="38"
+                        CornerRadius="12"
+                        Background="{StaticResource BandaAccentSoftBrush}">
+                        <TextBlock
+                            Text="B"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" Spacing="1">
+                        <TextBlock
+                            Text="BandaNV"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="18"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="v2.0"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="11"
+                            FontWeight="SemiBold" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Grid.Row="1">
+                    <Button
+                        x:Name="HomeButton"
+                        Tag="home"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}"
+                        Background="{StaticResource BandaNavActiveBrush}"
+                        Foreground="{StaticResource BandaTextBrush}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="Home" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Inicio" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button
+                        x:Name="OrganizeButton"
+                        Tag="organize"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="Play" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Organizar" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button
+                        x:Name="SearchButton"
+                        Tag="search"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="Find" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Buscar" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button
+                        x:Name="HistoryButton"
+                        Tag="history"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="Clock" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Historial" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button
+                        x:Name="CategoriesButton"
+                        Tag="categories"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="List" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Categorías" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
                 </StackPanel>
-            </NavigationView.PaneHeader>
 
-            <NavigationView.MenuItems>
-                <NavigationViewItem x:Name="HomeItem" Content="Inicio" Tag="home">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Home" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
+                <StackPanel Grid.Row="2">
+                    <Border
+                        Margin="0,0,0,10"
+                        Padding="12,10"
+                        CornerRadius="12"
+                        Background="{StaticResource BandaAccentFaintBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaTextBrush}" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock Text="Nueva experiencia" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                        </StackPanel>
+                    </Border>
 
-                <NavigationViewItem Content="Organizar" Tag="organize">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Play" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
+                    <Button
+                        x:Name="SettingsButton"
+                        Tag="settings"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="Setting" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Configuración" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-                <NavigationViewItem Content="Buscar" Tag="search">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Find" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-
-                <NavigationViewItem Content="Historial" Tag="history">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Clock" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-
-                <NavigationViewItem Content="Categorías" Tag="categories">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="List" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.MenuItems>
-
-            <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="Configuración" Tag="settings">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Setting" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.FooterMenuItems>
+        <!-- Área principal -->
+        <Grid Grid.Column="1">
+            <Border
+                Width="520"
+                Height="420"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,-150,-170,0"
+                CornerRadius="260"
+                Opacity="0.20">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#004FE0C6" Offset="0" />
+                        <GradientStop Color="#584FE0C6" Offset="0.5" />
+                        <GradientStop Color="#0053A9FF" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
 
             <Frame x:Name="ContentFrame" />
-        </NavigationView>
+        </Grid>
     </Grid>
 </Window>
