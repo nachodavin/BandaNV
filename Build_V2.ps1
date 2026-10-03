@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 try {
     [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -19,6 +19,12 @@ try {
 
     if(-not (Test-Path -LiteralPath $appProject -PathType Leaf)) {
         throw "No se encontró el proyecto: $appProject"
+    }
+
+    $running = @(Get-Process -Name 'BandaNV.App' -ErrorAction SilentlyContinue)
+    if($running.Count -gt 0) {
+        $ids = ($running | ForEach-Object { $_.Id }) -join ', '
+        throw "BandaNV v2.0 está abierto (PID: $ids). Cerralo antes de compilar para que Windows pueda reemplazar BandaNV.App.exe."
     }
 
     Push-Location $root
