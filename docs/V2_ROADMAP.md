@@ -67,7 +67,9 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Resumen superior generado dinámicamente con todas las categorías configuradas, sin categorías privilegiadas u ocultas.
 - Las tarjetas respetan siempre el orden global numérico de categorías (`CategoryDefinition.Order`), compartido con Categorías, Organizar y futuras estadísticas.
 - Si no entran en una fila, continúan automáticamente en filas adicionales manteniendo el mismo tamaño y jerarquía.
-- Cada tarjeta muestra cantidad de archivos y funciona como filtro rápido por categoría.
+- Cada tarjeta muestra cantidad de archivos y las extensiones asignadas a la categoría; se muestran hasta 4 extensiones y, si hay más, se resume con `+N`.
+- Las extensiones mostradas provienen de la misma configuración de Categorías y se actualizan junto con ella.
+- Cada tarjeta funciona como filtro rápido por categoría.
 - Búsqueda por nombre, extensión y categoría.
 - Filtros activos mediante chips y opción para limpiar filtros.
 - Ordenamiento por nombre, fecha, tamaño y categoría.
