@@ -66,7 +66,7 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Pantalla de trabajo a ancho completo.
 - Resumen superior generado dinámicamente con todas las categorías configuradas, sin categorías privilegiadas u ocultas.
 - Las tarjetas respetan siempre el orden global numérico de categorías (`CategoryDefinition.Order`), compartido con Categorías, Organizar y futuras estadísticas.
-- Las categorías se muestran en un carrusel por tandas de hasta 10 tarjetas, siempre en una sola fila.
+- Las categorías se muestran en un carrusel por tandas de hasta 10 tarjetas, siempre en una sola fila; las 10 columnas se distribuyen de forma uniforme para ocupar todo el ancho disponible sin dejar espacio muerto.
 - Si existen más de 10 categorías, aparecen flechas laterales para avanzar o retroceder una tanda completa.
 - Debajo del carrusel se muestra un indicador de páginas mediante puntos (por ejemplo: `● ○ ○`); la tanda activa usa el color teal.
 - Con 10 categorías o menos, las flechas y el indicador permanecen ocultos.
