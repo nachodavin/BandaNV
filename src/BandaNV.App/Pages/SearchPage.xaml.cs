@@ -29,7 +29,7 @@ public sealed partial class SearchPage : Page
             CategoryCards.Add(new SearchCategorySummary(
                 category.Name,
                 category.Order,
-                BuildShortName(category.Name),
+                BuildExtensionsText(category.Extensions),
                 "—"));
         }
     }
@@ -51,16 +51,29 @@ public sealed partial class SearchPage : Page
         ];
     }
 
-    private static string BuildShortName(string name)
+    private static string BuildExtensionsText(IReadOnlyList<string> extensions)
     {
-        var letters = new string(name
-            .Where(char.IsLetterOrDigit)
-            .Take(3)
-            .ToArray());
+        var normalized = extensions
+            .Where(extension => !string.IsNullOrWhiteSpace(extension))
+            .Select(extension =>
+            {
+                var value = extension.Trim();
+                return value.StartsWith('.') ? value.ToLowerInvariant() : $".{value.ToLowerInvariant()}";
+            })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
-        return string.IsNullOrWhiteSpace(letters)
-            ? "CAT"
-            : letters.ToUpperInvariant();
+        if (normalized.Count == 0)
+        {
+            return "Sin extensiones";
+        }
+
+        const int visibleExtensions = 4;
+        var visible = normalized.Take(visibleExtensions);
+        var text = string.Join(" · ", visible);
+
+        var remaining = normalized.Count - visibleExtensions;
+        return remaining > 0 ? $"{text} +{remaining}" : text;
     }
 
     private void CategoryCard_Click(object sender, RoutedEventArgs e)
@@ -82,16 +95,16 @@ public sealed class SearchCategorySummary
     {
     }
 
-    public SearchCategorySummary(string name, int order, string shortName, string countText)
+    public SearchCategorySummary(string name, int order, string extensionsText, string countText)
     {
         Name = name;
         Order = order;
-        ShortName = shortName;
+        ExtensionsText = extensionsText;
         CountText = countText;
     }
 
     public string Name { get; set; } = string.Empty;
     public int Order { get; set; }
-    public string ShortName { get; set; } = string.Empty;
+    public string ExtensionsText { get; set; } = "Sin extensiones";
     public string CountText { get; set; } = "—";
 }
