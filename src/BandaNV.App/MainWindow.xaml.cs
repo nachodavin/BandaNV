@@ -17,6 +17,12 @@ public sealed partial class MainWindow : Window
         Navigation.SelectedItem = HomeItem;
         ContentFrame.Navigate(typeof(HomePage));
 
+        Activated += MainWindow_Activated;
+    }
+
+    private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
+    {
+        Activated -= MainWindow_Activated;
         TryMaximizeWindow();
     }
 
