@@ -2,7 +2,7 @@
     x:Class="BandaNV.App.Pages.HomePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="{StaticResource BandaBackgroundBrush}">
+    Background="Transparent">
 
     <Grid x:Name="PageRoot">
         <ScrollViewer
@@ -10,311 +10,410 @@
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
 
-            <!--
-                El wrapper toma exactamente el ancho disponible de la página.
-                El dashboard se centra dentro de ese espacio, independientemente
-                del ancho del NavigationView/sidebar.
-            -->
             <Grid Width="{Binding ActualWidth, ElementName=PageRoot}">
                 <Grid
-                    Padding="40,36,40,56"
-                    MaxWidth="1380"
-                    HorizontalAlignment="Center">
+                    Padding="44,38,44,58"
+                    MaxWidth="1420"
+                    HorizontalAlignment="Center"
+                    RowSpacing="16">
 
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-            <!-- Encabezado -->
-            <StackPanel Spacing="6">
-                <TextBlock
-                    Text="Inicio"
-                    Style="{StaticResource BandaSectionTitleStyle}"
-                    FontSize="30" />
-
-                <TextBlock
-                    Text="Resumen general de BandaNV."
-                    Style="{StaticResource BandaMutedTextStyle}"
-                    FontSize="14" />
-            </StackPanel>
-
-            <!-- Estado actual -->
-            <Border
-                Grid.Row="1"
-                Style="{StaticResource BandaCardStyle}"
-                Margin="0,28,0,0"
-                Padding="22,18">
-
-                <Grid ColumnSpacing="32">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.2*" />
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="1*" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Spacing="6">
-                        <TextBlock
-                            Text="CARPETA ACTUAL"
-                            Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="11"
-                            FontWeight="SemiBold" />
-
-                        <TextBlock
-                            Text="Sin carpeta configurada"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="18"
-                            FontWeight="SemiBold" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Spacing="6">
-                        <TextBlock
-                            Text="ESTADO"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="11" />
-
-                        <TextBlock
-                            Text="Configuración pendiente"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="16"
-                            FontWeight="SemiBold" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Spacing="6">
-                        <TextBlock
-                            Text="ÚLTIMA ORGANIZACIÓN"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="11" />
-
-                        <TextBlock
-                            Text="—"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="16"
-                            FontWeight="SemiBold" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- Métricas principales -->
-            <Grid
-                Grid.Row="2"
-                Margin="0,18,0,0"
-                ColumnSpacing="14">
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="22">
-                    <StackPanel Spacing="12">
-                        <TextBlock
-                            Text="ARCHIVOS PENDIENTES"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="11" />
-
-                        <TextBlock
-                            Text="—"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="38"
-                            FontWeight="SemiBold" />
-
-                        <TextBlock
-                            Text="Esperando configuración"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="12" />
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="22">
-                    <StackPanel Spacing="12">
-                        <TextBlock
-                            Text="ARCHIVOS ORGANIZADOS TOTALES"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="11" />
-
-                        <TextBlock
-                            Text="—"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="38"
-                            FontWeight="SemiBold" />
-
-                        <TextBlock
-                            Text="Acumulado histórico"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="12" />
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="22">
-                    <StackPanel Spacing="12">
-                        <TextBlock
-                            Text="TAMAÑO TOTAL MOVIDO"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="11" />
-
-                        <TextBlock
-                            Text="—"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="38"
-                            FontWeight="SemiBold" />
-
-                        <TextBlock
-                            Text="Acumulado histórico"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="12" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- Métricas secundarias -->
-            <Grid
-                Grid.Row="3"
-                Margin="0,14,0,0"
-                ColumnSpacing="14">
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20,16">
+                    <!-- Encabezado -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock
-                            Text="Categorías activas"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            VerticalAlignment="Center" />
+                        <StackPanel Spacing="5">
+                            <TextBlock
+                                Text="Inicio"
+                                Style="{StaticResource BandaSectionTitleStyle}"
+                                FontSize="32" />
 
-                        <TextBlock
+                            <TextBlock
+                                Text="Resumen general de tu organización."
+                                Style="{StaticResource BandaMutedTextStyle}"
+                                FontSize="14" />
+                        </StackPanel>
+
+                        <Border
                             Grid.Column="1"
-                            Text="—"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="22"
-                            FontWeight="SemiBold" />
+                            Padding="12,7"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaAccentFaintBrush}"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1"
+                            VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="7" Height="7" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="12" />
+                            </StackPanel>
+                        </Border>
                     </Grid>
-                </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20,16">
-                    <Grid>
+                    <!-- Estado general -->
+                    <Border
+                        Grid.Row="1"
+                        Style="{StaticResource BandaCardStyle}"
+                        Padding="24,20">
+
+                        <Grid ColumnSpacing="28">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2.2*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock
+                                    Text="CARPETA ACTUAL"
+                                    Foreground="{StaticResource BandaAccentBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+
+                                <TextBlock
+                                    Text="Sin carpeta configurada"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="19"
+                                    FontWeight="SemiBold" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock
+                                    Text="ESTADO"
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="11" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <Ellipse Width="7" Height="7" Fill="{StaticResource BandaSecondaryAccentBrush}" VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="Configuración pendiente"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="15"
+                                        FontWeight="SemiBold" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Spacing="6">
+                                <TextBlock
+                                    Text="ÚLTIMA ORGANIZACIÓN"
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="11" />
+
+                                <TextBlock
+                                    Text="—"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="15"
+                                    FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Métricas principales -->
+                    <Grid Grid.Row="2" ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock
-                            Text="Organizados en la última ejecución"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            VerticalAlignment="Center" />
+                        <Border
+                            Grid.Column="0"
+                            Style="{StaticResource BandaMetricCardStyle}"
+                            Background="{StaticResource BandaAccentCardBrush}"
+                            BorderBrush="{StaticResource BandaBorderStrongBrush}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                        <TextBlock
-                            Grid.Column="1"
-                            Text="— archivos"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="18"
-                            FontWeight="SemiBold" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="ARCHIVOS PENDIENTES" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" />
+                                    <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaAccentSoftBrush}">
+                                        <SymbolIcon Symbol="Folder" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Text="—"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="42"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Text="Esperando configuración"
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="12" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource BandaMetricCardStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="ARCHIVOS ORGANIZADOS TOTALES" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaNavIconBrush}">
+                                        <SymbolIcon Symbol="Accept" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Text="—"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="42"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Text="Acumulado histórico"
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="12" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2" Style="{StaticResource BandaMetricCardStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="TAMAÑO TOTAL MOVIDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaNavIconBrush}">
+                                        <SymbolIcon Symbol="Save" Foreground="{StaticResource BandaSecondaryAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Text="—"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="42"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Text="Acumulado histórico"
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="12" />
+                            </Grid>
+                        </Border>
                     </Grid>
-                </Border>
-            </Grid>
 
-            <!-- Información histórica -->
-            <Grid
-                Grid.Row="4"
-                Margin="0,18,0,0"
-                ColumnSpacing="18">
+                    <!-- Métricas secundarias -->
+                    <Grid Grid.Row="3" ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.15*" />
-                    <ColumnDefinition Width="1*" />
-                </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="Categorías activas" Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock Text="Configuradas actualmente" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
 
-                <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="24">
-                    <StackPanel Spacing="18">
-                        <StackPanel Spacing="4">
-                            <TextBlock
-                                Text="Uso por categoría"
-                                Foreground="{StaticResource BandaTextBrush}"
-                                FontSize="20"
-                                FontWeight="SemiBold" />
+                        <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="Organizados última ejecución" Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock Text="Último movimiento completo" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
 
-                            <TextBlock
-                                Text="Distribución histórica de los archivos organizados."
-                                Style="{StaticResource BandaMutedTextStyle}"
-                                FontSize="12" />
-                        </StackPanel>
+                        <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="20,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="Última organización" Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock Text="Fecha y hora" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </Grid>
 
-                        <StackPanel Spacing="14">
-                            <StackPanel Spacing="6">
+                    <!-- Zona analítica -->
+                    <Grid Grid.Row="4" ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.35*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="24">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Imágenes" Foreground="{StaticResource BandaTextBrush}" />
-                                    <TextBlock Grid.Column="1" Text="—" Style="{StaticResource BandaMutedTextStyle}" />
+
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Actividad de organización" Foreground="{StaticResource BandaTextBrush}" FontSize="20" FontWeight="SemiBold" />
+                                        <TextBlock Text="Evolución de archivos organizados con el tiempo." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                    </StackPanel>
+
+                                    <Border Grid.Column="1" Padding="10,5" CornerRadius="14" Background="{StaticResource BandaNavIconBrush}" VerticalAlignment="Top">
+                                        <TextBlock Text="Histórico" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" />
+                                    </Border>
                                 </Grid>
-                                <ProgressBar Value="0" Maximum="100" Height="5" />
-                            </StackPanel>
 
-                            <StackPanel Spacing="6">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Documentos" Foreground="{StaticResource BandaTextBrush}" />
-                                    <TextBlock Grid.Column="1" Text="—" Style="{StaticResource BandaMutedTextStyle}" />
+                                <Grid Grid.Row="1" MinHeight="210" Margin="0,22,0,0">
+                                    <Border
+                                        CornerRadius="14"
+                                        Background="{StaticResource BandaAccentFaintBrush}"
+                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                        BorderThickness="1">
+
+                                        <StackPanel
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Spacing="8">
+
+                                            <Border Width="42" Height="42" CornerRadius="14" Background="{StaticResource BandaAccentSoftBrush}">
+                                                <SymbolIcon Symbol="Clock" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+
+                                            <TextBlock
+                                                Text="Todavía no hay datos para graficar"
+                                                Foreground="{StaticResource BandaTextBrush}"
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                HorizontalAlignment="Center" />
+
+                                            <TextBlock
+                                                Text="La actividad aparecerá acá a medida que uses BandaNV."
+                                                Style="{StaticResource BandaMutedTextStyle}"
+                                                FontSize="12"
+                                                HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
                                 </Grid>
-                                <ProgressBar Value="0" Maximum="100" Height="5" />
-                            </StackPanel>
+                            </Grid>
+                        </Border>
 
-                            <StackPanel Spacing="6">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Videos" Foreground="{StaticResource BandaTextBrush}" />
-                                    <TextBlock Grid.Column="1" Text="—" Style="{StaticResource BandaMutedTextStyle}" />
-                                </Grid>
-                                <ProgressBar Value="0" Maximum="100" Height="5" />
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+                        <Grid Grid.Column="1" RowSpacing="16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
-                <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="24">
-                    <StackPanel Spacing="18">
-                        <StackPanel Spacing="4">
-                            <TextBlock
-                                Text="Actividad reciente"
-                                Foreground="{StaticResource BandaTextBrush}"
-                                FontSize="20"
-                                FontWeight="SemiBold" />
+                            <Border Grid.Row="0" Style="{StaticResource BandaCardStyle}" Padding="22">
+                                <StackPanel Spacing="16">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Uso por categoría" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Distribución histórica." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                    </StackPanel>
 
-                            <TextBlock
-                                Text="Últimos movimientos registrados por BandaNV."
-                                Style="{StaticResource BandaMutedTextStyle}"
-                                FontSize="12" />
-                        </StackPanel>
+                                    <StackPanel Spacing="11">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Imágenes" Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                            <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaMutedBrush}" />
+                                        </Grid>
+                                        <ProgressBar Value="0" Maximum="100" Height="4" />
 
-                        <StackPanel Spacing="12">
-                            <TextBlock
-                                Text="Todavía no hay actividad cargada en v2.0."
-                                Style="{StaticResource BandaMutedTextStyle}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Grid>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Documentos" Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                            <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaMutedBrush}" />
+                                        </Grid>
+                                        <ProgressBar Value="0" Maximum="100" Height="4" />
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Videos" Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                            <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaMutedBrush}" />
+                                        </Grid>
+                                        <ProgressBar Value="0" Maximum="100" Height="4" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="1" Style="{StaticResource BandaCardStyle}" Padding="22">
+                                <StackPanel Spacing="14">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Actividad reciente" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Últimos movimientos registrados." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                    </StackPanel>
+
+                                    <Grid MinHeight="92">
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+                                            <TextBlock Text="Sin actividad todavía" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" FontWeight="SemiBold" />
+                                            <TextBlock Text="Tus últimas ejecuciones aparecerán acá." Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Grid>
         </ScrollViewer>
