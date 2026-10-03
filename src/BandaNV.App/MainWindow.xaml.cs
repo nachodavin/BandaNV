@@ -35,6 +35,7 @@ public sealed partial class MainWindow : Window
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
             _appWindow = AppWindow.GetFromWindowId(windowId);
+            ConfigureTitleBar();
 
             if (_appWindow.Presenter is OverlappedPresenter presenter)
             {
@@ -45,6 +46,30 @@ public sealed partial class MainWindow : Window
         {
             // Si Windows no permite maximizar en este punto, la app sigue siendo usable.
         }
+    }
+
+
+    private void ConfigureTitleBar()
+    {
+        if (_appWindow is null || !AppWindowTitleBar.IsCustomizationSupported())
+        {
+            return;
+        }
+
+        var titleBar = _appWindow.TitleBar;
+        titleBar.ForegroundColor = Windows.UI.Colors.White;
+        titleBar.BackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
+        titleBar.InactiveForegroundColor = Windows.UI.Color.FromArgb(255, 150, 160, 170);
+        titleBar.InactiveBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
+
+        titleBar.ButtonForegroundColor = Windows.UI.Colors.White;
+        titleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
+        titleBar.ButtonHoverForegroundColor = Windows.UI.Colors.White;
+        titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(255, 28, 38, 47);
+        titleBar.ButtonPressedForegroundColor = Windows.UI.Colors.White;
+        titleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, 37, 49, 60);
+        titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 150, 160, 170);
+        titleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
     }
 
     private void NavigationButton_Click(object sender, RoutedEventArgs e)
