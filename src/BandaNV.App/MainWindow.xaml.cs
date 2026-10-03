@@ -57,16 +57,16 @@ public sealed partial class MainWindow : Window
         }
 
         var titleBar = _appWindow.TitleBar;
-        titleBar.ForegroundColor = Windows.UI.Colors.White;
+        titleBar.ForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
         titleBar.BackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
         titleBar.InactiveForegroundColor = Windows.UI.Color.FromArgb(255, 150, 160, 170);
         titleBar.InactiveBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
 
-        titleBar.ButtonForegroundColor = Windows.UI.Colors.White;
+        titleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
         titleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
-        titleBar.ButtonHoverForegroundColor = Windows.UI.Colors.White;
+        titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
         titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(255, 28, 38, 47);
-        titleBar.ButtonPressedForegroundColor = Windows.UI.Colors.White;
+        titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
         titleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, 37, 49, 60);
         titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 150, 160, 170);
         titleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
