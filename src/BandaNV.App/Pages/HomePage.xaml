@@ -47,7 +47,7 @@
                             Grid.Column="1"
                             Padding="12,7"
                             CornerRadius="16"
-                            Background="{StaticResource BandaCardAltAcrylicBrush}"
+                            Background="{StaticResource BandaCardAltBrush}"
                             BorderBrush="{StaticResource BandaBorderBrush}"
                             BorderThickness="1"
                             VerticalAlignment="Center">
