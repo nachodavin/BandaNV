@@ -70,7 +70,9 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 ### Etapa 6 — Updater y distribución
 - Migrar el updater a la arquitectura v2.0.
 - Mantener en Configuración las opciones nativas de actualización de v1.0: comprobación al iniciar, canal beta/estable, comprobación manual y última comprobación.
-- Quick Update Status en el sidebar como acceso extra y siempre visible al mismo sistema de actualización.
-- Estados previstos del Quick Update Status: actualizado, nueva versión disponible, descargando y listo para reiniciar.
+- Quick Update Status en el sidebar como acceso extra al mismo sistema de actualización.
+- El Quick Update Status permanece oculto cuando BandaNV está actualizado y aparece únicamente si existe una versión más nueva que la instalada.
+- Texto cuando aparece: "Nueva actualización" y "Última versión: vX.X".
+- Estados futuros del flujo: nueva versión disponible, descargando y listo para reiniciar.
 - Publicación portable self-contained.
 - Compatibilidad de actualización desde v1.x.
