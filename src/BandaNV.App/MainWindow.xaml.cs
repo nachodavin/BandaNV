@@ -72,6 +72,16 @@ public sealed partial class MainWindow : Window
         titleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(255, 9, 13, 18);
     }
 
+
+    private void QuickUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Hasta integrar el motor de actualizaciones de v2.0, este acceso rápido
+        // lleva a Configuración. Más adelante el mismo bloque reflejará estados
+        // como actualización disponible, descargando y reinicio pendiente.
+        NavigateTo("settings");
+        SetSelectedNavigationButton(SettingsButton);
+    }
+
     private void NavigationButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not string tag)
