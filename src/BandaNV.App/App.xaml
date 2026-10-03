@@ -9,25 +9,68 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
-            <SolidColorBrush x:Key="BandaBackgroundBrush" Color="#101417" />
-            <SolidColorBrush x:Key="BandaSurfaceBrush" Color="#171D21" />
-            <SolidColorBrush x:Key="BandaSurfaceAltBrush" Color="#1D252A" />
-            <SolidColorBrush x:Key="BandaBorderBrush" Color="#2C373D" />
-            <SolidColorBrush x:Key="BandaAccentBrush" Color="#48D6C0" />
-            <SolidColorBrush x:Key="BandaTextBrush" Color="#F4F7F8" />
-            <SolidColorBrush x:Key="BandaMutedBrush" Color="#9AA8AF" />
+            <!-- BandaNV v2.0 visual system -->
+            <SolidColorBrush x:Key="BandaBackgroundBrush" Color="#090D12" />
+            <SolidColorBrush x:Key="BandaSidebarBrush" Color="#0D1219" />
+            <SolidColorBrush x:Key="BandaSurfaceBrush" Color="#E5151B22" />
+            <SolidColorBrush x:Key="BandaSurfaceAltBrush" Color="#E91A212A" />
+            <SolidColorBrush x:Key="BandaBorderBrush" Color="#35424E59" />
+            <SolidColorBrush x:Key="BandaBorderStrongBrush" Color="#5A4B5A66" />
+            <SolidColorBrush x:Key="BandaAccentBrush" Color="#4FE0C6" />
+            <SolidColorBrush x:Key="BandaAccentSoftBrush" Color="#244FE0C6" />
+            <SolidColorBrush x:Key="BandaAccentFaintBrush" Color="#124FE0C6" />
+            <SolidColorBrush x:Key="BandaSecondaryAccentBrush" Color="#53A9FF" />
+            <SolidColorBrush x:Key="BandaTextBrush" Color="#F5F8FA" />
+            <SolidColorBrush x:Key="BandaMutedBrush" Color="#93A1AA" />
+            <SolidColorBrush x:Key="BandaMutedStrongBrush" Color="#C1CBD1" />
+            <SolidColorBrush x:Key="BandaNavActiveBrush" Color="#224FE0C6" />
+            <SolidColorBrush x:Key="BandaNavIconBrush" Color="#151D262F" />
+
+            <LinearGradientBrush x:Key="BandaAccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#4FE0C6" Offset="0" />
+                <GradientStop Color="#53A9FF" Offset="1" />
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="BandaAccentCardBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#2B4FE0C6" Offset="0" />
+                <GradientStop Color="#F0161D25" Offset="0.56" />
+                <GradientStop Color="#E7121720" Offset="1" />
+            </LinearGradientBrush>
 
             <Style x:Key="BandaCardStyle" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource BandaSurfaceBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="14" />
-                <Setter Property="Padding" Value="20" />
+                <Setter Property="CornerRadius" Value="18" />
+                <Setter Property="Padding" Value="22" />
+            </Style>
+
+            <Style x:Key="BandaMetricCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource BandaSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="18" />
+                <Setter Property="Padding" Value="22" />
+                <Setter Property="MinHeight" Value="142" />
+            </Style>
+
+            <Style x:Key="BandaNavButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Foreground" Value="{StaticResource BandaMutedStrongBrush}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="MinHeight" Value="50" />
+                <Setter Property="Margin" Value="0,3" />
             </Style>
 
             <Style x:Key="BandaSectionTitleStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
-                <Setter Property="FontSize" Value="26" />
+                <Setter Property="FontSize" Value="30" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
