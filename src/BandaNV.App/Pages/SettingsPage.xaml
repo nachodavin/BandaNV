@@ -1,0 +1,19 @@
+<Page
+    x:Class="BandaNV.App.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{StaticResource BandaBackgroundBrush}">
+
+    <Grid Padding="40,32,40,48">
+        <StackPanel Spacing="18">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Configuración" Style="{StaticResource BandaSectionTitleStyle}" />
+                <TextBlock Text="Carpeta de origen, comportamiento y actualizaciones." Style="{StaticResource BandaMutedTextStyle}" />
+            </StackPanel>
+
+            <Border Style="{StaticResource BandaCardStyle}">
+                <TextBlock Text="Esta sección va a conservar la configuración esencial de v1.0, pero con una interfaz más clara." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+            </Border>
+        </StackPanel>
+    </Grid>
+</Page>
