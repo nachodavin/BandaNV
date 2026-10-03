@@ -12,9 +12,8 @@
 
             <Grid Width="{Binding ActualWidth, ElementName=PageRoot}">
                 <Grid
-                    Padding="44,38,44,58"
-                    MaxWidth="1420"
-                    HorizontalAlignment="Center"
+                    Padding="34,32,34,48"
+                    HorizontalAlignment="Stretch"
                     RowSpacing="16">
 
                     <Grid.RowDefinitions>
@@ -48,7 +47,7 @@
                             Grid.Column="1"
                             Padding="12,7"
                             CornerRadius="16"
-                            Background="{StaticResource BandaAccentFaintBrush}"
+                            Background="{StaticResource BandaCardAltAcrylicBrush}"
                             BorderBrush="{StaticResource BandaBorderBrush}"
                             BorderThickness="1"
                             VerticalAlignment="Center">
