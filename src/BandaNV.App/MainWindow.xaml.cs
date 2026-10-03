@@ -2,19 +2,21 @@ using BandaNV.App.Pages;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace BandaNV.App;
 
 public sealed partial class MainWindow : Window
 {
     private AppWindow? _appWindow;
+    private Button? _selectedNavigationButton;
 
     public MainWindow()
     {
         InitializeComponent();
 
         Title = "BandaNV";
-        Navigation.SelectedItem = HomeItem;
+        _selectedNavigationButton = HomeButton;
         ContentFrame.Navigate(typeof(HomePage));
 
         Activated += MainWindow_Activated;
@@ -45,15 +47,19 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void Navigation_SelectionChanged(
-        NavigationView sender,
-        NavigationViewSelectionChangedEventArgs args)
+    private void NavigationButton_Click(object sender, RoutedEventArgs e)
     {
-        if (args.SelectedItemContainer?.Tag is not string tag)
+        if (sender is not Button button || button.Tag is not string tag)
         {
             return;
         }
 
+        NavigateTo(tag);
+        SetSelectedNavigationButton(button);
+    }
+
+    private void NavigateTo(string tag)
+    {
         var pageType = tag switch
         {
             "home" => typeof(HomePage),
@@ -69,5 +75,31 @@ public sealed partial class MainWindow : Window
         {
             ContentFrame.Navigate(pageType);
         }
+    }
+
+    private void SetSelectedNavigationButton(Button button)
+    {
+        var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        var activeBrush = (Brush)Application.Current.Resources["BandaNavActiveBrush"];
+        var activeForeground = (Brush)Application.Current.Resources["BandaTextBrush"];
+        var mutedForeground = (Brush)Application.Current.Resources["BandaMutedStrongBrush"];
+
+        foreach (var navButton in new[]
+                 {
+                     HomeButton,
+                     OrganizeButton,
+                     SearchButton,
+                     HistoryButton,
+                     CategoriesButton,
+                     SettingsButton
+                 })
+        {
+            navButton.Background = transparent;
+            navButton.Foreground = mutedForeground;
+        }
+
+        button.Background = activeBrush;
+        button.Foreground = activeForeground;
+        _selectedNavigationButton = button;
     }
 }
