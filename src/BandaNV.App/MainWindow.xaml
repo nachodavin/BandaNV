@@ -148,18 +148,73 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="2">
-                    <Border
+                    <!-- Quick Update Status
+                         Estado visual listo para conectarse al updater de v2.0.
+                         Por ahora abre Configuración, donde vivirán también las opciones nativas. -->
+                    <Button
+                        x:Name="QuickUpdateButton"
+                        Click="QuickUpdateButton_Click"
                         Margin="0,0,0,10"
-                        Padding="12,10"
-                        CornerRadius="12"
-                        Background="{StaticResource BandaAccentFaintBrush}"
-                        BorderBrush="{StaticResource BandaBorderBrush}"
-                        BorderThickness="1">
-                        <StackPanel Spacing="3">
-                            <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaTextBrush}" FontSize="12" FontWeight="SemiBold" />
-                            <TextBlock Text="Nueva experiencia" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
-                        </StackPanel>
-                    </Border>
+                        Padding="0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="14">
+
+                        <Border
+                            Padding="12,11"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentFaintBrush}"
+                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                            BorderThickness="1">
+
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border
+                                    Width="30"
+                                    Height="30"
+                                    CornerRadius="10"
+                                    Background="{StaticResource BandaAccentSoftBrush}">
+                                    <TextBlock
+                                        Text="↻"
+                                        Foreground="{StaticResource BandaAccentBrush}"
+                                        FontSize="17"
+                                        FontWeight="SemiBold"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock
+                                        x:Name="QuickUpdateTitle"
+                                        Text="BandaNV actualizado"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="12"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        x:Name="QuickUpdateSubtitle"
+                                        Text="Versión actual: v2.0"
+                                        Foreground="{StaticResource BandaMutedBrush}"
+                                        FontSize="10.5" />
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="›"
+                                    Foreground="{StaticResource BandaAccentBrush}"
+                                    FontSize="20"
+                                    VerticalAlignment="Center"
+                                    Margin="4,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </Button>
 
                     <Button
                         x:Name="SettingsButton"
