@@ -169,7 +169,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20,16">
@@ -201,34 +200,13 @@
                         </Grid.ColumnDefinitions>
 
                         <TextBlock
-                            Text="Última ejecución"
+                            Text="Organizados en la última ejecución"
                             Style="{StaticResource BandaMutedTextStyle}"
                             VerticalAlignment="Center" />
 
                         <TextBlock
                             Grid.Column="1"
                             Text="— archivos"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="18"
-                            FontWeight="SemiBold" />
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="20,16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock
-                            Text="Actividad registrada"
-                            Style="{StaticResource BandaMutedTextStyle}"
-                            VerticalAlignment="Center" />
-
-                        <TextBlock
-                            Grid.Column="1"
-                            Text="—"
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="18"
                             FontWeight="SemiBold" />
