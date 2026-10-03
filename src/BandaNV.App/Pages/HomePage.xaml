@@ -4,11 +4,22 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="{StaticResource BandaBackgroundBrush}">
 
-    <ScrollViewer>
-        <Grid
-            Padding="48,36,48,56"
-            MaxWidth="1680"
-            HorizontalAlignment="Stretch">
+    <Grid x:Name="PageRoot">
+        <ScrollViewer
+            HorizontalScrollMode="Disabled"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+
+            <!--
+                El wrapper toma exactamente el ancho disponible de la página.
+                El dashboard se centra dentro de ese espacio, independientemente
+                del ancho del NavigationView/sidebar.
+            -->
+            <Grid Width="{Binding ActualWidth, ElementName=PageRoot}">
+                <Grid
+                    Padding="40,36,40,56"
+                    MaxWidth="1380"
+                    HorizontalAlignment="Center">
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -304,6 +315,8 @@
                     </StackPanel>
                 </Border>
             </Grid>
-        </Grid>
-    </ScrollViewer>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </Page>
