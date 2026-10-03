@@ -11,9 +11,31 @@
 
             <!-- BandaNV v2.0 visual system -->
             <SolidColorBrush x:Key="BandaBackgroundBrush" Color="#090D12" />
-            <SolidColorBrush x:Key="BandaSidebarBrush" Color="#0D1219" />
-            <SolidColorBrush x:Key="BandaSurfaceBrush" Color="#E5151B22" />
-            <SolidColorBrush x:Key="BandaSurfaceAltBrush" Color="#E91A212A" />
+
+            <!-- Acrylic / glass surfaces -->
+            <AcrylicBrush
+                x:Key="BandaSidebarAcrylicBrush"
+                TintColor="#0B1118"
+                TintOpacity="0.72"
+                TintLuminosityOpacity="0.20"
+                FallbackColor="#0D131A" />
+
+            <AcrylicBrush
+                x:Key="BandaCardAcrylicBrush"
+                TintColor="#151D25"
+                TintOpacity="0.64"
+                TintLuminosityOpacity="0.18"
+                FallbackColor="#161D24" />
+
+            <AcrylicBrush
+                x:Key="BandaCardAltAcrylicBrush"
+                TintColor="#1A242E"
+                TintOpacity="0.56"
+                TintLuminosityOpacity="0.14"
+                FallbackColor="#18212A" />
+
+            <SolidColorBrush x:Key="BandaSurfaceBrush" Color="#A9151B22" />
+            <SolidColorBrush x:Key="BandaSurfaceAltBrush" Color="#B51A212A" />
             <SolidColorBrush x:Key="BandaBorderBrush" Color="#35424E59" />
             <SolidColorBrush x:Key="BandaBorderStrongBrush" Color="#5A4B5A66" />
             <SolidColorBrush x:Key="BandaAccentBrush" Color="#4FE0C6" />
@@ -38,7 +60,7 @@
             </LinearGradientBrush>
 
             <Style x:Key="BandaCardStyle" TargetType="Border">
-                <Setter Property="Background" Value="{StaticResource BandaSurfaceBrush}" />
+                <Setter Property="Background" Value="{StaticResource BandaCardAcrylicBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="CornerRadius" Value="18" />
@@ -46,7 +68,7 @@
             </Style>
 
             <Style x:Key="BandaMetricCardStyle" TargetType="Border">
-                <Setter Property="Background" Value="{StaticResource BandaSurfaceBrush}" />
+                <Setter Property="Background" Value="{StaticResource BandaCardAcrylicBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="CornerRadius" Value="18" />
