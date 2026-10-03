@@ -63,9 +63,14 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Deshacer seguro.
 
 ### Etapa 5 — Buscar
-- Búsqueda rápida y recursiva.
+- Pantalla de trabajo a ancho completo.
+- Resumen superior por categoría con cantidad de archivos y acceso como filtro rápido.
+- Búsqueda por nombre, extensión y categoría.
+- Filtros activos mediante chips y opción para limpiar filtros.
+- Ordenamiento por nombre, fecha, tamaño y categoría.
+- Tabla principal con nombre, categoría, tamaño, fecha, ubicación y menú contextual.
 - Resultados enriquecidos.
-- Abrir ubicación.
+- Abrir archivo, abrir ubicación y copiar ruta desde las acciones de cada resultado.
 
 ### Etapa 6 — Updater y distribución
 - Migrar el updater a la arquitectura v2.0.
