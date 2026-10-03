@@ -38,7 +38,9 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Solución C#.
 - Core separado de App.
 - Navegación principal.
-- Inicio visual.
+- Inicio como dashboard informativo, sin ejecutar acciones desde esa pantalla.
+- Métricas de Inicio: archivos pendientes, archivos organizados totales, tamaño total movido, categorías activas, última organización y organizados en la última ejecución.
+- Bloques de uso por categoría y actividad reciente.
 - Aplicación maximizada.
 
 ### Etapa 2 — Configuración y Categorías
