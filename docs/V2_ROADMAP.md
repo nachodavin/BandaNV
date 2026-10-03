@@ -64,7 +64,10 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 
 ### Etapa 5 — Buscar
 - Pantalla de trabajo a ancho completo.
-- Resumen superior por categoría con cantidad de archivos y acceso como filtro rápido.
+- Resumen superior generado dinámicamente con todas las categorías configuradas, sin categorías privilegiadas u ocultas.
+- Las tarjetas respetan siempre el orden global numérico de categorías (`CategoryDefinition.Order`), compartido con Categorías, Organizar y futuras estadísticas.
+- Si no entran en una fila, continúan automáticamente en filas adicionales manteniendo el mismo tamaño y jerarquía.
+- Cada tarjeta muestra cantidad de archivos y funciona como filtro rápido por categoría.
 - Búsqueda por nombre, extensión y categoría.
 - Filtros activos mediante chips y opción para limpiar filtros.
 - Ordenamiento por nombre, fecha, tamaño y categoría.
