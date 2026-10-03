@@ -73,6 +73,19 @@ public sealed partial class MainWindow : Window
     }
 
 
+
+    private void SetQuickUpdateAvailable(string latestVersion)
+    {
+        QuickUpdateTitle.Text = "Nueva actualización";
+        QuickUpdateSubtitle.Text = $"Última versión: {latestVersion}";
+        QuickUpdateButton.Visibility = Visibility.Visible;
+    }
+
+    private void HideQuickUpdate()
+    {
+        QuickUpdateButton.Visibility = Visibility.Collapsed;
+    }
+
     private void QuickUpdateButton_Click(object sender, RoutedEventArgs e)
     {
         // Hasta integrar el motor de actualizaciones de v2.0, este acceso rápido
