@@ -76,8 +76,22 @@ public sealed partial class SearchPage : Page
     }
 }
 
-public sealed record SearchCategorySummary(
-    string Name,
-    int Order,
-    string ShortName,
-    string CountText);
+public sealed class SearchCategorySummary
+{
+    public SearchCategorySummary()
+    {
+    }
+
+    public SearchCategorySummary(string name, int order, string shortName, string countText)
+    {
+        Name = name;
+        Order = order;
+        ShortName = shortName;
+        CountText = countText;
+    }
+
+    public string Name { get; set; } = string.Empty;
+    public int Order { get; set; }
+    public string ShortName { get; set; } = string.Empty;
+    public string CountText { get; set; } = "—";
+}
