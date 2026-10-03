@@ -3,11 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Window.SystemBackdrop>
-        <DesktopAcrylicBackdrop />
-    </Window.SystemBackdrop>
 
-    <Grid Background="Transparent">
+    <Grid Background="{StaticResource BandaAppBackgroundGradient}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="226" />
             <ColumnDefinition Width="*" />
@@ -16,7 +13,7 @@
         <!-- Sidebar propio de BandaNV -->
         <Border
             Grid.Column="0"
-            Background="{StaticResource BandaSidebarAcrylicBrush}"
+            Background="{StaticResource BandaSidebarGradientBrush}"
             BorderBrush="{StaticResource BandaBorderBrush}"
             BorderThickness="0,0,1,0">
 
@@ -184,25 +181,33 @@
             </Grid>
         </Border>
 
+        <!-- Glows ambientales: teal, sin Acrylic -->
+        <Border
+            Grid.ColumnSpan="2"
+            Width="980"
+            Height="760"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,-330,-280,0"
+            CornerRadius="490"
+            Background="{StaticResource BandaGlowGradientBrush}"
+            Opacity="0.36"
+            IsHitTestVisible="False" />
+
+        <Border
+            Grid.ColumnSpan="2"
+            Width="760"
+            Height="620"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            Margin="-280,0,0,-300"
+            CornerRadius="380"
+            Background="{StaticResource BandaGlowGradientBrush}"
+            Opacity="0.16"
+            IsHitTestVisible="False" />
+
         <!-- Área principal -->
         <Grid Grid.Column="1">
-            <Border
-                Width="520"
-                Height="420"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,-150,-170,0"
-                CornerRadius="260"
-                Opacity="0.20">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#004FE0C6" Offset="0" />
-                        <GradientStop Color="#584FE0C6" Offset="0.5" />
-                        <GradientStop Color="#0053A9FF" Offset="1" />
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
-
             <Frame x:Name="ContentFrame" />
         </Grid>
     </Grid>
