@@ -379,10 +379,12 @@ public sealed partial class SearchPage : Page
     private static string GetSizeFilterDisplayName(SearchSizeFilter filter) =>
         filter switch
         {
-            SearchSizeFilter.Under10Mb => "Menos de 10 MB",
-            SearchSizeFilter.From10To50Mb => "10 MB a 50 MB",
-            SearchSizeFilter.From50To100Mb => "50 MB a 100 MB",
-            SearchSizeFilter.Over100Mb => "Más de 100 MB",
+            SearchSizeFilter.Under100Mb => "Menos de 100 MB",
+            SearchSizeFilter.From100To500Mb => "100 MB a 500 MB",
+            SearchSizeFilter.From500MbTo1Gb => "500 MB a 1 GB",
+            SearchSizeFilter.From1To5Gb => "1 GB a 5 GB",
+            SearchSizeFilter.From5To20Gb => "5 GB a 20 GB",
+            SearchSizeFilter.Over20Gb => "Más de 20 GB",
             _ => "Cualquier tamaño"
         };
 
@@ -462,19 +464,32 @@ public sealed partial class SearchPage : Page
         };
 
         const long megabyte = 1024L * 1024L;
+        const long gigabyte = 1024L * megabyte;
 
         query = _sizeFilter switch
         {
-            SearchSizeFilter.Under10Mb =>
-                query.Where(file => file.SizeBytes < 10 * megabyte),
-            SearchSizeFilter.From10To50Mb =>
-                query.Where(file => file.SizeBytes >= 10 * megabyte &&
-                                    file.SizeBytes < 50 * megabyte),
-            SearchSizeFilter.From50To100Mb =>
-                query.Where(file => file.SizeBytes >= 50 * megabyte &&
-                                    file.SizeBytes < 100 * megabyte),
-            SearchSizeFilter.Over100Mb =>
-                query.Where(file => file.SizeBytes >= 100 * megabyte),
+            SearchSizeFilter.Under100Mb =>
+                query.Where(file => file.SizeBytes < 100 * megabyte),
+
+            SearchSizeFilter.From100To500Mb =>
+                query.Where(file => file.SizeBytes >= 100 * megabyte &&
+                                    file.SizeBytes < 500 * megabyte),
+
+            SearchSizeFilter.From500MbTo1Gb =>
+                query.Where(file => file.SizeBytes >= 500 * megabyte &&
+                                    file.SizeBytes < gigabyte),
+
+            SearchSizeFilter.From1To5Gb =>
+                query.Where(file => file.SizeBytes >= gigabyte &&
+                                    file.SizeBytes < 5 * gigabyte),
+
+            SearchSizeFilter.From5To20Gb =>
+                query.Where(file => file.SizeBytes >= 5 * gigabyte &&
+                                    file.SizeBytes < 20 * gigabyte),
+
+            SearchSizeFilter.Over20Gb =>
+                query.Where(file => file.SizeBytes >= 20 * gigabyte),
+
             _ => query
         };
 
@@ -621,17 +636,23 @@ public sealed partial class SearchPage : Page
 
         switch (_sizeFilter)
         {
-            case SearchSizeFilter.Under10Mb:
-                descriptions.Add("< 10 MB");
+            case SearchSizeFilter.Under100Mb:
+                descriptions.Add("< 100 MB");
                 break;
-            case SearchSizeFilter.From10To50Mb:
-                descriptions.Add("10–50 MB");
+            case SearchSizeFilter.From100To500Mb:
+                descriptions.Add("100–500 MB");
                 break;
-            case SearchSizeFilter.From50To100Mb:
-                descriptions.Add("50–100 MB");
+            case SearchSizeFilter.From500MbTo1Gb:
+                descriptions.Add("500 MB–1 GB");
                 break;
-            case SearchSizeFilter.Over100Mb:
-                descriptions.Add("> 100 MB");
+            case SearchSizeFilter.From1To5Gb:
+                descriptions.Add("1–5 GB");
+                break;
+            case SearchSizeFilter.From5To20Gb:
+                descriptions.Add("5–20 GB");
+                break;
+            case SearchSizeFilter.Over20Gb:
+                descriptions.Add("> 20 GB");
                 break;
         }
 
@@ -683,9 +704,7 @@ public sealed partial class SearchPage : Page
                 var fileName =
                     $"{category.Name.ToLowerInvariant()}_{index:00}{normalizedExtension}";
 
-                var sizeBytes =
-                    (category.Order * 6_750_000L) +
-                    (index * 1_340_000L);
+                var sizeBytes = GetPreviewFileSizeBytes(category.Order, index);
 
                 var modifiedAt = anchor
                     .AddDays(-(category.Order - 1))
@@ -703,6 +722,24 @@ public sealed partial class SearchPage : Page
         }
 
         return files;
+    }
+
+    private static long GetPreviewFileSizeBytes(int categoryOrder, int index)
+    {
+        const long megabyte = 1024L * 1024L;
+        const long gigabyte = 1024L * megabyte;
+
+        var bucket = (categoryOrder + index - 2) % 6;
+
+        return bucket switch
+        {
+            0 => (35L + categoryOrder + index) * megabyte,
+            1 => (140L + (categoryOrder * 9L) + (index * 18L)) * megabyte,
+            2 => (560L + (categoryOrder * 12L) + (index * 24L)) * megabyte,
+            3 => gigabyte + ((categoryOrder * 180L) + (index * 260L)) * megabyte,
+            4 => (5L * gigabyte) + ((categoryOrder * 420L) + (index * 520L)) * megabyte,
+            _ => (20L * gigabyte) + ((categoryOrder * 650L) + (index * 800L)) * megabyte
+        };
     }
 
     private static string BuildExtensionsText(IReadOnlyList<string> extensions)
@@ -742,10 +779,12 @@ public enum SearchDateFilter
 public enum SearchSizeFilter
 {
     All,
-    Under10Mb,
-    From10To50Mb,
-    From50To100Mb,
-    Over100Mb
+    Under100Mb,
+    From100To500Mb,
+    From500MbTo1Gb,
+    From1To5Gb,
+    From5To20Gb,
+    Over20Gb
 }
 
 public enum SearchSortMode
