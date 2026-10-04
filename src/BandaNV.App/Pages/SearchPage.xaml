@@ -479,6 +479,7 @@
                                     ItemTemplate="{StaticResource SearchResultTemplate}"
                                     SelectionMode="Extended"
                                     IsMultiSelectCheckBoxEnabled="False"
+                                    KeyboardAcceleratorPlacementMode="Hidden"
                                     SelectionChanged="SearchResultsList_SelectionChanged"
                                     Tapped="SearchResultsList_Tapped"
                                     DoubleTapped="SearchResultsList_DoubleTapped"
