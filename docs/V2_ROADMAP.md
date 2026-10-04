@@ -31,6 +31,7 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - No convertir BandaNV en otro explorador de archivos.
 - Mantener el flujo central: detectar desorden → revisar → organizar.
 - Seguir siendo portable: descargar ZIP → extraer carpeta → ejecutar.
+- Priorizar legibilidad sobre densidad extrema: evitar microtexto en toda la aplicación; usar aproximadamente 13 px para etiquetas/metadatos, 14 px para contenido y 15 px para navegación/acciones cuando el contexto lo permita.
 
 ## Migración por etapas
 
