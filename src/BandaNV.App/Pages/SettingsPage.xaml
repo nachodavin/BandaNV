@@ -1089,6 +1089,7 @@
 
                                 <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
                                     <Button
+                                        x:Name="CheckUpdatesButton"
                                         Content="Buscar actualizaciones ahora"
                                         Click="CheckUpdatesButton_Click"
                                         FontSize="14"
@@ -1099,15 +1100,15 @@
                                         CornerRadius="12"
                                         FontWeight="SemiBold">
                                         <Button.Resources>
-                                            <SolidColorBrush x:Key="ButtonBackground" Color="#4FE0C6" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#67E7D2" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#39B9A7" />
-                                            <SolidColorBrush x:Key="ButtonForeground" Color="#07110F" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#07110F" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#07110F" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#4FE0C6" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#67E7D2" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#39B9A7" />
+                                            <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                            <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
                                         </Button.Resources>
                                     </Button>
                                     <Button Content="Notas de versión" Click="ReleaseNotesButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" MinWidth="230" HorizontalContentAlignment="Center" />
