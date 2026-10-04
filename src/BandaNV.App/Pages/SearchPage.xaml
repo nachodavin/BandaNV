@@ -177,6 +177,18 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
         </Style>
+        <DataTemplate x:Key="DateWheelItemTemplate">
+            <TextBlock
+                Text="{Binding}"
+                Height="36"
+                Foreground="{StaticResource BandaTextBrush}"
+                FontSize="13"
+                FontWeight="SemiBold"
+                TextAlignment="Center"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center" />
+        </DataTemplate>
+
     </Page.Resources>
 
     <Grid>
@@ -738,37 +750,158 @@
                                 </Button>
 
                                 <Border
-                                    x:Name="SpecificDateInputPanel"
+                                    x:Name="SpecificDateWheelPanel"
                                     Padding="12"
                                     CornerRadius="11"
                                     Background="{StaticResource BandaCardAltBrush}"
                                     BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                     BorderThickness="1"
                                     Visibility="Collapsed">
-                                    <StackPanel Spacing="7">
-                                        <TextBlock
-                                            Text="FECHA ESPECÍFICA"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="11"
-                                            FontWeight="SemiBold" />
-                                        <TextBox
-                                            x:Name="SpecificDateTextBox"
-                                            PlaceholderText="dd/mm/aaaa"
-                                            MaxLength="10"
-                                            TextChanged="SpecificDateTextBox_TextChanged"
-                                            Padding="10,7"
-                                            MinHeight="38"
-                                            Background="{StaticResource BandaPopupSurfaceBrush}"
-                                            BorderBrush="{StaticResource BandaBorderBrush}"
-                                            BorderThickness="1"
-                                            Foreground="{StaticResource BandaTextBrush}" />
-                                        <TextBlock
-                                            x:Name="SpecificDateErrorText"
-                                            Text="Ingresá una fecha válida con formato dd/mm/aaaa."
-                                            Foreground="#FFF06B6B"
-                                            FontSize="11"
-                                            TextWrapping="Wrap"
-                                            Visibility="Collapsed" />
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnSpacing="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="0.8*" />
+                                                <ColumnDefinition Width="1.55*" />
+                                                <ColumnDefinition Width="1*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Text="DÍA"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="MES"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="AÑO"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+                                        </Grid>
+
+                                        <Grid Height="180">
+                                            <Border
+                                                Height="36"
+                                                Margin="2,0"
+                                                VerticalAlignment="Center"
+                                                CornerRadius="9"
+                                                Background="{StaticResource BandaAccentSoftBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1"
+                                                IsHitTestVisible="False" />
+
+                                            <Grid ColumnSpacing="6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="0.8*" />
+                                                    <ColumnDefinition Width="1.55*" />
+                                                    <ColumnDefinition Width="1*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <ScrollViewer
+                                                    x:Name="DayWheelScrollViewer"
+                                                    Tag="Day"
+                                                    ViewChanged="DateWheelScrollViewer_ViewChanged"
+                                                    VerticalScrollMode="Enabled"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                    HorizontalScrollMode="Disabled"
+                                                    HorizontalScrollBarVisibility="Hidden">
+                                                    <StackPanel>
+                                                        <Border Height="72" />
+                                                        <ItemsControl
+                                                            x:Name="DayWheelItems"
+                                                            ItemTemplate="{StaticResource DateWheelItemTemplate}" />
+                                                        <Border Height="72" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+
+                                                <ScrollViewer
+                                                    x:Name="MonthWheelScrollViewer"
+                                                    Grid.Column="1"
+                                                    Tag="Month"
+                                                    ViewChanged="DateWheelScrollViewer_ViewChanged"
+                                                    VerticalScrollMode="Enabled"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                    HorizontalScrollMode="Disabled"
+                                                    HorizontalScrollBarVisibility="Hidden">
+                                                    <StackPanel>
+                                                        <Border Height="72" />
+                                                        <ItemsControl
+                                                            x:Name="MonthWheelItems"
+                                                            ItemTemplate="{StaticResource DateWheelItemTemplate}" />
+                                                        <Border Height="72" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+
+                                                <ScrollViewer
+                                                    x:Name="YearWheelScrollViewer"
+                                                    Grid.Column="2"
+                                                    Tag="Year"
+                                                    ViewChanged="DateWheelScrollViewer_ViewChanged"
+                                                    VerticalScrollMode="Enabled"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                    HorizontalScrollMode="Disabled"
+                                                    HorizontalScrollBarVisibility="Hidden">
+                                                    <StackPanel>
+                                                        <Border Height="72" />
+                                                        <ItemsControl
+                                                            x:Name="YearWheelItems"
+                                                            ItemTemplate="{StaticResource DateWheelItemTemplate}" />
+                                                        <Border Height="72" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+
+                                            <Border
+                                                Height="52"
+                                                VerticalAlignment="Top"
+                                                IsHitTestVisible="False">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#F20C1418" Offset="0" />
+                                                        <GradientStop Color="#000C1418" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border
+                                                Height="52"
+                                                VerticalAlignment="Bottom"
+                                                IsHitTestVisible="False">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#000C1418" Offset="0" />
+                                                        <GradientStop Color="#F20C1418" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+                                        </Grid>
+
+                                        <Grid>
+                                            <TextBlock
+                                                Text="Deslizá cada columna para elegir la fecha."
+                                                Foreground="{StaticResource BandaMutedBrush}"
+                                                FontSize="10"
+                                                VerticalAlignment="Center" />
+                                            <Button
+                                                Content="Hoy"
+                                                Click="SpecificDateTodayButton_Click"
+                                                HorizontalAlignment="Right"
+                                                Padding="10,5"
+                                                CornerRadius="9"
+                                                Background="Transparent"
+                                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                                BorderThickness="1"
+                                                Foreground="{StaticResource BandaAccentBrush}"
+                                                FontSize="11" />
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
