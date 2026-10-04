@@ -609,7 +609,7 @@ public sealed partial class SearchPage : Page
                 Content = option.Equals("All", StringComparison.OrdinalIgnoreCase)
                     ? "Todas las extensiones"
                     : option,
-                Style = (Style)Resources["BandaPopupOptionButtonStyle"]
+                Style = (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
             };
 
             if (isSelected)
