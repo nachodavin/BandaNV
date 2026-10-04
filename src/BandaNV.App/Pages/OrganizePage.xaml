@@ -172,7 +172,7 @@
                         Tag="{x:Bind ItemId}"
                         ItemsSource="{x:Bind CategoryOptions}"
                         DisplayMemberPath="DisplayName"
-                        SelectedItem="{x:Bind SelectedCategory, Mode=OneWay}"
+                        SelectedItem="{x:Bind SelectedCategory, Mode=OneTime}"
                         SelectionChanged="PreviewCategoryComboBox_SelectionChanged"
                         PlaceholderText="Elegir categoría"
                         Width="190"
