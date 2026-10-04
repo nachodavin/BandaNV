@@ -190,24 +190,60 @@ public sealed partial class SearchPage : Page
         RefreshSearchResults();
     }
 
-    private async void FiltersButton_Click(object sender, RoutedEventArgs e)
+    private void FiltersButton_Click(object sender, RoutedEventArgs e)
     {
-        var dateOptions = new List<SearchFilterOption>
-        {
-            new("All", "Cualquier fecha"),
-            new("Last24Hours", "Últimas 24 horas"),
-            new("Last7Days", "Últimos 7 días"),
-            new("Last30Days", "Últimos 30 días")
-        };
+        PopulateFilterOverlayControls();
+        FiltersOverlay.Visibility = Visibility.Visible;
+    }
 
-        var sizeOptions = new List<SearchFilterOption>
+    private void CloseFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        FiltersOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void ResetFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        SelectComboBoxItemByTag(DateFilterComboBox, SearchDateFilter.All.ToString());
+        SelectComboBoxItemByTag(SizeFilterComboBox, SearchSizeFilter.All.ToString());
+
+        if (ExtensionFilterComboBox.Items.Count > 0)
         {
-            new("All", "Cualquier tamaño"),
-            new("Under10Mb", "Menos de 10 MB"),
-            new("From10To50Mb", "10 MB a 50 MB"),
-            new("From50To100Mb", "50 MB a 100 MB"),
-            new("Over100Mb", "Más de 100 MB")
-        };
+            ExtensionFilterComboBox.SelectedIndex = 0;
+        }
+    }
+
+    private void ApplyFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DateFilterComboBox.SelectedItem is ComboBoxItem dateItem &&
+            dateItem.Tag is string dateKey &&
+            Enum.TryParse<SearchDateFilter>(dateKey, out var parsedDate))
+        {
+            _dateFilter = parsedDate;
+        }
+
+        if (SizeFilterComboBox.SelectedItem is ComboBoxItem sizeItem &&
+            sizeItem.Tag is string sizeKey &&
+            Enum.TryParse<SearchSizeFilter>(sizeKey, out var parsedSize))
+        {
+            _sizeFilter = parsedSize;
+        }
+
+        if (ExtensionFilterComboBox.SelectedItem is SearchFilterOption extensionOption)
+        {
+            _extensionFilter =
+                extensionOption.Key.Equals("All", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : extensionOption.Key;
+        }
+
+        FiltersOverlay.Visibility = Visibility.Collapsed;
+        RefreshSearchResults();
+    }
+
+    private void PopulateFilterOverlayControls()
+    {
+        SelectComboBoxItemByTag(DateFilterComboBox, _dateFilter.ToString());
+        SelectComboBoxItemByTag(SizeFilterComboBox, _sizeFilter.ToString());
 
         var extensionOptions = new List<SearchFilterOption>
         {
@@ -221,109 +257,29 @@ public sealed partial class SearchPage : Page
                 .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
                 .Select(extension => new SearchFilterOption(extension, extension)));
 
-        var datePicker = new ComboBox
-        {
-            Header = "Fecha de modificación",
-            ItemsSource = dateOptions,
-            DisplayMemberPath = nameof(SearchFilterOption.DisplayName),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            MinWidth = 330
-        };
-
-        datePicker.SelectedItem = dateOptions.First(option =>
-            option.Key.Equals(_dateFilter.ToString(), StringComparison.Ordinal));
-
-        var sizePicker = new ComboBox
-        {
-            Header = "Tamaño",
-            ItemsSource = sizeOptions,
-            DisplayMemberPath = nameof(SearchFilterOption.DisplayName),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            MinWidth = 330
-        };
-
-        sizePicker.SelectedItem = sizeOptions.First(option =>
-            option.Key.Equals(_sizeFilter.ToString(), StringComparison.Ordinal));
-
-        var extensionPicker = new ComboBox
-        {
-            Header = "Extensión",
-            ItemsSource = extensionOptions,
-            DisplayMemberPath = nameof(SearchFilterOption.DisplayName),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            MinWidth = 330
-        };
-
-        extensionPicker.SelectedItem = extensionOptions.FirstOrDefault(option =>
-            option.Key.Equals(_extensionFilter ?? "All", StringComparison.OrdinalIgnoreCase))
+        ExtensionFilterComboBox.ItemsSource = extensionOptions;
+        ExtensionFilterComboBox.SelectedItem =
+            extensionOptions.FirstOrDefault(option =>
+                option.Key.Equals(_extensionFilter ?? "All", StringComparison.OrdinalIgnoreCase))
             ?? extensionOptions[0];
+    }
 
-        var helperText = new TextBlock
+    private static void SelectComboBoxItemByTag(ComboBox comboBox, string tag)
+    {
+        foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
         {
-            Text = "Estos filtros se combinan con las categorías seleccionadas y con el texto de búsqueda.",
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = (Brush)Application.Current.Resources["BandaMutedBrush"],
-            FontSize = 12
-        };
-
-        var dialogContent = new StackPanel
-        {
-            Spacing = 12
-        };
-
-        dialogContent.Children.Add(helperText);
-        dialogContent.Children.Add(datePicker);
-        dialogContent.Children.Add(sizePicker);
-        dialogContent.Children.Add(extensionPicker);
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = "Filtrar archivos",
-            PrimaryButtonText = "Aplicar filtros",
-            SecondaryButtonText = "Restablecer",
-            CloseButtonText = "Cancelar",
-            DefaultButton = ContentDialogButton.Primary,
-            Content = dialogContent
-        };
-
-        var result = await dialog.ShowAsync();
-
-        if (result == ContentDialogResult.Secondary)
-        {
-            _dateFilter = SearchDateFilter.All;
-            _sizeFilter = SearchSizeFilter.All;
-            _extensionFilter = null;
-            RefreshSearchResults();
-            return;
+            if (item.Tag is string itemTag &&
+                itemTag.Equals(tag, StringComparison.OrdinalIgnoreCase))
+            {
+                comboBox.SelectedItem = item;
+                return;
+            }
         }
 
-        if (result != ContentDialogResult.Primary)
+        if (comboBox.Items.Count > 0)
         {
-            return;
+            comboBox.SelectedIndex = 0;
         }
-
-        if (datePicker.SelectedItem is SearchFilterOption selectedDate &&
-            Enum.TryParse<SearchDateFilter>(selectedDate.Key, out var parsedDate))
-        {
-            _dateFilter = parsedDate;
-        }
-
-        if (sizePicker.SelectedItem is SearchFilterOption selectedSize &&
-            Enum.TryParse<SearchSizeFilter>(selectedSize.Key, out var parsedSize))
-        {
-            _sizeFilter = parsedSize;
-        }
-
-        if (extensionPicker.SelectedItem is SearchFilterOption selectedExtension)
-        {
-            _extensionFilter =
-                selectedExtension.Key.Equals("All", StringComparison.OrdinalIgnoreCase)
-                    ? null
-                    : selectedExtension.Key;
-        }
-
-        RefreshSearchResults();
     }
 
     private void SortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
