@@ -33,6 +33,7 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Seguir siendo portable: descargar ZIP → extraer carpeta → ejecutar.
 - Priorizar legibilidad sobre densidad extrema: evitar microtexto en toda la aplicación; usar aproximadamente 13 px para etiquetas/metadatos, 14 px para contenido y 15 px para navegación/acciones cuando el contexto lo permita.
 - Mantener adaptación inmediata al mover la ventana entre monitores con distinta resolución o escala DPI, sin requerir cambiar de sección para refrescar el layout.
+- La página visible se sincroniza con el ancho lógico real del Frame cuando cambia el viewport; las pantallas no deben conservar bindings de ancho dependientes del monitor anterior.
 
 ## Migración por etapas
 
