@@ -412,7 +412,7 @@ public sealed partial class OrganizePage : Page
                 affectedFiles.Count,
                 category,
                 wasRemembered: true,
-                "Asignación recordada aplicada automáticamente"));
+                persistenceText: "Asignación recordada aplicada automáticamente"));
         }
     }
 
