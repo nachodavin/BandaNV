@@ -34,7 +34,6 @@ public sealed partial class HistoryPage : Page
             SizeText = "1.8 GB",
             CanUndo = true,
             UndoBadgeText = "Reversible",
-            UndoReason = "La ejecución conserva los metadatos necesarios y todavía puede deshacerse de forma segura.",
             Files = BuildPrimaryPreviewFiles()
         });
 
@@ -50,7 +49,6 @@ public sealed partial class HistoryPage : Page
             SizeText = "420 MB",
             CanUndo = false,
             UndoBadgeText = "Ya deshecha",
-            UndoReason = "Esta organización ya fue revertida anteriormente. BandaNV mantiene el registro, pero no permite repetir el Undo.",
             Files =
             [
                 new HistoryFilePreview("brief.pdf", "DOCUMENTS", "3.8 MB"),
@@ -72,7 +70,6 @@ public sealed partial class HistoryPage : Page
             SizeText = "3.1 GB",
             CanUndo = false,
             UndoBadgeText = "No reversible",
-            UndoReason = "Este ejemplo representa un log antiguo sin los metadatos de Undo necesarios para una reversión segura.",
             Files =
             [
                 new HistoryFilePreview("captura_01.png", "IMAGES", "5.1 MB"),
@@ -95,7 +92,6 @@ public sealed partial class HistoryPage : Page
             SizeText = "420 MB",
             CanUndo = false,
             UndoBadgeText = "Registro Undo",
-            UndoReason = "Esta fila corresponde al registro de una operación de Deshacer y no puede deshacerse nuevamente.",
             Files =
             [
                 new HistoryFilePreview("brief.pdf", "DOCUMENTS", "3.8 MB"),
@@ -153,7 +149,6 @@ public sealed partial class HistoryPage : Page
         DetailOriginText.Text = execution.Origin;
         DetailDestinationText.Text = execution.Destination;
         UndoStatusText.Text = execution.UndoBadgeText;
-        UndoReasonText.Text = execution.UndoReason;
         UndoPreviewButton.IsEnabled = execution.CanUndo;
 
         var activeBackground = (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
@@ -167,8 +162,32 @@ public sealed partial class HistoryPage : Page
         SelectedFiles.Clear();
         foreach (var file in execution.Files)
         {
+            file.CanDelete = execution.CanUndo;
+            file.DeleteVisibility = execution.CanUndo
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
             SelectedFiles.Add(file);
         }
+    }
+
+    private async void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string fileName } ||
+            HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true })
+        {
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Vista previa de eliminación",
+            Content = $"La acción individual para \"{fileName}\" queda disponible únicamente en ejecuciones reversibles. La eliminación real se conectará junto con el motor de Historial/Undo y tendrá confirmación antes de modificar archivos.",
+            CloseButtonText = "Entendido"
+        };
+
+        await dialog.ShowAsync();
     }
 
     private async void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
@@ -202,7 +221,6 @@ public sealed class HistoryExecutionPreview
     public string SizeText { get; set; } = string.Empty;
     public bool CanUndo { get; set; }
     public string UndoBadgeText { get; set; } = string.Empty;
-    public string UndoReason { get; set; } = string.Empty;
     public IReadOnlyList<HistoryFilePreview> Files { get; set; } = [];
 }
 
@@ -222,4 +240,6 @@ public sealed class HistoryFilePreview
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
+    public bool CanDelete { get; set; }
+    public Visibility DeleteVisibility { get; set; } = Visibility.Collapsed;
 }
