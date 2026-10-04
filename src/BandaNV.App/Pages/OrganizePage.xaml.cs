@@ -1,3 +1,4 @@
+using BandaNV.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -8,11 +9,13 @@ namespace BandaNV.App.Pages;
 public sealed partial class OrganizePage : Page
 {
     private readonly List<OrganizePreviewFile> _files = new();
-    private readonly List<OrganizeCategoryOption> _categories = GetPreviewCategories();
+    private readonly List<OrganizeCategoryOption> _categories = new();
     private readonly Dictionary<string, OrganizeCategoryOption> _rememberedAssignments =
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<ResolvedExtensionAssignment> _resolvedAssignments = new();
+    private CancellationTokenSource? _analysisCts;
+    private OrganizationAnalysisResult? _lastAnalysis;
     private bool _isRefreshingPreview;
 
     private string? _activeAssignmentExtension;
@@ -23,19 +26,19 @@ public sealed partial class OrganizePage : Page
     public OrganizePage()
     {
         InitializeComponent();
+        LoadCategoryOptions();
+        UpdateInitialStateText();
         ShowInitialState();
     }
 
-    private void AnalyzeButton_Click(object sender, RoutedEventArgs e)
+    private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
     {
-        BuildPreviewData();
-        ShowPreviewState();
+        await AnalyzeFilesAsync();
     }
 
-    private void AnalyzeAgainButton_Click(object sender, RoutedEventArgs e)
+    private async void AnalyzeAgainButton_Click(object sender, RoutedEventArgs e)
     {
-        BuildPreviewData();
-        ShowPreviewState();
+        await AnalyzeFilesAsync();
     }
 
     private void CancelPreviewButton_Click(object sender, RoutedEventArgs e)
@@ -45,6 +48,8 @@ public sealed partial class OrganizePage : Page
 
     private void NewOrganizationButton_Click(object sender, RoutedEventArgs e)
     {
+        LoadCategoryOptions();
+        UpdateInitialStateText();
         ShowInitialState();
     }
 
@@ -418,57 +423,16 @@ public sealed partial class OrganizePage : Page
         flyout.ShowAt(selectorButton);
     }
 
-    private async void OrganizeButton_Click(object sender, RoutedEventArgs e)
+    private void OrganizeButton_Click(object sender, RoutedEventArgs e)
     {
-        var movableFiles = _files.Where(file => file.IsClassified).ToList();
-        var skippedFiles = _files.Count - movableFiles.Count;
-
-        if (movableFiles.Count == 0)
-        {
-            return;
-        }
-
-        InitialStatePanel.Visibility = Visibility.Collapsed;
-        PreviewStatePanel.Visibility = Visibility.Collapsed;
-        CompletionStatePanel.Visibility = Visibility.Collapsed;
-        ProgressStatePanel.Visibility = Visibility.Visible;
-
-        OrganizationProgressBar.Value = 0;
-        ProgressCountText.Text = $"0 de {movableFiles.Count} archivos";
-        ProgressStatusText.Text = "Preparando movimientos";
-
-        const int steps = 12;
-
-        for (var step = 1; step <= steps; step++)
-        {
-            await Task.Delay(75);
-
-            var progress = step / (double)steps;
-            var processed = Math.Min(
-                movableFiles.Count,
-                Math.Max(1, (int)Math.Round(movableFiles.Count * progress)));
-
-            OrganizationProgressBar.Value = progress * 100;
-            ProgressCountText.Text = $"{processed} de {movableFiles.Count} archivos";
-            ProgressStatusText.Text =
-                step < steps
-                    ? "Aplicando la organización prevista..."
-                    : "Finalizando...";
-        }
-
-        await Task.Delay(160);
-
-        ProgressStatePanel.Visibility = Visibility.Collapsed;
-        CompletionStatePanel.Visibility = Visibility.Visible;
-
-        CompletionText.Text =
-            skippedFiles > 0
-                ? $"{movableFiles.Count} archivos quedaron listos para organizar y {skippedFiles} permanecerían sin mover por no tener categoría asignada."
-                : $"{movableFiles.Count} archivos quedaron listos para organizar correctamente. No hay elementos pendientes.";
+        FooterStatusText.Foreground = GetBrush("BandaMutedStrongBrush");
+        FooterStatusText.Text =
+            "La vista previa ya usa archivos reales. El movimiento físico se habilitará en el siguiente bloque.";
     }
 
     private void ShowInitialState()
     {
+        UpdateInitialStateText();
         InitialStatePanel.Visibility = Visibility.Visible;
         PreviewStatePanel.Visibility = Visibility.Collapsed;
         ProgressStatePanel.Visibility = Visibility.Collapsed;
@@ -484,122 +448,111 @@ public sealed partial class OrganizePage : Page
         RefreshPreview();
     }
 
-    private void BuildPreviewData()
+    private async Task AnalyzeFilesAsync()
     {
-        _files.Clear();
-        _resolvedAssignments.Clear();
+        _analysisCts?.Cancel();
+        _analysisCts?.Dispose();
+        _analysisCts = new CancellationTokenSource();
 
-        AddGeneratedFiles(
-            prefix: "IMG",
-            extension: ".jpg",
-            count: 10,
-            categoryOrder: 4,
-            categoryName: "IMAGES",
-            baseSizeBytes: 2_400_000);
+        LoadCategoryOptions();
 
-        AddGeneratedFiles(
-            prefix: "captura",
-            extension: ".png",
-            count: 6,
-            categoryOrder: 4,
-            categoryName: "IMAGES",
-            baseSizeBytes: 1_150_000);
+        AnalyzeButton.IsEnabled = false;
+        AnalyzeButton.Content = "Analizando...";
+        AnalysisStatusText.Visibility = Visibility.Visible;
+        AnalysisStatusText.Foreground = GetBrush("BandaMutedStrongBrush");
+        AnalysisStatusText.Text =
+            "Leyendo la carpeta de origen en modo seguro. No se moverá ni creará ningún archivo.";
 
-        AddGeneratedFiles(
-            prefix: "documento",
-            extension: ".pdf",
-            count: 5,
-            categoryOrder: 3,
-            categoryName: "DOCUMENTS",
-            baseSizeBytes: 3_800_000);
+        try
+        {
+            var result =
+                await global::BandaNV.App.App.OrganizationAnalysis.AnalyzeAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    _analysisCts.Token);
 
-        AddGeneratedFiles(
-            prefix: "notas",
-            extension: ".txt",
-            count: 4,
-            categoryOrder: 3,
-            categoryName: "DOCUMENTS",
-            baseSizeBytes: 85_000);
+            _lastAnalysis = result;
+            _files.Clear();
+            _resolvedAssignments.Clear();
 
-        AddGeneratedFiles(
-            prefix: "video",
-            extension: ".mp4",
-            count: 4,
-            categoryOrder: 6,
-            categoryName: "VIDEOS",
-            baseSizeBytes: 118_000_000);
+            foreach (var file in result.Files)
+            {
+                _files.Add(new OrganizePreviewFile(
+                    fullPath: file.FullPath,
+                    relativePath: file.RelativePath,
+                    fileName: file.FileName,
+                    extension: file.Extension,
+                    sizeBytes: file.SizeBytes,
+                    modifiedAt: file.ModifiedAt,
+                    categoryOptions: _categories,
+                    categoryOrder: file.CategoryOrder,
+                    categoryName: file.CategoryName));
+            }
 
-        AddGeneratedFiles(
-            prefix: "archivo",
-            extension: ".rar",
-            count: 3,
-            categoryOrder: 1,
-            categoryName: "RAR",
-            baseSizeBytes: 42_000_000);
+            ApplyRememberedAssignments();
 
-        AddGeneratedFiles(
-            prefix: "setup",
-            extension: ".exe",
-            count: 2,
-            categoryOrder: 2,
-            categoryName: "INSTALLERS",
-            baseSizeBytes: 66_000_000);
+            PreviewDestinationText.Text = result.DestinationFolder;
 
-        AddGeneratedFiles(
-            prefix: "foto_iphone",
-            extension: ".heic",
-            count: 7,
-            categoryOrder: null,
-            categoryName: null,
-            baseSizeBytes: 4_200_000);
+            if (result.Files.Count == 0)
+            {
+                ShowInitialState();
+                AnalysisStatusText.Foreground = GetBrush("BandaAccentBrush");
+                AnalysisStatusText.Text =
+                    "No se encontraron archivos pendientes en la carpeta de origen.";
+                return;
+            }
 
-        AddGeneratedFiles(
-            prefix: "escena_3d",
-            extension: ".blend",
-            count: 3,
-            categoryOrder: null,
-            categoryName: null,
-            baseSizeBytes: 26_000_000);
+            ShowPreviewState();
 
-        AddGeneratedFiles(
-            prefix: "interfaz",
-            extension: ".sketch",
-            count: 2,
-            categoryOrder: null,
-            categoryName: null,
-            baseSizeBytes: 8_500_000);
+            if (result.SkippedDirectories > 0)
+            {
+                FooterStatusText.Foreground = GetBrush("BandaMutedBrush");
+                FooterStatusText.Text =
+                    $"Análisis real completado. {result.SkippedDirectories} carpeta(s) no pudieron leerse y fueron omitidas.";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _lastAnalysis = null;
+            _files.Clear();
+            _resolvedAssignments.Clear();
 
-        ApplyRememberedAssignments();
+            ShowInitialState();
+            AnalysisStatusText.Visibility = Visibility.Visible;
+            AnalysisStatusText.Foreground = GetBrush("BandaDangerBrush");
+            AnalysisStatusText.Text = ex.Message;
+        }
+        finally
+        {
+            AnalyzeButton.IsEnabled = true;
+            AnalyzeButton.Content = "Analizar archivos";
+        }
     }
 
-    private void AddGeneratedFiles(
-        string prefix,
-        string extension,
-        int count,
-        int? categoryOrder,
-        string? categoryName,
-        long baseSizeBytes)
+    private void LoadCategoryOptions()
     {
-        var normalizedExtension = NormalizeExtension(extension);
-        var modificationAnchor = DateTime.Now.AddMinutes(-(_files.Count * 19));
+        _categories.Clear();
 
-        for (var index = 1; index <= count; index++)
+        foreach (var category in global::BandaNV.App.App.Categories.GetAll())
         {
-            var sizeVariation = Math.Max(1, baseSizeBytes / 10);
-            var sizeBytes = baseSizeBytes + (sizeVariation * (index - 1));
-            var modifiedAt = modificationAnchor
-                .AddHours(-(index % 5))
-                .AddMinutes(-(index * 13));
-
-            _files.Add(new OrganizePreviewFile(
-                fileName: $"{prefix}_{index:00}{normalizedExtension}",
-                extension: normalizedExtension,
-                sizeBytes: sizeBytes,
-                modifiedAt: modifiedAt,
-                categoryOptions: _categories,
-                categoryOrder: categoryOrder,
-                categoryName: categoryName));
+            _categories.Add(new OrganizeCategoryOption(
+                category.Order,
+                category.Name));
         }
+    }
+
+    private void UpdateInitialStateText()
+    {
+        var settings = global::BandaNV.App.App.Settings.Current;
+        var source = string.IsNullOrWhiteSpace(settings.SourceFolder)
+            ? "Sin configurar"
+            : settings.SourceFolder;
+
+        InitialAnalysisDescriptionText.Text =
+            $"Origen: {source}\n" +
+            "BandaNV analizará los archivos y calculará sus destinos sin modificar el disco.";
     }
 
     private void ApplyRememberedAssignments()
@@ -716,7 +669,10 @@ public sealed partial class OrganizePage : Page
         SummaryUnclassifiedCountText.Text = unclassifiedFiles.Count.ToString(CultureInfo.CurrentCulture);
 
         OrganizeButton.Content = $"Organizar {classifiedFiles.Count} archivos";
-        OrganizeButton.IsEnabled = classifiedFiles.Count > 0;
+        OrganizeButton.IsEnabled = false;
+        ToolTipService.SetToolTip(
+            OrganizeButton,
+            "La ejecución física se habilitará en el siguiente bloque del motor.");
 
         var warningBrush = GetBrush("OrganizeWarningBrush");
         var warningSoftBrush = GetBrush("OrganizeWarningSoftBrush");
@@ -751,7 +707,7 @@ public sealed partial class OrganizePage : Page
             SummaryUnclassifiedCountText.Foreground = accentBrush;
             FooterStatusText.Foreground = accentBrush;
             FooterStatusText.Text =
-                "Todos los archivos tienen destino. Ya podés confirmar la organización.";
+                "Vista previa real lista. El movimiento físico todavía está deshabilitado por seguridad.";
         }
 
         UnassignedCard.Visibility = Visibility.Visible;
@@ -810,27 +766,6 @@ public sealed partial class OrganizePage : Page
             ? null
             : _categories.FirstOrDefault(category =>
                 category.Name.Equals(preferredName, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static List<OrganizeCategoryOption> GetPreviewCategories()
-    {
-        return
-        [
-            new(1, "RAR"),
-            new(2, "INSTALLERS"),
-            new(3, "DOCUMENTS"),
-            new(4, "IMAGES"),
-            new(5, "GIF"),
-            new(6, "VIDEOS"),
-            new(7, "AUDIO"),
-            new(8, "FONTS"),
-            new(9, "DESIGN"),
-            new(10, "CODE"),
-            new(11, "BACKUPS"),
-            new(12, "PROJECTS"),
-            new(13, "TEXTURES"),
-            new(14, "PACKAGES")
-        ];
     }
 
     private static string NormalizeExtension(string extension)
@@ -892,6 +827,8 @@ public enum OrganizeAssignmentSource
 public sealed class OrganizePreviewFile
 {
     public OrganizePreviewFile(
+        string fullPath,
+        string relativePath,
         string fileName,
         string extension,
         long sizeBytes,
@@ -901,6 +838,8 @@ public sealed class OrganizePreviewFile
         string? categoryName)
     {
         ItemId = Guid.NewGuid().ToString("N");
+        FullPath = fullPath;
+        RelativePath = relativePath;
         FileName = fileName;
         Extension = extension;
         SizeBytes = sizeBytes;
@@ -915,6 +854,8 @@ public sealed class OrganizePreviewFile
     }
 
     public string ItemId { get; }
+    public string FullPath { get; }
+    public string RelativePath { get; }
     public string FileName { get; }
     public string Extension { get; }
     public long SizeBytes { get; }
