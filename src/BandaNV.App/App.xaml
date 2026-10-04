@@ -29,6 +29,11 @@
             <SolidColorBrush x:Key="BandaMutedStrongBrush" Color="#C1CBD1" />
             <SolidColorBrush x:Key="BandaNavActiveBrush" Color="#224FE0C6" />
             <SolidColorBrush x:Key="BandaNavIconBrush" Color="#151D262F" />
+            <!-- Sistema global de popups/submenús BandaNV -->
+            <SolidColorBrush x:Key="BandaPopupSurfaceBrush" Color="#FF0C1418" />
+            <SolidColorBrush x:Key="BandaPopupBackdropBrush" Color="#B3080C11" />
+            <SolidColorBrush x:Key="BandaDangerBrush" Color="#FF7B7B" />
+            <SolidColorBrush x:Key="BandaDangerSoftBrush" Color="#24FF7B7B" />
 
             <LinearGradientBrush x:Key="BandaAppBackgroundGradient" StartPoint="0,0" EndPoint="1,1">
                 <GradientStop Color="#060A0E" Offset="0" />
@@ -63,6 +68,111 @@
                 <GradientStop Color="#F0161D25" Offset="0.56" />
                 <GradientStop Color="#E7121720" Offset="1" />
             </LinearGradientBrush>
+
+            <!--
+                Estándar global para cualquier popup/submenú nuevo.
+                Usar BandaPopupCardStyle + backdrop para modales y
+                BandaSelectorButtonStyle + BandaPopupFlyoutPresenterStyle para selectores.
+            -->
+            <Style x:Key="BandaPopupFlyoutPresenterStyle" TargetType="FlyoutPresenter">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="16" />
+            </Style>
+
+            <Style x:Key="BandaPopupOptionButtonStyle" TargetType="Button">
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="MinHeight" Value="38" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+
+            <Style x:Key="BandaSelectorButtonStyle" TargetType="Button">
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="MinHeight" Value="42" />
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="CornerRadius" Value="11" />
+                <Setter Property="Background" Value="{StaticResource BandaCardAltBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderStrongBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+            </Style>
+
+            <Style x:Key="BandaCompactSelectorButtonStyle" TargetType="Button">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="MinHeight" Value="36" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Background" Value="{StaticResource BandaCardAltBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderStrongBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+            </Style>
+
+            <Style x:Key="BandaPopupCardStyle" TargetType="Border">
+                <Setter Property="Padding" Value="26" />
+                <Setter Property="CornerRadius" Value="22" />
+                <Setter Property="Background" Value="{StaticResource BandaPopupSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderStrongBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+
+            <Style x:Key="BandaPopupCloseButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Height" Value="36" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Background" Value="{StaticResource BandaCardBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource BandaMutedStrongBrush}" />
+                <Setter Property="FontSize" Value="20" />
+            </Style>
+
+            <Style x:Key="BandaPopupPrimaryButtonStyle" TargetType="Button">
+                <Setter Property="Padding" Value="18,9" />
+                <Setter Property="MinWidth" Value="118" />
+                <Setter Property="CornerRadius" Value="11" />
+                <Setter Property="Background" Value="{StaticResource BandaAccentBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Foreground" Value="#07110F" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
+            <Style x:Key="BandaPopupSecondaryButtonStyle" TargetType="Button">
+                <Setter Property="Padding" Value="16,9" />
+                <Setter Property="MinWidth" Value="92" />
+                <Setter Property="CornerRadius" Value="11" />
+                <Setter Property="Background" Value="{StaticResource BandaCardBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+            </Style>
+
+            <Style x:Key="BandaPopupGhostButtonStyle" TargetType="Button">
+                <Setter Property="Padding" Value="14,8" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource BandaMutedStrongBrush}" />
+            </Style>
+
+            <Style x:Key="BandaPopupDangerButtonStyle" TargetType="Button">
+                <Setter Property="Padding" Value="18,9" />
+                <Setter Property="MinWidth" Value="105" />
+                <Setter Property="CornerRadius" Value="11" />
+                <Setter Property="Background" Value="{StaticResource BandaDangerBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Foreground" Value="#160909" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
 
             <Style x:Key="BandaCardStyle" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource BandaCardBrush}" />
