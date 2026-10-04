@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System.Globalization;
 
 namespace BandaNV.App.Pages;
@@ -10,6 +11,9 @@ public sealed partial class OrganizePage : Page
     private readonly List<OrganizeCategoryOption> _categories = GetPreviewCategories();
     private readonly Dictionary<string, OrganizeCategoryOption> _rememberedAssignments =
         new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _showRecentAssignment;
+    private int _assignmentFeedbackVersion;
 
     public OrganizePage()
     {
@@ -80,7 +84,7 @@ public sealed partial class OrganizePage : Page
         {
             Text = $"{affectedFiles.Count} archivo{(affectedFiles.Count == 1 ? string.Empty : "s")} con {normalizedExtension} quedarán asignados a la categoría elegida.",
             TextWrapping = TextWrapping.Wrap,
-            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["BandaMutedBrush"],
+            Foreground = GetBrush("BandaMutedBrush"),
             FontSize = 13
         };
 
@@ -116,18 +120,39 @@ public sealed partial class OrganizePage : Page
             file.AssignTo(selectedCategory);
         }
 
-        if (rememberCheckBox.IsChecked == true)
+        var rememberAssignment = rememberCheckBox.IsChecked == true;
+
+        if (rememberAssignment)
         {
             _rememberedAssignments[normalizedExtension] = selectedCategory;
         }
 
-        AssignmentFeedbackText.Text =
-            rememberCheckBox.IsChecked == true
-                ? $"{normalizedExtension} se asignó a {selectedCategory.DisplayName}. BandaNV recordará esta elección para las próximas organizaciones de esta sesión."
-                : $"{normalizedExtension} se asignó a {selectedCategory.DisplayName} solo para esta organización.";
+        var feedbackVersion = ++_assignmentFeedbackVersion;
+        _showRecentAssignment = true;
 
-        AssignmentFeedbackBorder.Visibility = Visibility.Visible;
+        RecentAssignmentText.Text =
+            $"{normalizedExtension} → {selectedCategory.DisplayName}";
 
+        RecentAssignmentSubtext.Text =
+            $"{affectedFiles.Count} archivo{(affectedFiles.Count == 1 ? string.Empty : "s")} asignado{(affectedFiles.Count == 1 ? string.Empty : "s")}" +
+            (rememberAssignment
+                ? " · se recordará para próximas organizaciones"
+                : " · solo para esta organización");
+
+        RecentAssignmentRow.Visibility = Visibility.Visible;
+
+        RefreshPreview();
+
+        // Feedback breve para que la fila no desaparezca de golpe al resolverla.
+        await Task.Delay(1200);
+
+        if (feedbackVersion != _assignmentFeedbackVersion)
+        {
+            return;
+        }
+
+        _showRecentAssignment = false;
+        RecentAssignmentRow.Visibility = Visibility.Collapsed;
         RefreshPreview();
     }
 
@@ -182,11 +207,14 @@ public sealed partial class OrganizePage : Page
 
     private void ShowInitialState()
     {
+        _assignmentFeedbackVersion++;
+        _showRecentAssignment = false;
+
         InitialStatePanel.Visibility = Visibility.Visible;
         PreviewStatePanel.Visibility = Visibility.Collapsed;
         ProgressStatePanel.Visibility = Visibility.Collapsed;
         CompletionStatePanel.Visibility = Visibility.Collapsed;
-        AssignmentFeedbackBorder.Visibility = Visibility.Collapsed;
+        RecentAssignmentRow.Visibility = Visibility.Collapsed;
     }
 
     private void ShowPreviewState()
@@ -200,8 +228,11 @@ public sealed partial class OrganizePage : Page
 
     private void BuildPreviewData()
     {
+        _assignmentFeedbackVersion++;
+        _showRecentAssignment = false;
+        RecentAssignmentRow.Visibility = Visibility.Collapsed;
+
         _files.Clear();
-        AssignmentFeedbackBorder.Visibility = Visibility.Collapsed;
 
         AddGeneratedFiles(
             prefix: "IMG",
@@ -382,25 +413,84 @@ public sealed partial class OrganizePage : Page
         OrganizeButton.Content = $"Organizar {classifiedFiles.Count} archivos";
         OrganizeButton.IsEnabled = classifiedFiles.Count > 0;
 
-        FooterStatusText.Text =
-            unclassifiedFiles.Count > 0
-                ? $"{unclassifiedFiles.Count} archivos quedarán sin mover si no resolvés sus extensiones."
-                : "Todos los archivos tienen destino. Ya podés confirmar la organización.";
+        var warningBrush = GetBrush("OrganizeWarningBrush");
+        var warningSoftBrush = GetBrush("OrganizeWarningSoftBrush");
+        var cardBrush = GetBrush("BandaCardBrush");
+        var borderBrush = GetBrush("BandaBorderBrush");
+        var mutedBrush = GetBrush("BandaMutedBrush");
+        var accentBrush = GetBrush("BandaAccentBrush");
+        var accentSoftBrush = GetBrush("BandaAccentSoftBrush");
 
-        if (unassignedExtensions.Count == 0)
+        // La métrica solo es una advertencia mientras realmente haya pendientes.
+        if (unclassifiedFiles.Count > 0)
         {
-            UnassignedCard.Visibility = Visibility.Collapsed;
-            AssignmentFeedbackBorder.Visibility = Visibility.Collapsed;
+            UnclassifiedMetricCard.Background = warningSoftBrush;
+            UnclassifiedMetricCard.BorderBrush = warningBrush;
+            UnclassifiedMetricTitle.Foreground = warningBrush;
+            UnclassifiedMetricSubtitle.Foreground = warningBrush;
+            UnclassifiedMetricSubtitle.Text = "no se moverán sin asignación";
+
+            SummaryUnclassifiedCountText.Foreground = warningBrush;
+            FooterStatusText.Foreground = mutedBrush;
+            FooterStatusText.Text =
+                $"{unclassifiedFiles.Count} archivos quedarán sin mover si no resolvés sus extensiones.";
         }
         else
         {
+            UnclassifiedMetricCard.Background = cardBrush;
+            UnclassifiedMetricCard.BorderBrush = borderBrush;
+            UnclassifiedMetricTitle.Foreground = mutedBrush;
+            UnclassifiedMetricSubtitle.Foreground = mutedBrush;
+            UnclassifiedMetricSubtitle.Text = "todos tienen destino";
+
+            SummaryUnclassifiedCountText.Foreground = accentBrush;
+            FooterStatusText.Foreground = accentBrush;
+            FooterStatusText.Text =
+                "Todos los archivos tienen destino. Ya podés confirmar la organización.";
+        }
+
+        if (unassignedExtensions.Count > 0)
+        {
             UnassignedCard.Visibility = Visibility.Visible;
+            UnassignedCard.BorderBrush = warningBrush;
+
+            UnassignedTitleText.Text = "Extensiones sin asignar";
+            UnassignedDescriptionText.Text =
+                "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
+
+            UnassignedSummaryBadge.Background = warningSoftBrush;
+            UnassignedSummaryText.Foreground = warningBrush;
 
             var extensionLabel = unassignedExtensions.Count == 1 ? "extensión" : "extensiones";
             var fileLabel = unclassifiedFiles.Count == 1 ? "archivo" : "archivos";
 
             UnassignedSummaryText.Text =
                 $"{unassignedExtensions.Count} {extensionLabel} · {unclassifiedFiles.Count} {fileLabel}";
+
+            RecentAssignmentRow.Visibility =
+                _showRecentAssignment ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else if (_showRecentAssignment)
+        {
+            // Si acabamos de resolver la última extensión, dejamos el éxito visible
+            // un instante antes de retirar por completo la tarjeta.
+            UnassignedCard.Visibility = Visibility.Visible;
+            UnassignedCard.BorderBrush = accentBrush;
+
+            UnassignedTitleText.Text = "Extensiones resueltas";
+            UnassignedDescriptionText.Text =
+                "Todos los archivos detectados ya tienen una categoría y un destino definidos.";
+
+            UnassignedSummaryBadge.Background = accentSoftBrush;
+            UnassignedSummaryText.Foreground = accentBrush;
+            UnassignedSummaryText.Text = "Todo resuelto";
+
+            RecentAssignmentRow.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            UnassignedCard.Visibility = Visibility.Collapsed;
+            RecentAssignmentRow.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -452,6 +542,9 @@ public sealed partial class OrganizePage : Page
 
         return normalized.StartsWith('.') ? normalized : $".{normalized}";
     }
+
+    private static Brush GetBrush(string resourceKey) =>
+        (Brush)Application.Current.Resources[resourceKey];
 
     private static string FormatBytes(long bytes)
     {
