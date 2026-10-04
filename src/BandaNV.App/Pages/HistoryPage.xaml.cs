@@ -35,14 +35,7 @@ public sealed partial class HistoryPage : Page
             CanUndo = true,
             UndoBadgeText = "Reversible",
             UndoReason = "La ejecución conserva los metadatos necesarios y todavía puede deshacerse de forma segura.",
-            Files =
-            [
-                new HistoryFilePreview("foto_rolling_01.jpg", "IMAGES", "14.2 MB"),
-                new HistoryFilePreview("TP_final.pdf", "DOCUMENTS", "8.1 MB"),
-                new HistoryFilePreview("pack_autos.rar", "RAR", "1.2 GB"),
-                new HistoryFilePreview("video_final.mp4", "VIDEOS", "542 MB"),
-                new HistoryFilePreview("logo_nako.ai", "DESIGN", "35 MB")
-            ]
+            Files = BuildPrimaryPreviewFiles()
         });
 
         PreviewExecutions.Add(new HistoryExecutionPreview
@@ -113,6 +106,37 @@ public sealed partial class HistoryPage : Page
         });
     }
 
+    private static IReadOnlyList<HistoryFilePreview> BuildPrimaryPreviewFiles()
+    {
+        var files = new List<HistoryFilePreview>
+        {
+            new("foto_rolling_01.jpg", "IMAGES", "14.2 MB"),
+            new("TP_final.pdf", "DOCUMENTS", "8.1 MB"),
+            new("pack_autos.rar", "RAR", "1.2 GB"),
+            new("video_final.mp4", "VIDEOS", "542 MB"),
+            new("logo_nako.ai", "DESIGN", "35 MB"),
+            new("referencia_01.png", "IMAGES", "6.4 MB"),
+            new("referencia_02.webp", "IMAGES", "3.8 MB"),
+            new("presupuesto.xlsx", "DOCUMENTS", "182 KB"),
+            new("brief_cliente.docx", "DOCUMENTS", "1.1 MB"),
+            new("tipografia.otf", "FONTS", "624 KB"),
+            new("musica_demo.mp3", "AUDIO", "9.7 MB"),
+            new("captura.gif", "GIF", "4.3 MB"),
+            new("setup_herramienta.exe", "INSTALLERS", "118 MB"),
+            new("recursos.7z", "RAR", "286 MB")
+        };
+
+        for (var index = files.Count + 1; index <= 34; index++)
+        {
+            files.Add(new HistoryFilePreview(
+                $"archivo_{index:00}.png",
+                "IMAGES",
+                $"{2 + (index % 8)}.{index % 10} MB"));
+        }
+
+        return files;
+    }
+
     private void HistoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (HistoryList.SelectedItem is HistoryExecutionPreview execution)
@@ -141,15 +165,10 @@ public sealed partial class HistoryPage : Page
         UndoStatusText.Foreground = execution.CanUndo ? activeForeground : inactiveForeground;
 
         SelectedFiles.Clear();
-        foreach (var file in execution.Files.Take(5))
+        foreach (var file in execution.Files)
         {
             SelectedFiles.Add(file);
         }
-
-        var remainingFiles = Math.Max(0, execution.FileCount - SelectedFiles.Count);
-        RemainingFilesText.Text = remainingFiles > 0
-            ? $"+ {remainingFiles} archivos más en esta ejecución"
-            : string.Empty;
     }
 
     private async void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
