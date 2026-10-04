@@ -288,21 +288,31 @@
             </Border>
 
             <Button
+                x:Name="FiltersButton"
                 Grid.Column="2"
                 Content="Filtros"
+                Click="FiltersButton_Click"
                 Padding="16,10"
                 MinHeight="44"
-                CornerRadius="12" />
+                CornerRadius="12"
+                Background="{StaticResource BandaCardBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1" />
 
             <ComboBox
+                x:Name="SortComboBox"
                 Grid.Column="3"
-                MinWidth="170"
+                MinWidth="205"
                 MinHeight="44"
-                PlaceholderText="Ordenar por">
-                <ComboBoxItem Content="Nombre" />
-                <ComboBoxItem Content="Fecha" />
-                <ComboBoxItem Content="Tamaño" />
-                <ComboBoxItem Content="Categoría" />
+                PlaceholderText="Ordenar por"
+                SelectionChanged="SortComboBox_SelectionChanged">
+                <ComboBoxItem Content="Fecha · más reciente" Tag="Newest" />
+                <ComboBoxItem Content="Fecha · más antigua" Tag="Oldest" />
+                <ComboBoxItem Content="Nombre · A–Z" Tag="NameAscending" />
+                <ComboBoxItem Content="Nombre · Z–A" Tag="NameDescending" />
+                <ComboBoxItem Content="Tamaño · mayor primero" Tag="SizeDescending" />
+                <ComboBoxItem Content="Tamaño · menor primero" Tag="SizeAscending" />
+                <ComboBoxItem Content="Categoría" Tag="Category" />
             </ComboBox>
         </Grid>
 
