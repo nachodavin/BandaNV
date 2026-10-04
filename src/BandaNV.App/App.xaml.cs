@@ -9,6 +9,7 @@ public partial class App : Application
 
     public static SettingsService Settings { get; } = new();
     public static CategoryService Categories { get; } = new(Settings);
+    public static OrganizationAnalysisService OrganizationAnalysis { get; } = new();
 
     public App()
     {
