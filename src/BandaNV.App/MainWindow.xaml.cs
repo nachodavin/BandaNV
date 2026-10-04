@@ -10,6 +10,8 @@ public sealed partial class MainWindow : Window
 {
     private AppWindow? _appWindow;
     private Button? _selectedNavigationButton;
+    private bool _xamlRootChangedHooked;
+    private bool _layoutRefreshQueued;
 
     public MainWindow()
     {
@@ -20,6 +22,7 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(HomePage));
 
         Activated += MainWindow_Activated;
+        ContentFrame.Loaded += ContentFrame_Loaded;
     }
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -35,6 +38,7 @@ public sealed partial class MainWindow : Window
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
             _appWindow = AppWindow.GetFromWindowId(windowId);
+            _appWindow.Changed += AppWindow_Changed;
             ConfigureTitleBar();
 
             if (_appWindow.Presenter is OverlappedPresenter presenter)
@@ -46,6 +50,56 @@ public sealed partial class MainWindow : Window
         {
             // Si Windows no permite maximizar en este punto, la app sigue siendo usable.
         }
+    }
+
+
+    private void ContentFrame_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_xamlRootChangedHooked || ContentFrame.XamlRoot is null)
+        {
+            return;
+        }
+
+        ContentFrame.XamlRoot.Changed += XamlRoot_Changed;
+        _xamlRootChangedHooked = true;
+    }
+
+    private void XamlRoot_Changed(XamlRoot sender, XamlRootChangedEventArgs args)
+    {
+        QueueLayoutRefresh();
+    }
+
+    private void AppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        if (args.DidSizeChange || args.DidPositionChange)
+        {
+            QueueLayoutRefresh();
+        }
+    }
+
+    private void QueueLayoutRefresh()
+    {
+        if (_layoutRefreshQueued)
+        {
+            return;
+        }
+
+        _layoutRefreshQueued = true;
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _layoutRefreshQueued = false;
+
+            // Al mover BandaNV entre monitores con distinta resolución o escala,
+            // WinUI puede actualizar el DPI antes de volver a medir la página actual.
+            // Forzamos una nueva medición en el siguiente ciclo de UI para que la
+            // sección visible se adapte sin tener que navegar a otra página.
+            RootLayout.InvalidateMeasure();
+            RootLayout.InvalidateArrange();
+            ContentFrame.InvalidateMeasure();
+            ContentFrame.InvalidateArrange();
+            RootLayout.UpdateLayout();
+        });
     }
 
 
