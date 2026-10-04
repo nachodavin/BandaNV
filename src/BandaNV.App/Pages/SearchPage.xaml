@@ -6,8 +6,6 @@
     Background="Transparent">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="BandaPopupSurfaceBrush" Color="#FF0C1418" />
-
         <DataTemplate x:Key="CategoryCardTemplate" x:DataType="local:SearchCategorySummary">
             <Button
                 Tag="{x:Bind Name}"
@@ -148,35 +146,6 @@
             </Border>
         </DataTemplate>
 
-        <Style x:Key="BandaPopupFlyoutPresenterStyle" TargetType="FlyoutPresenter">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="16" />
-        </Style>
-
-        <Style x:Key="BandaPopupOptionButtonStyle" TargetType="Button">
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="MinHeight" Value="38" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
-        </Style>
-
-        <Style x:Key="BandaSelectorButtonStyle" TargetType="Button">
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="MinHeight" Value="42" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="CornerRadius" Value="11" />
-            <Setter Property="Background" Value="{StaticResource BandaCardAltBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BandaBorderStrongBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
-        </Style>
         <DataTemplate x:Key="DateWheelItemTemplate">
             <Grid Height="36">
                 <TextBlock
