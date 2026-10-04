@@ -65,19 +65,24 @@ public sealed partial class OrganizePage : Page
         var categoryPicker = new ComboBox
         {
             Header = "Asignar a categoría",
-            ItemsSource = _categories,
+            ItemsSource = _categories
+                .OrderBy(category => category.Order)
+                .ThenBy(category => category.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
             DisplayMemberPath = nameof(OrganizeCategoryOption.DisplayName),
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            MinWidth = 360
+            MinWidth = 320
         };
 
-        categoryPicker.SelectedItem = GetSuggestedCategory(normalizedExtension) ?? _categories.FirstOrDefault();
+        categoryPicker.SelectedItem =
+            GetSuggestedCategory(normalizedExtension) ??
+            categoryPicker.Items.OfType<OrganizeCategoryOption>().FirstOrDefault();
 
         var rememberCheckBox = new CheckBox
         {
             Content = "Recordar esta asignación para futuras organizaciones",
-            IsChecked = true,
-            Margin = new Thickness(0, 6, 0, 0)
+            IsChecked = false,
+            Margin = new Thickness(0, 4, 0, 0)
         };
 
         var helperText = new TextBlock
@@ -88,6 +93,73 @@ public sealed partial class OrganizePage : Page
             FontSize = 13
         };
 
+        var categoryNameBox = new TextBox
+        {
+            Header = "Nombre de la nueva categoría",
+            PlaceholderText = "Ej: MODELOS 3D",
+            MinWidth = 320
+        };
+
+        var createCategoryInfo = new TextBlock
+        {
+            Text = $"La nueva categoría se agregará al final del orden actual. {normalizedExtension} se usará ahora; solo se recordará para futuras organizaciones si activás la opción de abajo.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = GetBrush("BandaMutedBrush"),
+            FontSize = 12
+        };
+
+        var createCategoryPanel = new StackPanel
+        {
+            Spacing = 8,
+            Visibility = Visibility.Collapsed
+        };
+
+        createCategoryPanel.Children.Add(categoryNameBox);
+        createCategoryPanel.Children.Add(createCategoryInfo);
+
+        var validationText = new TextBlock
+        {
+            Foreground = GetBrush("OrganizeWarningBrush"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed
+        };
+
+        var createCategoryButton = new Button
+        {
+            Content = "Crear nueva categoría",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(12, 7, 12, 7),
+            Background = GetBrush("BandaAccentFaintBrush"),
+            Foreground = GetBrush("BandaAccentBrush"),
+            BorderBrush = GetBrush("BandaBorderBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10)
+        };
+
+        var creatingCategory = false;
+
+        createCategoryButton.Click += (_, _) =>
+        {
+            creatingCategory = !creatingCategory;
+
+            categoryPicker.Visibility =
+                creatingCategory ? Visibility.Collapsed : Visibility.Visible;
+
+            createCategoryPanel.Visibility =
+                creatingCategory ? Visibility.Visible : Visibility.Collapsed;
+
+            createCategoryButton.Content =
+                creatingCategory ? "Usar categoría existente" : "Crear nueva categoría";
+
+            validationText.Visibility = Visibility.Collapsed;
+
+            if (creatingCategory)
+            {
+                categoryNameBox.Focus(FocusState.Programmatic);
+            }
+        };
+
         var dialogContent = new StackPanel
         {
             Spacing = 10
@@ -95,7 +167,10 @@ public sealed partial class OrganizePage : Page
 
         dialogContent.Children.Add(helperText);
         dialogContent.Children.Add(categoryPicker);
+        dialogContent.Children.Add(createCategoryPanel);
+        dialogContent.Children.Add(createCategoryButton);
         dialogContent.Children.Add(rememberCheckBox);
+        dialogContent.Children.Add(validationText);
 
         var dialog = new ContentDialog
         {
@@ -107,10 +182,65 @@ public sealed partial class OrganizePage : Page
             Content = dialogContent
         };
 
+        dialog.PrimaryButtonClick += (_, args) =>
+        {
+            validationText.Visibility = Visibility.Collapsed;
+
+            if (!creatingCategory)
+            {
+                if (categoryPicker.SelectedItem is not OrganizeCategoryOption)
+                {
+                    validationText.Text = "Elegí una categoría antes de continuar.";
+                    validationText.Visibility = Visibility.Visible;
+                    args.Cancel = true;
+                }
+
+                return;
+            }
+
+            var proposedName = categoryNameBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(proposedName))
+            {
+                validationText.Text = "Escribí un nombre para la nueva categoría.";
+                validationText.Visibility = Visibility.Visible;
+                args.Cancel = true;
+                return;
+            }
+
+            if (_categories.Any(category =>
+                    category.Name.Equals(proposedName, StringComparison.CurrentCultureIgnoreCase)))
+            {
+                validationText.Text = "Ya existe una categoría con ese nombre. Usá la categoría existente o elegí otro nombre.";
+                validationText.Visibility = Visibility.Visible;
+                args.Cancel = true;
+            }
+        };
+
         var result = await dialog.ShowAsync();
 
-        if (result != ContentDialogResult.Primary ||
-            categoryPicker.SelectedItem is not OrganizeCategoryOption selectedCategory)
+        if (result != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        OrganizeCategoryOption selectedCategory;
+
+        if (creatingCategory)
+        {
+            var categoryName = categoryNameBox.Text.Trim().ToUpper(CultureInfo.CurrentCulture);
+            var nextOrder = _categories.Count == 0
+                ? 1
+                : _categories.Max(category => category.Order) + 1;
+
+            selectedCategory = new OrganizeCategoryOption(nextOrder, categoryName);
+            _categories.Add(selectedCategory);
+        }
+        else if (categoryPicker.SelectedItem is OrganizeCategoryOption existingCategory)
+        {
+            selectedCategory = existingCategory;
+        }
+        else
         {
             return;
         }
