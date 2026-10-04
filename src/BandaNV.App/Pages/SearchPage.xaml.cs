@@ -17,6 +17,10 @@ public sealed partial class SearchPage : Page
         new(StringComparer.CurrentCultureIgnoreCase);
 
     private int _currentCategoryPage;
+    private SearchDateFilter _dateFilter = SearchDateFilter.All;
+    private SearchSizeFilter _sizeFilter = SearchSizeFilter.All;
+    private string? _extensionFilter;
+    private SearchSortMode _sortMode = SearchSortMode.Newest;
 
     public SearchPage()
     {
@@ -186,9 +190,170 @@ public sealed partial class SearchPage : Page
         RefreshSearchResults();
     }
 
+    private async void FiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dateOptions = new List<SearchFilterOption>
+        {
+            new("All", "Cualquier fecha"),
+            new("Last24Hours", "Últimas 24 horas"),
+            new("Last7Days", "Últimos 7 días"),
+            new("Last30Days", "Últimos 30 días")
+        };
+
+        var sizeOptions = new List<SearchFilterOption>
+        {
+            new("All", "Cualquier tamaño"),
+            new("Under10Mb", "Menos de 10 MB"),
+            new("From10To50Mb", "10 MB a 50 MB"),
+            new("From50To100Mb", "50 MB a 100 MB"),
+            new("Over100Mb", "Más de 100 MB")
+        };
+
+        var extensionOptions = new List<SearchFilterOption>
+        {
+            new("All", "Todas las extensiones")
+        };
+
+        extensionOptions.AddRange(
+            _allFiles
+                .Select(file => file.ExtensionDisplay.ToLowerInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
+                .Select(extension => new SearchFilterOption(extension, extension)));
+
+        var datePicker = new ComboBox
+        {
+            Header = "Fecha de modificación",
+            ItemsSource = dateOptions,
+            DisplayMemberPath = nameof(SearchFilterOption.DisplayName),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            MinWidth = 330
+        };
+
+        datePicker.SelectedItem = dateOptions.First(option =>
+            option.Key.Equals(_dateFilter.ToString(), StringComparison.Ordinal));
+
+        var sizePicker = new ComboBox
+        {
+            Header = "Tamaño",
+            ItemsSource = sizeOptions,
+            DisplayMemberPath = nameof(SearchFilterOption.DisplayName),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            MinWidth = 330
+        };
+
+        sizePicker.SelectedItem = sizeOptions.First(option =>
+            option.Key.Equals(_sizeFilter.ToString(), StringComparison.Ordinal));
+
+        var extensionPicker = new ComboBox
+        {
+            Header = "Extensión",
+            ItemsSource = extensionOptions,
+            DisplayMemberPath = nameof(SearchFilterOption.DisplayName),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            MinWidth = 330
+        };
+
+        extensionPicker.SelectedItem = extensionOptions.FirstOrDefault(option =>
+            option.Key.Equals(_extensionFilter ?? "All", StringComparison.OrdinalIgnoreCase))
+            ?? extensionOptions[0];
+
+        var helperText = new TextBlock
+        {
+            Text = "Estos filtros se combinan con las categorías seleccionadas y con el texto de búsqueda.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)Application.Current.Resources["BandaMutedBrush"],
+            FontSize = 12
+        };
+
+        var dialogContent = new StackPanel
+        {
+            Spacing = 12
+        };
+
+        dialogContent.Children.Add(helperText);
+        dialogContent.Children.Add(datePicker);
+        dialogContent.Children.Add(sizePicker);
+        dialogContent.Children.Add(extensionPicker);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Filtrar archivos",
+            PrimaryButtonText = "Aplicar filtros",
+            SecondaryButtonText = "Restablecer",
+            CloseButtonText = "Cancelar",
+            DefaultButton = ContentDialogButton.Primary,
+            Content = dialogContent
+        };
+
+        var result = await dialog.ShowAsync();
+
+        if (result == ContentDialogResult.Secondary)
+        {
+            _dateFilter = SearchDateFilter.All;
+            _sizeFilter = SearchSizeFilter.All;
+            _extensionFilter = null;
+            RefreshSearchResults();
+            return;
+        }
+
+        if (result != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        if (datePicker.SelectedItem is SearchFilterOption selectedDate &&
+            Enum.TryParse<SearchDateFilter>(selectedDate.Key, out var parsedDate))
+        {
+            _dateFilter = parsedDate;
+        }
+
+        if (sizePicker.SelectedItem is SearchFilterOption selectedSize &&
+            Enum.TryParse<SearchSizeFilter>(selectedSize.Key, out var parsedSize))
+        {
+            _sizeFilter = parsedSize;
+        }
+
+        if (extensionPicker.SelectedItem is SearchFilterOption selectedExtension)
+        {
+            _extensionFilter =
+                selectedExtension.Key.Equals("All", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : selectedExtension.Key;
+        }
+
+        RefreshSearchResults();
+    }
+
+    private void SortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ComboBox { SelectedItem: ComboBoxItem selectedItem } ||
+            selectedItem.Tag is not string sortKey)
+        {
+            return;
+        }
+
+        _sortMode = sortKey switch
+        {
+            "Oldest" => SearchSortMode.Oldest,
+            "NameAscending" => SearchSortMode.NameAscending,
+            "NameDescending" => SearchSortMode.NameDescending,
+            "SizeDescending" => SearchSortMode.SizeDescending,
+            "SizeAscending" => SearchSortMode.SizeAscending,
+            "Category" => SearchSortMode.Category,
+            _ => SearchSortMode.Newest
+        };
+
+        RefreshSearchResults();
+    }
+
     private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
         _selectedCategoryNames.Clear();
+        _dateFilter = SearchDateFilter.All;
+        _sizeFilter = SearchSizeFilter.All;
+        _extensionFilter = null;
         UpdateCategoryPage();
 
         if (!string.IsNullOrEmpty(SearchBox.Text))
@@ -222,10 +387,85 @@ public sealed partial class SearchPage : Page
                 file.Location.Contains(searchText, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        var results = query
-            .OrderByDescending(file => file.ModifiedAt)
-            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+        if (!string.IsNullOrWhiteSpace(_extensionFilter))
+        {
+            query = query.Where(file =>
+                file.ExtensionDisplay.Equals(_extensionFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var now = DateTime.Now;
+
+        query = _dateFilter switch
+        {
+            SearchDateFilter.Last24Hours =>
+                query.Where(file => file.ModifiedAt >= now.AddHours(-24)),
+            SearchDateFilter.Last7Days =>
+                query.Where(file => file.ModifiedAt >= now.AddDays(-7)),
+            SearchDateFilter.Last30Days =>
+                query.Where(file => file.ModifiedAt >= now.AddDays(-30)),
+            _ => query
+        };
+
+        const long megabyte = 1024L * 1024L;
+
+        query = _sizeFilter switch
+        {
+            SearchSizeFilter.Under10Mb =>
+                query.Where(file => file.SizeBytes < 10 * megabyte),
+            SearchSizeFilter.From10To50Mb =>
+                query.Where(file => file.SizeBytes >= 10 * megabyte &&
+                                    file.SizeBytes < 50 * megabyte),
+            SearchSizeFilter.From50To100Mb =>
+                query.Where(file => file.SizeBytes >= 50 * megabyte &&
+                                    file.SizeBytes < 100 * megabyte),
+            SearchSizeFilter.Over100Mb =>
+                query.Where(file => file.SizeBytes >= 100 * megabyte),
+            _ => query
+        };
+
+        var categoryOrder = _allCategoryCards.ToDictionary(
+            category => category.Name,
+            category => category.Order,
+            StringComparer.CurrentCultureIgnoreCase);
+
+        var results = _sortMode switch
+        {
+            SearchSortMode.Oldest => query
+                .OrderBy(file => file.ModifiedAt)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            SearchSortMode.NameAscending => query
+                .OrderBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            SearchSortMode.NameDescending => query
+                .OrderByDescending(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            SearchSortMode.SizeDescending => query
+                .OrderByDescending(file => file.SizeBytes)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            SearchSortMode.SizeAscending => query
+                .OrderBy(file => file.SizeBytes)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            SearchSortMode.Category => query
+                .OrderBy(file =>
+                    categoryOrder.TryGetValue(file.Category, out var order)
+                        ? order
+                        : int.MaxValue)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            _ => query
+                .OrderByDescending(file => file.ModifiedAt)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList()
+        };
 
         SearchResultsList.ItemsSource = null;
         SearchResultsList.ItemsSource = results;
@@ -258,7 +498,9 @@ public sealed partial class SearchPage : Page
 
         var hasCategoryFilters = selectedInOrder.Count > 0;
         var hasSearchFilter = !string.IsNullOrWhiteSpace(searchText);
-        var hasAnyFilter = hasCategoryFilters || hasSearchFilter;
+        var advancedFilterDescriptions = BuildAdvancedFilterDescriptions();
+        var hasAdvancedFilters = advancedFilterDescriptions.Count > 0;
+        var hasAnyFilter = hasCategoryFilters || hasSearchFilter || hasAdvancedFilters;
 
         AllCategoriesChip.Visibility =
             hasCategoryFilters ? Visibility.Collapsed : Visibility.Visible;
@@ -269,16 +511,81 @@ public sealed partial class SearchPage : Page
         ActiveCategoriesText.Text =
             hasCategoryFilters ? string.Join(" · ", selectedInOrder) : string.Empty;
 
+        var statusParts = new List<string>();
+
+        if (hasCategoryFilters)
+        {
+            statusParts.Add(
+                $"{selectedInOrder.Count} categoría{(selectedInOrder.Count == 1 ? string.Empty : "s")} seleccionada{(selectedInOrder.Count == 1 ? string.Empty : "s")}");
+        }
+
+        if (hasSearchFilter)
+        {
+            statusParts.Add("búsqueda activa");
+        }
+
+        statusParts.AddRange(advancedFilterDescriptions);
+
         NoFiltersText.Text =
-            !hasAnyFilter
+            statusParts.Count == 0
                 ? "Sin filtros"
-                : hasCategoryFilters && hasSearchFilter
-                    ? $"Categorías seleccionadas · búsqueda activa · {resultText}"
-                    : hasCategoryFilters
-                        ? $"{selectedInOrder.Count} categoría{(selectedInOrder.Count == 1 ? string.Empty : "s")} seleccionada{(selectedInOrder.Count == 1 ? string.Empty : "s")}"
-                        : $"Búsqueda activa · {resultText}";
+                : string.Join(" · ", statusParts);
+
+        FiltersButton.Content =
+            hasAdvancedFilters
+                ? $"Filtros ({advancedFilterDescriptions.Count})"
+                : "Filtros";
+
+        FiltersButton.Background =
+            (Brush)Application.Current.Resources[
+                hasAdvancedFilters ? "BandaAccentSoftBrush" : "BandaCardBrush"];
+
+        FiltersButton.Foreground =
+            (Brush)Application.Current.Resources[
+                hasAdvancedFilters ? "BandaAccentBrush" : "BandaTextBrush"];
 
         ClearFiltersButton.IsEnabled = hasAnyFilter;
+    }
+
+    private List<string> BuildAdvancedFilterDescriptions()
+    {
+        var descriptions = new List<string>();
+
+        switch (_dateFilter)
+        {
+            case SearchDateFilter.Last24Hours:
+                descriptions.Add("últimas 24 h");
+                break;
+            case SearchDateFilter.Last7Days:
+                descriptions.Add("últimos 7 días");
+                break;
+            case SearchDateFilter.Last30Days:
+                descriptions.Add("últimos 30 días");
+                break;
+        }
+
+        switch (_sizeFilter)
+        {
+            case SearchSizeFilter.Under10Mb:
+                descriptions.Add("< 10 MB");
+                break;
+            case SearchSizeFilter.From10To50Mb:
+                descriptions.Add("10–50 MB");
+                break;
+            case SearchSizeFilter.From50To100Mb:
+                descriptions.Add("50–100 MB");
+                break;
+            case SearchSizeFilter.Over100Mb:
+                descriptions.Add("> 100 MB");
+                break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_extensionFilter))
+        {
+            descriptions.Add(_extensionFilter.ToLowerInvariant());
+        }
+
+        return descriptions;
     }
 
     private static IReadOnlyList<CategoryDefinition> GetPreviewCategories()
@@ -306,7 +613,7 @@ public sealed partial class SearchPage : Page
     {
         var categories = GetPreviewCategories();
         var files = new List<SearchFileResult>();
-        var anchor = new DateTime(2026, 10, 4, 8, 45, 31);
+        var anchor = DateTime.Now;
 
         foreach (var category in categories)
         {
@@ -326,7 +633,8 @@ public sealed partial class SearchPage : Page
                     (index * 1_340_000L);
 
                 var modifiedAt = anchor
-                    .AddHours(-category.Order)
+                    .AddDays(-(category.Order - 1))
+                    .AddHours(-(index * 2))
                     .AddMinutes(-(index * 11))
                     .AddSeconds(-(category.Order * index));
 
@@ -366,6 +674,46 @@ public sealed partial class SearchPage : Page
         var remaining = normalized.Count - visibleExtensions;
         return remaining > 0 ? $"{text} +{remaining}" : text;
     }
+}
+
+public enum SearchDateFilter
+{
+    All,
+    Last24Hours,
+    Last7Days,
+    Last30Days
+}
+
+public enum SearchSizeFilter
+{
+    All,
+    Under10Mb,
+    From10To50Mb,
+    From50To100Mb,
+    Over100Mb
+}
+
+public enum SearchSortMode
+{
+    Newest,
+    Oldest,
+    NameAscending,
+    NameDescending,
+    SizeDescending,
+    SizeAscending,
+    Category
+}
+
+public sealed class SearchFilterOption
+{
+    public SearchFilterOption(string key, string displayName)
+    {
+        Key = key;
+        DisplayName = displayName;
+    }
+
+    public string Key { get; }
+    public string DisplayName { get; }
 }
 
 public sealed class SearchCategorySummary
