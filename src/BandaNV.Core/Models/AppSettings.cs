@@ -6,8 +6,9 @@ public sealed class AppSettings
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-    public string SourceFolder { get; set; } = string.Empty;
-    public string DestinationFolder { get; set; } = string.Empty;
+    public string SourceFolder { get; set; } = GetDefaultSourceFolder();
+    public string DestinationFolder { get; set; } =
+        Path.Combine(GetDefaultSourceFolder(), "ORGANIZADO");
 
     public string StartupPage { get; set; } = "Inicio";
     public string CloseBehavior { get; set; } = "Cerrar BandaNV";
@@ -37,6 +38,11 @@ public sealed class AppSettings
     public List<CategorySettings> Categories { get; set; } = CreateDefaultCategories();
 
     public static AppSettings CreateDefault() => new();
+
+    private static string GetDefaultSourceFolder() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Downloads");
 
     private static List<CategorySettings> CreateDefaultCategories() =>
     [
