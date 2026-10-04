@@ -178,15 +178,16 @@
             <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
         </Style>
         <DataTemplate x:Key="DateWheelItemTemplate">
-            <TextBlock
-                Text="{Binding}"
-                Height="36"
-                Foreground="{StaticResource BandaTextBrush}"
-                FontSize="13"
-                FontWeight="SemiBold"
-                TextAlignment="Center"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Center" />
+            <Grid Height="36">
+                <TextBlock
+                    Text="{Binding}"
+                    Foreground="{StaticResource BandaTextBrush}"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    TextAlignment="Center"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center" />
+            </Grid>
         </DataTemplate>
 
     </Page.Resources>
@@ -884,24 +885,17 @@
                                             </Border>
                                         </Grid>
 
-                                        <Grid>
-                                            <TextBlock
-                                                Text="Deslizá cada columna para elegir la fecha."
-                                                Foreground="{StaticResource BandaMutedBrush}"
-                                                FontSize="10"
-                                                VerticalAlignment="Center" />
-                                            <Button
-                                                Content="Hoy"
-                                                Click="SpecificDateTodayButton_Click"
-                                                HorizontalAlignment="Right"
-                                                Padding="10,5"
-                                                CornerRadius="9"
-                                                Background="Transparent"
-                                                BorderBrush="{StaticResource BandaBorderBrush}"
-                                                BorderThickness="1"
-                                                Foreground="{StaticResource BandaAccentBrush}"
-                                                FontSize="11" />
-                                        </Grid>
+                                        <Button
+                                            Content="Hoy"
+                                            Click="SpecificDateTodayButton_Click"
+                                            HorizontalAlignment="Right"
+                                            Padding="10,5"
+                                            CornerRadius="9"
+                                            Background="Transparent"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="1"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="11" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
