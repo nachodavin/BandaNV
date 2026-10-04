@@ -64,7 +64,10 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Tabla principal de ejecuciones con fecha/hora, tipo, origen, cantidad de archivos y tamaño.
 - Detalle integrado de la ejecución seleccionada dentro de la misma pantalla.
 - El detalle mostrará rutas, todos los archivos afectados, categorías, tamaños, estado y disponibilidad de Undo.
-- Cuando una ejecución tenga muchos archivos, el panel derecho mantiene encabezado y botón de Undo fijos y desplaza verticalmente el contenido completo; no se resume con "+N archivos".
+- Cuando una ejecución tenga muchos archivos, solo la subsección de archivos usa scroll vertical; el título "Archivos de la ejecución", el resumen, las rutas y el botón de Undo permanecen fijos.
+- Las filas de archivo reservan espacio a la derecha para separar tamaño y scrollbar.
+- Cada archivo dispone de una acción individual de eliminación alineada a la derecha únicamente cuando la ejecución seleccionada es reversible; la acción destructiva real requerirá confirmación al conectar el motor.
+- Se elimina el bloque explicativo "Estado de Undo"; el badge superior y el estado del botón comunican la disponibilidad.
 - La maqueta visual incluye estados seleccionables de ejemplo: ejecución reversible, ejecución ya deshecha, log antiguo sin metadatos de Undo y registro de Deshacer.
 - El botón de Undo permanece fijo al pie del panel de detalle, solo se habilita cuando la ejecución seleccionada es reversible y usa el teal principal de BandaNV como estado activo.
 - Deshacer seguro únicamente cuando la ejecución sea realmente reversible.
