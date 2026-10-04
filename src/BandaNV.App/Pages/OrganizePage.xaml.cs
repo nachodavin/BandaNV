@@ -857,7 +857,7 @@ public sealed class OrganizePreviewFile
     public string SizeDisplay => FormatBytes(SizeBytes);
 
     public string ModifiedDisplay =>
-        ModifiedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("es-AR"));
+        ModifiedAt.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.GetCultureInfo("es-AR"));
 
     public bool IsAssignedTo(int order, string name) =>
         CategoryOrder == order &&
