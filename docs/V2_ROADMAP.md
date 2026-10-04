@@ -58,9 +58,13 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 
 ### Etapa 4 — Historial y Undo
 - Leer logs existentes.
-- Historial cronológico.
-- Detalle integrado.
-- Deshacer seguro.
+- Historial cronológico con la misma lógica visual de búsqueda, filtros, orden y paginación usada en Buscar.
+- Métricas superiores: total de ejecuciones, archivos organizados, tamaño movido y última organización.
+- Búsqueda por fecha, archivo, categoría, carpeta de origen o destino.
+- Tabla principal de ejecuciones con fecha/hora, tipo, origen, cantidad de archivos y tamaño.
+- Detalle integrado de la ejecución seleccionada dentro de la misma pantalla.
+- El detalle mostrará rutas, archivos afectados, categorías, tamaños, estado y disponibilidad de Undo.
+- Deshacer seguro únicamente cuando la ejecución sea realmente reversible.
 
 ### Etapa 5 — Buscar
 - Pantalla de trabajo a ancho completo.
