@@ -23,6 +23,7 @@ public sealed partial class MainWindow : Window
 
         Activated += MainWindow_Activated;
         ContentFrame.Loaded += ContentFrame_Loaded;
+        ContentFrame.SizeChanged += ContentFrame_SizeChanged;
     }
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -52,6 +53,28 @@ public sealed partial class MainWindow : Window
         }
     }
 
+
+    private void ContentFrame_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        SyncCurrentPageToViewport(e.NewSize.Width);
+    }
+
+    private void SyncCurrentPageToViewport(double width)
+    {
+        if (width <= 0 || ContentFrame.Content is not FrameworkElement currentPage)
+        {
+            return;
+        }
+
+        // El Frame conoce el ancho lógico correcto del monitor actual.
+        // Mantener la página visible sincronizada con ese viewport evita que
+        // conserve el ancho del monitor anterior al cambiar de 1440p a 1080p.
+        currentPage.Width = width;
+        currentPage.MaxWidth = width;
+        currentPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+        currentPage.InvalidateMeasure();
+        currentPage.InvalidateArrange();
+    }
 
     private void ContentFrame_Loaded(object sender, RoutedEventArgs e)
     {
@@ -99,6 +122,11 @@ public sealed partial class MainWindow : Window
             ContentFrame.InvalidateMeasure();
             ContentFrame.InvalidateArrange();
             RootLayout.UpdateLayout();
+
+            // Después de que el shell adopta el tamaño del monitor destino,
+            // copiamos el viewport real del Frame a la página actualmente visible.
+            SyncCurrentPageToViewport(ContentFrame.ActualWidth);
+            ContentFrame.UpdateLayout();
         });
     }
 
