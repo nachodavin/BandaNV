@@ -342,7 +342,9 @@
                             <ScrollViewer
                                 Grid.Row="1"
                                 Margin="0,16,0,14"
+                                VerticalScrollMode="Enabled"
                                 VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollMode="Disabled"
                                 HorizontalScrollBarVisibility="Disabled">
 
                                 <StackPanel Spacing="14">
@@ -428,13 +430,6 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-
-                                        <TextBlock
-                                            x:Name="RemainingFilesText"
-                                            Text=""
-                                            Style="{StaticResource BandaMutedTextStyle}"
-                                            FontSize="10"
-                                            HorizontalAlignment="Center" />
                                     </StackPanel>
 
                                     <Border
@@ -462,7 +457,23 @@
                                 HorizontalContentAlignment="Center"
                                 Padding="14,10"
                                 CornerRadius="12"
-                                Click="UndoPreviewButton_Click" />
+                                FontWeight="SemiBold"
+                                Click="UndoPreviewButton_Click">
+                                <Button.Resources>
+                                    <SolidColorBrush x:Key="ButtonBackground" Color="#4FE0C6" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#67E7D2" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#39B9A7" />
+                                    <SolidColorBrush x:Key="ButtonForeground" Color="#07110F" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#07110F" />
+                                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#07110F" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#4FE0C6" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#67E7D2" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#39B9A7" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#151D262F" />
+                                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#65747D" />
+                                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#35424E59" />
+                                </Button.Resources>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
