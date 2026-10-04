@@ -162,19 +162,41 @@ public sealed partial class HistoryPage : Page
         SelectedFiles.Clear();
         foreach (var file in execution.Files)
         {
-            file.CanDelete = execution.CanUndo;
-            file.DeleteVisibility = execution.CanUndo
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
+            ApplyFileHistoryState(file, execution.CanUndo);
             SelectedFiles.Add(file);
         }
+    }
+
+    private static void ApplyFileHistoryState(HistoryFilePreview file, bool executionCanUndo)
+    {
+        file.CanDelete = executionCanUndo && !file.IsDeleted;
+        file.DeleteVisibility = file.CanDelete
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        file.DeletedStatusVisibility = file.IsDeleted
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        file.NormalNameVisibility = file.IsDeleted
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        file.DeletedNameVisibility = file.IsDeleted
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        file.RowOpacity = file.IsDeleted ? 0.58 : 1.0;
     }
 
     private async void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string fileName } ||
-            HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true })
+            HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true } execution)
+        {
+            return;
+        }
+
+        var file = execution.Files.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name, fileName, StringComparison.Ordinal));
+
+        if (file is null || file.IsDeleted)
         {
             return;
         }
@@ -182,26 +204,51 @@ public sealed partial class HistoryPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = "Vista previa de eliminación",
-            Content = $"La acción individual para \"{fileName}\" queda disponible únicamente en ejecuciones reversibles. La eliminación real se conectará junto con el motor de Historial/Undo y tendrá confirmación antes de modificar archivos.",
-            CloseButtonText = "Entendido"
+            Title = "Eliminar archivo",
+            Content = $"¿Eliminar \"{file.Name}\"? En esta maqueta no se modifica ningún archivo real: se simula el resultado para definir cómo queda registrado en Historial.",
+            PrimaryButtonText = "Eliminar",
+            CloseButtonText = "Cancelar",
+            DefaultButton = ContentDialogButton.Primary
         };
 
-        await dialog.ShowAsync();
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        file.IsDeleted = true;
+        ApplyFileHistoryState(file, execution.CanUndo);
+
+        // La fila no desaparece: se vuelve a insertar en la misma posición
+        // para refrescar la plantilla y conservar el registro histórico.
+        var index = SelectedFiles.IndexOf(file);
+        if (index >= 0)
+        {
+            SelectedFiles.RemoveAt(index);
+            SelectedFiles.Insert(index, file);
+        }
     }
 
     private async void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
     {
-        if (HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true })
+        if (HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true } execution)
         {
             return;
         }
+
+        var deletedCount = execution.Files.Count(file => file.IsDeleted);
+        var recoverableCount = Math.Max(0, execution.FileCount - deletedCount);
+
+        var detail = deletedCount > 0
+            ? $"En esta vista previa, {recoverableCount} archivos siguen siendo recuperables y {deletedCount} quedan fuera del Undo porque fueron eliminados después. El historial conserva igualmente sus registros tachados."
+            : "El botón ya muestra cuándo una ejecución es reversible. La operación real se conectará cuando migremos el motor de logs y Undo.";
 
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
             Title = "Vista previa de Undo",
-            Content = "El botón ya muestra cuándo una ejecución es reversible. La operación real se conectará cuando migremos el motor de logs y Undo.",
+            Content = detail,
             CloseButtonText = "Entendido"
         };
 
@@ -240,6 +287,11 @@ public sealed class HistoryFilePreview
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
+    public bool IsDeleted { get; set; }
     public bool CanDelete { get; set; }
+    public double RowOpacity { get; set; } = 1.0;
     public Visibility DeleteVisibility { get; set; } = Visibility.Collapsed;
+    public Visibility DeletedStatusVisibility { get; set; } = Visibility.Collapsed;
+    public Visibility NormalNameVisibility { get; set; } = Visibility.Visible;
+    public Visibility DeletedNameVisibility { get; set; } = Visibility.Collapsed;
 }
