@@ -53,7 +53,7 @@
                             VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="7" Height="7" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="12" />
+                                <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -75,7 +75,7 @@
                                 <TextBlock
                                     Text="CARPETA ACTUAL"
                                     Foreground="{StaticResource BandaAccentBrush}"
-                                    FontSize="11"
+                                    FontSize="13"
                                     FontWeight="SemiBold" />
 
                                 <TextBlock
@@ -89,7 +89,7 @@
                                 <TextBlock
                                     Text="ESTADO"
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="11" />
+                                    FontSize="13" />
 
                                 <StackPanel Orientation="Horizontal" Spacing="7">
                                     <Ellipse Width="7" Height="7" Fill="{StaticResource BandaSecondaryAccentBrush}" VerticalAlignment="Center" />
@@ -105,7 +105,7 @@
                                 <TextBlock
                                     Text="ÚLTIMA ORGANIZACIÓN"
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="11" />
+                                    FontSize="13" />
 
                                 <TextBlock
                                     Text="—"
@@ -141,7 +141,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="ARCHIVOS PENDIENTES" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" />
+                                    <TextBlock Text="ARCHIVOS PENDIENTES" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
                                     <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaAccentSoftBrush}">
                                         <SymbolIcon Symbol="Folder" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
@@ -159,7 +159,7 @@
                                     Grid.Row="2"
                                     Text="Esperando configuración"
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="12" />
+                                    FontSize="14" />
                             </Grid>
                         </Border>
 
@@ -176,7 +176,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="ARCHIVOS ORGANIZADOS TOTALES" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock Text="ARCHIVOS ORGANIZADOS TOTALES" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                     <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaNavIconBrush}">
                                         <SymbolIcon Symbol="Accept" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
@@ -194,7 +194,7 @@
                                     Grid.Row="2"
                                     Text="Acumulado histórico"
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="12" />
+                                    FontSize="14" />
                             </Grid>
                         </Border>
 
@@ -211,7 +211,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="TAMAÑO TOTAL MOVIDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock Text="TAMAÑO TOTAL MOVIDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                     <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaNavIconBrush}">
                                         <SymbolIcon Symbol="Save" Foreground="{StaticResource BandaSecondaryAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
@@ -229,7 +229,7 @@
                                     Grid.Row="2"
                                     Text="Acumulado histórico"
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="12" />
+                                    FontSize="14" />
                             </Grid>
                         </Border>
                     </Grid>
@@ -250,7 +250,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="3">
                                     <TextBlock Text="Categorías activas" Style="{StaticResource BandaMutedTextStyle}" />
-                                    <TextBlock Text="Configuradas actualmente" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                                    <TextBlock Text="Configuradas actualmente" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" />
                                 </StackPanel>
                                 <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </Grid>
@@ -264,7 +264,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="3">
                                     <TextBlock Text="Organizados última ejecución" Style="{StaticResource BandaMutedTextStyle}" />
-                                    <TextBlock Text="Último movimiento completo" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                                    <TextBlock Text="Último movimiento completo" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" />
                                 </StackPanel>
                                 <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </Grid>
@@ -278,7 +278,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="3">
                                     <TextBlock Text="Última organización" Style="{StaticResource BandaMutedTextStyle}" />
-                                    <TextBlock Text="Fecha y hora" Foreground="{StaticResource BandaMutedBrush}" FontSize="11" />
+                                    <TextBlock Text="Fecha y hora" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" />
                                 </StackPanel>
                                 <TextBlock Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </Grid>
@@ -307,11 +307,11 @@
 
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="Actividad de organización" Foreground="{StaticResource BandaTextBrush}" FontSize="20" FontWeight="SemiBold" />
-                                        <TextBlock Text="Evolución de archivos organizados con el tiempo." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        <TextBlock Text="Evolución de archivos organizados con el tiempo." Style="{StaticResource BandaMutedTextStyle}" FontSize="14" />
                                     </StackPanel>
 
                                     <Border Grid.Column="1" Padding="10,5" CornerRadius="14" Background="{StaticResource BandaNavIconBrush}" VerticalAlignment="Top">
-                                        <TextBlock Text="Histórico" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" />
+                                        <TextBlock Text="Histórico" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
                                     </Border>
                                 </Grid>
 
@@ -341,7 +341,7 @@
                                             <TextBlock
                                                 Text="La actividad aparecerá acá a medida que uses BandaNV."
                                                 Style="{StaticResource BandaMutedTextStyle}"
-                                                FontSize="12"
+                                                FontSize="14"
                                                 HorizontalAlignment="Center" />
                                         </StackPanel>
                                     </Border>
@@ -359,7 +359,7 @@
                                 <StackPanel Spacing="16">
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="Uso por categoría" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                        <TextBlock Text="Distribución histórica." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        <TextBlock Text="Distribución histórica." Style="{StaticResource BandaMutedTextStyle}" FontSize="14" />
                                     </StackPanel>
 
                                     <StackPanel Spacing="11">
@@ -400,13 +400,13 @@
                                 <StackPanel Spacing="14">
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="Actividad reciente" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                        <TextBlock Text="Últimos movimientos registrados." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        <TextBlock Text="Últimos movimientos registrados." Style="{StaticResource BandaMutedTextStyle}" FontSize="14" />
                                     </StackPanel>
 
                                     <Grid MinHeight="92">
                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
-                                            <TextBlock Text="Sin actividad todavía" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" FontWeight="SemiBold" />
-                                            <TextBlock Text="Tus últimas ejecuciones aparecerán acá." Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                            <TextBlock Text="Sin actividad todavía" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Tus últimas ejecuciones aparecerán acá." Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
