@@ -145,6 +145,36 @@
                 </Grid>
             </Border>
         </DataTemplate>
+
+        <Style x:Key="BandaPopupFlyoutPresenterStyle" TargetType="FlyoutPresenter">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+
+        <Style x:Key="BandaPopupOptionButtonStyle" TargetType="Button">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style x:Key="BandaSelectorButtonStyle" TargetType="Button">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Background" Value="{StaticResource BandaCardAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BandaBorderStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+        </Style>
     </Page.Resources>
 
     <Grid>
@@ -300,21 +330,62 @@
                 BorderBrush="{StaticResource BandaBorderBrush}"
                 BorderThickness="1" />
 
-            <ComboBox
-                x:Name="SortComboBox"
+            <Button
+                x:Name="SortSelectorButton"
                 Grid.Column="3"
-                MinWidth="205"
+                Width="205"
                 MinHeight="44"
-                PlaceholderText="Ordenar por"
-                SelectionChanged="SortComboBox_SelectionChanged">
-                <ComboBoxItem Content="Fecha · más reciente" Tag="Newest" />
-                <ComboBoxItem Content="Fecha · más antigua" Tag="Oldest" />
-                <ComboBoxItem Content="Nombre · A–Z" Tag="NameAscending" />
-                <ComboBoxItem Content="Nombre · Z–A" Tag="NameDescending" />
-                <ComboBoxItem Content="Tamaño · mayor primero" Tag="SizeDescending" />
-                <ComboBoxItem Content="Tamaño · menor primero" Tag="SizeAscending" />
-                <ComboBoxItem Content="Categoría" Tag="Category" />
-            </ComboBox>
+                Style="{StaticResource BandaSelectorButtonStyle}">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Name="SortValueText"
+                        Text="Fecha · más reciente"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="⌄"
+                        Foreground="{StaticResource BandaAccentBrush}"
+                        FontSize="14"
+                        VerticalAlignment="Center" />
+                </Grid>
+
+                <Button.Flyout>
+                    <Flyout
+                        x:Name="SortFlyout"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                        <Border
+                            Width="245"
+                            Padding="8"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaSidebarBrush}"
+                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    Text="ORDENAR POR"
+                                    Margin="10,6,10,4"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <Button Tag="Newest" Content="Fecha · más reciente" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Oldest" Content="Fecha · más antigua" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="NameAscending" Content="Nombre · A–Z" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="NameDescending" Content="Nombre · Z–A" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="SizeDescending" Content="Tamaño · mayor primero" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="SizeAscending" Content="Tamaño · menor primero" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Category" Content="Categoría" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
         </Grid>
 
         <!-- Tabla principal de resultados -->
@@ -520,13 +591,9 @@
             Canvas.ZIndex="100"
             Visibility="Collapsed">
 
-            <Button
-                Click="CloseFiltersOverlayButton_Click"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
+            <Border
                 Background="#B3080C11"
-                BorderThickness="0"
-                Padding="0" />
+                Tapped="FiltersBackdrop_Tapped" />
 
             <Border
                 Width="620"
@@ -619,21 +686,50 @@
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="12"
                                     FontWeight="SemiBold" />
-                                <ComboBox
-                                    x:Name="DateFilterComboBox"
-                                    HorizontalAlignment="Stretch"
-                                    MinHeight="42"
-                                    Padding="12,6"
-                                    CornerRadius="11"
-                                    Background="{StaticResource BandaCardAltBrush}"
-                                    BorderBrush="{StaticResource BandaBorderStrongBrush}"
-                                    BorderThickness="1"
-                                    Foreground="{StaticResource BandaTextBrush}">
-                                    <ComboBoxItem Content="Cualquier fecha" Tag="All" />
-                                    <ComboBoxItem Content="Últimas 24 horas" Tag="Last24Hours" />
-                                    <ComboBoxItem Content="Últimos 7 días" Tag="Last7Days" />
-                                    <ComboBoxItem Content="Últimos 30 días" Tag="Last30Days" />
-                                </ComboBox>
+                                <Button
+                                    x:Name="DateFilterSelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="DateFilterValueText"
+                                            Text="Cualquier fecha"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="⌄"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="DateFilterFlyout"
+                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="245"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaSidebarBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="FECHA DE MODIFICACIÓN" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                    <Button Tag="All" Content="Cualquier fecha" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Last24Hours" Content="Últimas 24 horas" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Last7Days" Content="Últimos 7 días" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Last30Days" Content="Últimos 30 días" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
                             </StackPanel>
                         </Border>
 
@@ -650,22 +746,51 @@
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="12"
                                     FontWeight="SemiBold" />
-                                <ComboBox
-                                    x:Name="SizeFilterComboBox"
-                                    HorizontalAlignment="Stretch"
-                                    MinHeight="42"
-                                    Padding="12,6"
-                                    CornerRadius="11"
-                                    Background="{StaticResource BandaCardAltBrush}"
-                                    BorderBrush="{StaticResource BandaBorderStrongBrush}"
-                                    BorderThickness="1"
-                                    Foreground="{StaticResource BandaTextBrush}">
-                                    <ComboBoxItem Content="Cualquier tamaño" Tag="All" />
-                                    <ComboBoxItem Content="Menos de 10 MB" Tag="Under10Mb" />
-                                    <ComboBoxItem Content="10 MB a 50 MB" Tag="From10To50Mb" />
-                                    <ComboBoxItem Content="50 MB a 100 MB" Tag="From50To100Mb" />
-                                    <ComboBoxItem Content="Más de 100 MB" Tag="Over100Mb" />
-                                </ComboBox>
+                                <Button
+                                    x:Name="SizeFilterSelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="SizeFilterValueText"
+                                            Text="Cualquier tamaño"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="⌄"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="SizeFilterFlyout"
+                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="245"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaSidebarBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="TAMAÑO" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                    <Button Tag="All" Content="Cualquier tamaño" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Under10Mb" Content="Menos de 10 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From10To50Mb" Content="10 MB a 50 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From50To100Mb" Content="50 MB a 100 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Over100Mb" Content="Más de 100 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -696,18 +821,50 @@
                                     TextWrapping="Wrap" />
                             </StackPanel>
 
-                            <ComboBox
-                                x:Name="ExtensionFilterComboBox"
+                            <Button
+                                x:Name="ExtensionFilterSelectorButton"
                                 Grid.Column="1"
-                                HorizontalAlignment="Stretch"
-                                MinHeight="42"
-                                Padding="12,6"
-                                CornerRadius="11"
-                                Background="{StaticResource BandaCardAltBrush}"
-                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
-                                BorderThickness="1"
-                                Foreground="{StaticResource BandaTextBrush}"
-                                DisplayMemberPath="DisplayName" />
+                                Style="{StaticResource BandaSelectorButtonStyle}">
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        x:Name="ExtensionFilterValueText"
+                                        Text="Todas las extensiones"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="13"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="⌄"
+                                        Foreground="{StaticResource BandaAccentBrush}"
+                                        FontSize="14"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Button.Flyout>
+                                    <Flyout
+                                        x:Name="ExtensionFilterFlyout"
+                                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                        <Border
+                                            Width="245"
+                                            MaxHeight="330"
+                                            Padding="8"
+                                            CornerRadius="16"
+                                            Background="{StaticResource BandaSidebarBrush}"
+                                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                            BorderThickness="1">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel
+                                                    x:Name="ExtensionFilterOptionsPanel"
+                                                    Spacing="2" />
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
                         </Grid>
                     </Border>
 
