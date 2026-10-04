@@ -418,7 +418,6 @@ public sealed partial class HistoryPage : Page
             "FilesAscending" => HistorySortMode.FilesAscending,
             "SizeDescending" => HistorySortMode.SizeDescending,
             "SizeAscending" => HistorySortMode.SizeAscending,
-            "Origin" => HistorySortMode.Origin,
             _ => HistorySortMode.Newest
         };
 
@@ -492,10 +491,6 @@ public sealed partial class HistoryPage : Page
                     .ToList(),
             HistorySortMode.SizeAscending =>
                 query.OrderBy(execution => ParseSizeBytes(execution.SizeText))
-                    .ThenByDescending(GetExecutionDateTime)
-                    .ToList(),
-            HistorySortMode.Origin =>
-                query.OrderBy(execution => execution.OriginShort, StringComparer.CurrentCultureIgnoreCase)
                     .ThenByDescending(GetExecutionDateTime)
                     .ToList(),
             _ =>
@@ -613,7 +608,6 @@ public sealed partial class HistoryPage : Page
             HistorySortMode.FilesAscending => "Archivos · menor primero",
             HistorySortMode.SizeDescending => "Tamaño · mayor primero",
             HistorySortMode.SizeAscending => "Tamaño · menor primero",
-            HistorySortMode.Origin => "Origen · A–Z",
             _ => "Fecha · más reciente"
         };
 
@@ -788,8 +782,7 @@ public enum HistorySortMode
     FilesDescending,
     FilesAscending,
     SizeDescending,
-    SizeAscending,
-    Origin
+    SizeAscending
 }
 
 public sealed class HistoryExecutionPreview
