@@ -30,7 +30,6 @@ public sealed partial class HistoryPage : Page
         InitializeComponent();
 
         LoadPreviewData();
-        HistoryList.SelectedIndex = 0;
     }
 
     private void LoadPreviewData()
@@ -152,20 +151,81 @@ public sealed partial class HistoryPage : Page
 
     private void HistoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (HistoryList.SelectedItem is HistoryExecutionPreview execution)
+        UpdateHistorySelectionDetails();
+    }
+
+    private void HistoryList_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        var current = e.OriginalSource as DependencyObject;
+
+        while (current is not null && current != HistoryList)
         {
-            ShowExecutionDetails(execution);
+            if (current is ListViewItem)
+            {
+                return;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
         }
+
+        HistoryList.SelectedItems.Clear();
+        UpdateHistorySelectionDetails();
+    }
+
+    private void HistorySelectAllAccelerator_Invoked(
+        Microsoft.UI.Xaml.Input.KeyboardAccelerator sender,
+        Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        foreach (var execution in PreviewExecutions)
+        {
+            if (!HistoryList.SelectedItems.Contains(execution))
+            {
+                HistoryList.SelectedItems.Add(execution);
+            }
+        }
+
+        UpdateHistorySelectionDetails();
+        args.Handled = true;
+    }
+
+    private List<HistoryExecutionPreview> GetSelectedHistoryExecutions() =>
+        HistoryList.SelectedItems
+            .OfType<HistoryExecutionPreview>()
+            .ToList();
+
+    private void UpdateHistorySelectionDetails()
+    {
+        var executions = GetSelectedHistoryExecutions();
+
+        if (executions.Count == 0)
+        {
+            SelectedFiles.Clear();
+            ClearExecutionDetails();
+            return;
+        }
+
+        if (executions.Count == 1)
+        {
+            ShowExecutionDetails(executions[0]);
+            return;
+        }
+
+        ShowMultipleExecutionDetails(executions);
     }
 
     private void ShowExecutionDetails(HistoryExecutionPreview execution)
     {
+        DetailTitleText.Text = "Detalle de ejecución";
+        DetailFilesSectionTitleText.Text = "ARCHIVOS DE LA EJECUCIÓN";
         DetailDateText.Text = $"{execution.DateTimeText} · {execution.Type}";
         DetailFileCountText.Text = execution.FileCountText;
         DetailSizeText.Text = execution.SizeText;
         DetailOriginText.Text = execution.Origin;
         DetailDestinationText.Text = execution.Destination;
         UndoStatusText.Text = execution.UndoBadgeText;
+        UndoPreviewButton.Content = "Deshacer ejecución";
         UndoPreviewButton.IsEnabled = execution.CanUndo;
 
         var activeBackground = (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
@@ -182,6 +242,91 @@ public sealed partial class HistoryPage : Page
             ApplyFileHistoryState(file, execution.CanUndo);
             SelectedFiles.Add(file);
         }
+    }
+
+    private void ShowMultipleExecutionDetails(IReadOnlyList<HistoryExecutionPreview> executions)
+    {
+        var totalFiles = executions.Sum(execution => execution.FileCount);
+        var totalBytes = executions.Sum(execution => ParseSizeBytes(execution.SizeText));
+
+        var originCount = executions
+            .Select(execution => execution.Origin)
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .Count();
+
+        var destinationCount = executions
+            .Select(execution => execution.Destination)
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .Count();
+
+        var reversibleCount = executions.Count(execution => execution.CanUndo);
+
+        DetailTitleText.Text = "Selección múltiple";
+        DetailFilesSectionTitleText.Text = "ARCHIVOS DE LAS EJECUCIONES";
+        DetailDateText.Text = $"{executions.Count} ejecuciones seleccionadas";
+        DetailFileCountText.Text = totalFiles.ToString(CultureInfo.CurrentCulture);
+        DetailSizeText.Text = FormatHistoryBytes(totalBytes);
+        DetailOriginText.Text =
+            originCount == 1
+                ? executions[0].Origin
+                : $"{originCount} orígenes";
+        DetailDestinationText.Text =
+            destinationCount == 1
+                ? executions[0].Destination
+                : $"{destinationCount} destinos";
+
+        UndoStatusText.Text =
+            reversibleCount == 0
+                ? "Sin ejecuciones reversibles"
+                : $"{reversibleCount} reversible{(reversibleCount == 1 ? string.Empty : "s")}";
+
+        UndoStatusBorder.Background =
+            (Brush)Application.Current.Resources[
+                reversibleCount > 0 ? "BandaAccentSoftBrush" : "BandaNavIconBrush"];
+        UndoStatusText.Foreground =
+            (Brush)Application.Current.Resources[
+                reversibleCount > 0 ? "BandaAccentBrush" : "BandaMutedStrongBrush"];
+
+        UndoPreviewButton.Content = "Deshacer ejecución";
+        UndoPreviewButton.IsEnabled = false;
+
+        SelectedFiles.Clear();
+        foreach (var execution in executions)
+        {
+            foreach (var file in execution.Files)
+            {
+                // En selección múltiple los archivos son informativos;
+                // las acciones individuales permanecen desactivadas.
+                file.CanDelete = false;
+                file.DeleteVisibility = Visibility.Collapsed;
+                file.DeletedStatusVisibility =
+                    file.IsDeleted ? Visibility.Visible : Visibility.Collapsed;
+                file.NormalNameVisibility =
+                    file.IsDeleted ? Visibility.Collapsed : Visibility.Visible;
+                file.DeletedNameVisibility =
+                    file.IsDeleted ? Visibility.Visible : Visibility.Collapsed;
+                file.RowOpacity = file.IsDeleted ? 0.58 : 1.0;
+
+                SelectedFiles.Add(file);
+            }
+        }
+    }
+
+    private static string FormatHistoryBytes(double bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        var value = Math.Max(0, bytes);
+        var unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return unitIndex == 0
+            ? $"{value:0} {units[unitIndex]}"
+            : $"{value:0.##} {units[unitIndex]}";
     }
 
     private static void ApplyFileHistoryState(HistoryFilePreview file, bool executionCanUndo)
@@ -428,7 +573,10 @@ public sealed partial class HistoryPage : Page
 
     private void RefreshHistoryResults()
     {
-        var selectedExecution = HistoryList.SelectedItem as HistoryExecutionPreview;
+        var selectedExecutions = HistoryList.SelectedItems
+            .OfType<HistoryExecutionPreview>()
+            .ToList();
+
         IEnumerable<HistoryExecutionPreview> query = _allPreviewExecutions;
 
         var searchText = HistorySearchBox?.Text?.Trim() ?? string.Empty;
@@ -503,20 +651,12 @@ public sealed partial class HistoryPage : Page
             PreviewExecutions.Add(execution);
         }
 
-        if (selectedExecution is not null && results.Contains(selectedExecution))
+        foreach (var execution in selectedExecutions.Where(results.Contains))
         {
-            HistoryList.SelectedItem = selectedExecution;
-        }
-        else if (results.Count > 0)
-        {
-            HistoryList.SelectedIndex = 0;
-        }
-        else
-        {
-            SelectedFiles.Clear();
-            ClearExecutionDetails();
+            HistoryList.SelectedItems.Add(execution);
         }
 
+        UpdateHistorySelectionDetails();
         UpdateHistoryToolState(results.Count, searchText);
     }
 
@@ -586,12 +726,15 @@ public sealed partial class HistoryPage : Page
 
     private void ClearExecutionDetails()
     {
+        DetailTitleText.Text = "Detalle de ejecución";
+        DetailFilesSectionTitleText.Text = "ARCHIVOS DE LA EJECUCIÓN";
         DetailDateText.Text = "—";
         DetailFileCountText.Text = "—";
         DetailSizeText.Text = "—";
         DetailOriginText.Text = "—";
         DetailDestinationText.Text = "—";
         UndoStatusText.Text = "Sin selección";
+        UndoPreviewButton.Content = "Deshacer ejecución";
         UndoPreviewButton.IsEnabled = false;
 
         UndoStatusBorder.Background =
@@ -653,8 +796,11 @@ public sealed partial class HistoryPage : Page
 
     private void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
     {
+        var executions = GetSelectedHistoryExecutions();
+
         if (sender is not Button { Tag: string fileName } ||
-            HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true } execution)
+            executions.Count != 1 ||
+            executions[0] is not HistoryExecutionPreview { CanUndo: true } execution)
         {
             return;
         }
@@ -689,7 +835,10 @@ public sealed partial class HistoryPage : Page
 
     private void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
     {
-        if (HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true } execution)
+        var executions = GetSelectedHistoryExecutions();
+
+        if (executions.Count != 1 ||
+            executions[0] is not HistoryExecutionPreview { CanUndo: true } execution)
         {
             return;
         }
