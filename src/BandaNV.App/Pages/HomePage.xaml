@@ -8,9 +8,10 @@
         <ScrollViewer
             HorizontalScrollMode="Disabled"
             HorizontalScrollBarVisibility="Disabled"
+            HorizontalContentAlignment="Stretch"
             VerticalScrollBarVisibility="Auto">
 
-            <Grid Width="{Binding ActualWidth, ElementName=PageRoot}">
+            <Grid HorizontalAlignment="Stretch">
                 <Grid
                     Padding="34,32,34,48"
                     HorizontalAlignment="Stretch"
