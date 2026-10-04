@@ -230,15 +230,15 @@ public sealed partial class SettingsPage : Page
         var popupBase = Windows.UI.Color.FromArgb(255, 0x08, 0x0E, 0x12);
         var borderBase = Windows.UI.Color.FromArgb(255, 0x43, 0x50, 0x59);
 
-        var background = BlendColor(backgroundBase, color, 0.12);
-        var sidebar = BlendColor(sidebarBase, color, 0.16);
-        var card = BlendColor(cardBase, color, 0.18);
-        var cardAlt = BlendColor(cardAltBase, color, 0.24);
-        var navIcon = BlendColor(cardAltBase, color, 0.30);
-        var popup = BlendColor(popupBase, color, 0.18);
-        var border = BlendColor(borderBase, color, 0.18);
-        var borderStrong = BlendColor(borderBase, color, 0.30);
-        var accentCard = BlendColor(cardBase, color, 0.38);
+        var background = BlendColor(backgroundBase, color, 0.07);
+        var sidebar = BlendColor(sidebarBase, color, 0.09);
+        var card = BlendColor(cardBase, color, 0.10);
+        var cardAlt = BlendColor(cardAltBase, color, 0.14);
+        var navIcon = BlendColor(cardAltBase, color, 0.16);
+        var popup = BlendColor(popupBase, color, 0.10);
+        var border = BlendColor(borderBase, color, 0.10);
+        var borderStrong = BlendColor(borderBase, color, 0.16);
+        var accentCard = BlendColor(cardBase, color, 0.22);
 
         SetSolidBrushColor("BandaBackgroundBrush", background);
         SetSolidBrushColor("BandaAppBackgroundGradient", background);
