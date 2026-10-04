@@ -10,6 +10,9 @@ public sealed partial class HistoryPage : Page
     public ObservableCollection<HistoryExecutionPreview> PreviewExecutions { get; } = new();
     public ObservableCollection<HistoryFilePreview> SelectedFiles { get; } = new();
 
+    private HistoryFilePreview? _pendingDeleteFile;
+    private HistoryExecutionPreview? _pendingDeleteExecution;
+
     public HistoryPage()
     {
         InitializeComponent();
@@ -185,7 +188,18 @@ public sealed partial class HistoryPage : Page
         file.RowOpacity = file.IsDeleted ? 0.58 : 1.0;
     }
 
-    private async void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
+    private void HistorySortOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string sortLabel })
+        {
+            return;
+        }
+
+        HistorySortValueText.Text = sortLabel;
+        HistorySortFlyout.Hide();
+    }
+
+    private void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string fileName } ||
             HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true } execution)
@@ -201,36 +215,27 @@ public sealed partial class HistoryPage : Page
             return;
         }
 
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = "Eliminar archivo",
-            Content = $"¿Eliminar \"{file.Name}\"? En esta maqueta no se modifica ningún archivo real: se simula el resultado para definir cómo queda registrado en Historial.",
-            PrimaryButtonText = "Eliminar",
-            CloseButtonText = "Cancelar",
-            DefaultButton = ContentDialogButton.Primary
-        };
+        _pendingDeleteFile = file;
+        _pendingDeleteExecution = execution;
 
-        var result = await dialog.ShowAsync();
-        if (result != ContentDialogResult.Primary)
-        {
-            return;
-        }
+        HistoryModalTitleText.Text = "Eliminar archivo";
+        HistoryModalBodyText.Text =
+            $"¿Eliminar \"{file.Name}\"? En esta maqueta no se modifica ningún archivo real: " +
+            "se simula el resultado para definir cómo queda registrado en Historial.";
 
-        file.IsDeleted = true;
-        ApplyFileHistoryState(file, execution.CanUndo);
+        HistoryModalIconText.Text = "!";
+        HistoryModalIconBorder.Background =
+            (Brush)Application.Current.Resources["BandaDangerSoftBrush"];
+        HistoryModalIconText.Foreground =
+            (Brush)Application.Current.Resources["BandaDangerBrush"];
 
-        // La fila no desaparece: se vuelve a insertar en la misma posición
-        // para refrescar la plantilla y conservar el registro histórico.
-        var index = SelectedFiles.IndexOf(file);
-        if (index >= 0)
-        {
-            SelectedFiles.RemoveAt(index);
-            SelectedFiles.Insert(index, file);
-        }
+        HistoryModalSecondaryButton.Content = "Cancelar";
+        HistoryModalPrimaryButton.Content = "Eliminar";
+        HistoryModalPrimaryButton.Visibility = Visibility.Visible;
+        HistoryModalOverlay.Visibility = Visibility.Visible;
     }
 
-    private async void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
+    private void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (HistoryList.SelectedItem is not HistoryExecutionPreview { CanUndo: true } execution)
         {
@@ -244,16 +249,64 @@ public sealed partial class HistoryPage : Page
             ? $"En esta vista previa, {recoverableCount} archivos siguen siendo recuperables y {deletedCount} quedan fuera del Undo porque fueron eliminados después. El historial conserva igualmente sus registros tachados."
             : "El botón ya muestra cuándo una ejecución es reversible. La operación real se conectará cuando migremos el motor de logs y Undo.";
 
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = "Vista previa de Undo",
-            Content = detail,
-            CloseButtonText = "Entendido"
-        };
+        _pendingDeleteFile = null;
+        _pendingDeleteExecution = null;
 
-        await dialog.ShowAsync();
+        HistoryModalTitleText.Text = "Vista previa de Undo";
+        HistoryModalBodyText.Text = detail;
+        HistoryModalIconText.Text = "↶";
+        HistoryModalIconBorder.Background =
+            (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+        HistoryModalIconText.Foreground =
+            (Brush)Application.Current.Resources["BandaAccentBrush"];
+
+        HistoryModalSecondaryButton.Content = "Entendido";
+        HistoryModalPrimaryButton.Visibility = Visibility.Collapsed;
+        HistoryModalOverlay.Visibility = Visibility.Visible;
     }
+
+    private void HistoryModalPrimaryButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingDeleteFile is not { } file ||
+            _pendingDeleteExecution is not { } execution ||
+            file.IsDeleted)
+        {
+            CloseHistoryModal();
+            return;
+        }
+
+        file.IsDeleted = true;
+        ApplyFileHistoryState(file, execution.CanUndo);
+
+        var index = SelectedFiles.IndexOf(file);
+        if (index >= 0)
+        {
+            SelectedFiles.RemoveAt(index);
+            SelectedFiles.Insert(index, file);
+        }
+
+        CloseHistoryModal();
+    }
+
+    private void HistoryModalCloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        CloseHistoryModal();
+    }
+
+    private void HistoryModalBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseHistoryModal();
+    }
+
+    private void CloseHistoryModal()
+    {
+        HistoryModalOverlay.Visibility = Visibility.Collapsed;
+        _pendingDeleteFile = null;
+        _pendingDeleteExecution = null;
+    }
+
 }
 
 public sealed class HistoryExecutionPreview
