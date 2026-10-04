@@ -206,7 +206,6 @@
                                 <Button Tag="FilesAscending" Content="Archivos · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="SizeDescending" Content="Tamaño · mayor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="SizeAscending" Content="Tamaño · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Origin" Content="Origen · A–Z" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
                         </Border>
                     </Flyout>
@@ -303,20 +302,20 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <Grid Padding="16,0" ColumnSpacing="12">
+                            <Grid Padding="16,0" ColumnSpacing="18">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1.18*" />
-                                    <ColumnDefinition Width="0.7*" />
-                                    <ColumnDefinition Width="1.25*" />
-                                    <ColumnDefinition Width="1.25*" />
+                                    <ColumnDefinition Width="1.22*" />
+                                    <ColumnDefinition Width="0.72*" />
+                                    <ColumnDefinition Width="1.45*" />
+                                    <ColumnDefinition Width="1.45*" />
                                     <ColumnDefinition Width="0.62*" />
                                     <ColumnDefinition Width="0.7*" />
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Text="FECHA Y HORA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="TIPO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="3" Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="4" Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="5" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                             </Grid>
@@ -349,20 +348,20 @@
 
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="local:HistoryExecutionPreview">
-                                        <Grid Padding="10,0" ColumnSpacing="12">
+                                        <Grid Padding="10,0" ColumnSpacing="18">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.18*" />
-                                                <ColumnDefinition Width="0.7*" />
-                                                <ColumnDefinition Width="1.25*" />
-                                                <ColumnDefinition Width="1.25*" />
+                                                <ColumnDefinition Width="1.22*" />
+                                                <ColumnDefinition Width="0.72*" />
+                                                <ColumnDefinition Width="1.45*" />
+                                                <ColumnDefinition Width="1.45*" />
                                                 <ColumnDefinition Width="0.62*" />
                                                 <ColumnDefinition Width="0.7*" />
                                             </Grid.ColumnDefinitions>
 
                                             <TextBlock Text="{x:Bind DateTimeText}" Foreground="{StaticResource BandaTextBrush}" FontSize="13" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="1" Text="{x:Bind Type}" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2" Text="{x:Bind OriginShort}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="3" Text="{x:Bind DestinationShort}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind OriginShort}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{x:Bind DestinationShort}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="4" Text="{x:Bind FileCountText}" Foreground="{StaticResource BandaTextBrush}" FontSize="13" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="5" Text="{x:Bind SizeText}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                         </Grid>
