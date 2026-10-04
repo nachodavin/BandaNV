@@ -71,6 +71,79 @@
             </Border>
         </DataTemplate>
 
+        <DataTemplate x:Key="ResolvedExtensionTemplate" x:DataType="local:ResolvedExtensionAssignment">
+            <Border
+                Padding="14,12"
+                Margin="0,0,0,8"
+                CornerRadius="12"
+                Background="{StaticResource BandaAccentFaintBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="92" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Padding="10,5"
+                        CornerRadius="10"
+                        Background="{StaticResource BandaAccentSoftBrush}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind Extension}"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="14"
+                            FontWeight="SemiBold" />
+                    </Border>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind FilesText}"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center" />
+
+                    <StackPanel
+                        Grid.Column="2"
+                        Spacing="2"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind DestinationText}"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Text="{x:Bind PersistenceText}"
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="12"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <Border
+                        Grid.Column="3"
+                        Width="30"
+                        Height="30"
+                        CornerRadius="10"
+                        Background="{StaticResource BandaAccentSoftBrush}"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Text="✓"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
         <DataTemplate x:Key="PreviewFileTemplate" x:DataType="local:OrganizePreviewFile">
             <Border
                 BorderBrush="{StaticResource BandaBorderBrush}"
@@ -393,7 +466,7 @@
                 </Border>
             </Grid>
 
-            <!-- Extensiones sin asignar -->
+            <!-- Extensiones pendientes / resueltas -->
             <Border
                 x:Name="UnassignedCard"
                 Grid.Row="1"
@@ -401,8 +474,7 @@
                 CornerRadius="18"
                 Background="{StaticResource BandaCardBrush}"
                 BorderBrush="{StaticResource OrganizeWarningBrush}"
-                BorderThickness="1"
-                Visibility="Collapsed">
+                BorderThickness="1">
 
                 <StackPanel Spacing="12">
                     <Grid ColumnSpacing="16">
@@ -442,54 +514,42 @@
                         </Border>
                     </Grid>
 
-                    <!-- Feedback breve: la extensión resuelta permanece visible un instante antes de retirarse. -->
-                    <Border
-                        x:Name="RecentAssignmentRow"
-                        Padding="14,12"
-                        CornerRadius="12"
-                        Background="{StaticResource BandaAccentFaintBrush}"
-                        BorderBrush="{StaticResource BandaAccentBrush}"
-                        BorderThickness="1"
-                        Visibility="Collapsed">
-                        <Grid ColumnSpacing="14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <Border
-                                Width="28"
-                                Height="28"
-                                CornerRadius="9"
-                                Background="{StaticResource BandaAccentSoftBrush}"
-                                VerticalAlignment="Center">
-                                <TextBlock
-                                    Text="✓"
-                                    Foreground="{StaticResource BandaAccentBrush}"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-
-                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                <TextBlock
-                                    x:Name="RecentAssignmentText"
-                                    Foreground="{StaticResource BandaAccentBrush}"
-                                    FontSize="13"
-                                    FontWeight="SemiBold" />
-                                <TextBlock
-                                    x:Name="RecentAssignmentSubtext"
-                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                    FontSize="12" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-
                     <ItemsControl
                         x:Name="UnassignedExtensionsList"
                         ItemTemplate="{StaticResource UnassignedExtensionTemplate}"
                         HorizontalContentAlignment="Stretch" />
+
+                    <StackPanel
+                        x:Name="ResolvedAssignmentsPanel"
+                        Spacing="8"
+                        Visibility="Collapsed">
+                        <Grid Margin="0,2,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                x:Name="ResolvedAssignmentsTitle"
+                                Text="Asignaciones realizadas"
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                x:Name="ResolvedAssignmentsCountText"
+                                Grid.Column="1"
+                                Text="0 resueltas"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="12"
+                                FontWeight="SemiBold" />
+                        </Grid>
+
+                        <ItemsControl
+                            x:Name="ResolvedAssignmentsList"
+                            ItemTemplate="{StaticResource ResolvedExtensionTemplate}"
+                            HorizontalContentAlignment="Stretch" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
