@@ -787,10 +787,12 @@
                                                 <StackPanel Spacing="2">
                                                     <TextBlock Text="TAMAÑO" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
                                                     <Button Tag="All" Content="Cualquier tamaño" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                    <Button Tag="Under10Mb" Content="Menos de 10 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                    <Button Tag="From10To50Mb" Content="10 MB a 50 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                    <Button Tag="From50To100Mb" Content="50 MB a 100 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                    <Button Tag="Over100Mb" Content="Más de 100 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Under100Mb" Content="Menos de 100 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From100To500Mb" Content="100 MB a 500 MB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From500MbTo1Gb" Content="500 MB a 1 GB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From1To5Gb" Content="1 GB a 5 GB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From5To20Gb" Content="5 GB a 20 GB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Over20Gb" Content="Más de 20 GB" Click="SizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                 </StackPanel>
                                             </Border>
                                         </Flyout>
