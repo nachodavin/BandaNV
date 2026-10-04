@@ -579,7 +579,7 @@ public sealed partial class OrganizePage : Page
             .OrderBy(group => group.Key.CategoryOrder)
             .ThenBy(group => group.Key.CategoryName, StringComparer.CurrentCultureIgnoreCase)
             .Select(group => new OrganizeCategorySummary(
-                $"{group.Key.CategoryOrder} - {group.Key.CategoryName}",
+                group.Key.CategoryName ?? "Sin categoría",
                 group.Count()))
             .ToList();
 
@@ -851,8 +851,8 @@ public sealed class OrganizePreviewFile
 
     public string CategoryDisplay =>
         IsClassified
-            ? $"{CategoryOrder} - {CategoryName}"
-            : "Sin clasificar";
+            ? CategoryName ?? string.Empty
+            : "Sin asignar";
 
     public string SizeDisplay => FormatBytes(SizeBytes);
 
@@ -908,7 +908,9 @@ public sealed class OrganizeCategoryOption
 
     public int Order { get; }
     public string Name { get; }
-    public string DisplayName => $"{Order} - {Name}";
+    // El número define el orden y el nombre de carpeta en el explorador,
+    // pero no forma parte del nombre visual de la categoría dentro de la app.
+    public string DisplayName => Name;
 }
 
 public sealed class UnassignedExtensionSummary
