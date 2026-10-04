@@ -64,6 +64,7 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Tabla principal de ejecuciones con fecha/hora, tipo, origen, cantidad de archivos y tamaño.
 - Detalle integrado de la ejecución seleccionada dentro de la misma pantalla.
 - El detalle mostrará rutas, todos los archivos afectados, categorías, tamaños, estado y disponibilidad de Undo.
+- El panel de detalle prioriza legibilidad: etiquetas funcionales usan un tamaño mínimo cercano a 11 px y los datos secundarios se mantienen en torno a 12–13 px, evitando microtexto difícil de leer.
 - Cuando una ejecución tenga muchos archivos, solo la subsección de archivos usa scroll vertical; el título "Archivos de la ejecución", el resumen, las rutas y el botón de Undo permanecen fijos.
 - Las filas de archivo reservan espacio a la derecha para separar tamaño y scrollbar.
 - Cada archivo dispone de una acción individual de eliminación alineada a la derecha únicamente cuando la ejecución seleccionada es reversible; la acción destructiva real requerirá confirmación al conectar el motor.
