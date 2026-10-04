@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using BandaNV.Core.Models;
+using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -10,8 +12,6 @@ namespace BandaNV.App.Pages;
 public sealed partial class CategoriesPage : Page
 {
     private readonly List<CategoryAdminItem> _allCategories = new();
-    private readonly HashSet<string> _unassignedExtensions =
-        new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _editorExtensions = new();
 
     public ObservableCollection<CategoryAdminItem> VisibleCategories { get; } = new();
@@ -25,42 +25,35 @@ public sealed partial class CategoriesPage : Page
     {
         InitializeComponent();
 
-        LoadPreviewCategories();
+        LoadPersistentCategories();
         RefreshCategoryList();
         UpdateCategoryMetrics();
         ClearCategoryDetails();
     }
 
-    private void LoadPreviewCategories()
+    private void LoadPersistentCategories()
     {
         _allCategories.Clear();
 
-        AddPreviewCategory("RAR", [".zip", ".rar", ".7z"], 3);
-        AddPreviewCategory("INSTALLERS", [".exe", ".msi", ".bat"], 4);
-        AddPreviewCategory("DOCUMENTS", [".pdf", ".docx", ".xlsx", ".txt"], 2);
-        AddPreviewCategory("IMAGES", [".jpg", ".jpeg", ".png", ".webp", ".avif"], 3);
-        AddPreviewCategory("GIF", [".gif"], 4);
-        AddPreviewCategory("VIDEOS", [".mp4", ".mkv", ".mov", ".avi"], 2);
-        AddPreviewCategory("AUDIO", [".mp3", ".wav", ".flac", ".aac", ".ogg"], 3);
-        AddPreviewCategory("FONTS", [".ttf", ".otf", ".woff", ".woff2"], 4);
-        AddPreviewCategory("DESIGN", [".ai", ".psd", ".indd", ".fig"], 2);
-        AddPreviewCategory("CODE", [".cs", ".ps1", ".js", ".json"], 3);
-        AddPreviewCategory("BACKUPS", [".bak", ".backup"], 4);
-        AddPreviewCategory("PROJECTS", [".sln", ".slnx", ".csproj"], 2);
-        AddPreviewCategory("TEXTURES", [".tga", ".dds", ".exr"], 3);
-        AddPreviewCategory("PACKAGES", [".nupkg", ".appx", ".msix"], 4);
-    }
+        var destinationRoot =
+            global::BandaNV.App.App.Settings.Current.DestinationFolder;
 
-    private void AddPreviewCategory(
-        string name,
-        IEnumerable<string> extensions,
-        int fileCount)
-    {
-        _allCategories.Add(new CategoryAdminItem(
-            name,
-            extensions,
-            _allCategories.Count + 1,
-            fileCount));
+        foreach (var category in global::BandaNV.App.App.Categories.GetAll())
+        {
+            _allCategories.Add(new CategoryAdminItem(
+                category.Id,
+                category.Name,
+                category.Extensions,
+                category.Order,
+                CategoryService.CountExistingFiles(
+                    destinationRoot,
+                    category.Order,
+                    category.Name),
+                CategoryService.GetFolderPath(
+                    destinationRoot,
+                    category.Order,
+                    category.Name)));
+        }
     }
 
     private void CategorySearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -142,7 +135,7 @@ public sealed partial class CategoriesPage : Page
         ShowCategoryDetails(category);
     }
 
-    private void CategoryList_DragItemsCompleted(
+    private async void CategoryList_DragItemsCompleted(
         ListViewBase sender,
         DragItemsCompletedEventArgs args)
     {
@@ -156,6 +149,8 @@ public sealed partial class CategoriesPage : Page
         _allCategories.Clear();
         _allCategories.AddRange(reordered);
         NormalizeCategoryOrder();
+        RefreshDerivedCategoryData();
+        await PersistCategoriesAsync();
 
         RefreshCategoryList(_selectedCategory);
         UpdateCategoryMetrics();
@@ -259,8 +254,9 @@ public sealed partial class CategoriesPage : Page
                 .Sum(category => category.FileCount)
                 .ToString(CultureInfo.CurrentCulture);
 
-        UnassignedExtensionsText.Text =
-            _unassignedExtensions.Count.ToString(CultureInfo.CurrentCulture);
+        // Este valor será alimentado por AnalyzeAsync cuando conectemos
+        // el escaneo real del origen. Categorías ya no inventa extensiones.
+        UnassignedExtensionsText.Text = "0";
     }
 
     private void NewCategoryButton_Click(object sender, RoutedEventArgs e)
@@ -589,7 +585,7 @@ public sealed partial class CategoriesPage : Page
         BuildCategoryEditorExtensionBadges();
     }
 
-    private void SaveCategoryEditorButton_Click(object sender, RoutedEventArgs e)
+    private async void SaveCategoryEditorButton_Click(object sender, RoutedEventArgs e)
     {
         CategoryEditorValidationText.Visibility = Visibility.Collapsed;
 
@@ -655,11 +651,20 @@ public sealed partial class CategoriesPage : Page
 
         if (_editorMode is CategoryEditorMode.Create or CategoryEditorMode.Duplicate)
         {
+            var order = _allCategories.Count + 1;
+            var destinationRoot =
+                global::BandaNV.App.App.Settings.Current.DestinationFolder;
+
             savedCategory = new CategoryAdminItem(
+                Guid.NewGuid().ToString("D"),
                 name,
                 _editorExtensions,
-                _allCategories.Count + 1,
-                0);
+                order,
+                0,
+                CategoryService.GetFolderPath(
+                    destinationRoot,
+                    order,
+                    name));
 
             _allCategories.Add(savedCategory);
         }
@@ -671,27 +676,16 @@ public sealed partial class CategoriesPage : Page
                 return;
             }
 
-            var previousExtensions = _editorCategory.Extensions.ToList();
-
-            foreach (var removed in previousExtensions.Except(
-                         _editorExtensions,
-                         StringComparer.OrdinalIgnoreCase))
-            {
-                _unassignedExtensions.Add(removed);
-            }
-
             _editorCategory.Name = name;
             _editorCategory.ReplaceExtensions(_editorExtensions);
             savedCategory = _editorCategory;
         }
 
-        foreach (var extension in _editorExtensions)
-        {
-            _unassignedExtensions.Remove(extension);
-        }
+        NormalizeCategoryOrder();
+        RefreshDerivedCategoryData();
+        await PersistCategoriesAsync();
 
         CloseCategoryEditor();
-        NormalizeCategoryOrder();
         RefreshCategoryList(savedCategory);
         UpdateCategoryMetrics();
 
@@ -745,7 +739,7 @@ public sealed partial class CategoriesPage : Page
         DeleteCategoryOverlay.Visibility = Visibility.Visible;
     }
 
-    private void ConfirmDeleteCategoryButton_Click(object sender, RoutedEventArgs e)
+    private async void ConfirmDeleteCategoryButton_Click(object sender, RoutedEventArgs e)
     {
         if (_pendingDeleteCategory is not { } category)
         {
@@ -753,15 +747,13 @@ public sealed partial class CategoriesPage : Page
             return;
         }
 
-        foreach (var extension in category.Extensions)
-        {
-            _unassignedExtensions.Add(extension);
-        }
-
         _allCategories.Remove(category);
         _selectedCategory = null;
 
         NormalizeCategoryOrder();
+        RefreshDerivedCategoryData();
+        await PersistCategoriesAsync();
+
         CloseDeleteCategoryOverlay();
         RefreshCategoryList();
         UpdateCategoryMetrics();
@@ -785,6 +777,39 @@ public sealed partial class CategoriesPage : Page
         DeleteCategoryOverlay.Visibility = Visibility.Collapsed;
         _pendingDeleteCategory = null;
     }
+
+    private void RefreshDerivedCategoryData()
+    {
+        var destinationRoot =
+            global::BandaNV.App.App.Settings.Current.DestinationFolder;
+
+        foreach (var category in _allCategories)
+        {
+            category.UpdateDerivedState(destinationRoot);
+        }
+    }
+
+    private async Task PersistCategoriesAsync()
+    {
+        try
+        {
+            await global::BandaNV.App.App.Categories.SaveAllAsync(
+                _allCategories
+                    .OrderBy(category => category.Order)
+                    .Select(category => category.ToSettings()));
+
+            CategoryDetailStatusText.Foreground =
+                (Brush)Application.Current.Resources["BandaMutedBrush"];
+        }
+        catch
+        {
+            CategoryDetailStatusText.Text =
+                "No se pudo guardar la configuración portable de categorías.";
+            CategoryDetailStatusText.Foreground =
+                (Brush)Application.Current.Resources["BandaDangerBrush"];
+            CategoryDetailStatusText.Visibility = Visibility.Visible;
+        }
+    }
 }
 
 public enum CategoryEditorMode
@@ -798,11 +823,14 @@ public enum CategoryEditorMode
 public sealed class CategoryAdminItem
 {
     public CategoryAdminItem(
+        string id,
         string name,
         IEnumerable<string> extensions,
         int order,
-        int fileCount)
+        int fileCount,
+        string folderPath)
     {
+        Id = id;
         Name = name;
         Extensions = extensions
             .Select(extension =>
@@ -810,15 +838,19 @@ public sealed class CategoryAdminItem
                     ? extension.ToLowerInvariant()
                     : $".{extension.ToLowerInvariant()}")
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
             .ToList();
         Order = order;
         FileCount = fileCount;
+        FolderPath = folderPath;
     }
 
+    public string Id { get; }
     public string Name { get; set; }
     public List<string> Extensions { get; private set; }
     public int Order { get; set; }
-    public int FileCount { get; }
+    public int FileCount { get; private set; }
+    public string FolderPath { get; private set; }
 
     public string OrderText => Order.ToString("00", CultureInfo.InvariantCulture);
 
@@ -840,9 +872,6 @@ public sealed class CategoryAdminItem
         }
     }
 
-    public string FolderPath =>
-        $@"C:\Users\Usuario\Downloads\ORGANIZADO\{Name}";
-
     public void ReplaceExtensions(IEnumerable<string> extensions)
     {
         Extensions = extensions
@@ -850,4 +879,24 @@ public sealed class CategoryAdminItem
             .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    public void UpdateDerivedState(string destinationRoot)
+    {
+        FolderPath = CategoryService.GetFolderPath(
+            destinationRoot,
+            Order,
+            Name);
+
+        FileCount = CategoryService.CountExistingFiles(
+            destinationRoot,
+            Order,
+            Name);
+    }
+
+    public CategorySettings ToSettings() =>
+        new(
+            Id,
+            Name,
+            Extensions,
+            Order);
 }
