@@ -225,7 +225,7 @@ public sealed partial class CategoriesPage : Page
     {
         return new Border
         {
-            Padding = new Thickness(8, 5),
+            Padding = new Thickness(8, 5, 8, 5),
             CornerRadius = new CornerRadius(9),
             Background =
                 (Brush)Application.Current.Resources["BandaAccentSoftBrush"],
