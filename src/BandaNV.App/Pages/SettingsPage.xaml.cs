@@ -165,7 +165,7 @@ public sealed partial class SettingsPage : Page
             $"Tema seleccionado: {value}. El cambio global de tema se conectará en la siguiente etapa de Apariencia.");
     }
 
-    private void AccentColorPicker_ColorChanged(
+    private void PrimaryColorPicker_ColorChanged(
         ColorPicker sender,
         ColorChangedEventArgs args)
     {
@@ -174,71 +174,130 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
-        ApplyAccentColor(args.NewColor);
-        AccentColorHexText.Text = ToHex(args.NewColor);
+        ApplyPrimaryColor(args.NewColor);
+        PrimaryColorHexText.Text = ToHex(args.NewColor);
         UpdateAppearancePreview();
     }
 
-    private void ResetAccentColorButton_Click(object sender, RoutedEventArgs e)
+    private void SecondaryColorPicker_ColorChanged(
+        ColorPicker sender,
+        ColorChangedEventArgs args)
     {
-        var teal = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
-        AccentColorPicker.Color = teal;
-        ApplyAccentColor(teal);
-        AccentColorHexText.Text = ToHex(teal);
-        AccentColorFlyout.Hide();
+        if (!_isPageReady)
+        {
+            return;
+        }
+
+        ApplySecondaryColor(args.NewColor);
+        SecondaryColorHexText.Text = ToHex(args.NewColor);
         UpdateAppearancePreview();
-        ShowSettingsFeedback("Color principal restablecido al teal original de BandaNV.");
     }
 
-    private static void ApplyAccentColor(Windows.UI.Color color)
+    private void ResetPrimaryColorButton_Click(object sender, RoutedEventArgs e)
     {
+        var primary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
+
+        PrimaryColorPicker.Color = primary;
+        PrimaryColorHexText.Text = ToHex(primary);
+        ApplyPrimaryColor(primary);
+        PrimaryColorFlyout.Hide();
+        UpdateAppearancePreview();
+
+        ShowSettingsFeedback("Color primario restablecido.");
+    }
+
+    private void ResetSecondaryColorButton_Click(object sender, RoutedEventArgs e)
+    {
+        var secondary = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+
+        SecondaryColorPicker.Color = secondary;
+        SecondaryColorHexText.Text = ToHex(secondary);
+        ApplySecondaryColor(secondary);
+        SecondaryColorFlyout.Hide();
+        UpdateAppearancePreview();
+
+        ShowSettingsFeedback("Color secundario restablecido al teal original.");
+    }
+
+    private static void ApplyPrimaryColor(Windows.UI.Color color)
+    {
+        SetSolidBrushColor("BandaPrimaryColorBrush", color);
+
+        var backgroundBase = Windows.UI.Color.FromArgb(255, 0x06, 0x0A, 0x0D);
+        var sidebarBase = Windows.UI.Color.FromArgb(255, 0x07, 0x0C, 0x10);
+        var cardBase = Windows.UI.Color.FromArgb(255, 0x0C, 0x12, 0x16);
+        var cardAltBase = Windows.UI.Color.FromArgb(255, 0x0D, 0x14, 0x18);
+        var popupBase = Windows.UI.Color.FromArgb(255, 0x08, 0x0E, 0x12);
+        var borderBase = Windows.UI.Color.FromArgb(255, 0x43, 0x50, 0x59);
+
+        var background = BlendColor(backgroundBase, color, 0.12);
+        var sidebar = BlendColor(sidebarBase, color, 0.16);
+        var card = BlendColor(cardBase, color, 0.18);
+        var cardAlt = BlendColor(cardAltBase, color, 0.24);
+        var navIcon = BlendColor(cardAltBase, color, 0.30);
+        var popup = BlendColor(popupBase, color, 0.18);
+        var border = BlendColor(borderBase, color, 0.18);
+        var borderStrong = BlendColor(borderBase, color, 0.30);
+        var accentCard = BlendColor(cardBase, color, 0.38);
+
+        SetSolidBrushColor("BandaBackgroundBrush", background);
+        SetSolidBrushColor("BandaAppBackgroundGradient", background);
+        SetSolidBrushColor("BandaSidebarBrush", sidebar);
+        SetSolidBrushColor("BandaSidebarGradientBrush", sidebar);
+        SetSolidBrushColor("BandaCardBrush", card);
+        SetSolidBrushColor("BandaCardAltBrush", cardAlt);
+        SetSolidBrushColor("BandaSurfaceBrush", card);
+        SetSolidBrushColor("BandaSurfaceAltBrush", cardAlt);
+        SetSolidBrushColor("BandaNavIconBrush", navIcon);
+        SetSolidBrushColor("BandaPopupSurfaceBrush", popup);
+        SetSolidBrushColor("BandaBorderBrush", WithAlpha(border, 0x4A));
+        SetSolidBrushColor("BandaBorderStrongBrush", WithAlpha(borderStrong, 0x72));
+        SetSolidBrushColor("BandaAccentCardBrush", accentCard);
+    }
+
+    private static void ApplySecondaryColor(Windows.UI.Color color)
+    {
+        SetSolidBrushColor("BandaSecondaryColorBrush", color);
         SetSolidBrushColor("BandaAccentBrush", color);
         SetSolidBrushColor("BandaAccentSoftBrush", WithAlpha(color, 0x24));
         SetSolidBrushColor("BandaAccentFaintBrush", WithAlpha(color, 0x12));
         SetSolidBrushColor("BandaNavActiveBrush", WithAlpha(color, 0x22));
+        SetSolidBrushColor("BandaAccentGradientBrush", color);
 
-        if (Application.Current.Resources["BandaGlowGradientBrush"] is LinearGradientBrush glow &&
-            glow.GradientStops.Count >= 4)
-        {
-            glow.GradientStops[0].Color = WithAlpha(color, 0x00);
-            glow.GradientStops[1].Color = WithAlpha(color, 0x70);
-            glow.GradientStops[2].Color = WithAlpha(color, 0x25);
-            glow.GradientStops[3].Color = WithAlpha(color, 0x00);
-        }
+        var hover = BlendColor(color, Windows.UI.Color.FromArgb(255, 255, 255, 255), 0.14);
+        var pressed = ScaleColor(color, 0.80);
+        var secondaryHighlight = BlendColor(
+            color,
+            Windows.UI.Color.FromArgb(255, 255, 255, 255),
+            0.18);
+        var foreground = GetReadableForeground(color);
 
-        if (Application.Current.Resources["BandaAccentGradientBrush"] is LinearGradientBrush accentGradient &&
-            accentGradient.GradientStops.Count >= 3)
-        {
-            accentGradient.GradientStops[0].Color = color;
-            accentGradient.GradientStops[1].Color = ScaleColor(color, 0.82);
-            accentGradient.GradientStops[2].Color = ScaleColor(color, 0.54);
-        }
+        SetSolidBrushColor("BandaSecondaryAccentBrush", secondaryHighlight);
+        SetSolidBrushColor("BandaActionHoverBrush", hover);
+        SetSolidBrushColor("BandaActionPressedBrush", pressed);
+        SetSolidBrushColor("BandaActionForegroundBrush", foreground);
 
-        if (Application.Current.Resources["BandaAccentCardBrush"] is LinearGradientBrush accentCard &&
-            accentCard.GradientStops.Count >= 1)
-        {
-            accentCard.GradientStops[0].Color = WithAlpha(color, 0x2B);
-        }
+        SetSolidBrushColor("ToggleSwitchFillOn", color);
+        SetSolidBrushColor("ToggleSwitchFillOnPointerOver", hover);
+        SetSolidBrushColor("ToggleSwitchFillOnPressed", pressed);
+        SetSolidBrushColor("ToggleSwitchStrokeOn", color);
+        SetSolidBrushColor("ToggleSwitchStrokeOnPointerOver", hover);
+        SetSolidBrushColor("ToggleSwitchStrokeOnPressed", pressed);
+        SetSolidBrushColor("ToggleSwitchKnobFillOn", foreground);
+        SetSolidBrushColor("ToggleSwitchKnobFillOnPointerOver", foreground);
+        SetSolidBrushColor("ToggleSwitchKnobFillOnPressed", foreground);
+    }
 
-        if (Application.Current.Resources["BandaAppBackgroundGradient"] is LinearGradientBrush appBackground &&
-            appBackground.GradientStops.Count >= 6)
-        {
-            var darkA = Windows.UI.Color.FromArgb(255, 0x0D, 0x11, 0x16);
-            var darkB = Windows.UI.Color.FromArgb(255, 0x08, 0x0D, 0x11);
+    private static Windows.UI.Color GetReadableForeground(Windows.UI.Color background)
+    {
+        var luminance =
+            (0.2126 * background.R +
+             0.7152 * background.G +
+             0.0722 * background.B) / 255.0;
 
-            appBackground.GradientStops[2].Color = BlendColor(darkA, color, 0.12);
-            appBackground.GradientStops[3].Color = BlendColor(darkA, color, 0.28);
-            appBackground.GradientStops[4].Color = BlendColor(darkB, color, 0.10);
-        }
-
-        if (Application.Current.Resources["BandaSidebarGradientBrush"] is LinearGradientBrush sidebar &&
-            sidebar.GradientStops.Count >= 3)
-        {
-            var sidebarBase = Windows.UI.Color.FromArgb(255, 0x0B, 0x15, 0x18);
-            sidebar.GradientStops[2].Color = WithAlpha(
-                BlendColor(sidebarBase, color, 0.10),
-                0xD9);
-        }
+        return luminance >= 0.56
+            ? Windows.UI.Color.FromArgb(255, 0x07, 0x11, 0x0F)
+            : Windows.UI.Color.FromArgb(255, 0xF5, 0xF8, 0xFA);
     }
 
     private static void SetSolidBrushColor(string resourceKey, Windows.UI.Color color)
@@ -308,7 +367,9 @@ public sealed partial class SettingsPage : Page
         }
 
         AppearancePreviewDescriptionText.Text =
-            $"{ThemeValueText.Text.ToLowerInvariant()} · {AccentColorHexText.Text}";
+            $"{ThemeValueText.Text.ToLowerInvariant()} · " +
+            $"primario {PrimaryColorHexText.Text} · " +
+            $"secundario {SecondaryColorHexText.Text}";
     }
 
     private void ConflictBehaviorOptionButton_Click(object sender, RoutedEventArgs e)
@@ -512,7 +573,8 @@ public sealed partial class SettingsPage : Page
             StartWithWindows = StartWithWindowsToggle.IsOn,
             AutoUpdate = AutoUpdateToggle.IsOn,
             Theme = ThemeValueText.Text,
-            AccentColor = AccentColorHexText.Text,
+            PrimaryColor = PrimaryColorHexText.Text,
+            SecondaryColor = SecondaryColorHexText.Text,
             Animations = AnimationsToggle.IsOn,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
@@ -553,18 +615,34 @@ public sealed partial class SettingsPage : Page
         SaveHistoryToggle.IsOn = backup.SaveHistory;
         HistoryRetentionValueText.Text = backup.HistoryRetention;
 
-        Windows.UI.Color accentColor;
-        if (!TryParseHexColor(backup.AccentColor, out accentColor))
+        var defaultPrimary =
+            Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
+        var defaultSecondary =
+            Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+
+        if (!TryParseHexColor(backup.PrimaryColor, out var primaryColor))
         {
-            accentColor = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+            primaryColor = defaultPrimary;
         }
 
-        AccentColorPicker.Color = accentColor;
-        AccentColorHexText.Text = ToHex(accentColor);
+        var secondarySource = string.IsNullOrWhiteSpace(backup.SecondaryColor)
+            ? backup.AccentColor
+            : backup.SecondaryColor;
+
+        if (!TryParseHexColor(secondarySource, out var secondaryColor))
+        {
+            secondaryColor = defaultSecondary;
+        }
+
+        PrimaryColorPicker.Color = primaryColor;
+        PrimaryColorHexText.Text = ToHex(primaryColor);
+        SecondaryColorPicker.Color = secondaryColor;
+        SecondaryColorHexText.Text = ToHex(secondaryColor);
 
         _isPageReady = true;
 
-        ApplyAccentColor(accentColor);
+        ApplyPrimaryColor(primaryColor);
+        ApplySecondaryColor(secondaryColor);
         UpdateAppearancePreview();
         SetSettingsSection(_currentSection);
     }
@@ -631,7 +709,8 @@ public sealed partial class SettingsPage : Page
 
     private void ResetVisibleSettingsToDefaults()
     {
-        var teal = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+        var primary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
+        var secondary = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
 
         _isPageReady = false;
 
@@ -645,8 +724,10 @@ public sealed partial class SettingsPage : Page
         AutoUpdateToggle.IsOn = true;
 
         ThemeValueText.Text = "Oscuro";
-        AccentColorPicker.Color = teal;
-        AccentColorHexText.Text = ToHex(teal);
+        PrimaryColorPicker.Color = primary;
+        PrimaryColorHexText.Text = ToHex(primary);
+        SecondaryColorPicker.Color = secondary;
+        SecondaryColorHexText.Text = ToHex(secondary);
         AnimationsToggle.IsOn = true;
 
         PreviewBeforeOrganizeToggle.IsOn = true;
@@ -666,7 +747,8 @@ public sealed partial class SettingsPage : Page
 
         _isPageReady = true;
 
-        ApplyAccentColor(teal);
+        ApplyPrimaryColor(primary);
+        ApplySecondaryColor(secondary);
         UpdateAppearancePreview();
     }
 
@@ -738,7 +820,13 @@ internal sealed class SettingsBackupModel
     public bool AutoUpdate { get; set; } = true;
 
     public string Theme { get; set; } = "Oscuro";
-    public string AccentColor { get; set; } = "#4FE0C6";
+    public string PrimaryColor { get; set; } = "#123A34";
+    public string SecondaryColor { get; set; } = "#4FE0C6";
+
+    // Compatibilidad con backups creados durante la primera maqueta
+    // que solo tenían un color de acento.
+    public string AccentColor { get; set; } = string.Empty;
+
     public bool Animations { get; set; } = true;
 
     public bool PreviewBeforeOrganize { get; set; } = true;
