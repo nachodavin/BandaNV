@@ -800,10 +800,12 @@ public sealed partial class HistoryPage : Page
 
         if (sender is not Button { Tag: string fileName } ||
             executions.Count != 1 ||
-            executions[0] is not HistoryExecutionPreview { CanUndo: true } execution)
+            !executions[0].CanUndo)
         {
             return;
         }
+
+        var execution = executions[0];
 
         var file = execution.Files.FirstOrDefault(candidate =>
             string.Equals(candidate.Name, fileName, StringComparison.Ordinal));
@@ -838,10 +840,12 @@ public sealed partial class HistoryPage : Page
         var executions = GetSelectedHistoryExecutions();
 
         if (executions.Count != 1 ||
-            executions[0] is not HistoryExecutionPreview { CanUndo: true } execution)
+            !executions[0].CanUndo)
         {
             return;
         }
+
+        var execution = executions[0];
 
         var deletedCount = execution.Files.Count(file => file.IsDeleted);
         var recoverableCount = Math.Max(0, execution.FileCount - deletedCount);
