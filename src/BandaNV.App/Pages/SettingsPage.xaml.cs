@@ -277,6 +277,13 @@ public sealed partial class SettingsPage : Page
         SetSolidBrushColor("BandaActionPressedBrush", pressed);
         SetSolidBrushColor("BandaActionForegroundBrush", foreground);
 
+        SetColorResource("BandaActionBaseColor", color);
+        SetColorResource("BandaActionHoverColor", hover);
+        SetColorResource("BandaActionPressedColor", pressed);
+        SetColorResource("BandaActionForegroundColor", foreground);
+        SetColorResource("BandaSelectionColor", WithAlpha(color, 0x24));
+        SetColorResource("BandaSelectionHoverColor", WithAlpha(color, 0x30));
+
         SetSolidBrushColor("ToggleSwitchFillOn", color);
         SetSolidBrushColor("ToggleSwitchFillOnPointerOver", hover);
         SetSolidBrushColor("ToggleSwitchFillOnPressed", pressed);
@@ -306,6 +313,11 @@ public sealed partial class SettingsPage : Page
         {
             brush.Color = color;
         }
+    }
+
+    private static void SetColorResource(string resourceKey, Windows.UI.Color color)
+    {
+        Application.Current.Resources[resourceKey] = color;
     }
 
     private static Windows.UI.Color WithAlpha(Windows.UI.Color color, byte alpha) =>
