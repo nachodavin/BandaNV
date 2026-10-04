@@ -42,6 +42,9 @@
             <SolidColorBrush x:Key="BandaActionHoverBrush" Color="#67E7D2" />
             <SolidColorBrush x:Key="BandaActionPressedBrush" Color="#39B9A7" />
             <SolidColorBrush x:Key="BandaActionForegroundBrush" Color="#07110F" />
+            <SolidColorBrush x:Key="BandaActionDisabledBackgroundBrush" Color="#151D262F" />
+            <SolidColorBrush x:Key="BandaActionDisabledForegroundBrush" Color="#65747D" />
+            <SolidColorBrush x:Key="BandaActionDisabledBorderBrush" Color="#35424E59" />
 
             <!-- ToggleSwitch: ON siempre usa el color secundario. -->
             <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#4FE0C6" />
@@ -135,7 +138,7 @@
                 <Setter Property="CornerRadius" Value="11" />
                 <Setter Property="Background" Value="{StaticResource BandaAccentBrush}" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Foreground" Value="#07110F" />
+                <Setter Property="Foreground" Value="{StaticResource BandaActionForegroundBrush}" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
