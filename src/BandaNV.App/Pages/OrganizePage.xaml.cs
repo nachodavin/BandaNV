@@ -201,6 +201,7 @@ public sealed partial class OrganizePage : Page
     private void BuildPreviewData()
     {
         _files.Clear();
+        AssignmentFeedbackBorder.Visibility = Visibility.Collapsed;
 
         AddGeneratedFiles(
             prefix: "IMG",
