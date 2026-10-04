@@ -167,20 +167,33 @@
                             FontSize="12" />
                     </StackPanel>
 
-                    <ComboBox
+                    <Button
                         Grid.Column="1"
                         Tag="{x:Bind ItemId}"
-                        ItemsSource="{x:Bind CategoryOptions}"
-                        DisplayMemberPath="DisplayName"
-                        SelectedItem="{x:Bind SelectedCategory, Mode=OneTime}"
-                        SelectionChanged="PreviewCategoryComboBox_SelectionChanged"
-                        PlaceholderText="Elegir categoría"
+                        Click="PreviewCategorySelectorButton_Click"
                         Width="190"
-                        MinHeight="36"
-                        Padding="10,4"
-                        FontSize="13"
+                        Style="{StaticResource BandaCompactSelectorButtonStyle}"
                         HorizontalAlignment="Left"
-                        VerticalAlignment="Center" />
+                        VerticalAlignment="Center">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Text="{x:Bind SelectedCategoryDisplayName}"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="13"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="⌄"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="13"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
 
                     <TextBlock
                         Grid.Column="2"
@@ -230,7 +243,8 @@
         </DataTemplate>
     </Page.Resources>
 
-    <Grid Padding="34,32,34,40">
+    <Grid>
+        <Grid Padding="34,32,34,40">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -866,6 +880,202 @@
                             Foreground="{StaticResource BandaMutedStrongBrush}" />
                     </StackPanel>
                 </StackPanel>
+            </Border>
+        </Grid>
+        </Grid>
+
+        <!-- Modal global BandaNV para asignación de extensiones -->
+        <Grid
+            x:Name="AssignmentOverlay"
+            Canvas.ZIndex="100"
+            Visibility="Collapsed">
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="AssignmentBackdrop_Tapped" />
+
+            <Border
+                Width="620"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Grid RowSpacing="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <TextBlock
+                                Text="+"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="AssignmentOverlayTitleText"
+                                Text="Asignar extensión"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="AssignmentHelperText"
+                                Text=""
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="13"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CloseAssignmentOverlayButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" Spacing="12">
+                        <Border
+                            Padding="16"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaCardBrush}"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="8">
+                                <TextBlock
+                                    Text="ASIGNAR A CATEGORÍA"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+
+                                <Button
+                                    x:Name="AssignmentCategorySelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="AssignmentCategoryValueText"
+                                            Text="Elegir categoría"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            TextTrimming="CharacterEllipsis"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="⌄"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="AssignmentCategoryFlyout"
+                                            Placement="BottomEdgeAlignedLeft"
+                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="320"
+                                                MaxHeight="330"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <ScrollViewer
+                                                    VerticalScrollBarVisibility="Auto"
+                                                    HorizontalScrollBarVisibility="Disabled">
+                                                    <StackPanel
+                                                        x:Name="AssignmentCategoryOptionsPanel"
+                                                        Margin="0,0,12,0"
+                                                        Spacing="2" />
+                                                </ScrollViewer>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+
+                                <StackPanel
+                                    x:Name="AssignmentCreateCategoryPanel"
+                                    Spacing="8"
+                                    Visibility="Collapsed">
+                                    <TextBox
+                                        x:Name="AssignmentCategoryNameTextBox"
+                                        Header="Nombre de la nueva categoría"
+                                        PlaceholderText="Ej: MODELOS 3D"
+                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                        BorderThickness="1" />
+                                    <TextBlock
+                                        x:Name="AssignmentCreateCategoryInfoText"
+                                        Text=""
+                                        Foreground="{StaticResource BandaMutedBrush}"
+                                        FontSize="12"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <Button
+                                    x:Name="AssignmentToggleCreateCategoryButton"
+                                    Content="Crear nueva categoría"
+                                    Click="AssignmentToggleCreateCategoryButton_Click"
+                                    Style="{StaticResource BandaPopupGhostButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    Foreground="{StaticResource BandaAccentBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <CheckBox
+                            x:Name="AssignmentRememberCheckBox"
+                            Content="Recordar esta asignación para futuras organizaciones"
+                            IsChecked="False"
+                            Foreground="{StaticResource BandaMutedStrongBrush}" />
+
+                        <TextBlock
+                            x:Name="AssignmentValidationText"
+                            Text=""
+                            Foreground="{StaticResource OrganizeWarningBrush}"
+                            FontSize="12"
+                            TextWrapping="Wrap"
+                            Visibility="Collapsed" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="2" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Cancelar"
+                            Click="CloseAssignmentOverlayButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+
+                        <Button
+                            Grid.Column="2"
+                            Content="Guardar asignación"
+                            Click="SaveAssignmentOverlayButton_Click"
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                    </Grid>
+                </Grid>
             </Border>
         </Grid>
     </Grid>
