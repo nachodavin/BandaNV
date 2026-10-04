@@ -177,7 +177,8 @@
                             <Border
                                 Grid.Column="0"
                                 Style="{StaticResource BandaCardStyle}"
-                                Padding="20">
+                                Padding="24"
+                                MinHeight="250">
 
                                 <StackPanel Spacing="16">
                                     <StackPanel Spacing="4">
@@ -261,7 +262,8 @@
                             <Border
                                 Grid.Column="1"
                                 Style="{StaticResource BandaCardStyle}"
-                                Padding="20">
+                                Padding="24"
+                                MinHeight="250">
 
                                 <StackPanel Spacing="16">
                                     <StackPanel Spacing="4">
@@ -434,25 +436,76 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="190" />
                                         </Grid.ColumnDefinitions>
+
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Densidad" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Espaciado general de controles." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            <TextBlock Text="Color principal" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Personalizá el acento principal de BandaNV." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <Button Grid.Column="1" Style="{StaticResource BandaSelectorButtonStyle}">
-                                            <Grid ColumnSpacing="8">
+
+                                        <Button
+                                            x:Name="AccentColorSelectorButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="9">
                                                 <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock x:Name="DensityValueText" Text="Cómoda" Foreground="{StaticResource BandaTextBrush}" FontSize="13" />
-                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+
+                                                <Ellipse
+                                                    x:Name="AccentColorPreviewEllipse"
+                                                    Width="16"
+                                                    Height="16"
+                                                    Fill="{StaticResource BandaAccentBrush}"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    x:Name="AccentColorHexText"
+                                                    Grid.Column="1"
+                                                    Text="#4FE0C6"
+                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                    FontSize="13"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Text="⌄"
+                                                    Foreground="{StaticResource BandaAccentBrush}"
+                                                    VerticalAlignment="Center" />
                                             </Grid>
+
                                             <Button.Flyout>
-                                                <Flyout x:Name="DensityFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
-                                                    <Border Width="200" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
-                                                        <StackPanel Spacing="2">
-                                                            <Button Tag="Cómoda" Content="Cómoda" Click="DensityOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                            <Button Tag="Compacta" Content="Compacta" Click="DensityOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                <Flyout
+                                                    x:Name="AccentColorFlyout"
+                                                    Placement="BottomEdgeAlignedLeft"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border
+                                                        Width="330"
+                                                        Padding="16"
+                                                        CornerRadius="16"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+
+                                                        <StackPanel Spacing="12">
+                                                            <StackPanel Spacing="3">
+                                                                <TextBlock Text="COLOR PRINCIPAL" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                                <TextBlock Text="Elegí cualquier color RGB para la identidad de BandaNV." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                                            </StackPanel>
+
+                                                            <ColorPicker
+                                                                x:Name="AccentColorPicker"
+                                                                Color="#FF4FE0C6"
+                                                                IsAlphaEnabled="False"
+                                                                ColorChanged="AccentColorPicker_ColorChanged" />
+
+                                                            <Button
+                                                                Content="Restablecer teal"
+                                                                Click="ResetAccentColorButton_Click"
+                                                                Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                                                HorizontalAlignment="Stretch"
+                                                                HorizontalContentAlignment="Center" />
                                                         </StackPanel>
                                                     </Border>
                                                 </Flyout>
@@ -834,11 +887,11 @@
                                 <ColumnDefinition Width="0.92*" />
                             </Grid.ColumnDefinitions>
 
-                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20">
+                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20" MinHeight="235">
                                 <StackPanel Spacing="16">
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Buscar e indexación" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                        <TextBlock Text="Estado del índice que alimentará la búsqueda real de archivos." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                        <TextBlock Text="Copia de seguridad" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Guardá o recuperá las preferencias de BandaNV en un archivo propio del programa." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
                                     </StackPanel>
 
                                     <Border
@@ -855,13 +908,13 @@
                                             </Grid.ColumnDefinitions>
 
                                             <StackPanel Spacing="4">
-                                                <TextBlock Text="ÍNDICE DE BUSCAR" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
-                                                <TextBlock x:Name="SearchIndexStatusText" Text="Listo para conectar" Foreground="{StaticResource BandaTextBrush}" FontSize="17" FontWeight="SemiBold" />
-                                                <TextBlock x:Name="SearchIndexDetailText" Text="Maqueta · todavía sin índice persistente" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                                <TextBlock Text="BACKUP DE CONFIGURACIÓN" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                <TextBlock x:Name="BackupStatusText" Text="Listo para exportar" Foreground="{StaticResource BandaTextBrush}" FontSize="17" FontWeight="SemiBold" />
+                                                <TextBlock x:Name="BackupDetailText" Text="Formato .bandanv · elegís el nombre y la ubicación" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                             </StackPanel>
 
                                             <Border Grid.Column="1" Width="38" Height="38" CornerRadius="12" Background="{StaticResource BandaAccentSoftBrush}" VerticalAlignment="Center">
-                                                <SymbolIcon Symbol="Find" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <SymbolIcon Symbol="Save" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                         </Grid>
                                     </Border>
@@ -871,27 +924,25 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <Button Content="Reconstruir índice" Click="RebuildIndexButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1" Content="Abrir datos de BandaNV" Click="OpenDataFolderButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <Button Content="Exportar backup" Click="ExportSettingsButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="1" Content="Importar backup" Click="ImportSettingsButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20">
+                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20" MinHeight="235">
                                 <StackPanel Spacing="16">
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="Datos y mantenimiento" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                        <TextBlock Text="Copiá o recuperá la configuración del programa y accedé a herramientas de mantenimiento." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                        <TextBlock Text="Accedé a los datos locales del programa o volvé a la configuración inicial." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
                                     </StackPanel>
 
-                                    <Grid ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Button Content="Exportar configuración" Click="ExportSettingsButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1" Content="Importar configuración" Click="ImportSettingsButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
-                                    </Grid>
+                                    <Button
+                                        Content="Abrir datos de BandaNV"
+                                        Click="OpenDataFolderButton_Click"
+                                        Style="{StaticResource SettingsInlineButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center" />
 
                                     <Border Height="1" Background="{StaticResource BandaBorderBrush}" Margin="0,4" />
 
@@ -942,7 +993,7 @@
                                 <StackPanel Spacing="8">
                                     <StackPanel Orientation="Horizontal" Spacing="9">
                                         <Ellipse Width="9" Height="9" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Text="BandaNV" Foreground="{StaticResource BandaTextBrush}" FontSize="26" FontWeight="SemiBold" />
+                                        <TextBlock Text="BandaNV by Nacho" Foreground="{StaticResource BandaTextBrush}" FontSize="26" FontWeight="SemiBold" />
                                     </StackPanel>
                                     <TextBlock Text="Organizador de archivos · versión 2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
                                     <TextBlock
@@ -955,8 +1006,29 @@
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
-                                    <Button Content="Buscar actualizaciones" Click="CheckUpdatesButton_Click" Style="{StaticResource BandaPopupPrimaryButtonStyle}" MinWidth="190" HorizontalContentAlignment="Center" />
-                                    <Button Content="Notas de versión" Click="ReleaseNotesButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" MinWidth="190" HorizontalContentAlignment="Center" />
+                                    <Button
+                                        Content="Buscar actualizaciones ahora"
+                                        Click="CheckUpdatesButton_Click"
+                                        FontSize="14"
+                                        MinWidth="230"
+                                        MinHeight="46"
+                                        HorizontalContentAlignment="Center"
+                                        Padding="18,11"
+                                        CornerRadius="12"
+                                        FontWeight="SemiBold">
+                                        <Button.Resources>
+                                            <SolidColorBrush x:Key="ButtonBackground" Color="#4FE0C6" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#67E7D2" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#39B9A7" />
+                                            <SolidColorBrush x:Key="ButtonForeground" Color="#07110F" />
+                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#07110F" />
+                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#07110F" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#4FE0C6" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#67E7D2" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#39B9A7" />
+                                        </Button.Resources>
+                                    </Button>
+                                    <Button Content="Notas de versión" Click="ReleaseNotesButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" MinWidth="230" HorizontalContentAlignment="Center" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -977,15 +1049,15 @@
 
                             <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="18">
                                 <StackPanel Spacing="5">
-                                    <TextBlock Text="CANAL" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
-                                    <TextBlock Text="v2.0" Foreground="{StaticResource BandaAccentBrush}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="PLATAFORMA" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                    <TextBlock Text="Windows · x64" Foreground="{StaticResource BandaAccentBrush}" FontSize="18" FontWeight="SemiBold" />
                                 </StackPanel>
                             </Border>
 
                             <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="18">
                                 <StackPanel Spacing="5">
-                                    <TextBlock Text="ESTADO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
-                                    <TextBlock Text="En desarrollo" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="BACKUP" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                    <TextBlock Text=".bandanv" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" />
                                 </StackPanel>
                             </Border>
                         </Grid>
