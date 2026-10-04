@@ -80,6 +80,34 @@ public sealed class SettingsService
         await SaveAsync(AppSettings.CreateDefault(), cancellationToken);
     }
 
+    public async Task UpdateCategoriesAsync(
+        IEnumerable<CategorySettings> categories,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(categories);
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            PortablePaths.EnsureDirectories();
+
+            Current.Categories = categories
+                .Select(category => new CategorySettings(
+                    category.Id,
+                    category.Name,
+                    category.Extensions,
+                    category.Order))
+                .ToList();
+
+            Current = Normalize(Current);
+            await SaveInternalAsync(Current, cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     private static AppSettings Normalize(AppSettings settings)
     {
         settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
