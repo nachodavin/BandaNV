@@ -13,6 +13,7 @@ public sealed partial class OrganizePage : Page
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<ResolvedExtensionAssignment> _resolvedAssignments = new();
+    private bool _isRefreshingPreview;
 
     public OrganizePage()
     {
@@ -116,7 +117,7 @@ public sealed partial class OrganizePage : Page
 
         foreach (var file in affectedFiles)
         {
-            file.AssignTo(selectedCategory);
+            file.AssignTo(selectedCategory, OrganizeAssignmentSource.ExtensionRule);
         }
 
         var rememberAssignment = rememberCheckBox.IsChecked == true;
@@ -132,11 +133,72 @@ public sealed partial class OrganizePage : Page
         _resolvedAssignments.Add(new ResolvedExtensionAssignment(
             normalizedExtension,
             affectedFiles.Count,
-            selectedCategory.DisplayName,
+            selectedCategory,
+            rememberAssignment,
             rememberAssignment
                 ? "Asignación recordada para próximas organizaciones"
                 : "Asignación aplicada solo a esta organización"));
 
+        RefreshPreview();
+    }
+
+    private void RevertExtensionAssignmentButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string extension } ||
+            string.IsNullOrWhiteSpace(extension))
+        {
+            return;
+        }
+
+        var assignment = _resolvedAssignments.FirstOrDefault(item =>
+            item.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase));
+
+        if (assignment is null)
+        {
+            return;
+        }
+
+        foreach (var file in _files.Where(file =>
+                     file.Extension.Equals(assignment.Extension, StringComparison.OrdinalIgnoreCase) &&
+                     file.AssignmentSource == OrganizeAssignmentSource.ExtensionRule &&
+                     file.IsAssignedTo(assignment.CategoryOrder, assignment.CategoryName)))
+        {
+            file.ClearAssignment();
+        }
+
+        if (assignment.WasRemembered &&
+            _rememberedAssignments.TryGetValue(assignment.Extension, out var rememberedCategory) &&
+            rememberedCategory.Order == assignment.CategoryOrder &&
+            rememberedCategory.Name.Equals(assignment.CategoryName, StringComparison.OrdinalIgnoreCase))
+        {
+            _rememberedAssignments.Remove(assignment.Extension);
+        }
+
+        _resolvedAssignments.Remove(assignment);
+        RefreshPreview();
+    }
+
+    private void PreviewCategoryComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isRefreshingPreview ||
+            sender is not ComboBox
+            {
+                Tag: string itemId,
+                SelectedItem: OrganizeCategoryOption selectedCategory
+            })
+        {
+            return;
+        }
+
+        var file = _files.FirstOrDefault(item =>
+            item.ItemId.Equals(itemId, StringComparison.Ordinal));
+
+        if (file is null || file.IsAssignedTo(selectedCategory.Order, selectedCategory.Name))
+        {
+            return;
+        }
+
+        file.AssignTo(selectedCategory, OrganizeAssignmentSource.IndividualOverride);
         RefreshPreview();
     }
 
@@ -303,16 +365,22 @@ public sealed partial class OrganizePage : Page
         long baseSizeBytes)
     {
         var normalizedExtension = NormalizeExtension(extension);
+        var modificationAnchor = DateTime.Now.AddMinutes(-(_files.Count * 19));
 
         for (var index = 1; index <= count; index++)
         {
             var sizeVariation = Math.Max(1, baseSizeBytes / 10);
             var sizeBytes = baseSizeBytes + (sizeVariation * (index - 1));
+            var modifiedAt = modificationAnchor
+                .AddHours(-(index % 5))
+                .AddMinutes(-(index * 13));
 
             _files.Add(new OrganizePreviewFile(
                 fileName: $"{prefix}_{index:00}{normalizedExtension}",
                 extension: normalizedExtension,
                 sizeBytes: sizeBytes,
+                modifiedAt: modifiedAt,
+                categoryOptions: _categories,
                 categoryOrder: categoryOrder,
                 categoryName: categoryName));
         }
@@ -336,13 +404,14 @@ public sealed partial class OrganizePage : Page
 
             foreach (var file in affectedFiles)
             {
-                file.AssignTo(category);
+                file.AssignTo(category, OrganizeAssignmentSource.ExtensionRule);
             }
 
             _resolvedAssignments.Add(new ResolvedExtensionAssignment(
                 extensionGroup.Key,
                 affectedFiles.Count,
-                category.DisplayName,
+                category,
+                wasRemembered: true,
                 "Asignación recordada aplicada automáticamente"));
         }
     }
@@ -384,12 +453,26 @@ public sealed partial class OrganizePage : Page
                 group.Count()))
             .ToList();
 
+        foreach (var assignment in _resolvedAssignments)
+        {
+            var activeCount = _files.Count(file =>
+                file.Extension.Equals(assignment.Extension, StringComparison.OrdinalIgnoreCase) &&
+                file.AssignmentSource == OrganizeAssignmentSource.ExtensionRule &&
+                file.IsAssignedTo(assignment.CategoryOrder, assignment.CategoryName));
+
+            assignment.UpdateActiveFileCount(activeCount);
+        }
+
+        _isRefreshingPreview = true;
+
         PreviewFilesList.ItemsSource = null;
         PreviewFilesList.ItemsSource = _files
             .OrderBy(file => file.IsClassified ? 0 : 1)
             .ThenBy(file => file.CategoryOrder ?? int.MaxValue)
             .ThenBy(file => file.FileName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+
+        _isRefreshingPreview = false;
 
         UnassignedExtensionsList.ItemsSource = null;
         UnassignedExtensionsList.ItemsSource = unassignedExtensions;
@@ -582,32 +665,57 @@ public sealed partial class OrganizePage : Page
     }
 }
 
+public enum OrganizeAssignmentSource
+{
+    Unclassified,
+    InitialCategory,
+    ExtensionRule,
+    IndividualOverride
+}
+
 public sealed class OrganizePreviewFile
 {
     public OrganizePreviewFile(
         string fileName,
         string extension,
         long sizeBytes,
+        DateTime modifiedAt,
+        IReadOnlyList<OrganizeCategoryOption> categoryOptions,
         int? categoryOrder,
         string? categoryName)
     {
+        ItemId = Guid.NewGuid().ToString("N");
         FileName = fileName;
         Extension = extension;
         SizeBytes = sizeBytes;
+        ModifiedAt = modifiedAt;
+        CategoryOptions = categoryOptions;
         CategoryOrder = categoryOrder;
         CategoryName = categoryName;
+        AssignmentSource =
+            categoryOrder.HasValue && !string.IsNullOrWhiteSpace(categoryName)
+                ? OrganizeAssignmentSource.InitialCategory
+                : OrganizeAssignmentSource.Unclassified;
     }
 
+    public string ItemId { get; }
     public string FileName { get; }
     public string Extension { get; }
     public long SizeBytes { get; }
+    public DateTime ModifiedAt { get; }
+    public IReadOnlyList<OrganizeCategoryOption> CategoryOptions { get; }
 
     public int? CategoryOrder { get; private set; }
     public string? CategoryName { get; private set; }
+    public OrganizeAssignmentSource AssignmentSource { get; private set; }
 
     public bool IsClassified =>
         CategoryOrder.HasValue &&
         !string.IsNullOrWhiteSpace(CategoryName);
+
+    public OrganizeCategoryOption? SelectedCategory =>
+        CategoryOptions.FirstOrDefault(category =>
+            IsAssignedTo(category.Order, category.Name));
 
     public string ExtensionDisplay => Extension.ToUpperInvariant();
 
@@ -616,23 +724,29 @@ public sealed class OrganizePreviewFile
             ? $"{CategoryOrder} - {CategoryName}"
             : "Sin clasificar";
 
-    public string DestinationDisplay =>
-        IsClassified
-            ? $"{CategoryOrder} - {CategoryName}"
-            : "Sin destino";
-
     public string SizeDisplay => FormatBytes(SizeBytes);
 
-    public Visibility ClassifiedVisibility =>
-        IsClassified ? Visibility.Visible : Visibility.Collapsed;
+    public string ModifiedDisplay =>
+        ModifiedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("es-AR"));
 
-    public Visibility UnclassifiedVisibility =>
-        IsClassified ? Visibility.Collapsed : Visibility.Visible;
+    public bool IsAssignedTo(int order, string name) =>
+        CategoryOrder == order &&
+        CategoryName?.Equals(name, StringComparison.OrdinalIgnoreCase) == true;
 
-    public void AssignTo(OrganizeCategoryOption category)
+    public void AssignTo(
+        OrganizeCategoryOption category,
+        OrganizeAssignmentSource source)
     {
         CategoryOrder = category.Order;
         CategoryName = category.Name;
+        AssignmentSource = source;
+    }
+
+    public void ClearAssignment()
+    {
+        CategoryOrder = null;
+        CategoryName = null;
+        AssignmentSource = OrganizeAssignmentSource.Unclassified;
     }
 
     private static string FormatBytes(long bytes)
@@ -691,21 +805,38 @@ public sealed class ResolvedExtensionAssignment
     public ResolvedExtensionAssignment(
         string extension,
         int fileCount,
-        string destinationText,
+        OrganizeCategoryOption category,
+        bool wasRemembered,
         string persistenceText)
     {
         Extension = extension;
-        FileCount = fileCount;
-        DestinationText = $"→ {destinationText}";
+        OriginalFileCount = fileCount;
+        ActiveFileCount = fileCount;
+        CategoryOrder = category.Order;
+        CategoryName = category.Name;
+        DestinationText = $"→ {category.DisplayName}";
+        WasRemembered = wasRemembered;
         PersistenceText = persistenceText;
     }
 
     public string Extension { get; }
-    public int FileCount { get; }
+    public int OriginalFileCount { get; }
+    public int ActiveFileCount { get; private set; }
+    public int CategoryOrder { get; }
+    public string CategoryName { get; }
     public string DestinationText { get; }
+    public bool WasRemembered { get; }
     public string PersistenceText { get; }
+
     public string FilesText =>
-        $"{FileCount} archivo{(FileCount == 1 ? string.Empty : "s")}";
+        ActiveFileCount == OriginalFileCount
+            ? $"{OriginalFileCount} archivo{(OriginalFileCount == 1 ? string.Empty : "s")}"
+            : $"{ActiveFileCount} de {OriginalFileCount} archivos";
+
+    public void UpdateActiveFileCount(int activeFileCount)
+    {
+        ActiveFileCount = Math.Clamp(activeFileCount, 0, OriginalFileCount);
+    }
 }
 
 public sealed class OrganizeCategorySummary
