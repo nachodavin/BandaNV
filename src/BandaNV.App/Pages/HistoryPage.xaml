@@ -315,14 +315,14 @@
                                     <TextBlock
                                         Text="Detalle de ejecución"
                                         Foreground="{StaticResource BandaTextBrush}"
-                                        FontSize="16"
+                                        FontSize="18"
                                         FontWeight="SemiBold" />
 
                                     <TextBlock
                                         x:Name="DetailDateText"
                                         Text="—"
                                         Style="{StaticResource BandaMutedTextStyle}"
-                                        FontSize="13" />
+                                        FontSize="14" />
                                 </StackPanel>
 
                                 <Border
@@ -336,7 +336,7 @@
                                         x:Name="UndoStatusText"
                                         Text="Reversible"
                                         Foreground="{StaticResource BandaAccentBrush}"
-                                        FontSize="11"
+                                        FontSize="12"
                                         FontWeight="SemiBold" />
                                 </Border>
                             </Grid>
@@ -355,36 +355,36 @@
 
                                     <Border Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
                                         <StackPanel Spacing="4">
-                                            <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                            <TextBlock x:Name="DetailFileCountText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                            <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                                            <TextBlock x:Name="DetailFileCountText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="21" FontWeight="SemiBold" />
                                         </StackPanel>
                                     </Border>
 
                                     <Border Grid.Column="1" Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
                                         <StackPanel Spacing="4">
-                                            <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                            <TextBlock x:Name="DetailSizeText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                            <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                                            <TextBlock x:Name="DetailSizeText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="21" FontWeight="SemiBold" />
                                         </StackPanel>
                                     </Border>
                                 </Grid>
 
                                 <StackPanel Spacing="5">
-                                    <TextBlock Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                     <TextBlock
                                         x:Name="DetailOriginText"
                                         Text="—"
                                         Foreground="{StaticResource BandaMutedStrongBrush}"
-                                        FontSize="12"
+                                        FontSize="14"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="5">
-                                    <TextBlock Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                     <TextBlock
                                         x:Name="DetailDestinationText"
                                         Text="—"
                                         Foreground="{StaticResource BandaMutedStrongBrush}"
-                                        FontSize="12"
+                                        FontSize="14"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </StackPanel>
@@ -402,8 +402,8 @@
                                 <TextBlock
                                     Text="ARCHIVOS DE LA EJECUCIÓN"
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="11"
-                                    Margin="0,0,0,8" />
+                                    FontSize="13"
+                                    Margin="0,0,0,10" />
 
                                 <ScrollViewer
                                     Grid.Row="1"
@@ -416,8 +416,8 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="local:HistoryFilePreview">
                                                 <Border
-                                                    Padding="10,8"
-                                                    Margin="0,0,12,6"
+                                                    Padding="12,10"
+                                                    Margin="0,0,12,7"
                                                     CornerRadius="10"
                                                     Background="{StaticResource BandaNavIconBrush}"
                                                     Opacity="{x:Bind RowOpacity}">
@@ -434,14 +434,14 @@
                                                                 <TextBlock
                                                                     Text="{x:Bind Name}"
                                                                     Foreground="{StaticResource BandaTextBrush}"
-                                                                    FontSize="12"
+                                                                    FontSize="14"
                                                                     TextTrimming="CharacterEllipsis"
                                                                     Visibility="{x:Bind NormalNameVisibility}" />
 
                                                                 <TextBlock
                                                                     Text="{x:Bind Name}"
                                                                     Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                                    FontSize="11"
+                                                                    FontSize="14"
                                                                     TextDecorations="Strikethrough"
                                                                     TextTrimming="CharacterEllipsis"
                                                                     Visibility="{x:Bind DeletedNameVisibility}" />
@@ -450,15 +450,15 @@
                                                             <TextBlock
                                                                 Text="{x:Bind Category}"
                                                                 Foreground="{StaticResource BandaAccentBrush}"
-                                                                FontSize="11" />
+                                                                FontSize="12" />
                                                         </StackPanel>
 
                                                         <TextBlock
                                                             Grid.Column="1"
                                                             Text="{x:Bind SizeText}"
                                                             Style="{StaticResource BandaMutedTextStyle}"
-                                                            FontSize="11"
-                                                            Margin="0,0,8,0"
+                                                            FontSize="13"
+                                                            Margin="0,0,10,0"
                                                             VerticalAlignment="Center" />
 
                                                         <Grid
@@ -493,7 +493,7 @@
                                                                 <TextBlock
                                                                     Text="ELIMINADO"
                                                                     Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                                    FontSize="10"
+                                                                    FontSize="11"
                                                                     FontWeight="SemiBold" />
                                                             </Border>
                                                         </Grid>
@@ -511,6 +511,7 @@
                                 Grid.Row="3"
                                 Content="Deshacer ejecución"
                                 Margin="0,14,0,0"
+                                FontSize="14"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 Padding="14,10"
