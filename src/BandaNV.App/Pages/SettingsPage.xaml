@@ -438,12 +438,12 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Color principal" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Personalizá el acento principal de BandaNV." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            <TextBlock Text="Color primario" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Define fondos, cards y superficies." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
 
                                         <Button
-                                            x:Name="AccentColorSelectorButton"
+                                            x:Name="PrimaryColorSelectorButton"
                                             Grid.Column="1"
                                             Style="{StaticResource BandaSelectorButtonStyle}">
                                             <Grid ColumnSpacing="9">
@@ -454,14 +454,96 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <Ellipse
-                                                    x:Name="AccentColorPreviewEllipse"
+                                                    x:Name="PrimaryColorPreviewEllipse"
                                                     Width="16"
                                                     Height="16"
-                                                    Fill="{StaticResource BandaAccentBrush}"
+                                                    Fill="{StaticResource BandaPrimaryColorBrush}"
                                                     VerticalAlignment="Center" />
 
                                                 <TextBlock
-                                                    x:Name="AccentColorHexText"
+                                                    x:Name="PrimaryColorHexText"
+                                                    Grid.Column="1"
+                                                    Text="#123A34"
+                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                    FontSize="13"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Text="⌄"
+                                                    Foreground="{StaticResource BandaAccentBrush}"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
+
+                                            <Button.Flyout>
+                                                <Flyout
+                                                    x:Name="PrimaryColorFlyout"
+                                                    Placement="BottomEdgeAlignedLeft"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border
+                                                        Width="330"
+                                                        Padding="16"
+                                                        CornerRadius="16"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+
+                                                        <StackPanel Spacing="12">
+                                                            <StackPanel Spacing="3">
+                                                                <TextBlock Text="COLOR PRIMARIO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                                <TextBlock Text="BandaNV genera a partir de este color toda la familia de fondos y superficies." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                                            </StackPanel>
+
+                                                            <ColorPicker
+                                                                x:Name="PrimaryColorPicker"
+                                                                Color="#FF123A34"
+                                                                IsAlphaEnabled="False"
+                                                                ColorChanged="PrimaryColorPicker_ColorChanged" />
+
+                                                            <Button
+                                                                Content="Restablecer primario"
+                                                                Click="ResetPrimaryColorButton_Click"
+                                                                Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                                                HorizontalAlignment="Stretch"
+                                                                HorizontalContentAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="190" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Color secundario" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Define acciones, selección y controles activos." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+
+                                        <Button
+                                            x:Name="SecondaryColorSelectorButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="9">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Ellipse
+                                                    x:Name="SecondaryColorPreviewEllipse"
+                                                    Width="16"
+                                                    Height="16"
+                                                    Fill="{StaticResource BandaSecondaryColorBrush}"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    x:Name="SecondaryColorHexText"
                                                     Grid.Column="1"
                                                     Text="#4FE0C6"
                                                     Foreground="{StaticResource BandaTextBrush}"
@@ -477,7 +559,7 @@
 
                                             <Button.Flyout>
                                                 <Flyout
-                                                    x:Name="AccentColorFlyout"
+                                                    x:Name="SecondaryColorFlyout"
                                                     Placement="BottomEdgeAlignedLeft"
                                                     FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border
@@ -490,19 +572,19 @@
 
                                                         <StackPanel Spacing="12">
                                                             <StackPanel Spacing="3">
-                                                                <TextBlock Text="COLOR PRINCIPAL" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
-                                                                <TextBlock Text="Elegí cualquier color RGB para la identidad de BandaNV." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                                                <TextBlock Text="COLOR SECUNDARIO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                                <TextBlock Text="Usado en botones, toggles, pestañas activas, selección e indicadores." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                                             </StackPanel>
 
                                                             <ColorPicker
-                                                                x:Name="AccentColorPicker"
+                                                                x:Name="SecondaryColorPicker"
                                                                 Color="#FF4FE0C6"
                                                                 IsAlphaEnabled="False"
-                                                                ColorChanged="AccentColorPicker_ColorChanged" />
+                                                                ColorChanged="SecondaryColorPicker_ColorChanged" />
 
                                                             <Button
-                                                                Content="Restablecer teal"
-                                                                Click="ResetAccentColorButton_Click"
+                                                                Content="Restablecer secundario"
+                                                                Click="ResetSecondaryColorButton_Click"
                                                                 Style="{StaticResource BandaPopupSecondaryButtonStyle}"
                                                                 HorizontalAlignment="Stretch"
                                                                 HorizontalContentAlignment="Center" />
@@ -556,7 +638,7 @@
 
                                             <StackPanel Grid.Row="1" Spacing="5" VerticalAlignment="Center">
                                                 <TextBlock Text="Tu organización, bajo control." Foreground="{StaticResource BandaTextBrush}" FontSize="25" FontWeight="SemiBold" />
-                                                <TextBlock Text="Oscuro · teal · cómodo" x:Name="AppearancePreviewDescriptionText" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
+                                                <TextBlock Text="oscuro · primario #123A34 · secundario #4FE0C6" x:Name="AppearancePreviewDescriptionText" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
                                             </StackPanel>
 
                                             <Grid Grid.Row="2" ColumnSpacing="8">
@@ -568,7 +650,7 @@
                                                     <TextBlock Text="Seleccionado" Foreground="{StaticResource BandaAccentBrush}" FontSize="12" FontWeight="SemiBold" />
                                                 </Border>
                                                 <Border Grid.Column="1" Padding="10,5" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
-                                                    <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="12" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="6"><Ellipse Width="8" Height="8" Fill="{StaticResource BandaPrimaryColorBrush}" VerticalAlignment="Center" /><Ellipse Width="8" Height="8" Fill="{StaticResource BandaSecondaryColorBrush}" VerticalAlignment="Center" /><TextBlock Text="Primario + secundario" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="12" /></StackPanel>
                                                 </Border>
                                             </Grid>
                                         </Grid>
