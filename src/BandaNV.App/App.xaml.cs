@@ -14,9 +14,9 @@ public partial class App : Application
         InitializeComponent();
     }
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
-        Settings.LoadAsync().GetAwaiter().GetResult();
+        await Settings.LoadAsync();
 
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Activate();
