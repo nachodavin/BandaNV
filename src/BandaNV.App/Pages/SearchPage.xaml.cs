@@ -19,12 +19,14 @@ public sealed partial class SearchPage : Page
     private int _currentCategoryPage;
     private SearchDateFilter _dateFilter = SearchDateFilter.All;
     private SearchSizeFilter _sizeFilter = SearchSizeFilter.All;
-    private string? _extensionFilter;
+    private readonly HashSet<string> _extensionFilters =
+        new(StringComparer.OrdinalIgnoreCase);
     private SearchSortMode _sortMode = SearchSortMode.Newest;
 
     private SearchDateFilter _pendingDateFilter = SearchDateFilter.All;
     private SearchSizeFilter _pendingSizeFilter = SearchSizeFilter.All;
-    private string? _pendingExtensionFilter;
+    private readonly HashSet<string> _pendingExtensionFilters =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public SearchPage()
     {
@@ -216,7 +218,7 @@ public sealed partial class SearchPage : Page
     {
         _pendingDateFilter = SearchDateFilter.All;
         _pendingSizeFilter = SearchSizeFilter.All;
-        _pendingExtensionFilter = null;
+        _pendingExtensionFilters.Clear();
 
         UpdatePendingFilterLabels();
         BuildExtensionFilterOptions();
@@ -226,7 +228,9 @@ public sealed partial class SearchPage : Page
     {
         _dateFilter = _pendingDateFilter;
         _sizeFilter = _pendingSizeFilter;
-        _extensionFilter = _pendingExtensionFilter;
+
+        _extensionFilters.Clear();
+        _extensionFilters.UnionWith(_pendingExtensionFilters);
 
         FiltersOverlay.Visibility = Visibility.Collapsed;
         RefreshSearchResults();
@@ -236,7 +240,9 @@ public sealed partial class SearchPage : Page
     {
         _pendingDateFilter = _dateFilter;
         _pendingSizeFilter = _sizeFilter;
-        _pendingExtensionFilter = _extensionFilter;
+
+        _pendingExtensionFilters.Clear();
+        _pendingExtensionFilters.UnionWith(_extensionFilters);
 
         UpdatePendingFilterLabels();
         BuildExtensionFilterOptions();
@@ -275,15 +281,21 @@ public sealed partial class SearchPage : Page
             return;
         }
 
-        _pendingExtensionFilter =
-            extensionKey.Equals("All", StringComparison.OrdinalIgnoreCase)
-                ? null
-                : extensionKey;
+        if (extensionKey.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            _pendingExtensionFilters.Clear();
+        }
+        else if (!_pendingExtensionFilters.Add(extensionKey))
+        {
+            _pendingExtensionFilters.Remove(extensionKey);
+        }
 
         ExtensionFilterValueText.Text =
-            GetExtensionFilterDisplayName(_pendingExtensionFilter);
+            GetExtensionFilterDisplayName(_pendingExtensionFilters);
 
-        ExtensionFilterFlyout.Hide();
+        // Este submenu queda abierto para permitir seleccionar varias extensiones
+        // antes de aplicar los filtros del popup principal.
+        BuildExtensionFilterOptions();
     }
 
     private void SortOptionButton_Click(object sender, RoutedEventArgs e)
@@ -314,7 +326,7 @@ public sealed partial class SearchPage : Page
         DateFilterValueText.Text = GetDateFilterDisplayName(_pendingDateFilter);
         SizeFilterValueText.Text = GetSizeFilterDisplayName(_pendingSizeFilter);
         ExtensionFilterValueText.Text =
-            GetExtensionFilterDisplayName(_pendingExtensionFilter);
+            GetExtensionFilterDisplayName(_pendingExtensionFilters);
     }
 
     private void BuildExtensionFilterOptions()
@@ -342,8 +354,8 @@ public sealed partial class SearchPage : Page
         {
             var isSelected =
                 option.Equals("All", StringComparison.OrdinalIgnoreCase)
-                    ? string.IsNullOrWhiteSpace(_pendingExtensionFilter)
-                    : option.Equals(_pendingExtensionFilter, StringComparison.OrdinalIgnoreCase);
+                    ? _pendingExtensionFilters.Count == 0
+                    : _pendingExtensionFilters.Contains(option);
 
             var button = new Button
             {
@@ -388,10 +400,23 @@ public sealed partial class SearchPage : Page
             _ => "Cualquier tamaño"
         };
 
-    private static string GetExtensionFilterDisplayName(string? extension) =>
-        string.IsNullOrWhiteSpace(extension)
-            ? "Todas las extensiones"
-            : extension.ToLowerInvariant();
+    private static string GetExtensionFilterDisplayName(
+        IReadOnlyCollection<string> extensions)
+    {
+        if (extensions.Count == 0)
+        {
+            return "Todas las extensiones";
+        }
+
+        var ordered = extensions
+            .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
+            .Select(extension => extension.ToLowerInvariant())
+            .ToList();
+
+        return ordered.Count <= 2
+            ? string.Join(" · ", ordered)
+            : $"{ordered.Count} extensiones seleccionadas";
+    }
 
     private static string GetSortDisplayName(SearchSortMode sortMode) =>
         sortMode switch
@@ -410,7 +435,7 @@ public sealed partial class SearchPage : Page
         _selectedCategoryNames.Clear();
         _dateFilter = SearchDateFilter.All;
         _sizeFilter = SearchSizeFilter.All;
-        _extensionFilter = null;
+        _extensionFilters.Clear();
         UpdateCategoryPage();
 
         if (!string.IsNullOrEmpty(SearchBox.Text))
@@ -444,10 +469,10 @@ public sealed partial class SearchPage : Page
                 file.Location.Contains(searchText, StringComparison.CurrentCultureIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(_extensionFilter))
+        if (_extensionFilters.Count > 0)
         {
             query = query.Where(file =>
-                file.ExtensionDisplay.Equals(_extensionFilter, StringComparison.OrdinalIgnoreCase));
+                _extensionFilters.Contains(file.ExtensionDisplay));
         }
 
         var now = DateTime.Now;
@@ -656,9 +681,13 @@ public sealed partial class SearchPage : Page
                 break;
         }
 
-        if (!string.IsNullOrWhiteSpace(_extensionFilter))
+        if (_extensionFilters.Count == 1)
         {
-            descriptions.Add(_extensionFilter.ToLowerInvariant());
+            descriptions.Add(_extensionFilters.First().ToLowerInvariant());
+        }
+        else if (_extensionFilters.Count > 1)
+        {
+            descriptions.Add($"{_extensionFilters.Count} extensiones");
         }
 
         return descriptions;
