@@ -10,6 +10,7 @@ namespace BandaNV.App.Pages;
 public sealed partial class SearchPage : Page
 {
     private const int CategoriesPerPage = 10;
+    private const double DateWheelItemHeight = 36d;
 
     private readonly List<SearchCategorySummary> _allCategoryCards = new();
     private readonly List<SearchFileResult> _allFiles = new();
@@ -30,9 +31,16 @@ public sealed partial class SearchPage : Page
     private readonly HashSet<string> _pendingExtensionFilters =
         new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly List<int> _dateWheelYears = new();
+    private bool _isUpdatingDateWheels;
+    private int _wheelDay = 1;
+    private int _wheelMonth = 1;
+    private int _wheelYear = DateTime.Today.Year;
+
     public SearchPage()
     {
         InitializeComponent();
+        InitializeSpecificDateWheels();
 
         // Datos de maqueta hasta conectar el índice real de archivos.
         // La interacción de filtros ya queda preparada para reutilizarse con datos reales.
@@ -223,9 +231,7 @@ public sealed partial class SearchPage : Page
         _pendingSizeFilter = SearchSizeFilter.All;
         _pendingExtensionFilters.Clear();
 
-        SpecificDateTextBox.Text = string.Empty;
-        SpecificDateInputPanel.Visibility = Visibility.Collapsed;
-        SpecificDateErrorText.Visibility = Visibility.Collapsed;
+        SpecificDateWheelPanel.Visibility = Visibility.Collapsed;
 
         UpdatePendingFilterLabels();
         BuildExtensionFilterOptions();
@@ -236,9 +242,7 @@ public sealed partial class SearchPage : Page
         if (_pendingDateFilter == SearchDateFilter.SpecificDate &&
             !_pendingSpecificDateFilter.HasValue)
         {
-            SpecificDateErrorText.Visibility = Visibility.Visible;
-            SpecificDateTextBox.Focus(FocusState.Programmatic);
-            return;
+            _pendingSpecificDateFilter = DateTime.Today;
         }
 
         _dateFilter = _pendingDateFilter;
@@ -265,15 +269,18 @@ public sealed partial class SearchPage : Page
         _pendingExtensionFilters.Clear();
         _pendingExtensionFilters.UnionWith(_extensionFilters);
 
-        SpecificDateInputPanel.Visibility =
+        SpecificDateWheelPanel.Visibility =
             _pendingDateFilter == SearchDateFilter.SpecificDate
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-        SpecificDateErrorText.Visibility = Visibility.Collapsed;
-        SpecificDateTextBox.Text =
-            _pendingSpecificDateFilter?.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("es-AR"))
-            ?? string.Empty;
+        if (_pendingDateFilter == SearchDateFilter.SpecificDate)
+        {
+            var selectedDate = _pendingSpecificDateFilter ?? DateTime.Today;
+            _pendingSpecificDateFilter = selectedDate.Date;
+            SetSpecificDateWheel(selectedDate);
+            QueueSpecificDateWheelSync();
+        }
 
         UpdatePendingFilterLabels();
         BuildExtensionFilterOptions();
@@ -289,53 +296,195 @@ public sealed partial class SearchPage : Page
 
         _pendingDateFilter = parsedFilter;
 
-        SpecificDateInputPanel.Visibility =
-            parsedFilter == SearchDateFilter.SpecificDate
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
-        SpecificDateErrorText.Visibility = Visibility.Collapsed;
+        if (parsedFilter == SearchDateFilter.SpecificDate)
+        {
+            var selectedDate = _pendingSpecificDateFilter ?? DateTime.Today;
+            _pendingSpecificDateFilter = selectedDate.Date;
+            SpecificDateWheelPanel.Visibility = Visibility.Visible;
+            SetSpecificDateWheel(selectedDate);
+            QueueSpecificDateWheelSync();
+        }
+        else
+        {
+            SpecificDateWheelPanel.Visibility = Visibility.Collapsed;
+        }
 
         DateFilterValueText.Text =
             GetDateFilterDisplayName(parsedFilter, _pendingSpecificDateFilter);
 
         DateFilterFlyout.Hide();
-
-        if (parsedFilter == SearchDateFilter.SpecificDate)
-        {
-            SpecificDateTextBox.Focus(FocusState.Programmatic);
-        }
     }
 
-    private void SpecificDateTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    private void SpecificDateTodayButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_pendingDateFilter != SearchDateFilter.SpecificDate)
+        _pendingDateFilter = SearchDateFilter.SpecificDate;
+        _pendingSpecificDateFilter = DateTime.Today;
+        SpecificDateWheelPanel.Visibility = Visibility.Visible;
+        SetSpecificDateWheel(DateTime.Today);
+        DateFilterValueText.Text =
+            GetDateFilterDisplayName(
+                SearchDateFilter.SpecificDate,
+                _pendingSpecificDateFilter);
+        QueueSpecificDateWheelSync();
+    }
+
+    private void DateWheelScrollViewer_ViewChanged(
+        object sender,
+        ScrollViewerViewChangedEventArgs e)
+    {
+        if (_isUpdatingDateWheels ||
+            e.IsIntermediate ||
+            sender is not ScrollViewer { Tag: string wheelName } scrollViewer)
         {
             return;
         }
 
-        var value = SpecificDateTextBox.Text.Trim();
+        var itemCount = wheelName switch
+        {
+            "Day" => DateTime.DaysInMonth(_wheelYear, _wheelMonth),
+            "Month" => 12,
+            "Year" => _dateWheelYears.Count,
+            _ => 0
+        };
 
-        if (DateTime.TryParseExact(
-                value,
-                "dd/MM/yyyy",
-                CultureInfo.GetCultureInfo("es-AR"),
-                DateTimeStyles.None,
-                out var parsedDate))
+        if (itemCount <= 0)
         {
-            _pendingSpecificDateFilter = parsedDate.Date;
-            SpecificDateErrorText.Visibility = Visibility.Collapsed;
+            return;
         }
-        else
+
+        var index = Math.Clamp(
+            (int)Math.Round(scrollViewer.VerticalOffset / DateWheelItemHeight),
+            0,
+            itemCount - 1);
+
+        _isUpdatingDateWheels = true;
+        scrollViewer.ChangeView(
+            null,
+            index * DateWheelItemHeight,
+            null,
+            true);
+        _isUpdatingDateWheels = false;
+
+        var rebuildDays = false;
+
+        switch (wheelName)
         {
-            _pendingSpecificDateFilter = null;
-            SpecificDateErrorText.Visibility = Visibility.Collapsed;
+            case "Day":
+                _wheelDay = index + 1;
+                break;
+
+            case "Month":
+                _wheelMonth = index + 1;
+                rebuildDays = true;
+                break;
+
+            case "Year":
+                _wheelYear = _dateWheelYears[index];
+                rebuildDays = true;
+                break;
         }
+
+        if (rebuildDays)
+        {
+            var daysInMonth = DateTime.DaysInMonth(_wheelYear, _wheelMonth);
+            _wheelDay = Math.Min(_wheelDay, daysInMonth);
+            RebuildDayWheelItems();
+            QueueSpecificDateWheelSync();
+        }
+
+        _pendingSpecificDateFilter =
+            new DateTime(_wheelYear, _wheelMonth, _wheelDay);
 
         DateFilterValueText.Text =
             GetDateFilterDisplayName(
                 SearchDateFilter.SpecificDate,
                 _pendingSpecificDateFilter);
+    }
+
+    private void InitializeSpecificDateWheels()
+    {
+        var culture = CultureInfo.GetCultureInfo("es-AR");
+
+        MonthWheelItems.ItemsSource =
+            Enumerable.Range(1, 12)
+                .Select(month =>
+                    culture.TextInfo.ToTitleCase(
+                        culture.DateTimeFormat.GetMonthName(month)))
+                .ToList();
+
+        var firstYear = 1900;
+        var lastYear = DateTime.Today.Year + 20;
+
+        _dateWheelYears.Clear();
+        _dateWheelYears.AddRange(
+            Enumerable.Range(firstYear, (lastYear - firstYear) + 1));
+
+        YearWheelItems.ItemsSource =
+            _dateWheelYears
+                .Select(year => year.ToString(CultureInfo.InvariantCulture))
+                .ToList();
+
+        SetSpecificDateWheel(DateTime.Today);
+    }
+
+    private void SetSpecificDateWheel(DateTime date)
+    {
+        var minYear = _dateWheelYears.First();
+        var maxYear = _dateWheelYears.Last();
+
+        _wheelYear = Math.Clamp(date.Year, minYear, maxYear);
+        _wheelMonth = Math.Clamp(date.Month, 1, 12);
+
+        var daysInMonth = DateTime.DaysInMonth(_wheelYear, _wheelMonth);
+        _wheelDay = Math.Clamp(date.Day, 1, daysInMonth);
+
+        RebuildDayWheelItems();
+    }
+
+    private void RebuildDayWheelItems()
+    {
+        var daysInMonth = DateTime.DaysInMonth(_wheelYear, _wheelMonth);
+
+        DayWheelItems.ItemsSource =
+            Enumerable.Range(1, daysInMonth)
+                .Select(day => day.ToString("00", CultureInfo.InvariantCulture))
+                .ToList();
+    }
+
+    private void QueueSpecificDateWheelSync()
+    {
+        DispatcherQueue.TryEnqueue(SyncSpecificDateWheelOffsets);
+    }
+
+    private void SyncSpecificDateWheelOffsets()
+    {
+        if (SpecificDateWheelPanel.Visibility != Visibility.Visible)
+        {
+            return;
+        }
+
+        _isUpdatingDateWheels = true;
+
+        DayWheelScrollViewer.ChangeView(
+            null,
+            (_wheelDay - 1) * DateWheelItemHeight,
+            null,
+            true);
+
+        MonthWheelScrollViewer.ChangeView(
+            null,
+            (_wheelMonth - 1) * DateWheelItemHeight,
+            null,
+            true);
+
+        var yearIndex = _dateWheelYears.IndexOf(_wheelYear);
+        YearWheelScrollViewer.ChangeView(
+            null,
+            Math.Max(0, yearIndex) * DateWheelItemHeight,
+            null,
+            true);
+
+        _isUpdatingDateWheels = false;
     }
 
     private void SizeFilterOptionButton_Click(object sender, RoutedEventArgs e)
