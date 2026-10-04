@@ -6,7 +6,7 @@
 
     <Grid
         x:Name="RootLayout"
-        Background="{StaticResource BandaAppBackgroundGradient}">
+        Background="{StaticResource BandaBackgroundBrush}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="226" />
             <ColumnDefinition Width="*" />
@@ -15,7 +15,7 @@
         <!-- Sidebar propio de BandaNV -->
         <Border
             Grid.Column="0"
-            Background="{StaticResource BandaSidebarGradientBrush}"
+            Background="{StaticResource BandaSidebarBrush}"
             BorderBrush="{StaticResource BandaBorderBrush}"
             BorderThickness="0,0,1,0">
 
