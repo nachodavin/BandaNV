@@ -10,7 +10,7 @@
             <Button
                 Tag="{x:Bind Name}"
                 Click="CategoryCard_Click"
-                Height="122"
+                Height="140"
                 Padding="0"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
@@ -26,7 +26,7 @@
                     BorderBrush="{x:Bind CardBorderBrush}"
                     BorderThickness="1">
 
-                    <Grid>
+                    <Grid RowSpacing="3">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -56,7 +56,7 @@
                             Text="{x:Bind ExtensionsText}"
                             Foreground="{StaticResource BandaAccentBrush}"
                             FontSize="13"
-                            Margin="0,5,0,0"
+                            Margin="0,6,0,0"
                             TextTrimming="CharacterEllipsis"
                             MaxLines="1" />
 
@@ -66,13 +66,15 @@
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="30"
                             FontWeight="SemiBold"
+                            Margin="0,6,0,0"
                             VerticalAlignment="Center" />
 
                         <TextBlock
                             Grid.Row="3"
                             Text="archivos"
                             Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="13" />
+                            FontSize="13"
+                            Margin="0,2,0,0" />
                     </Grid>
                 </Border>
             </Button>
