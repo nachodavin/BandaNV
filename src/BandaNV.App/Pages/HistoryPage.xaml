@@ -95,7 +95,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="ÚLTIMA ORGANIZACIÓN" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
-                    <TextBlock Grid.Row="1" Text="04/10 · 00:47" Foreground="{StaticResource BandaTextBrush}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="1" Text="04/10 · 00:47:18" Foreground="{StaticResource BandaTextBrush}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <TextBlock Grid.Row="2" Text="34 archivos · 1.8 GB" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
             </Border>
