@@ -175,10 +175,11 @@
                         SelectedItem="{x:Bind SelectedCategory, Mode=OneWay}"
                         SelectionChanged="PreviewCategoryComboBox_SelectionChanged"
                         PlaceholderText="Elegir categoría"
+                        Width="190"
                         MinHeight="36"
                         Padding="10,4"
                         FontSize="13"
-                        HorizontalAlignment="Stretch"
+                        HorizontalAlignment="Left"
                         VerticalAlignment="Center" />
 
                     <TextBlock
@@ -423,7 +424,7 @@
                     <StackPanel Spacing="5">
                         <TextBlock
                             x:Name="UnclassifiedMetricTitle"
-                            Text="SIN CLASIFICAR"
+                            Text="SIN ASIGNAR"
                             Foreground="{StaticResource OrganizeWarningBrush}"
                             FontSize="13"
                             FontWeight="SemiBold" />
