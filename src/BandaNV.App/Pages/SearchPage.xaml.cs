@@ -1,4 +1,7 @@
 using BandaNV.Core.Models;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using Windows.ApplicationModel.DataTransfer;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -14,6 +17,10 @@ public sealed partial class SearchPage : Page
 
     private readonly List<SearchCategorySummary> _allCategoryCards = new();
     private readonly List<SearchFileResult> _allFiles = new();
+
+    public ObservableCollection<SearchFileResult> VisibleSearchResults { get; } = new();
+
+    private SearchFileResult? _selectedSearchFile;
     private readonly HashSet<string> _selectedCategoryNames =
         new(StringComparer.CurrentCultureIgnoreCase);
 
@@ -815,19 +822,37 @@ public sealed partial class SearchPage : Page
                 .ToList()
         };
 
-        SearchResultsList.ItemsSource = null;
-        SearchResultsList.ItemsSource = results;
+        var previouslySelected = _selectedSearchFile;
 
-        var resultText = results.Count == 1 ? "1 archivo" : $"{results.Count} archivos";
+        VisibleSearchResults.Clear();
+        foreach (var result in results)
+        {
+            VisibleSearchResults.Add(result);
+        }
+
         SearchResultCountText.Text = results.Count.ToString(CultureInfo.CurrentCulture);
         SearchResultsFooterText.Text =
             results.Count == 1 ? "1 resultado" : $"{results.Count} resultados";
 
-        SearchResultsScrollViewer.Visibility =
+        SearchResultsList.Visibility =
             results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         EmptyStatePanel.Visibility =
             results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        if (previouslySelected is not null && results.Contains(previouslySelected))
+        {
+            SearchResultsList.SelectedItem = previouslySelected;
+        }
+        else if (results.Count > 0)
+        {
+            SearchResultsList.SelectedIndex = 0;
+        }
+        else
+        {
+            _selectedSearchFile = null;
+            ClearSearchFileDetails();
+        }
 
         if (results.Count == 0)
         {
@@ -893,6 +918,138 @@ public sealed partial class SearchPage : Page
                 hasAdvancedFilters ? "BandaAccentBrush" : "BandaTextBrush"];
 
         ClearFiltersButton.IsEnabled = hasAnyFilter;
+    }
+
+    private void SearchResultsList_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (SearchResultsList.SelectedItem is not SearchFileResult file)
+        {
+            _selectedSearchFile = null;
+            ClearSearchFileDetails();
+            return;
+        }
+
+        _selectedSearchFile = file;
+        ShowSearchFileDetails(file);
+    }
+
+    private void ShowSearchFileDetails(SearchFileResult file)
+    {
+        SearchDetailFileNameText.Text = file.Name;
+        SearchDetailCategoryText.Text = file.Category;
+        SearchDetailSizeText.Text = file.SizeText;
+        SearchDetailExtensionText.Text = file.ExtensionDisplay;
+        SearchDetailModifiedText.Text = file.ModifiedText;
+        SearchDetailLocationText.Text = file.Location;
+
+        SearchOpenFileButton.IsEnabled = true;
+        SearchOpenLocationButton.IsEnabled = true;
+        SearchCopyPathButton.IsEnabled = true;
+
+        SearchDetailActionStatusText.Text = string.Empty;
+        SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ClearSearchFileDetails()
+    {
+        SearchDetailFileNameText.Text = "Seleccioná un archivo";
+        SearchDetailCategoryText.Text = "—";
+        SearchDetailSizeText.Text = "—";
+        SearchDetailExtensionText.Text = "—";
+        SearchDetailModifiedText.Text = "—";
+        SearchDetailLocationText.Text = "—";
+        SearchDetailActionStatusText.Text = string.Empty;
+        SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
+
+        SearchOpenFileButton.IsEnabled = false;
+        SearchOpenLocationButton.IsEnabled = false;
+        SearchCopyPathButton.IsEnabled = false;
+    }
+
+    private void SearchOpenFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            return;
+        }
+
+        var filePath = file.FilePath;
+
+        if (!System.IO.File.Exists(filePath))
+        {
+            ShowSearchDetailStatus(
+                "El archivo de esta maqueta todavía no existe físicamente. " +
+                "Cuando Buscar use el índice real, este botón abrirá el archivo directamente.");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = filePath,
+                UseShellExecute = true
+            });
+
+            ShowSearchDetailStatus("Archivo abierto.");
+        }
+        catch
+        {
+            ShowSearchDetailStatus("No se pudo abrir el archivo.");
+        }
+    }
+
+    private void SearchOpenLocationButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            return;
+        }
+
+        if (!System.IO.Directory.Exists(file.Location))
+        {
+            ShowSearchDetailStatus(
+                "La ubicación de esta maqueta todavía no existe físicamente. " +
+                "Con el índice real, este botón abrirá la carpeta correspondiente.");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = file.Location,
+                UseShellExecute = true
+            });
+
+            ShowSearchDetailStatus("Ubicación abierta.");
+        }
+        catch
+        {
+            ShowSearchDetailStatus("No se pudo abrir la ubicación.");
+        }
+    }
+
+    private void SearchCopyPathButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            return;
+        }
+
+        var dataPackage = new DataPackage();
+        dataPackage.SetText(file.FilePath);
+        Clipboard.SetContent(dataPackage);
+
+        ShowSearchDetailStatus("Ruta copiada al portapapeles.");
+    }
+
+    private void ShowSearchDetailStatus(string message)
+    {
+        SearchDetailActionStatusText.Text = message;
+        SearchDetailActionStatusText.Visibility = Visibility.Visible;
     }
 
     private List<string> BuildAdvancedFilterDescriptions()
@@ -1146,6 +1303,9 @@ public sealed class SearchFileResult
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
     public string Location { get; }
+
+    public string FilePath =>
+        System.IO.Path.Combine(Location, Name);
 
     public string ExtensionDisplay =>
         System.IO.Path.GetExtension(Name).ToUpperInvariant();
