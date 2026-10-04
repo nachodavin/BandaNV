@@ -79,71 +79,50 @@
         </DataTemplate>
 
         <DataTemplate x:Key="SearchResultTemplate" x:DataType="local:SearchFileResult">
-            <Border
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="0,0,0,1">
-                <Grid Padding="16,12" ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.4*" />
-                        <ColumnDefinition Width="1.05*" />
-                        <ColumnDefinition Width="0.8*" />
-                        <ColumnDefinition Width="1*" />
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="36" />
-                    </Grid.ColumnDefinitions>
+            <Grid Padding="12,10" ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.1*" />
+                    <ColumnDefinition Width="1.05*" />
+                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="1.25*" />
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Spacing="2" VerticalAlignment="Center">
-                        <TextBlock
-                            Text="{x:Bind Name}"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            TextTrimming="CharacterEllipsis" />
-                        <TextBlock
-                            Text="{x:Bind ExtensionDisplay}"
-                            Foreground="{StaticResource BandaMutedBrush}"
-                            FontSize="11" />
-                    </StackPanel>
-
+                <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock
-                        Grid.Column="1"
-                        Text="{x:Bind Category}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        Text="{x:Bind Name}"
+                        Foreground="{StaticResource BandaTextBrush}"
                         FontSize="13"
-                        VerticalAlignment="Center"
+                        FontWeight="SemiBold"
                         TextTrimming="CharacterEllipsis" />
-
                     <TextBlock
-                        Grid.Column="2"
-                        Text="{x:Bind SizeText}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                        FontSize="13"
-                        VerticalAlignment="Center" />
-
-                    <TextBlock
-                        Grid.Column="3"
-                        Text="{x:Bind ModifiedText}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                        FontSize="13"
-                        VerticalAlignment="Center" />
-
-                    <TextBlock
-                        Grid.Column="4"
-                        Text="{x:Bind Location}"
+                        Text="{x:Bind ExtensionDisplay}"
                         Foreground="{StaticResource BandaMutedBrush}"
-                        FontSize="13"
-                        VerticalAlignment="Center"
-                        TextTrimming="CharacterEllipsis" />
+                        FontSize="11" />
+                </StackPanel>
 
-                    <TextBlock
-                        Grid.Column="5"
-                        Text="···"
-                        Foreground="{StaticResource BandaMutedBrush}"
-                        FontSize="16"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center" />
-                </Grid>
-            </Border>
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{x:Bind Category}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis" />
+
+                <TextBlock
+                    Grid.Column="2"
+                    Text="{x:Bind SizeText}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
+                    VerticalAlignment="Center" />
+
+                <TextBlock
+                    Grid.Column="3"
+                    Text="{x:Bind ModifiedText}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis" />
+            </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="DateWheelItemTemplate">
@@ -450,95 +429,277 @@
                         IsEnabled="False" />
                 </Grid>
 
-                <!-- Encabezado de tabla -->
-                <Border
+                <!-- Resultados + detalle del archivo seleccionado -->
+                <Grid
                     Grid.Row="1"
                     Margin="14,0,14,14"
-                    CornerRadius="14"
-                    Background="{StaticResource BandaCardAltBrush}"
-                    BorderBrush="{StaticResource BandaBorderBrush}"
-                    BorderThickness="1">
+                    ColumnSpacing="12">
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="48" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.72*" />
+                        <ColumnDefinition Width="0.78*" />
+                    </Grid.ColumnDefinitions>
 
-                        <Grid
-                            Padding="16,0"
-                            ColumnSpacing="16"
-                            VerticalAlignment="Stretch">
+                    <!-- Lista de resultados -->
+                    <Border
+                        Grid.Column="0"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaCardAltBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
 
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2.4*" />
-                                <ColumnDefinition Width="1.05*" />
-                                <ColumnDefinition Width="0.8*" />
-                                <ColumnDefinition Width="1*" />
-                                <ColumnDefinition Width="2*" />
-                                <ColumnDefinition Width="36" />
-                            </Grid.ColumnDefinitions>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="48" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
-                            <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="4" Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="5" Text="" />
-                        </Grid>
+                            <Grid
+                                Padding="16,0"
+                                ColumnSpacing="14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2.1*" />
+                                    <ColumnDefinition Width="1.05*" />
+                                    <ColumnDefinition Width="0.8*" />
+                                    <ColumnDefinition Width="1.25*" />
+                                </Grid.ColumnDefinitions>
 
-                        <Grid
-                            Grid.Row="1"
-                            MinHeight="330">
+                                <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                            </Grid>
 
-                            <ScrollViewer
-                                x:Name="SearchResultsScrollViewer"
-                                VerticalScrollBarVisibility="Auto"
-                                HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl
+                            <Grid Grid.Row="1" MinHeight="330">
+                                <ListView
                                     x:Name="SearchResultsList"
-                                    ItemTemplate="{StaticResource SearchResultTemplate}"
-                                    HorizontalContentAlignment="Stretch" />
-                            </ScrollViewer>
+                                    ItemsSource="{x:Bind VisibleSearchResults, Mode=OneWay}"
+                                    SelectionMode="Single"
+                                    SelectionChanged="SearchResultsList_SelectionChanged"
+                                    HorizontalContentAlignment="Stretch"
+                                    Padding="8,0,8,8">
 
-                            <StackPanel
-                                x:Name="EmptyStatePanel"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Spacing="10"
-                                Visibility="Collapsed">
+                                    <ListView.Resources>
+                                        <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#244FE0C6" />
+                                        <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="#304FE0C6" />
+                                        <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
+                                        <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
+                                    </ListView.Resources>
+
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0,2" />
+                                            <Setter Property="CornerRadius" Value="10" />
+                                            <Setter Property="MinHeight" Value="54" />
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+
+                                    <ListView.ItemTemplate>
+                                        <StaticResource ResourceKey="SearchResultTemplate" />
+                                    </ListView.ItemTemplate>
+                                </ListView>
+
+                                <StackPanel
+                                    x:Name="EmptyStatePanel"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="10"
+                                    Visibility="Collapsed">
+
+                                    <Border
+                                        Width="46"
+                                        Height="46"
+                                        CornerRadius="15"
+                                        Background="{StaticResource BandaAccentSoftBrush}">
+                                        <TextBlock
+                                            Text="⌕"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="22"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <TextBlock
+                                        x:Name="EmptyStateTitle"
+                                        Text="No hay archivos que coincidan"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="15"
+                                        FontWeight="SemiBold"
+                                        HorizontalAlignment="Center" />
+
+                                    <TextBlock
+                                        x:Name="EmptyStateDescription"
+                                        Text="Probá cambiando las categorías seleccionadas o el texto de búsqueda."
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13"
+                                        HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Panel de detalle -->
+                    <Border
+                        Grid.Column="1"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaCardAltBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1"
+                        Padding="18">
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock
+                                    Text="Detalle del archivo"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    x:Name="SearchDetailFileNameText"
+                                    Text="Seleccioná un archivo"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="13"
+                                    TextWrapping="Wrap"
+                                    TextTrimming="CharacterEllipsis"
+                                    MaxLines="2" />
+                            </StackPanel>
+
+                            <Grid
+                                Grid.Row="1"
+                                Margin="0,16,0,16"
+                                ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
                                 <Border
-                                    Width="46"
-                                    Height="46"
-                                    CornerRadius="15"
-                                    Background="{StaticResource BandaAccentSoftBrush}">
-                                    <TextBlock
-                                        Text="⌕"
-                                        Foreground="{StaticResource BandaAccentBrush}"
-                                        FontSize="22"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center" />
+                                    Padding="12"
+                                    CornerRadius="12"
+                                    Background="{StaticResource BandaNavIconBrush}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                        <TextBlock
+                                            x:Name="SearchDetailCategoryText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
                                 </Border>
 
-                                <TextBlock
-                                    x:Name="EmptyStateTitle"
-                                    Text="No hay archivos que coincidan"
-                                    Foreground="{StaticResource BandaTextBrush}"
-                                    FontSize="15"
-                                    FontWeight="SemiBold"
-                                    HorizontalAlignment="Center" />
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="12"
+                                    CornerRadius="12"
+                                    Background="{StaticResource BandaNavIconBrush}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                        <TextBlock
+                                            x:Name="SearchDetailSizeText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <StackPanel
+                                Grid.Row="2"
+                                Spacing="14">
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="EXTENSIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock
+                                        x:Name="SearchDetailExtensionText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="13" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="MODIFICADO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock
+                                        x:Name="SearchDetailModifiedText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="13" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock
+                                        x:Name="SearchDetailLocationText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="12"
+                                        TextWrapping="Wrap"
+                                        TextTrimming="CharacterEllipsis"
+                                        MaxLines="4" />
+                                </StackPanel>
 
                                 <TextBlock
-                                    x:Name="EmptyStateDescription"
-                                    Text="Probá cambiando las categorías seleccionadas o el texto de búsqueda."
-                                    Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="13"
-                                    HorizontalAlignment="Center" />
+                                    x:Name="SearchDetailActionStatusText"
+                                    Text=""
+                                    Foreground="{StaticResource BandaMutedBrush}"
+                                    FontSize="11"
+                                    TextWrapping="Wrap"
+                                    Visibility="Collapsed" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Row="3"
+                                Spacing="8"
+                                Margin="0,16,0,0">
+                                <Button
+                                    x:Name="SearchOpenFileButton"
+                                    Content="Abrir archivo"
+                                    Click="SearchOpenFileButton_Click"
+                                    Style="{StaticResource BandaPopupPrimaryButtonStyle}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    IsEnabled="False" />
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button
+                                        x:Name="SearchOpenLocationButton"
+                                        Content="Abrir ubicación"
+                                        Click="SearchOpenLocationButton_Click"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        IsEnabled="False" />
+
+                                    <Button
+                                        x:Name="SearchCopyPathButton"
+                                        Grid.Column="1"
+                                        Content="Copiar ruta"
+                                        Click="SearchCopyPathButton_Click"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        IsEnabled="False" />
+                                </Grid>
                             </StackPanel>
                         </Grid>
-                    </Grid>
-                </Border>
+                    </Border>
+                </Grid>
 
                 <!-- Pie de tabla -->
                 <Grid
