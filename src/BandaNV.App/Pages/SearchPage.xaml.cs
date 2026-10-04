@@ -18,12 +18,14 @@ public sealed partial class SearchPage : Page
 
     private int _currentCategoryPage;
     private SearchDateFilter _dateFilter = SearchDateFilter.All;
+    private DateTime? _specificDateFilter;
     private SearchSizeFilter _sizeFilter = SearchSizeFilter.All;
     private readonly HashSet<string> _extensionFilters =
         new(StringComparer.OrdinalIgnoreCase);
     private SearchSortMode _sortMode = SearchSortMode.Newest;
 
     private SearchDateFilter _pendingDateFilter = SearchDateFilter.All;
+    private DateTime? _pendingSpecificDateFilter;
     private SearchSizeFilter _pendingSizeFilter = SearchSizeFilter.All;
     private readonly HashSet<string> _pendingExtensionFilters =
         new(StringComparer.OrdinalIgnoreCase);
@@ -217,8 +219,13 @@ public sealed partial class SearchPage : Page
     private void ResetFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
     {
         _pendingDateFilter = SearchDateFilter.All;
+        _pendingSpecificDateFilter = null;
         _pendingSizeFilter = SearchSizeFilter.All;
         _pendingExtensionFilters.Clear();
+
+        SpecificDateTextBox.Text = string.Empty;
+        SpecificDateInputPanel.Visibility = Visibility.Collapsed;
+        SpecificDateErrorText.Visibility = Visibility.Collapsed;
 
         UpdatePendingFilterLabels();
         BuildExtensionFilterOptions();
@@ -226,7 +233,20 @@ public sealed partial class SearchPage : Page
 
     private void ApplyFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_pendingDateFilter == SearchDateFilter.SpecificDate &&
+            !_pendingSpecificDateFilter.HasValue)
+        {
+            SpecificDateErrorText.Visibility = Visibility.Visible;
+            SpecificDateTextBox.Focus(FocusState.Programmatic);
+            return;
+        }
+
         _dateFilter = _pendingDateFilter;
+        _specificDateFilter =
+            _pendingDateFilter == SearchDateFilter.SpecificDate
+                ? _pendingSpecificDateFilter?.Date
+                : null;
+
         _sizeFilter = _pendingSizeFilter;
 
         _extensionFilters.Clear();
@@ -239,10 +259,21 @@ public sealed partial class SearchPage : Page
     private void PopulateFilterOverlayControls()
     {
         _pendingDateFilter = _dateFilter;
+        _pendingSpecificDateFilter = _specificDateFilter;
         _pendingSizeFilter = _sizeFilter;
 
         _pendingExtensionFilters.Clear();
         _pendingExtensionFilters.UnionWith(_extensionFilters);
+
+        SpecificDateInputPanel.Visibility =
+            _pendingDateFilter == SearchDateFilter.SpecificDate
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        SpecificDateErrorText.Visibility = Visibility.Collapsed;
+        SpecificDateTextBox.Text =
+            _pendingSpecificDateFilter?.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("es-AR"))
+            ?? string.Empty;
 
         UpdatePendingFilterLabels();
         BuildExtensionFilterOptions();
@@ -257,8 +288,54 @@ public sealed partial class SearchPage : Page
         }
 
         _pendingDateFilter = parsedFilter;
-        DateFilterValueText.Text = GetDateFilterDisplayName(parsedFilter);
+
+        SpecificDateInputPanel.Visibility =
+            parsedFilter == SearchDateFilter.SpecificDate
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        SpecificDateErrorText.Visibility = Visibility.Collapsed;
+
+        DateFilterValueText.Text =
+            GetDateFilterDisplayName(parsedFilter, _pendingSpecificDateFilter);
+
         DateFilterFlyout.Hide();
+
+        if (parsedFilter == SearchDateFilter.SpecificDate)
+        {
+            SpecificDateTextBox.Focus(FocusState.Programmatic);
+        }
+    }
+
+    private void SpecificDateTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_pendingDateFilter != SearchDateFilter.SpecificDate)
+        {
+            return;
+        }
+
+        var value = SpecificDateTextBox.Text.Trim();
+
+        if (DateTime.TryParseExact(
+                value,
+                "dd/MM/yyyy",
+                CultureInfo.GetCultureInfo("es-AR"),
+                DateTimeStyles.None,
+                out var parsedDate))
+        {
+            _pendingSpecificDateFilter = parsedDate.Date;
+            SpecificDateErrorText.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            _pendingSpecificDateFilter = null;
+            SpecificDateErrorText.Visibility = Visibility.Collapsed;
+        }
+
+        DateFilterValueText.Text =
+            GetDateFilterDisplayName(
+                SearchDateFilter.SpecificDate,
+                _pendingSpecificDateFilter);
     }
 
     private void SizeFilterOptionButton_Click(object sender, RoutedEventArgs e)
@@ -323,7 +400,8 @@ public sealed partial class SearchPage : Page
 
     private void UpdatePendingFilterLabels()
     {
-        DateFilterValueText.Text = GetDateFilterDisplayName(_pendingDateFilter);
+        DateFilterValueText.Text =
+            GetDateFilterDisplayName(_pendingDateFilter, _pendingSpecificDateFilter);
         SizeFilterValueText.Text = GetSizeFilterDisplayName(_pendingSizeFilter);
         ExtensionFilterValueText.Text =
             GetExtensionFilterDisplayName(_pendingExtensionFilters);
@@ -379,12 +457,19 @@ public sealed partial class SearchPage : Page
         }
     }
 
-    private static string GetDateFilterDisplayName(SearchDateFilter filter) =>
+    private static string GetDateFilterDisplayName(
+        SearchDateFilter filter,
+        DateTime? specificDate = null) =>
         filter switch
         {
             SearchDateFilter.Last24Hours => "Últimas 24 horas",
             SearchDateFilter.Last7Days => "Últimos 7 días",
             SearchDateFilter.Last30Days => "Últimos 30 días",
+            SearchDateFilter.SpecificDate when specificDate.HasValue =>
+                specificDate.Value.ToString(
+                    "dd/MM/yyyy",
+                    CultureInfo.GetCultureInfo("es-AR")),
+            SearchDateFilter.SpecificDate => "Fecha específica",
             _ => "Cualquier fecha"
         };
 
@@ -434,6 +519,7 @@ public sealed partial class SearchPage : Page
     {
         _selectedCategoryNames.Clear();
         _dateFilter = SearchDateFilter.All;
+        _specificDateFilter = null;
         _sizeFilter = SearchSizeFilter.All;
         _extensionFilters.Clear();
         UpdateCategoryPage();
@@ -485,6 +571,10 @@ public sealed partial class SearchPage : Page
                 query.Where(file => file.ModifiedAt >= now.AddDays(-7)),
             SearchDateFilter.Last30Days =>
                 query.Where(file => file.ModifiedAt >= now.AddDays(-30)),
+            SearchDateFilter.SpecificDate when _specificDateFilter.HasValue =>
+                query.Where(file =>
+                    file.ModifiedAt >= _specificDateFilter.Value.Date &&
+                    file.ModifiedAt < _specificDateFilter.Value.Date.AddDays(1)),
             _ => query
         };
 
@@ -657,6 +747,12 @@ public sealed partial class SearchPage : Page
             case SearchDateFilter.Last30Days:
                 descriptions.Add("últimos 30 días");
                 break;
+            case SearchDateFilter.SpecificDate when _specificDateFilter.HasValue:
+                descriptions.Add(
+                    _specificDateFilter.Value.ToString(
+                        "dd/MM/yyyy",
+                        CultureInfo.GetCultureInfo("es-AR")));
+                break;
         }
 
         switch (_sizeFilter)
@@ -802,7 +898,8 @@ public enum SearchDateFilter
     All,
     Last24Hours,
     Last7Days,
-    Last30Days
+    Last30Days,
+    SpecificDate
 }
 
 public enum SearchSizeFilter
