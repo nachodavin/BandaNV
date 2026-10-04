@@ -115,8 +115,10 @@
             </Grid.ColumnDefinitions>
 
             <TextBox
+                x:Name="HistorySearchBox"
                 Grid.Column="0"
                 PlaceholderText="Buscar por fecha, archivo, categoría, origen o destino..."
+                TextChanged="HistorySearchBox_TextChanged"
                 FontSize="14"
                 Padding="14,10"
                 MinHeight="44" />
@@ -130,17 +132,30 @@
                 BorderThickness="1"
                 VerticalAlignment="Stretch">
                 <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                    <TextBlock Text="4" Foreground="{StaticResource BandaTextBrush}" FontWeight="SemiBold" />
-                    <TextBlock Text="ejecuciones" Style="{StaticResource BandaMutedTextStyle}" />
+                    <TextBlock
+                        x:Name="HistoryResultCountText"
+                        Text="4"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontWeight="SemiBold" />
+                    <TextBlock
+                        x:Name="HistoryResultCountLabel"
+                        Text="ejecuciones"
+                        Style="{StaticResource BandaMutedTextStyle}" />
                 </StackPanel>
             </Border>
 
             <Button
+                x:Name="HistoryFiltersButton"
                 Grid.Column="2"
                 Content="Filtros"
+                Click="HistoryFiltersButton_Click"
                 Padding="16,10"
                 MinHeight="44"
-                CornerRadius="12" />
+                CornerRadius="12"
+                Background="{StaticResource BandaCardBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1"
+                Foreground="{StaticResource BandaTextBrush}" />
 
             <Button
                 x:Name="HistorySortSelectorButton"
@@ -155,7 +170,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock
                         x:Name="HistorySortValueText"
-                        Text="Fecha"
+                        Text="Fecha · más reciente"
                         Foreground="{StaticResource BandaTextBrush}"
                         FontSize="13"
                         VerticalAlignment="Center" />
@@ -185,10 +200,13 @@
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="11"
                                     FontWeight="SemiBold" />
-                                <Button Tag="Fecha" Content="Fecha" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Archivos" Content="Archivos" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Tamaño" Content="Tamaño" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Origen" Content="Origen" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Newest" Content="Fecha · más reciente" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Oldest" Content="Fecha · más antigua" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="FilesDescending" Content="Archivos · mayor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="FilesAscending" Content="Archivos · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="SizeDescending" Content="Tamaño · mayor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="SizeAscending" Content="Tamaño · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Origin" Content="Origen · A–Z" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
                         </Border>
                     </Flyout>
@@ -220,21 +238,41 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Padding="12,6" CornerRadius="14" Background="{StaticResource BandaAccentSoftBrush}">
+                    <Border
+                        x:Name="HistoryAllChip"
+                        Grid.Column="0"
+                        Padding="12,6"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaAccentSoftBrush}">
                         <TextBlock Text="Todas" Foreground="{StaticResource BandaAccentBrush}" FontSize="13" FontWeight="SemiBold" />
                     </Border>
 
-                    <Border Grid.Column="1" Padding="12,6" CornerRadius="14" Background="{StaticResource BandaNavIconBrush}">
-                        <TextBlock Text="Sin filtros" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
+                    <Border
+                        x:Name="HistoryActiveFilterChip"
+                        Grid.Column="1"
+                        Padding="12,6"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaNavIconBrush}">
+                        <TextBlock
+                            x:Name="HistoryActiveFilterText"
+                            Text="Sin filtros"
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="13" />
                     </Border>
 
                     <Border Grid.Column="2" Padding="12,6" CornerRadius="14" Background="{StaticResource BandaNavIconBrush}">
-                        <TextBlock Text="Más recientes primero" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
+                        <TextBlock
+                            x:Name="HistoryActiveSortText"
+                            Text="Fecha · más reciente"
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="13" />
                     </Border>
 
                     <Button
+                        x:Name="HistoryClearFiltersButton"
                         Grid.Column="4"
                         Content="Limpiar filtros"
+                        Click="HistoryClearFiltersButton_Click"
                         Background="Transparent"
                         BorderThickness="0"
                         Foreground="{StaticResource BandaMutedBrush}"
@@ -588,6 +626,7 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock
+                        x:Name="HistoryFooterCountText"
                         Text="4 resultados"
                         Style="{StaticResource BandaMutedTextStyle}"
                         FontSize="13"
@@ -601,6 +640,276 @@
                 </Grid>
             </Grid>
         </Border>
+        </Grid>
+
+        <Grid
+            x:Name="HistoryFiltersOverlay"
+            Canvas.ZIndex="90"
+            Visibility="Collapsed">
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="HistoryFiltersBackdrop_Tapped" />
+
+            <Border
+                Width="620"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Grid RowSpacing="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <TextBlock
+                                Text="≡"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock
+                                Text="Filtrar historial"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="Acotá las ejecuciones por tipo, estado de Undo y origen."
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="13"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CloseHistoryFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Padding="16"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaCardBrush}"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="8">
+                                <TextBlock
+                                    Text="TIPO DE EJECUCIÓN"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+
+                                <Button
+                                    x:Name="HistoryTypeSelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="HistoryTypeValueText"
+                                            Text="Todos los tipos"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" FontSize="14" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="HistoryTypeFlyout"
+                                            Placement="BottomEdgeAlignedLeft"
+                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="250"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="TIPO DE EJECUCIÓN" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                    <Button Tag="All" Content="Todos los tipos" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Organize" Content="Organizar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Undo" Content="Deshacer" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="16"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaCardBrush}"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="8">
+                                <TextBlock
+                                    Text="ESTADO DE UNDO"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+
+                                <Button
+                                    x:Name="HistoryUndoSelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="HistoryUndoValueText"
+                                            Text="Cualquier estado"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" FontSize="14" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="HistoryUndoFlyout"
+                                            Placement="BottomEdgeAlignedLeft"
+                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="250"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="ESTADO DE UNDO" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                    <Button Tag="All" Content="Cualquier estado" Click="HistoryUndoOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Reversible" Content="Reversibles" Click="HistoryUndoOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="NotReversible" Content="No reversibles" Click="HistoryUndoOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border
+                        Grid.Row="2"
+                        Padding="16"
+                        CornerRadius="16"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.4*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="4" VerticalAlignment="Center">
+                                <TextBlock
+                                    Text="ORIGEN"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    Text="Mostrá ejecuciones de una ubicación concreta."
+                                    Foreground="{StaticResource BandaMutedBrush}"
+                                    FontSize="12"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Button
+                                x:Name="HistoryOriginSelectorButton"
+                                Grid.Column="1"
+                                Style="{StaticResource BandaSelectorButtonStyle}">
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        x:Name="HistoryOriginValueText"
+                                        Text="Todos los orígenes"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="13"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" FontSize="14" VerticalAlignment="Center" />
+                                </Grid>
+                                <Button.Flyout>
+                                    <Flyout
+                                        x:Name="HistoryOriginFlyout"
+                                        Placement="BottomEdgeAlignedLeft"
+                                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                        <Border
+                                            Width="280"
+                                            Padding="8"
+                                            CornerRadius="16"
+                                            Background="{StaticResource BandaPopupSurfaceBrush}"
+                                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                            BorderThickness="1">
+                                            <StackPanel
+                                                x:Name="HistoryOriginOptionsPanel"
+                                                Spacing="2" />
+                                        </Border>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="3" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            Grid.Column="1"
+                            Content="Restablecer"
+                            Click="ResetHistoryFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupGhostButtonStyle}" />
+                        <Button
+                            Grid.Column="2"
+                            Content="Cancelar"
+                            Click="CloseHistoryFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+                        <Button
+                            Grid.Column="3"
+                            Content="Aplicar filtros"
+                            Click="ApplyHistoryFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
 
         <Grid
