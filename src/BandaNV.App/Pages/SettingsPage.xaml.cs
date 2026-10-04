@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
+using BandaNV.Core.Infrastructure;
+using BandaNV.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -10,13 +12,17 @@ public sealed partial class SettingsPage : Page
 {
     private SettingsSection _currentSection = SettingsSection.General;
     private SettingsConfirmMode _confirmMode = SettingsConfirmMode.None;
+    private CancellationTokenSource? _saveDebounceCts;
     private bool _isPageReady;
 
     public SettingsPage()
     {
         InitializeComponent();
 
+        _isPageReady = false;
+        LoadPersistentSettingsIntoUi(global::BandaNV.App.App.Settings.Current);
         _isPageReady = true;
+
         SetSettingsSection(SettingsSection.General);
         UpdateAppearancePreview();
     }
@@ -94,7 +100,8 @@ public sealed partial class SettingsPage : Page
                 System.IO.Path.Combine(folder.Path, "ORGANIZADO");
         }
 
-        ShowSettingsFeedback("Carpeta de origen actualizada para esta configuración.");
+        QueuePersistSettings();
+        ShowSettingsFeedback("Carpeta de origen actualizada.");
     }
 
     private async void ChangeDestinationFolderButton_Click(object sender, RoutedEventArgs e)
@@ -106,7 +113,8 @@ public sealed partial class SettingsPage : Page
         }
 
         DestinationFolderText.Text = folder.Path;
-        ShowSettingsFeedback("Carpeta de destino actualizada para esta configuración.");
+        QueuePersistSettings();
+        ShowSettingsFeedback("Carpeta de destino actualizada.");
     }
 
     private static async Task<Windows.Storage.StorageFolder?> PickFolderAsync()
@@ -135,6 +143,7 @@ public sealed partial class SettingsPage : Page
 
         StartupPageValueText.Text = value;
         StartupPageFlyout.Hide();
+        QueuePersistSettings();
         ShowSettingsFeedback($"Página inicial: {value}.");
     }
 
@@ -147,6 +156,7 @@ public sealed partial class SettingsPage : Page
 
         CloseBehaviorValueText.Text = value;
         CloseBehaviorFlyout.Hide();
+        QueuePersistSettings();
         ShowSettingsFeedback($"Comportamiento al cerrar: {value}.");
     }
 
@@ -160,6 +170,7 @@ public sealed partial class SettingsPage : Page
         ThemeValueText.Text = value;
         ThemeFlyout.Hide();
         UpdateAppearancePreview();
+        QueuePersistSettings();
 
         ShowSettingsFeedback(
             $"Tema seleccionado: {value}. El cambio global de tema se conectará en la siguiente etapa de Apariencia.");
@@ -177,6 +188,7 @@ public sealed partial class SettingsPage : Page
         ApplyPrimaryColor(args.NewColor);
         PrimaryColorHexText.Text = ToHex(args.NewColor);
         UpdateAppearancePreview();
+        QueuePersistSettings();
     }
 
     private void SecondaryColorPicker_ColorChanged(
@@ -191,6 +203,7 @@ public sealed partial class SettingsPage : Page
         ApplySecondaryColor(args.NewColor);
         SecondaryColorHexText.Text = ToHex(args.NewColor);
         UpdateAppearancePreview();
+        QueuePersistSettings();
     }
 
     private void ResetPrimaryColorButton_Click(object sender, RoutedEventArgs e)
@@ -202,6 +215,7 @@ public sealed partial class SettingsPage : Page
         ApplyPrimaryColor(primary);
         PrimaryColorFlyout.Hide();
         UpdateAppearancePreview();
+        QueuePersistSettings();
 
         ShowSettingsFeedback("Color primario restablecido.");
     }
@@ -215,6 +229,7 @@ public sealed partial class SettingsPage : Page
         ApplySecondaryColor(secondary);
         SecondaryColorFlyout.Hide();
         UpdateAppearancePreview();
+        QueuePersistSettings();
 
         ShowSettingsFeedback("Color secundario restablecido al teal original.");
     }
@@ -451,6 +466,7 @@ public sealed partial class SettingsPage : Page
 
         ConflictBehaviorValueText.Text = value;
         ConflictBehaviorFlyout.Hide();
+        QueuePersistSettings();
         ShowSettingsFeedback($"Conflictos de nombre: {value}.");
     }
 
@@ -463,6 +479,7 @@ public sealed partial class SettingsPage : Page
 
         UnknownExtensionBehaviorValueText.Text = value;
         UnknownExtensionBehaviorFlyout.Hide();
+        QueuePersistSettings();
         ShowSettingsFeedback($"Extensiones sin categoría: {value}.");
     }
 
@@ -475,6 +492,7 @@ public sealed partial class SettingsPage : Page
 
         HistoryRetentionValueText.Text = value;
         HistoryRetentionFlyout.Hide();
+        QueuePersistSettings();
         ShowSettingsFeedback($"Conservación del historial: {value}.");
     }
 
@@ -485,30 +503,20 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
-        ShowSettingsFeedback("Preferencia actualizada en esta maqueta de Configuración.");
+        QueuePersistSettings();
+        ShowSettingsFeedback("Preferencia actualizada.");
     }
 
     private void OpenLogsFolderButton_Click(object sender, RoutedEventArgs e)
     {
-        var path = EnsureBandaNvFolder("Logs");
-        OpenFolder(path, "Carpeta de logs abierta.");
+        PortablePaths.EnsureDirectories();
+        OpenFolder(PortablePaths.LogsDirectory, "Carpeta portable de logs abierta.");
     }
 
     private void OpenDataFolderButton_Click(object sender, RoutedEventArgs e)
     {
-        var path = EnsureBandaNvFolder("Data");
-        OpenFolder(path, "Carpeta de datos de BandaNV abierta.");
-    }
-
-    private static string EnsureBandaNvFolder(string childFolder)
-    {
-        var root = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "BandaNV");
-
-        var path = System.IO.Path.Combine(root, childFolder);
-        System.IO.Directory.CreateDirectory(path);
-        return path;
+        PortablePaths.EnsureDirectories();
+        OpenFolder(PortablePaths.RootDirectory, "Carpeta portable de BandaNV abierta.");
     }
 
     private void OpenFolder(string path, string successMessage)
@@ -620,6 +628,7 @@ public sealed partial class SettingsPage : Page
             }
 
             ApplySettingsBackup(backup);
+            QueuePersistSettings();
 
             BackupStatusText.Text = "Backup importado";
             BackupDetailText.Text = $"{file.Name} · configuración aplicada";
@@ -784,8 +793,10 @@ public sealed partial class SettingsPage : Page
 
         _isPageReady = false;
 
-        SourceFolderText.Text = @"C:\Users\Usuario\Downloads";
-        DestinationFolderText.Text = @"C:\Users\Usuario\Downloads\ORGANIZADO";
+        var defaults = AppSettings.CreateDefault();
+
+        SourceFolderText.Text = defaults.SourceFolder;
+        DestinationFolderText.Text = defaults.DestinationFolder;
 
         StartupPageValueText.Text = "Inicio";
         CloseBehaviorValueText.Text = "Cerrar BandaNV";
@@ -820,6 +831,127 @@ public sealed partial class SettingsPage : Page
         ApplyPrimaryColor(primary);
         ApplySecondaryColor(secondary);
         UpdateAppearancePreview();
+        QueuePersistSettings();
+    }
+
+    private void LoadPersistentSettingsIntoUi(AppSettings settings)
+    {
+        SourceFolderText.Text = settings.SourceFolder;
+        DestinationFolderText.Text = settings.DestinationFolder;
+        StartupPageValueText.Text = settings.StartupPage;
+        CloseBehaviorValueText.Text = settings.CloseBehavior;
+
+        StartWithWindowsToggle.IsOn = settings.StartWithWindows;
+        AutoUpdateToggle.IsOn = settings.AutoUpdate;
+
+        ThemeValueText.Text = settings.Theme;
+        AnimationsToggle.IsOn = settings.Animations;
+
+        PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
+        IncludeSubfoldersToggle.IsOn = settings.IncludeSubfolders;
+        CreateFoldersToggle.IsOn = settings.CreateFolders;
+        DeleteEmptyFoldersToggle.IsOn = settings.DeleteEmptyFolders;
+
+        ConflictBehaviorValueText.Text = settings.ConflictBehavior;
+        UnknownExtensionBehaviorValueText.Text = settings.UnknownExtensionBehavior;
+
+        UndoToggle.IsOn = settings.UndoEnabled;
+        RecycleBinToggle.IsOn = settings.UseRecycleBin;
+        ConfirmDestructiveToggle.IsOn = settings.ConfirmDestructiveActions;
+
+        SaveHistoryToggle.IsOn = settings.SaveHistory;
+        HistoryRetentionValueText.Text = settings.HistoryRetention;
+
+        var defaultPrimary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
+        var defaultSecondary = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+
+        if (!TryParseHexColor(settings.PrimaryColor, out var primary))
+        {
+            primary = defaultPrimary;
+        }
+
+        if (!TryParseHexColor(settings.SecondaryColor, out var secondary))
+        {
+            secondary = defaultSecondary;
+        }
+
+        PrimaryColorPicker.Color = primary;
+        PrimaryColorHexText.Text = ToHex(primary);
+        SecondaryColorPicker.Color = secondary;
+        SecondaryColorHexText.Text = ToHex(secondary);
+
+        ApplyPrimaryColor(primary);
+        ApplySecondaryColor(secondary);
+    }
+
+    private AppSettings CapturePersistentSettings()
+    {
+        return new AppSettings
+        {
+            SchemaVersion = AppSettings.CurrentSchemaVersion,
+            SourceFolder = SourceFolderText.Text.Trim(),
+            DestinationFolder = DestinationFolderText.Text.Trim(),
+            StartupPage = StartupPageValueText.Text,
+            CloseBehavior = CloseBehaviorValueText.Text,
+            StartWithWindows = StartWithWindowsToggle.IsOn,
+            AutoUpdate = AutoUpdateToggle.IsOn,
+            Theme = ThemeValueText.Text,
+            PrimaryColor = PrimaryColorHexText.Text,
+            SecondaryColor = SecondaryColorHexText.Text,
+            Animations = AnimationsToggle.IsOn,
+            PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
+            IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
+            CreateFolders = CreateFoldersToggle.IsOn,
+            DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
+            ConflictBehavior = ConflictBehaviorValueText.Text,
+            UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
+            UndoEnabled = UndoToggle.IsOn,
+            UseRecycleBin = RecycleBinToggle.IsOn,
+            ConfirmDestructiveActions = ConfirmDestructiveToggle.IsOn,
+            SaveHistory = SaveHistoryToggle.IsOn,
+            HistoryRetention = HistoryRetentionValueText.Text,
+            Categories = global::BandaNV.App.App.Settings.Current.Categories
+                .Select(category => new CategorySettings(
+                    category.Id,
+                    category.Name,
+                    category.Extensions,
+                    category.Order))
+                .ToList()
+        };
+    }
+
+    private void QueuePersistSettings()
+    {
+        if (!_isPageReady)
+        {
+            return;
+        }
+
+        var snapshot = CapturePersistentSettings();
+
+        _saveDebounceCts?.Cancel();
+        _saveDebounceCts?.Dispose();
+        _saveDebounceCts = new CancellationTokenSource();
+
+        _ = PersistSettingsAfterDelayAsync(
+            snapshot,
+            _saveDebounceCts.Token);
+    }
+
+    private static async Task PersistSettingsAfterDelayAsync(
+        AppSettings settings,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(250, cancellationToken);
+            await global::BandaNV.App.App.Settings.SaveAsync(
+                settings,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private void SettingsConfirmBackdrop_Tapped(
