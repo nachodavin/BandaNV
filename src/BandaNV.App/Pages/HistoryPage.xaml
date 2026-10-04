@@ -324,10 +324,18 @@
                                 x:Name="HistoryList"
                                 Grid.Row="1"
                                 ItemsSource="{x:Bind PreviewExecutions, Mode=OneWay}"
-                                SelectionMode="Single"
+                                SelectionMode="Extended"
+                                IsMultiSelectCheckBoxEnabled="False"
                                 SelectionChanged="HistoryList_SelectionChanged"
+                                Tapped="HistoryList_Tapped"
                                 HorizontalContentAlignment="Stretch"
                                 Padding="8,0,8,8">
+                                <ListView.KeyboardAccelerators>
+                                    <KeyboardAccelerator
+                                        Key="A"
+                                        Modifiers="Control"
+                                        Invoked="HistorySelectAllAccelerator_Invoked" />
+                                </ListView.KeyboardAccelerators>
 
                                 <ListView.Resources>
                                     <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#244FE0C6" />
@@ -397,6 +405,7 @@
 
                                 <StackPanel Spacing="4">
                                     <TextBlock
+                                        x:Name="DetailTitleText"
                                         Text="Detalle de ejecución"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="18"
@@ -484,6 +493,7 @@
                                 </Grid.RowDefinitions>
 
                                 <TextBlock
+                                    x:Name="DetailFilesSectionTitleText"
                                     Text="ARCHIVOS DE LA EJECUCIÓN"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="13"
