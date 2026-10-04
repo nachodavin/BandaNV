@@ -86,7 +86,7 @@
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="Foreground" Value="{StaticResource BandaMutedStrongBrush}" />
-                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontSize" Value="15" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -101,8 +101,26 @@
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
+            <!-- Escala tipográfica base: legibilidad primero, especialmente en pantallas 1440p/4K. -->
+            <Style x:Key="BandaBodyTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+
+            <Style x:Key="BandaSecondaryTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource BandaMutedStrongBrush}" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+
+            <Style x:Key="BandaLabelTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource BandaMutedBrush}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
             <Style x:Key="BandaMutedTextStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{StaticResource BandaMutedBrush}" />
+                <Setter Property="FontSize" Value="13" />
             </Style>
         </ResourceDictionary>
     </Application.Resources>
