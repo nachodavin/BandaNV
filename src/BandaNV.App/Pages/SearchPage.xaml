@@ -477,7 +477,8 @@
                                     x:Name="SearchResultsList"
                                     ItemsSource="{x:Bind VisibleSearchResults, Mode=OneWay}"
                                     ItemTemplate="{StaticResource SearchResultTemplate}"
-                                    SelectionMode="Single"
+                                    SelectionMode="Multiple"
+                                    IsMultiSelectCheckBoxEnabled="True"
                                     SelectionChanged="SearchResultsList_SelectionChanged"
                                     HorizontalContentAlignment="Stretch"
                                     Padding="8,0,8,8">
@@ -559,6 +560,7 @@
 
                             <StackPanel Spacing="4">
                                 <TextBlock
+                                    x:Name="SearchDetailTitleText"
                                     Text="Detalle del archivo"
                                     Foreground="{StaticResource BandaTextBrush}"
                                     FontSize="18"
