@@ -851,11 +851,6 @@ public sealed partial class SearchPage : Page
             SearchResultsList.SelectedItems.Add(file);
         }
 
-        if (SearchResultsList.SelectedItems.Count == 0 && results.Count > 0)
-        {
-            SearchResultsList.SelectedItems.Add(results[0]);
-        }
-
         UpdateSearchSelectionDetails();
 
         if (results.Count == 0)
@@ -929,6 +924,76 @@ public sealed partial class SearchPage : Page
         SelectionChangedEventArgs e)
     {
         UpdateSearchSelectionDetails();
+    }
+
+    private void SearchResultsList_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        var current = e.OriginalSource as DependencyObject;
+
+        while (current is not null && current != SearchResultsList)
+        {
+            if (current is ListViewItem)
+            {
+                return;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        SearchResultsList.SelectedItems.Clear();
+        UpdateSearchSelectionDetails();
+    }
+
+    private void SearchResultsList_DoubleTapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    {
+        var file = GetSearchFileFromEventSource(e.OriginalSource);
+        if (file is null)
+        {
+            return;
+        }
+
+        OpenSearchFile(file);
+        e.Handled = true;
+    }
+
+    private void SearchSelectAllAccelerator_Invoked(
+        Microsoft.UI.Xaml.Input.KeyboardAccelerator sender,
+        Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        foreach (var file in VisibleSearchResults)
+        {
+            if (!SearchResultsList.SelectedItems.Contains(file))
+            {
+                SearchResultsList.SelectedItems.Add(file);
+            }
+        }
+
+        UpdateSearchSelectionDetails();
+        args.Handled = true;
+    }
+
+    private SearchFileResult? GetSearchFileFromEventSource(object? source)
+    {
+        var current = source as DependencyObject;
+
+        while (current is not null && current != SearchResultsList)
+        {
+            if (current is FrameworkElement
+                {
+                    DataContext: SearchFileResult file
+                })
+            {
+                return file;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 
     private List<SearchFileResult> GetSelectedSearchFiles() =>
@@ -1033,7 +1098,7 @@ public sealed partial class SearchPage : Page
         SearchDeleteButton.IsEnabled = true;
 
         SearchDetailActionStatusText.Text =
-            "Abrir y renombrar requieren una selección individual.";
+            "Abrir archivo, abrir ubicación y renombrar requieren una selección individual.";
         SearchDetailActionStatusText.Visibility = Visibility.Visible;
     }
 
@@ -1069,6 +1134,11 @@ public sealed partial class SearchPage : Page
             return;
         }
 
+        OpenSearchFile(file);
+    }
+
+    private void OpenSearchFile(SearchFileResult file)
+    {
         var filePath = file.FilePath;
 
         if (!System.IO.File.Exists(filePath))
