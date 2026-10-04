@@ -453,7 +453,19 @@ public sealed partial class SearchPage : Page
 
     private void QueueSpecificDateWheelSync()
     {
-        DispatcherQueue.TryEnqueue(SyncSpecificDateWheelOffsets);
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            SpecificDateWheelPanel.UpdateLayout();
+            DayWheelScrollViewer.UpdateLayout();
+            MonthWheelScrollViewer.UpdateLayout();
+            YearWheelScrollViewer.UpdateLayout();
+
+            SyncSpecificDateWheelOffsets();
+
+            // Segundo pase para asegurar que las ruedas se posicionen
+            // después de que WinUI termine el layout al mostrar el panel.
+            DispatcherQueue.TryEnqueue(SyncSpecificDateWheelOffsets);
+        });
     }
 
     private void SyncSpecificDateWheelOffsets()
