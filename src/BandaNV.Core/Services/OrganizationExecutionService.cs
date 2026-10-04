@@ -60,6 +60,18 @@ public sealed class OrganizationExecutionService
         if (settings.CreateFolders)
         {
             Directory.CreateDirectory(destinationRoot);
+
+            foreach (var category in settings.Categories
+                         .OrderBy(category => category.Order))
+            {
+                var categoryFolder = CategoryService.GetFolderPath(
+                    destinationRoot,
+                    category.Order,
+                    category.Name);
+
+                EnsurePathInsideRoot(categoryFolder, destinationRoot);
+                Directory.CreateDirectory(categoryFolder);
+            }
         }
         else if (!Directory.Exists(destinationRoot))
         {
@@ -225,6 +237,14 @@ public sealed class OrganizationExecutionService
         string? logPath,
         CancellationToken cancellationToken)
     {
+        if (!IsSameOrInside(item.OriginalPath, settings.SourceFolder))
+        {
+            item.Status = OrganizationExecutionItemStatus.Error;
+            item.Message =
+                "La ruta del archivo quedó fuera de la carpeta de origen configurada.";
+            return;
+        }
+
         if (!File.Exists(item.OriginalPath))
         {
             item.Status = OrganizationExecutionItemStatus.SourceMissing;
