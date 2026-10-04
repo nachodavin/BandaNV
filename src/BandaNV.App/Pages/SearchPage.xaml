@@ -729,11 +729,48 @@
                                                     <Button Tag="Last24Hours" Content="Últimas 24 horas" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Last7Days" Content="Últimos 7 días" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Last30Days" Content="Últimos 30 días" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Border Height="1" Margin="8,5" Background="{StaticResource BandaBorderBrush}" />
+                                                    <Button Tag="SpecificDate" Content="Elegir fecha específica…" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                 </StackPanel>
                                             </Border>
                                         </Flyout>
                                     </Button.Flyout>
                                 </Button>
+
+                                <Border
+                                    x:Name="SpecificDateInputPanel"
+                                    Padding="12"
+                                    CornerRadius="11"
+                                    Background="{StaticResource BandaCardAltBrush}"
+                                    BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                    BorderThickness="1"
+                                    Visibility="Collapsed">
+                                    <StackPanel Spacing="7">
+                                        <TextBlock
+                                            Text="FECHA ESPECÍFICA"
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            FontSize="11"
+                                            FontWeight="SemiBold" />
+                                        <TextBox
+                                            x:Name="SpecificDateTextBox"
+                                            PlaceholderText="dd/mm/aaaa"
+                                            MaxLength="10"
+                                            TextChanged="SpecificDateTextBox_TextChanged"
+                                            Padding="10,7"
+                                            MinHeight="38"
+                                            Background="{StaticResource BandaPopupSurfaceBrush}"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="1"
+                                            Foreground="{StaticResource BandaTextBrush}" />
+                                        <TextBlock
+                                            x:Name="SpecificDateErrorText"
+                                            Text="Ingresá una fecha válida con formato dd/mm/aaaa."
+                                            Foreground="#FFF06B6B"
+                                            FontSize="11"
+                                            TextWrapping="Wrap"
+                                            Visibility="Collapsed" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
 
