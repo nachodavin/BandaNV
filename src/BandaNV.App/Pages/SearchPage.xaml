@@ -474,6 +474,7 @@
                                 <ListView
                                     x:Name="SearchResultsList"
                                     ItemsSource="{x:Bind VisibleSearchResults, Mode=OneWay}"
+                                    ItemTemplate="{StaticResource SearchResultTemplate}"
                                     SelectionMode="Single"
                                     SelectionChanged="SearchResultsList_SelectionChanged"
                                     HorizontalContentAlignment="Stretch"
@@ -496,9 +497,6 @@
                                         </Style>
                                     </ListView.ItemContainerStyle>
 
-                                    <ListView.ItemTemplate>
-                                        <StaticResource ResourceKey="SearchResultTemplate" />
-                                    </ListView.ItemTemplate>
                                 </ListView>
 
                                 <StackPanel
