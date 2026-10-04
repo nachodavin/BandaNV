@@ -771,7 +771,7 @@
                         MinWidth="190"
                         CornerRadius="12"
                         Background="{StaticResource BandaAccentBrush}"
-                        Foreground="#07110F"
+                        Foreground="{StaticResource BandaActionForegroundBrush}"
                         BorderThickness="0"
                         FontWeight="SemiBold" />
                 </Grid>
@@ -813,7 +813,7 @@
                         Foreground="{StaticResource BandaMutedStrongBrush}"
                         FontSize="13" />
                     <TextBlock
-                        Text="La ejecución física se habilitará en el siguiente bloque del motor. Este análisis no mueve ni crea archivos."
+                        Text="BandaNV registra cada movimiento en el historial portable antes y después de tocar el archivo, para mantener trazabilidad y preparar un Undo seguro."
                         Foreground="{StaticResource BandaMutedBrush}"
                         FontSize="12"
                         TextWrapping="Wrap"
@@ -876,7 +876,7 @@
                             Padding="18,10"
                             CornerRadius="12"
                             Background="{StaticResource BandaAccentBrush}"
-                            Foreground="#07110F"
+                            Foreground="{StaticResource BandaActionForegroundBrush}"
                             BorderThickness="0"
                             FontWeight="SemiBold" />
                         <Button
