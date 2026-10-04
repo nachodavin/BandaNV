@@ -326,6 +326,7 @@
                                 ItemsSource="{x:Bind PreviewExecutions, Mode=OneWay}"
                                 SelectionMode="Extended"
                                 IsMultiSelectCheckBoxEnabled="False"
+                                KeyboardAcceleratorPlacementMode="Hidden"
                                 SelectionChanged="HistoryList_SelectionChanged"
                                 Tapped="HistoryList_Tapped"
                                 HorizontalContentAlignment="Stretch"
