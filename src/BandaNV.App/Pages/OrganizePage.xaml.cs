@@ -12,8 +12,7 @@ public sealed partial class OrganizePage : Page
     private readonly Dictionary<string, OrganizeCategoryOption> _rememberedAssignments =
         new(StringComparer.OrdinalIgnoreCase);
 
-    private bool _showRecentAssignment;
-    private int _assignmentFeedbackVersion;
+    private readonly List<ResolvedExtensionAssignment> _resolvedAssignments = new();
 
     public OrganizePage()
     {
@@ -127,32 +126,17 @@ public sealed partial class OrganizePage : Page
             _rememberedAssignments[normalizedExtension] = selectedCategory;
         }
 
-        var feedbackVersion = ++_assignmentFeedbackVersion;
-        _showRecentAssignment = true;
+        _resolvedAssignments.RemoveAll(item =>
+            item.Extension.Equals(normalizedExtension, StringComparison.OrdinalIgnoreCase));
 
-        RecentAssignmentText.Text =
-            $"{normalizedExtension} → {selectedCategory.DisplayName}";
+        _resolvedAssignments.Add(new ResolvedExtensionAssignment(
+            normalizedExtension,
+            affectedFiles.Count,
+            selectedCategory.DisplayName,
+            rememberAssignment
+                ? "Asignación recordada para próximas organizaciones"
+                : "Asignación aplicada solo a esta organización"));
 
-        RecentAssignmentSubtext.Text =
-            $"{affectedFiles.Count} archivo{(affectedFiles.Count == 1 ? string.Empty : "s")} asignado{(affectedFiles.Count == 1 ? string.Empty : "s")}" +
-            (rememberAssignment
-                ? " · se recordará para próximas organizaciones"
-                : " · solo para esta organización");
-
-        RecentAssignmentRow.Visibility = Visibility.Visible;
-
-        RefreshPreview();
-
-        // Feedback breve para que la fila no desaparezca de golpe al resolverla.
-        await Task.Delay(1200);
-
-        if (feedbackVersion != _assignmentFeedbackVersion)
-        {
-            return;
-        }
-
-        _showRecentAssignment = false;
-        RecentAssignmentRow.Visibility = Visibility.Collapsed;
         RefreshPreview();
     }
 
@@ -207,14 +191,10 @@ public sealed partial class OrganizePage : Page
 
     private void ShowInitialState()
     {
-        _assignmentFeedbackVersion++;
-        _showRecentAssignment = false;
-
         InitialStatePanel.Visibility = Visibility.Visible;
         PreviewStatePanel.Visibility = Visibility.Collapsed;
         ProgressStatePanel.Visibility = Visibility.Collapsed;
         CompletionStatePanel.Visibility = Visibility.Collapsed;
-        RecentAssignmentRow.Visibility = Visibility.Collapsed;
     }
 
     private void ShowPreviewState()
@@ -228,11 +208,8 @@ public sealed partial class OrganizePage : Page
 
     private void BuildPreviewData()
     {
-        _assignmentFeedbackVersion++;
-        _showRecentAssignment = false;
-        RecentAssignmentRow.Visibility = Visibility.Collapsed;
-
         _files.Clear();
+        _resolvedAssignments.Clear();
 
         AddGeneratedFiles(
             prefix: "IMG",
@@ -343,12 +320,30 @@ public sealed partial class OrganizePage : Page
 
     private void ApplyRememberedAssignments()
     {
-        foreach (var file in _files.Where(file => !file.IsClassified))
+        var pendingByExtension = _files
+            .Where(file => !file.IsClassified)
+            .GroupBy(file => file.Extension, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var extensionGroup in pendingByExtension)
         {
-            if (_rememberedAssignments.TryGetValue(file.Extension, out var category))
+            if (!_rememberedAssignments.TryGetValue(extensionGroup.Key, out var category))
+            {
+                continue;
+            }
+
+            var affectedFiles = extensionGroup.ToList();
+
+            foreach (var file in affectedFiles)
             {
                 file.AssignTo(category);
             }
+
+            _resolvedAssignments.Add(new ResolvedExtensionAssignment(
+                extensionGroup.Key,
+                affectedFiles.Count,
+                category.DisplayName,
+                "Asignación recordada aplicada automáticamente"));
         }
     }
 
@@ -398,6 +393,17 @@ public sealed partial class OrganizePage : Page
 
         UnassignedExtensionsList.ItemsSource = null;
         UnassignedExtensionsList.ItemsSource = unassignedExtensions;
+
+        ResolvedAssignmentsList.ItemsSource = null;
+        ResolvedAssignmentsList.ItemsSource = _resolvedAssignments
+            .OrderBy(item => item.Extension, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        ResolvedAssignmentsPanel.Visibility =
+            _resolvedAssignments.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        ResolvedAssignmentsCountText.Text =
+            $"{_resolvedAssignments.Count} resuelta{(_resolvedAssignments.Count == 1 ? string.Empty : "s")}";
 
         SummaryCategoriesList.ItemsSource = null;
         SummaryCategoriesList.ItemsSource = categorySummary;
@@ -449,14 +455,17 @@ public sealed partial class OrganizePage : Page
                 "Todos los archivos tienen destino. Ya podés confirmar la organización.";
         }
 
+        UnassignedCard.Visibility = Visibility.Visible;
+
         if (unassignedExtensions.Count > 0)
         {
-            UnassignedCard.Visibility = Visibility.Visible;
             UnassignedCard.BorderBrush = warningBrush;
 
             UnassignedTitleText.Text = "Extensiones sin asignar";
             UnassignedDescriptionText.Text =
-                "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
+                _resolvedAssignments.Count > 0
+                    ? "Todavía quedan extensiones pendientes. Las asignaciones que ya resolviste se mantienen registradas abajo."
+                    : "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
 
             UnassignedSummaryBadge.Background = warningSoftBrush;
             UnassignedSummaryText.Foreground = warningBrush;
@@ -467,30 +476,24 @@ public sealed partial class OrganizePage : Page
             UnassignedSummaryText.Text =
                 $"{unassignedExtensions.Count} {extensionLabel} · {unclassifiedFiles.Count} {fileLabel}";
 
-            RecentAssignmentRow.Visibility =
-                _showRecentAssignment ? Visibility.Visible : Visibility.Collapsed;
+            ResolvedAssignmentsTitle.Text = "Asignaciones realizadas";
         }
-        else if (_showRecentAssignment)
+        else
         {
-            // Si acabamos de resolver la última extensión, dejamos el éxito visible
-            // un instante antes de retirar por completo la tarjeta.
-            UnassignedCard.Visibility = Visibility.Visible;
             UnassignedCard.BorderBrush = accentBrush;
 
             UnassignedTitleText.Text = "Extensiones resueltas";
             UnassignedDescriptionText.Text =
-                "Todos los archivos detectados ya tienen una categoría y un destino definidos.";
+                _resolvedAssignments.Count > 0
+                    ? "Todas las extensiones detectadas ya tienen una categoría y un destino. El registro de asignaciones queda disponible para que puedas revisarlo."
+                    : "No se detectaron extensiones pendientes de asignación.";
 
             UnassignedSummaryBadge.Background = accentSoftBrush;
             UnassignedSummaryText.Foreground = accentBrush;
-            UnassignedSummaryText.Text = "Todo resuelto";
+            UnassignedSummaryText.Text =
+                _resolvedAssignments.Count > 0 ? "Todo resuelto" : "Sin pendientes";
 
-            RecentAssignmentRow.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            UnassignedCard.Visibility = Visibility.Collapsed;
-            RecentAssignmentRow.Visibility = Visibility.Collapsed;
+            ResolvedAssignmentsTitle.Text = "Registro de asignaciones";
         }
     }
 
@@ -681,6 +684,28 @@ public sealed class UnassignedExtensionSummary
     public string FilesText =>
         $"{FileCount} archivo{(FileCount == 1 ? string.Empty : "s")}";
     public string SamplesText { get; }
+}
+
+public sealed class ResolvedExtensionAssignment
+{
+    public ResolvedExtensionAssignment(
+        string extension,
+        int fileCount,
+        string destinationText,
+        string persistenceText)
+    {
+        Extension = extension;
+        FileCount = fileCount;
+        DestinationText = $"→ {destinationText}";
+        PersistenceText = persistenceText;
+    }
+
+    public string Extension { get; }
+    public int FileCount { get; }
+    public string DestinationText { get; }
+    public string PersistenceText { get; }
+    public string FilesText =>
+        $"{FileCount} archivo{(FileCount == 1 ? string.Empty : "s")}";
 }
 
 public sealed class OrganizeCategorySummary
