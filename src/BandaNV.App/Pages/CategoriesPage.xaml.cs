@@ -183,6 +183,8 @@ public sealed partial class CategoriesPage : Page
 
         CategoryDetailStatusText.Text =
             "Arrastrá una fila desde el indicador ⋮⋮ para cambiar el orden global.";
+        CategoryDetailStatusText.Foreground =
+            (Brush)Application.Current.Resources["BandaMutedBrush"];
         CategoryDetailStatusText.Visibility = Visibility.Visible;
     }
 
