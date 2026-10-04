@@ -22,6 +22,10 @@ public sealed partial class SearchPage : Page
     private string? _extensionFilter;
     private SearchSortMode _sortMode = SearchSortMode.Newest;
 
+    private SearchDateFilter _pendingDateFilter = SearchDateFilter.All;
+    private SearchSizeFilter _pendingSizeFilter = SearchSizeFilter.All;
+    private string? _pendingExtensionFilter;
+
     public SearchPage()
     {
         InitializeComponent();
@@ -201,40 +205,28 @@ public sealed partial class SearchPage : Page
         FiltersOverlay.Visibility = Visibility.Collapsed;
     }
 
+    private void FiltersBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        FiltersOverlay.Visibility = Visibility.Collapsed;
+    }
+
     private void ResetFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
     {
-        SelectComboBoxItemByTag(DateFilterComboBox, SearchDateFilter.All.ToString());
-        SelectComboBoxItemByTag(SizeFilterComboBox, SearchSizeFilter.All.ToString());
+        _pendingDateFilter = SearchDateFilter.All;
+        _pendingSizeFilter = SearchSizeFilter.All;
+        _pendingExtensionFilter = null;
 
-        if (ExtensionFilterComboBox.Items.Count > 0)
-        {
-            ExtensionFilterComboBox.SelectedIndex = 0;
-        }
+        UpdatePendingFilterLabels();
+        BuildExtensionFilterOptions();
     }
 
     private void ApplyFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
     {
-        if (DateFilterComboBox.SelectedItem is ComboBoxItem dateItem &&
-            dateItem.Tag is string dateKey &&
-            Enum.TryParse<SearchDateFilter>(dateKey, out var parsedDate))
-        {
-            _dateFilter = parsedDate;
-        }
-
-        if (SizeFilterComboBox.SelectedItem is ComboBoxItem sizeItem &&
-            sizeItem.Tag is string sizeKey &&
-            Enum.TryParse<SearchSizeFilter>(sizeKey, out var parsedSize))
-        {
-            _sizeFilter = parsedSize;
-        }
-
-        if (ExtensionFilterComboBox.SelectedItem is SearchFilterOption extensionOption)
-        {
-            _extensionFilter =
-                extensionOption.Key.Equals("All", StringComparison.OrdinalIgnoreCase)
-                    ? null
-                    : extensionOption.Key;
-        }
+        _dateFilter = _pendingDateFilter;
+        _sizeFilter = _pendingSizeFilter;
+        _extensionFilter = _pendingExtensionFilter;
 
         FiltersOverlay.Visibility = Visibility.Collapsed;
         RefreshSearchResults();
@@ -242,50 +234,61 @@ public sealed partial class SearchPage : Page
 
     private void PopulateFilterOverlayControls()
     {
-        SelectComboBoxItemByTag(DateFilterComboBox, _dateFilter.ToString());
-        SelectComboBoxItemByTag(SizeFilterComboBox, _sizeFilter.ToString());
+        _pendingDateFilter = _dateFilter;
+        _pendingSizeFilter = _sizeFilter;
+        _pendingExtensionFilter = _extensionFilter;
 
-        var extensionOptions = new List<SearchFilterOption>
-        {
-            new("All", "Todas las extensiones")
-        };
-
-        extensionOptions.AddRange(
-            _allFiles
-                .Select(file => file.ExtensionDisplay.ToLowerInvariant())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
-                .Select(extension => new SearchFilterOption(extension, extension)));
-
-        ExtensionFilterComboBox.ItemsSource = extensionOptions;
-        ExtensionFilterComboBox.SelectedItem =
-            extensionOptions.FirstOrDefault(option =>
-                option.Key.Equals(_extensionFilter ?? "All", StringComparison.OrdinalIgnoreCase))
-            ?? extensionOptions[0];
+        UpdatePendingFilterLabels();
+        BuildExtensionFilterOptions();
     }
 
-    private static void SelectComboBoxItemByTag(ComboBox comboBox, string tag)
+    private void DateFilterOptionButton_Click(object sender, RoutedEventArgs e)
     {
-        foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
+        if (sender is not Button { Tag: string filterKey } ||
+            !Enum.TryParse<SearchDateFilter>(filterKey, out var parsedFilter))
         {
-            if (item.Tag is string itemTag &&
-                itemTag.Equals(tag, StringComparison.OrdinalIgnoreCase))
-            {
-                comboBox.SelectedItem = item;
-                return;
-            }
+            return;
         }
 
-        if (comboBox.Items.Count > 0)
-        {
-            comboBox.SelectedIndex = 0;
-        }
+        _pendingDateFilter = parsedFilter;
+        DateFilterValueText.Text = GetDateFilterDisplayName(parsedFilter);
+        DateFilterFlyout.Hide();
     }
 
-    private void SortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void SizeFilterOptionButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not ComboBox { SelectedItem: ComboBoxItem selectedItem } ||
-            selectedItem.Tag is not string sortKey)
+        if (sender is not Button { Tag: string filterKey } ||
+            !Enum.TryParse<SearchSizeFilter>(filterKey, out var parsedFilter))
+        {
+            return;
+        }
+
+        _pendingSizeFilter = parsedFilter;
+        SizeFilterValueText.Text = GetSizeFilterDisplayName(parsedFilter);
+        SizeFilterFlyout.Hide();
+    }
+
+    private void ExtensionFilterOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string extensionKey })
+        {
+            return;
+        }
+
+        _pendingExtensionFilter =
+            extensionKey.Equals("All", StringComparison.OrdinalIgnoreCase)
+                ? null
+                : extensionKey;
+
+        ExtensionFilterValueText.Text =
+            GetExtensionFilterDisplayName(_pendingExtensionFilter);
+
+        ExtensionFilterFlyout.Hide();
+    }
+
+    private void SortOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string sortKey })
         {
             return;
         }
@@ -301,8 +304,104 @@ public sealed partial class SearchPage : Page
             _ => SearchSortMode.Newest
         };
 
+        SortValueText.Text = GetSortDisplayName(_sortMode);
+        SortFlyout.Hide();
         RefreshSearchResults();
     }
+
+    private void UpdatePendingFilterLabels()
+    {
+        DateFilterValueText.Text = GetDateFilterDisplayName(_pendingDateFilter);
+        SizeFilterValueText.Text = GetSizeFilterDisplayName(_pendingSizeFilter);
+        ExtensionFilterValueText.Text =
+            GetExtensionFilterDisplayName(_pendingExtensionFilter);
+    }
+
+    private void BuildExtensionFilterOptions()
+    {
+        ExtensionFilterOptionsPanel.Children.Clear();
+
+        ExtensionFilterOptionsPanel.Children.Add(new TextBlock
+        {
+            Text = "EXTENSIÓN",
+            Margin = new Thickness(10, 6, 10, 4),
+            Foreground = (Brush)Application.Current.Resources["BandaMutedStrongBrush"],
+            FontSize = 11,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+        });
+
+        var options = new List<string> { "All" };
+
+        options.AddRange(
+            _allFiles
+                .Select(file => file.ExtensionDisplay.ToLowerInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase));
+
+        foreach (var option in options)
+        {
+            var isSelected =
+                option.Equals("All", StringComparison.OrdinalIgnoreCase)
+                    ? string.IsNullOrWhiteSpace(_pendingExtensionFilter)
+                    : option.Equals(_pendingExtensionFilter, StringComparison.OrdinalIgnoreCase);
+
+            var button = new Button
+            {
+                Tag = option,
+                Content = option.Equals("All", StringComparison.OrdinalIgnoreCase)
+                    ? "Todas las extensiones"
+                    : option,
+                Style = (Style)Resources["BandaPopupOptionButtonStyle"]
+            };
+
+            if (isSelected)
+            {
+                button.Background =
+                    (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+                button.Foreground =
+                    (Brush)Application.Current.Resources["BandaAccentBrush"];
+            }
+
+            button.Click += ExtensionFilterOptionButton_Click;
+            ExtensionFilterOptionsPanel.Children.Add(button);
+        }
+    }
+
+    private static string GetDateFilterDisplayName(SearchDateFilter filter) =>
+        filter switch
+        {
+            SearchDateFilter.Last24Hours => "Últimas 24 horas",
+            SearchDateFilter.Last7Days => "Últimos 7 días",
+            SearchDateFilter.Last30Days => "Últimos 30 días",
+            _ => "Cualquier fecha"
+        };
+
+    private static string GetSizeFilterDisplayName(SearchSizeFilter filter) =>
+        filter switch
+        {
+            SearchSizeFilter.Under10Mb => "Menos de 10 MB",
+            SearchSizeFilter.From10To50Mb => "10 MB a 50 MB",
+            SearchSizeFilter.From50To100Mb => "50 MB a 100 MB",
+            SearchSizeFilter.Over100Mb => "Más de 100 MB",
+            _ => "Cualquier tamaño"
+        };
+
+    private static string GetExtensionFilterDisplayName(string? extension) =>
+        string.IsNullOrWhiteSpace(extension)
+            ? "Todas las extensiones"
+            : extension.ToLowerInvariant();
+
+    private static string GetSortDisplayName(SearchSortMode sortMode) =>
+        sortMode switch
+        {
+            SearchSortMode.Oldest => "Fecha · más antigua",
+            SearchSortMode.NameAscending => "Nombre · A–Z",
+            SearchSortMode.NameDescending => "Nombre · Z–A",
+            SearchSortMode.SizeDescending => "Tamaño · mayor primero",
+            SearchSortMode.SizeAscending => "Tamaño · menor primero",
+            SearchSortMode.Category => "Categoría",
+            _ => "Fecha · más reciente"
+        };
 
     private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
@@ -658,18 +757,6 @@ public enum SearchSortMode
     SizeDescending,
     SizeAscending,
     Category
-}
-
-public sealed class SearchFilterOption
-{
-    public SearchFilterOption(string key, string displayName)
-    {
-        Key = key;
-        DisplayName = displayName;
-    }
-
-    public string Key { get; }
-    public string DisplayName { get; }
 }
 
 public sealed class SearchCategorySummary
