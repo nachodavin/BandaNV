@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -161,20 +162,142 @@ public sealed partial class SettingsPage : Page
         UpdateAppearancePreview();
 
         ShowSettingsFeedback(
-            $"Tema seleccionado: {value}. La aplicación global del tema se conectará al guardar preferencias reales.");
+            $"Tema seleccionado: {value}. El cambio global de tema se conectará en la siguiente etapa de Apariencia.");
     }
 
-    private void DensityOptionButton_Click(object sender, RoutedEventArgs e)
+    private void AccentColorPicker_ColorChanged(
+        ColorPicker sender,
+        ColorChangedEventArgs args)
     {
-        if (sender is not Button { Tag: string value })
+        if (!_isPageReady)
         {
             return;
         }
 
-        DensityValueText.Text = value;
-        DensityFlyout.Hide();
+        ApplyAccentColor(args.NewColor);
+        AccentColorHexText.Text = ToHex(args.NewColor);
         UpdateAppearancePreview();
-        ShowSettingsFeedback($"Densidad de interfaz: {value}.");
+    }
+
+    private void ResetAccentColorButton_Click(object sender, RoutedEventArgs e)
+    {
+        var teal = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+        AccentColorPicker.Color = teal;
+        ApplyAccentColor(teal);
+        AccentColorHexText.Text = ToHex(teal);
+        AccentColorFlyout.Hide();
+        UpdateAppearancePreview();
+        ShowSettingsFeedback("Color principal restablecido al teal original de BandaNV.");
+    }
+
+    private static void ApplyAccentColor(Windows.UI.Color color)
+    {
+        SetSolidBrushColor("BandaAccentBrush", color);
+        SetSolidBrushColor("BandaAccentSoftBrush", WithAlpha(color, 0x24));
+        SetSolidBrushColor("BandaAccentFaintBrush", WithAlpha(color, 0x12));
+        SetSolidBrushColor("BandaNavActiveBrush", WithAlpha(color, 0x22));
+
+        if (Application.Current.Resources["BandaGlowGradientBrush"] is LinearGradientBrush glow &&
+            glow.GradientStops.Count >= 4)
+        {
+            glow.GradientStops[0].Color = WithAlpha(color, 0x00);
+            glow.GradientStops[1].Color = WithAlpha(color, 0x70);
+            glow.GradientStops[2].Color = WithAlpha(color, 0x25);
+            glow.GradientStops[3].Color = WithAlpha(color, 0x00);
+        }
+
+        if (Application.Current.Resources["BandaAccentGradientBrush"] is LinearGradientBrush accentGradient &&
+            accentGradient.GradientStops.Count >= 3)
+        {
+            accentGradient.GradientStops[0].Color = color;
+            accentGradient.GradientStops[1].Color = ScaleColor(color, 0.82);
+            accentGradient.GradientStops[2].Color = ScaleColor(color, 0.54);
+        }
+
+        if (Application.Current.Resources["BandaAccentCardBrush"] is LinearGradientBrush accentCard &&
+            accentCard.GradientStops.Count >= 1)
+        {
+            accentCard.GradientStops[0].Color = WithAlpha(color, 0x2B);
+        }
+
+        if (Application.Current.Resources["BandaAppBackgroundGradient"] is LinearGradientBrush appBackground &&
+            appBackground.GradientStops.Count >= 6)
+        {
+            var darkA = Windows.UI.Color.FromArgb(255, 0x0D, 0x11, 0x16);
+            var darkB = Windows.UI.Color.FromArgb(255, 0x08, 0x0D, 0x11);
+
+            appBackground.GradientStops[2].Color = BlendColor(darkA, color, 0.12);
+            appBackground.GradientStops[3].Color = BlendColor(darkA, color, 0.28);
+            appBackground.GradientStops[4].Color = BlendColor(darkB, color, 0.10);
+        }
+
+        if (Application.Current.Resources["BandaSidebarGradientBrush"] is LinearGradientBrush sidebar &&
+            sidebar.GradientStops.Count >= 3)
+        {
+            var sidebarBase = Windows.UI.Color.FromArgb(255, 0x0B, 0x15, 0x18);
+            sidebar.GradientStops[2].Color = WithAlpha(
+                BlendColor(sidebarBase, color, 0.10),
+                0xD9);
+        }
+    }
+
+    private static void SetSolidBrushColor(string resourceKey, Windows.UI.Color color)
+    {
+        if (Application.Current.Resources[resourceKey] is SolidColorBrush brush)
+        {
+            brush.Color = color;
+        }
+    }
+
+    private static Windows.UI.Color WithAlpha(Windows.UI.Color color, byte alpha) =>
+        Windows.UI.Color.FromArgb(alpha, color.R, color.G, color.B);
+
+    private static Windows.UI.Color ScaleColor(Windows.UI.Color color, double factor) =>
+        Windows.UI.Color.FromArgb(
+            color.A,
+            (byte)Math.Clamp((int)Math.Round(color.R * factor), 0, 255),
+            (byte)Math.Clamp((int)Math.Round(color.G * factor), 0, 255),
+            (byte)Math.Clamp((int)Math.Round(color.B * factor), 0, 255));
+
+    private static Windows.UI.Color BlendColor(
+        Windows.UI.Color baseColor,
+        Windows.UI.Color accent,
+        double accentWeight)
+    {
+        var baseWeight = 1.0 - accentWeight;
+
+        return Windows.UI.Color.FromArgb(
+            255,
+            (byte)Math.Clamp((int)Math.Round(baseColor.R * baseWeight + accent.R * accentWeight), 0, 255),
+            (byte)Math.Clamp((int)Math.Round(baseColor.G * baseWeight + accent.G * accentWeight), 0, 255),
+            (byte)Math.Clamp((int)Math.Round(baseColor.B * baseWeight + accent.B * accentWeight), 0, 255));
+    }
+
+    private static string ToHex(Windows.UI.Color color) =>
+        $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+
+    private static bool TryParseHexColor(
+        string? value,
+        out Windows.UI.Color color)
+    {
+        color = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var hex = value.Trim().TrimStart('#');
+        if (hex.Length != 6 ||
+            !byte.TryParse(hex[..2], System.Globalization.NumberStyles.HexNumber, null, out var r) ||
+            !byte.TryParse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber, null, out var g) ||
+            !byte.TryParse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber, null, out var b))
+        {
+            return false;
+        }
+
+        color = Windows.UI.Color.FromArgb(255, r, g, b);
+        return true;
     }
 
     private void UpdateAppearancePreview()
@@ -185,7 +308,7 @@ public sealed partial class SettingsPage : Page
         }
 
         AppearancePreviewDescriptionText.Text =
-            $"{ThemeValueText.Text.ToLowerInvariant()} · teal · {DensityValueText.Text.ToLowerInvariant()}";
+            $"{ThemeValueText.Text.ToLowerInvariant()} · {AccentColorHexText.Text}";
     }
 
     private void ConflictBehaviorOptionButton_Click(object sender, RoutedEventArgs e)
@@ -285,26 +408,165 @@ public sealed partial class SettingsPage : Page
             "Limpiar historial");
     }
 
-    private void RebuildIndexButton_Click(object sender, RoutedEventArgs e)
+    private async void ExportSettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        SearchIndexStatusText.Text = "Reconstrucción preparada";
-        SearchIndexDetailText.Text =
-            "Maqueta · el motor de indexación persistente todavía no está conectado";
+        var window = global::BandaNV.App.App.MainWindowInstance;
+        if (window is null)
+        {
+            return;
+        }
 
-        ShowSettingsFeedback(
-            "La acción de reconstrucción quedó preparada para el índice real de Buscar.");
+        var picker = new Windows.Storage.Pickers.FileSavePicker
+        {
+            SuggestedFileName = $"BandaNV_config_{DateTime.Now:yyyy-MM-dd}"
+        };
+
+        picker.FileTypeChoices.Add(
+            "Configuración BandaNV",
+            new List<string> { ".bandanv" });
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var backup = CaptureSettingsBackup();
+            var json = JsonSerializer.Serialize(
+                backup,
+                new JsonSerializerOptions { WriteIndented = true });
+
+            await Windows.Storage.FileIO.WriteTextAsync(file, json);
+
+            BackupStatusText.Text = "Backup exportado";
+            BackupDetailText.Text = $"{file.Name} · {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            ShowSettingsFeedback($"Backup guardado como {file.Name}.");
+        }
+        catch
+        {
+            ShowSettingsFeedback("No se pudo exportar el backup de configuración.");
+        }
     }
 
-    private void ExportSettingsButton_Click(object sender, RoutedEventArgs e)
+    private async void ImportSettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        ShowSettingsFeedback(
-            "Exportar configuración quedó preparado para cuando conectemos la persistencia real.");
+        var window = global::BandaNV.App.App.MainWindowInstance;
+        if (window is null)
+        {
+            return;
+        }
+
+        var picker = new Windows.Storage.Pickers.FileOpenPicker();
+        picker.FileTypeFilter.Add(".bandanv");
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+        var file = await picker.PickSingleFileAsync();
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var json = await Windows.Storage.FileIO.ReadTextAsync(file);
+            var backup = JsonSerializer.Deserialize<SettingsBackupModel>(json);
+
+            if (backup is null ||
+                !string.Equals(
+                    backup.Format,
+                    SettingsBackupModel.CurrentFormat,
+                    StringComparison.Ordinal))
+            {
+                ShowSettingsFeedback("El archivo seleccionado no es un backup compatible de BandaNV.");
+                return;
+            }
+
+            ApplySettingsBackup(backup);
+
+            BackupStatusText.Text = "Backup importado";
+            BackupDetailText.Text = $"{file.Name} · configuración aplicada";
+            ShowSettingsFeedback($"Configuración importada desde {file.Name}.");
+        }
+        catch
+        {
+            ShowSettingsFeedback("No se pudo importar el backup seleccionado.");
+        }
     }
 
-    private void ImportSettingsButton_Click(object sender, RoutedEventArgs e)
+    private SettingsBackupModel CaptureSettingsBackup()
     {
-        ShowSettingsFeedback(
-            "Importar configuración quedó preparado para cuando conectemos la persistencia real.");
+        return new SettingsBackupModel
+        {
+            CreatedAt = DateTime.Now,
+            SourceFolder = SourceFolderText.Text,
+            DestinationFolder = DestinationFolderText.Text,
+            StartupPage = StartupPageValueText.Text,
+            CloseBehavior = CloseBehaviorValueText.Text,
+            StartWithWindows = StartWithWindowsToggle.IsOn,
+            AutoUpdate = AutoUpdateToggle.IsOn,
+            Theme = ThemeValueText.Text,
+            AccentColor = AccentColorHexText.Text,
+            Animations = AnimationsToggle.IsOn,
+            PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
+            IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
+            CreateFolders = CreateFoldersToggle.IsOn,
+            DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
+            ConflictBehavior = ConflictBehaviorValueText.Text,
+            UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
+            Undo = UndoToggle.IsOn,
+            RecycleBin = RecycleBinToggle.IsOn,
+            ConfirmDestructive = ConfirmDestructiveToggle.IsOn,
+            SaveHistory = SaveHistoryToggle.IsOn,
+            HistoryRetention = HistoryRetentionValueText.Text
+        };
+    }
+
+    private void ApplySettingsBackup(SettingsBackupModel backup)
+    {
+        _isPageReady = false;
+
+        SourceFolderText.Text = backup.SourceFolder;
+        DestinationFolderText.Text = backup.DestinationFolder;
+        StartupPageValueText.Text = backup.StartupPage;
+        CloseBehaviorValueText.Text = backup.CloseBehavior;
+        ThemeValueText.Text = backup.Theme;
+
+        StartWithWindowsToggle.IsOn = backup.StartWithWindows;
+        AutoUpdateToggle.IsOn = backup.AutoUpdate;
+        AnimationsToggle.IsOn = backup.Animations;
+        PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
+        IncludeSubfoldersToggle.IsOn = backup.IncludeSubfolders;
+        CreateFoldersToggle.IsOn = backup.CreateFolders;
+        DeleteEmptyFoldersToggle.IsOn = backup.DeleteEmptyFolders;
+        ConflictBehaviorValueText.Text = backup.ConflictBehavior;
+        UnknownExtensionBehaviorValueText.Text = backup.UnknownExtensionBehavior;
+        UndoToggle.IsOn = backup.Undo;
+        RecycleBinToggle.IsOn = backup.RecycleBin;
+        ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
+        SaveHistoryToggle.IsOn = backup.SaveHistory;
+        HistoryRetentionValueText.Text = backup.HistoryRetention;
+
+        Windows.UI.Color accentColor;
+        if (!TryParseHexColor(backup.AccentColor, out accentColor))
+        {
+            accentColor = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+        }
+
+        AccentColorPicker.Color = accentColor;
+        AccentColorHexText.Text = ToHex(accentColor);
+
+        _isPageReady = true;
+
+        ApplyAccentColor(accentColor);
+        UpdateAppearancePreview();
+        SetSettingsSection(_currentSection);
     }
 
     private void ResetSettingsButton_Click(object sender, RoutedEventArgs e)
@@ -369,38 +631,42 @@ public sealed partial class SettingsPage : Page
 
     private void ResetVisibleSettingsToDefaults()
     {
+        var teal = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+
+        _isPageReady = false;
+
         SourceFolderText.Text = @"C:\Users\Usuario\Downloads";
         DestinationFolderText.Text = @"C:\Users\Usuario\Downloads\ORGANIZADO";
 
         StartupPageValueText.Text = "Inicio";
         CloseBehaviorValueText.Text = "Cerrar BandaNV";
 
-        ThemeValueText.Text = "Oscuro";
-        DensityValueText.Text = "Cómoda";
-
-        ConflictBehaviorValueText.Text = "Preguntar";
-        UnknownExtensionBehaviorValueText.Text = "Preguntar en la vista previa";
-        HistoryRetentionValueText.Text = "Siempre";
-
-        _isPageReady = false;
-
         StartWithWindowsToggle.IsOn = false;
         AutoUpdateToggle.IsOn = true;
+
+        ThemeValueText.Text = "Oscuro";
+        AccentColorPicker.Color = teal;
+        AccentColorHexText.Text = ToHex(teal);
         AnimationsToggle.IsOn = true;
+
         PreviewBeforeOrganizeToggle.IsOn = true;
         IncludeSubfoldersToggle.IsOn = false;
         CreateFoldersToggle.IsOn = true;
         DeleteEmptyFoldersToggle.IsOn = false;
+
+        ConflictBehaviorValueText.Text = "Preguntar";
+        UnknownExtensionBehaviorValueText.Text = "Preguntar en la vista previa";
+
         UndoToggle.IsOn = true;
         RecycleBinToggle.IsOn = true;
         ConfirmDestructiveToggle.IsOn = true;
+
         SaveHistoryToggle.IsOn = true;
+        HistoryRetentionValueText.Text = "Siempre";
 
         _isPageReady = true;
 
-        SearchIndexStatusText.Text = "Listo para conectar";
-        SearchIndexDetailText.Text = "Maqueta · todavía sin índice persistente";
-
+        ApplyAccentColor(teal);
         UpdateAppearancePreview();
     }
 
@@ -454,4 +720,39 @@ internal enum SettingsConfirmMode
     None,
     ClearHistory,
     ResetSettings
+}
+
+internal sealed class SettingsBackupModel
+{
+    public const string CurrentFormat = "BandaNV.SettingsBackup.v1";
+
+    public string Format { get; set; } = CurrentFormat;
+    public DateTime CreatedAt { get; set; }
+
+    public string SourceFolder { get; set; } = string.Empty;
+    public string DestinationFolder { get; set; } = string.Empty;
+    public string StartupPage { get; set; } = "Inicio";
+    public string CloseBehavior { get; set; } = "Cerrar BandaNV";
+
+    public bool StartWithWindows { get; set; }
+    public bool AutoUpdate { get; set; } = true;
+
+    public string Theme { get; set; } = "Oscuro";
+    public string AccentColor { get; set; } = "#4FE0C6";
+    public bool Animations { get; set; } = true;
+
+    public bool PreviewBeforeOrganize { get; set; } = true;
+    public bool IncludeSubfolders { get; set; }
+    public bool CreateFolders { get; set; } = true;
+    public bool DeleteEmptyFolders { get; set; }
+
+    public string ConflictBehavior { get; set; } = "Preguntar";
+    public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
+
+    public bool Undo { get; set; } = true;
+    public bool RecycleBin { get; set; } = true;
+    public bool ConfirmDestructive { get; set; } = true;
+
+    public bool SaveHistory { get; set; } = true;
+    public string HistoryRetention { get; set; } = "Siempre";
 }
