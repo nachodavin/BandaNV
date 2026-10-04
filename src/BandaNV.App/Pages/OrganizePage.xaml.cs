@@ -15,6 +15,7 @@ public sealed partial class OrganizePage : Page
 
     private readonly List<ResolvedExtensionAssignment> _resolvedAssignments = new();
     private CancellationTokenSource? _analysisCts;
+    private CancellationTokenSource? _executionCts;
     private OrganizationAnalysisResult? _lastAnalysis;
     private bool _isRefreshingPreview;
 
@@ -177,7 +178,7 @@ public sealed partial class OrganizePage : Page
         }
     }
 
-    private void SaveAssignmentOverlayButton_Click(object sender, RoutedEventArgs e)
+    private async void SaveAssignmentOverlayButton_Click(object sender, RoutedEventArgs e)
     {
         AssignmentValidationText.Visibility = Visibility.Collapsed;
 
@@ -220,7 +221,10 @@ public sealed partial class OrganizePage : Page
                 ? 1
                 : _categories.Max(category => category.Order) + 1;
 
-            selectedCategory = new OrganizeCategoryOption(nextOrder, categoryName);
+            selectedCategory = new OrganizeCategoryOption(
+                Guid.NewGuid().ToString("D"),
+                nextOrder,
+                categoryName);
             _categories.Add(selectedCategory);
         }
         else if (_pendingAssignmentCategory is not null)
@@ -247,8 +251,22 @@ public sealed partial class OrganizePage : Page
 
         if (rememberAssignment)
         {
-            _rememberedAssignments[_activeAssignmentExtension] =
-                selectedCategory;
+            try
+            {
+                await PersistRememberedAssignmentAsync(
+                    _activeAssignmentExtension,
+                    selectedCategory);
+
+                _rememberedAssignments[_activeAssignmentExtension] =
+                    selectedCategory;
+            }
+            catch (Exception ex)
+            {
+                AssignmentValidationText.Text =
+                    $"No se pudo recordar la asignación: {ex.Message}";
+                AssignmentValidationText.Visibility = Visibility.Visible;
+                return;
+            }
         }
 
         _resolvedAssignments.RemoveAll(item =>
@@ -292,7 +310,7 @@ public sealed partial class OrganizePage : Page
         _isCreatingAssignmentCategory = false;
     }
 
-    private void RevertExtensionAssignmentButton_Click(object sender, RoutedEventArgs e)
+    private async void RevertExtensionAssignmentButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string extension } ||
             string.IsNullOrWhiteSpace(extension))
@@ -322,6 +340,19 @@ public sealed partial class OrganizePage : Page
             rememberedCategory.Name.Equals(assignment.CategoryName, StringComparison.OrdinalIgnoreCase))
         {
             _rememberedAssignments.Remove(assignment.Extension);
+
+            try
+            {
+                await RemoveRememberedAssignmentAsync(
+                    assignment.Extension,
+                    rememberedCategory.Id);
+            }
+            catch
+            {
+                // La reversión visual sigue siendo válida para esta ejecución.
+                // Si persistir falla, la próxima recarga volverá a reflejar
+                // lo que haya quedado realmente guardado.
+            }
         }
 
         _resolvedAssignments.Remove(assignment);
@@ -423,11 +454,126 @@ public sealed partial class OrganizePage : Page
         flyout.ShowAt(selectorButton);
     }
 
-    private void OrganizeButton_Click(object sender, RoutedEventArgs e)
+    private async void OrganizeButton_Click(object sender, RoutedEventArgs e)
     {
-        FooterStatusText.Foreground = GetBrush("BandaMutedStrongBrush");
-        FooterStatusText.Text =
-            "La vista previa ya usa archivos reales. El movimiento físico se habilitará en el siguiente bloque.";
+        var movableFiles = _files
+            .Where(file => file.IsClassified)
+            .ToList();
+
+        if (movableFiles.Count == 0 || _lastAnalysis is null)
+        {
+            return;
+        }
+
+        _executionCts?.Cancel();
+        _executionCts?.Dispose();
+        _executionCts = new CancellationTokenSource();
+
+        var requestItems = _files
+            .Select(file => new OrganizationExecutionRequestItem(
+                file.FullPath,
+                file.FileName,
+                file.SizeBytes,
+                file.ModifiedUtcTicks,
+                file.CategoryId,
+                file.CategoryName,
+                file.CategoryOrder))
+            .ToList();
+
+        InitialStatePanel.Visibility = Visibility.Collapsed;
+        PreviewStatePanel.Visibility = Visibility.Collapsed;
+        CompletionStatePanel.Visibility = Visibility.Collapsed;
+        ProgressStatePanel.Visibility = Visibility.Visible;
+
+        OrganizationProgressBar.Value = 0;
+        ProgressCountText.Text = $"0 de {requestItems.Count} archivos";
+        ProgressStatusText.Text = "Preparando organización segura...";
+
+        var progress = new Progress<OrganizationExecutionProgress>(state =>
+        {
+            var percentage = state.Total == 0
+                ? 0
+                : state.Processed * 100.0 / state.Total;
+
+            OrganizationProgressBar.Value = percentage;
+            ProgressCountText.Text =
+                $"{state.Processed} de {state.Total} archivos";
+            ProgressStatusText.Text =
+                $"{state.Message}: {state.FileName}";
+        });
+
+        try
+        {
+            var result =
+                await global::BandaNV.App.App.OrganizationExecution.ExecuteAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    requestItems,
+                    progress,
+                    _executionCts.Token);
+
+            ProgressStatePanel.Visibility = Visibility.Collapsed;
+            CompletionStatePanel.Visibility = Visibility.Visible;
+
+            var moved = result.Record.Items.Count(item =>
+                item.Status == OrganizationExecutionItemStatus.Moved);
+
+            var unclassified = result.Record.Items.Count(item =>
+                item.Status == OrganizationExecutionItemStatus.SkippedUnclassified);
+
+            var conflicts = result.Record.Items.Count(item =>
+                item.Status is OrganizationExecutionItemStatus.SkippedConflict or
+                    OrganizationExecutionItemStatus.ConflictNeedsDecision);
+
+            var errors = result.Record.Items.Count(item =>
+                item.Status is OrganizationExecutionItemStatus.Error or
+                    OrganizationExecutionItemStatus.SourceMissing or
+                    OrganizationExecutionItemStatus.SourceChanged);
+
+            var parts = new List<string>
+            {
+                $"{moved} archivo{(moved == 1 ? string.Empty : "s")} organizado{(moved == 1 ? string.Empty : "s")} correctamente."
+            };
+
+            if (unclassified > 0)
+            {
+                parts.Add(
+                    $"{unclassified} quedó{(unclassified == 1 ? string.Empty : "aron")} en origen por no tener categoría.");
+            }
+
+            if (conflicts > 0)
+            {
+                parts.Add(
+                    $"{conflicts} conflicto{(conflicts == 1 ? string.Empty : "s")} quedó{(conflicts == 1 ? string.Empty : "aron")} pendiente{(conflicts == 1 ? string.Empty : "s")}.");
+            }
+
+            if (errors > 0)
+            {
+                parts.Add(
+                    $"{errors} archivo{(errors == 1 ? string.Empty : "s")} no pudo{(errors == 1 ? string.Empty : "ieron")} moverse de forma segura.");
+            }
+
+            CompletionText.Text = string.Join(" ", parts);
+
+            _lastAnalysis = null;
+        }
+        catch (OperationCanceledException)
+        {
+            ProgressStatePanel.Visibility = Visibility.Collapsed;
+            PreviewStatePanel.Visibility = Visibility.Visible;
+
+            FooterStatusText.Foreground = GetBrush("BandaMutedStrongBrush");
+            FooterStatusText.Text =
+                "La organización fue cancelada. Los movimientos ya completados quedaron registrados.";
+        }
+        catch (Exception ex)
+        {
+            ProgressStatePanel.Visibility = Visibility.Collapsed;
+            PreviewStatePanel.Visibility = Visibility.Visible;
+
+            FooterStatusText.Foreground = GetBrush("BandaDangerBrush");
+            FooterStatusText.Text =
+                $"No se pudo completar la organización: {ex.Message}";
+        }
     }
 
     private void ShowInitialState()
@@ -483,7 +629,9 @@ public sealed partial class OrganizePage : Page
                     extension: file.Extension,
                     sizeBytes: file.SizeBytes,
                     modifiedAt: file.ModifiedAt,
+                    modifiedUtcTicks: file.ModifiedUtcTicks,
                     categoryOptions: _categories,
+                    categoryId: file.CategoryId,
                     categoryOrder: file.CategoryOrder,
                     categoryName: file.CategoryName));
             }
@@ -538,6 +686,7 @@ public sealed partial class OrganizePage : Page
         foreach (var category in global::BandaNV.App.App.Categories.GetAll())
         {
             _categories.Add(new OrganizeCategoryOption(
+                category.Id,
                 category.Order,
                 category.Name));
         }
@@ -553,6 +702,72 @@ public sealed partial class OrganizePage : Page
         InitialAnalysisDescriptionText.Text =
             $"Origen: {source}\n" +
             "BandaNV analizará los archivos y calculará sus destinos sin modificar el disco.";
+    }
+
+    private static async Task PersistRememberedAssignmentAsync(
+        string extension,
+        OrganizeCategoryOption selectedCategory)
+    {
+        var categories = global::BandaNV.App.App.Categories.GetAll()
+            .Select(category => new CategorySettings(
+                category.Id,
+                category.Name,
+                category.Extensions,
+                category.Order))
+            .ToList();
+
+        foreach (var category in categories)
+        {
+            category.Extensions.RemoveAll(value =>
+                value.Equals(extension, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var target = categories.FirstOrDefault(category =>
+            category.Id.Equals(
+                selectedCategory.Id,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (target is null)
+        {
+            target = new CategorySettings(
+                selectedCategory.Id,
+                selectedCategory.Name,
+                [extension],
+                selectedCategory.Order);
+
+            categories.Add(target);
+        }
+        else if (!target.Extensions.Contains(
+                     extension,
+                     StringComparer.OrdinalIgnoreCase))
+        {
+            target.Extensions.Add(extension);
+        }
+
+        await global::BandaNV.App.App.Categories.SaveAllAsync(categories);
+    }
+
+    private static async Task RemoveRememberedAssignmentAsync(
+        string extension,
+        string categoryId)
+    {
+        var categories = global::BandaNV.App.App.Categories.GetAll()
+            .Select(category => new CategorySettings(
+                category.Id,
+                category.Name,
+                category.Extensions,
+                category.Order))
+            .ToList();
+
+        var target = categories.FirstOrDefault(category =>
+            category.Id.Equals(
+                categoryId,
+                StringComparison.OrdinalIgnoreCase));
+
+        target?.Extensions.RemoveAll(value =>
+            value.Equals(extension, StringComparison.OrdinalIgnoreCase));
+
+        await global::BandaNV.App.App.Categories.SaveAllAsync(categories);
     }
 
     private void ApplyRememberedAssignments()
@@ -669,10 +884,12 @@ public sealed partial class OrganizePage : Page
         SummaryUnclassifiedCountText.Text = unclassifiedFiles.Count.ToString(CultureInfo.CurrentCulture);
 
         OrganizeButton.Content = $"Organizar {classifiedFiles.Count} archivos";
-        OrganizeButton.IsEnabled = false;
+        OrganizeButton.IsEnabled = classifiedFiles.Count > 0;
         ToolTipService.SetToolTip(
             OrganizeButton,
-            "La ejecución física se habilitará en el siguiente bloque del motor.");
+            classifiedFiles.Count > 0
+                ? "Ejecuta exactamente la organización mostrada en esta vista previa."
+                : null);
 
         var warningBrush = GetBrush("OrganizeWarningBrush");
         var warningSoftBrush = GetBrush("OrganizeWarningSoftBrush");
@@ -707,7 +924,7 @@ public sealed partial class OrganizePage : Page
             SummaryUnclassifiedCountText.Foreground = accentBrush;
             FooterStatusText.Foreground = accentBrush;
             FooterStatusText.Text =
-                "Vista previa real lista. El movimiento físico todavía está deshabilitado por seguridad.";
+                "Todos los archivos tienen destino. Ya podés ejecutar esta organización.";
         }
 
         UnassignedCard.Visibility = Visibility.Visible;
@@ -833,7 +1050,9 @@ public sealed class OrganizePreviewFile
         string extension,
         long sizeBytes,
         DateTime modifiedAt,
+        long modifiedUtcTicks,
         IReadOnlyList<OrganizeCategoryOption> categoryOptions,
+        string? categoryId,
         int? categoryOrder,
         string? categoryName)
     {
@@ -844,7 +1063,9 @@ public sealed class OrganizePreviewFile
         Extension = extension;
         SizeBytes = sizeBytes;
         ModifiedAt = modifiedAt;
+        ModifiedUtcTicks = modifiedUtcTicks;
         CategoryOptions = categoryOptions;
+        CategoryId = categoryId;
         CategoryOrder = categoryOrder;
         CategoryName = categoryName;
         AssignmentSource =
@@ -860,8 +1081,10 @@ public sealed class OrganizePreviewFile
     public string Extension { get; }
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
+    public long ModifiedUtcTicks { get; }
     public IReadOnlyList<OrganizeCategoryOption> CategoryOptions { get; }
 
+    public string? CategoryId { get; private set; }
     public int? CategoryOrder { get; private set; }
     public string? CategoryName { get; private set; }
     public OrganizeAssignmentSource AssignmentSource { get; private set; }
@@ -897,6 +1120,7 @@ public sealed class OrganizePreviewFile
         OrganizeCategoryOption category,
         OrganizeAssignmentSource source)
     {
+        CategoryId = category.Id;
         CategoryOrder = category.Order;
         CategoryName = category.Name;
         AssignmentSource = source;
@@ -904,6 +1128,7 @@ public sealed class OrganizePreviewFile
 
     public void ClearAssignment()
     {
+        CategoryId = null;
         CategoryOrder = null;
         CategoryName = null;
         AssignmentSource = OrganizeAssignmentSource.Unclassified;
@@ -930,12 +1155,14 @@ public sealed class OrganizePreviewFile
 
 public sealed class OrganizeCategoryOption
 {
-    public OrganizeCategoryOption(int order, string name)
+    public OrganizeCategoryOption(string id, int order, string name)
     {
+        Id = id;
         Order = order;
         Name = name;
     }
 
+    public string Id { get; }
     public int Order { get; }
     public string Name { get; }
     // El número define el orden y el nombre de carpeta en el explorador,
