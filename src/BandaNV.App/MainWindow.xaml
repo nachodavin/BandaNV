@@ -239,30 +239,8 @@
             </Grid>
         </Border>
 
-        <!-- Glows ambientales: teal, sin Acrylic -->
-        <Border
-            Grid.ColumnSpan="2"
-            Width="980"
-            Height="760"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            Margin="0,-330,-280,0"
-            CornerRadius="490"
-            Background="{StaticResource BandaGlowGradientBrush}"
-            Opacity="0.36"
-            IsHitTestVisible="False" />
-
-        <Border
-            Grid.ColumnSpan="2"
-            Width="760"
-            Height="620"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Bottom"
-            Margin="-280,0,0,-300"
-            CornerRadius="380"
-            Background="{StaticResource BandaGlowGradientBrush}"
-            Opacity="0.16"
-            IsHitTestVisible="False" />
+        <!-- Fondo tonal plano: la profundidad ahora viene de superficies y bordes,
+             no de degradados o glows ambientales. -->
 
         <!-- Área principal -->
         <Grid Grid.Column="1">
