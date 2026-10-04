@@ -299,10 +299,12 @@
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
+                            <!-- Encabezado fijo -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -339,120 +341,145 @@
                                 </Border>
                             </Grid>
 
-                            <ScrollViewer
+                            <!-- Resumen fijo -->
+                            <StackPanel
                                 Grid.Row="1"
                                 Margin="0,16,0,14"
-                                VerticalScrollMode="Enabled"
-                                VerticalScrollBarVisibility="Auto"
-                                HorizontalScrollMode="Disabled"
-                                HorizontalScrollBarVisibility="Disabled">
+                                Spacing="14">
 
-                                <StackPanel Spacing="14">
-                                    <Grid ColumnSpacing="10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                                        <Border Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
-                                                <TextBlock x:Name="DetailFileCountText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                            </StackPanel>
-                                        </Border>
-
-                                        <Border Grid.Column="1" Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
-                                                <TextBlock x:Name="DetailSizeText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                            </StackPanel>
-                                        </Border>
-                                    </Grid>
-
-                                    <StackPanel Spacing="5">
-                                        <TextBlock Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
-                                        <TextBlock
-                                            x:Name="DetailOriginText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="11"
-                                            TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <StackPanel Spacing="5">
-                                        <TextBlock Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
-                                        <TextBlock
-                                            x:Name="DetailDestinationText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="11"
-                                            TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Text="ARCHIVOS DE LA EJECUCIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
-
-                                        <ItemsControl ItemsSource="{x:Bind SelectedFiles, Mode=OneWay}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="local:HistoryFilePreview">
-                                                    <Border
-                                                        Padding="10,8"
-                                                        Margin="0,0,0,6"
-                                                        CornerRadius="10"
-                                                        Background="{StaticResource BandaNavIconBrush}">
-
-                                                        <Grid ColumnSpacing="8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-
-                                                            <StackPanel Spacing="3">
-                                                                <TextBlock
-                                                                    Text="{x:Bind Name}"
-                                                                    Foreground="{StaticResource BandaTextBrush}"
-                                                                    FontSize="11"
-                                                                    TextTrimming="CharacterEllipsis" />
-                                                                <TextBlock
-                                                                    Text="{x:Bind Category}"
-                                                                    Foreground="{StaticResource BandaAccentBrush}"
-                                                                    FontSize="9" />
-                                                            </StackPanel>
-
-                                                            <TextBlock
-                                                                Grid.Column="1"
-                                                                Text="{x:Bind SizeText}"
-                                                                Style="{StaticResource BandaMutedTextStyle}"
-                                                                FontSize="10"
-                                                                VerticalAlignment="Center" />
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-
-                                    <Border
-                                        Padding="12"
-                                        CornerRadius="12"
-                                        Background="{StaticResource BandaNavIconBrush}">
+                                    <Border Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
                                         <StackPanel Spacing="4">
-                                            <TextBlock Text="ESTADO DE UNDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
-                                            <TextBlock
-                                                x:Name="UndoReasonText"
-                                                Text="—"
-                                                Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                FontSize="10"
-                                                TextWrapping="Wrap" />
+                                            <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
+                                            <TextBlock x:Name="DetailFileCountText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
                                         </StackPanel>
                                     </Border>
-                                </StackPanel>
-                            </ScrollViewer>
 
+                                    <Border Grid.Column="1" Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
+                                            <TextBlock x:Name="DetailSizeText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
+                                    <TextBlock
+                                        x:Name="DetailOriginText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="11"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="9" />
+                                    <TextBlock
+                                        x:Name="DetailDestinationText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="11"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Solo la lista de archivos scrollea; el título queda fijo -->
+                            <Grid
+                                Grid.Row="2"
+                                MinHeight="120">
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock
+                                    Text="ARCHIVOS DE LA EJECUCIÓN"
+                                    Style="{StaticResource BandaMutedTextStyle}"
+                                    FontSize="9"
+                                    Margin="0,0,0,8" />
+
+                                <ScrollViewer
+                                    Grid.Row="1"
+                                    VerticalScrollMode="Enabled"
+                                    VerticalScrollBarVisibility="Auto"
+                                    HorizontalScrollMode="Disabled"
+                                    HorizontalScrollBarVisibility="Disabled">
+
+                                    <ItemsControl ItemsSource="{x:Bind SelectedFiles, Mode=OneWay}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="local:HistoryFilePreview">
+                                                <Border
+                                                    Padding="10,8"
+                                                    Margin="0,0,12,6"
+                                                    CornerRadius="10"
+                                                    Background="{StaticResource BandaNavIconBrush}">
+
+                                                    <Grid ColumnSpacing="10">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="28" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Spacing="3">
+                                                            <TextBlock
+                                                                Text="{x:Bind Name}"
+                                                                Foreground="{StaticResource BandaTextBrush}"
+                                                                FontSize="11"
+                                                                TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock
+                                                                Text="{x:Bind Category}"
+                                                                Foreground="{StaticResource BandaAccentBrush}"
+                                                                FontSize="9" />
+                                                        </StackPanel>
+
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            Text="{x:Bind SizeText}"
+                                                            Style="{StaticResource BandaMutedTextStyle}"
+                                                            FontSize="10"
+                                                            Margin="0,0,4,0"
+                                                            VerticalAlignment="Center" />
+
+                                                        <Button
+                                                            Grid.Column="2"
+                                                            Tag="{x:Bind Name}"
+                                                            Click="DeleteFilePreviewButton_Click"
+                                                            Width="28"
+                                                            Height="28"
+                                                            Padding="0"
+                                                            CornerRadius="8"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                            Visibility="{x:Bind DeleteVisibility}"
+                                                            IsEnabled="{x:Bind CanDelete}"
+                                                            ToolTipService.ToolTip="Eliminar archivo">
+                                                            <SymbolIcon Symbol="Delete" />
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+
+                            <!-- Acción principal fija -->
                             <Button
                                 x:Name="UndoPreviewButton"
-                                Grid.Row="2"
+                                Grid.Row="3"
                                 Content="Deshacer ejecución"
+                                Margin="0,14,0,0"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 Padding="14,10"
