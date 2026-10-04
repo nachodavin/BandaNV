@@ -7,6 +7,7 @@ public sealed record OrganizationAnalysisFile(
     string Extension,
     long SizeBytes,
     DateTime ModifiedAt,
+    long ModifiedUtcTicks,
     string? CategoryId,
     string? CategoryName,
     int? CategoryOrder,
