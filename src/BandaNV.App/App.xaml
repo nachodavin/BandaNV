@@ -9,65 +9,59 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- BandaNV v2.0 visual system -->
-            <SolidColorBrush x:Key="BandaBackgroundBrush" Color="#090D12" />
+            <!-- BandaNV v2.0 visual system
+                 Primario = atmósfera/superficies.
+                 Secundario = interacción/selección. -->
+            <SolidColorBrush x:Key="BandaPrimaryColorBrush" Color="#123A34" />
+            <SolidColorBrush x:Key="BandaSecondaryColorBrush" Color="#4FE0C6" />
 
-            <!-- Gradient / translucent surfaces -->
-            <SolidColorBrush x:Key="BandaSidebarBrush" Color="#E80A1015" />
-            <SolidColorBrush x:Key="BandaCardBrush" Color="#C912191F" />
-            <SolidColorBrush x:Key="BandaCardAltBrush" Color="#B8152224" />
-            <SolidColorBrush x:Key="BandaSurfaceBrush" Color="#C912191F" />
-            <SolidColorBrush x:Key="BandaSurfaceAltBrush" Color="#B8152224" />
-            <SolidColorBrush x:Key="BandaBorderBrush" Color="#35424E59" />
-            <SolidColorBrush x:Key="BandaBorderStrongBrush" Color="#5A4B5A66" />
+            <!-- Superficies tonales derivadas del primario; sin degradados globales. -->
+            <SolidColorBrush x:Key="BandaBackgroundBrush" Color="#080E10" />
+            <SolidColorBrush x:Key="BandaAppBackgroundGradient" Color="#080E10" />
+            <SolidColorBrush x:Key="BandaSidebarBrush" Color="#0A1214" />
+            <SolidColorBrush x:Key="BandaSidebarGradientBrush" Color="#0A1214" />
+            <SolidColorBrush x:Key="BandaCardBrush" Color="#111A1B" />
+            <SolidColorBrush x:Key="BandaCardAltBrush" Color="#142020" />
+            <SolidColorBrush x:Key="BandaSurfaceBrush" Color="#111A1B" />
+            <SolidColorBrush x:Key="BandaSurfaceAltBrush" Color="#142020" />
+            <SolidColorBrush x:Key="BandaNavIconBrush" Color="#182424" />
+            <SolidColorBrush x:Key="BandaPopupSurfaceBrush" Color="#0E1718" />
+            <SolidColorBrush x:Key="BandaBorderBrush" Color="#35474446" />
+            <SolidColorBrush x:Key="BandaBorderStrongBrush" Color="#5A536461" />
+
+            <!-- El secundario concentra acciones, selección y estados activos. -->
             <SolidColorBrush x:Key="BandaAccentBrush" Color="#4FE0C6" />
             <SolidColorBrush x:Key="BandaAccentSoftBrush" Color="#244FE0C6" />
             <SolidColorBrush x:Key="BandaAccentFaintBrush" Color="#124FE0C6" />
-            <SolidColorBrush x:Key="BandaSecondaryAccentBrush" Color="#53A9FF" />
+            <SolidColorBrush x:Key="BandaSecondaryAccentBrush" Color="#67E7D2" />
+            <SolidColorBrush x:Key="BandaNavActiveBrush" Color="#224FE0C6" />
+            <SolidColorBrush x:Key="BandaAccentGradientBrush" Color="#4FE0C6" />
+            <SolidColorBrush x:Key="BandaAccentCardBrush" Color="#172B28" />
+
+            <!-- Estados de interacción derivados del secundario. -->
+            <SolidColorBrush x:Key="BandaActionHoverBrush" Color="#67E7D2" />
+            <SolidColorBrush x:Key="BandaActionPressedBrush" Color="#39B9A7" />
+            <SolidColorBrush x:Key="BandaActionForegroundBrush" Color="#07110F" />
+
+            <!-- ToggleSwitch: ON siempre usa el color secundario. -->
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#4FE0C6" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#67E7D2" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#39B9A7" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#4FE0C6" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#67E7D2" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#39B9A7" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#07110F" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#07110F" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#07110F" />
+
             <SolidColorBrush x:Key="BandaTextBrush" Color="#F5F8FA" />
             <SolidColorBrush x:Key="BandaMutedBrush" Color="#93A1AA" />
             <SolidColorBrush x:Key="BandaMutedStrongBrush" Color="#C1CBD1" />
-            <SolidColorBrush x:Key="BandaNavActiveBrush" Color="#224FE0C6" />
-            <SolidColorBrush x:Key="BandaNavIconBrush" Color="#151D262F" />
-            <!-- Sistema global de popups/submenús BandaNV -->
-            <SolidColorBrush x:Key="BandaPopupSurfaceBrush" Color="#FF0C1418" />
+
+            <!-- Semánticos: independientes de la personalización. -->
             <SolidColorBrush x:Key="BandaPopupBackdropBrush" Color="#B3080C11" />
             <SolidColorBrush x:Key="BandaDangerBrush" Color="#FF7B7B" />
             <SolidColorBrush x:Key="BandaDangerSoftBrush" Color="#24FF7B7B" />
-
-            <LinearGradientBrush x:Key="BandaAppBackgroundGradient" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#060A0E" Offset="0" />
-                <GradientStop Color="#091015" Offset="0.28" />
-                <GradientStop Color="#0D1B1D" Offset="0.52" />
-                <GradientStop Color="#123A34" Offset="0.72" />
-                <GradientStop Color="#091316" Offset="0.88" />
-                <GradientStop Color="#05080B" Offset="1" />
-            </LinearGradientBrush>
-
-            <LinearGradientBrush x:Key="BandaSidebarGradientBrush" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#F20A0F14" Offset="0" />
-                <GradientStop Color="#E50B1518" Offset="0.62" />
-                <GradientStop Color="#D90C1C1C" Offset="1" />
-            </LinearGradientBrush>
-
-            <LinearGradientBrush x:Key="BandaGlowGradientBrush" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#004FE0C6" Offset="0" />
-                <GradientStop Color="#704FE0C6" Offset="0.48" />
-                <GradientStop Color="#254FE0C6" Offset="0.74" />
-                <GradientStop Color="#004FE0C6" Offset="1" />
-            </LinearGradientBrush>
-
-            <LinearGradientBrush x:Key="BandaAccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#4FE0C6" Offset="0" />
-                <GradientStop Color="#39B9A7" Offset="0.62" />
-                <GradientStop Color="#1E7A70" Offset="1" />
-            </LinearGradientBrush>
-
-            <LinearGradientBrush x:Key="BandaAccentCardBrush" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#2B4FE0C6" Offset="0" />
-                <GradientStop Color="#F0161D25" Offset="0.56" />
-                <GradientStop Color="#E7121720" Offset="1" />
-            </LinearGradientBrush>
 
             <!--
                 Estándar global para cualquier popup/submenú nuevo.
