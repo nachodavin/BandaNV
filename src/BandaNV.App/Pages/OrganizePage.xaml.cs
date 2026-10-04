@@ -190,6 +190,7 @@ public sealed partial class OrganizePage : Page
         }
 
         OrganizeCategoryOption selectedCategory;
+        var createdNewCategory = false;
 
         if (_isCreatingAssignmentCategory)
         {
@@ -199,6 +200,15 @@ public sealed partial class OrganizePage : Page
             {
                 AssignmentValidationText.Text =
                     "Escribí un nombre para la nueva categoría.";
+                AssignmentValidationText.Visibility = Visibility.Visible;
+                return;
+            }
+
+            if (proposedName.IndexOfAny(
+                    System.IO.Path.GetInvalidFileNameChars()) >= 0)
+            {
+                AssignmentValidationText.Text =
+                    "El nombre contiene caracteres que no pueden usarse en una carpeta.";
                 AssignmentValidationText.Visibility = Visibility.Visible;
                 return;
             }
@@ -226,6 +236,7 @@ public sealed partial class OrganizePage : Page
                 nextOrder,
                 categoryName);
             _categories.Add(selectedCategory);
+            createdNewCategory = true;
         }
         else if (_pendingAssignmentCategory is not null)
         {
@@ -249,9 +260,9 @@ public sealed partial class OrganizePage : Page
         var rememberAssignment =
             AssignmentRememberCheckBox.IsChecked == true;
 
-        if (rememberAssignment)
+        try
         {
-            try
+            if (rememberAssignment)
             {
                 await PersistRememberedAssignmentAsync(
                     _activeAssignmentExtension,
@@ -260,13 +271,17 @@ public sealed partial class OrganizePage : Page
                 _rememberedAssignments[_activeAssignmentExtension] =
                     selectedCategory;
             }
-            catch (Exception ex)
+            else if (createdNewCategory)
             {
-                AssignmentValidationText.Text =
-                    $"No se pudo recordar la asignación: {ex.Message}";
-                AssignmentValidationText.Visibility = Visibility.Visible;
-                return;
+                await PersistNewCategoryAsync(selectedCategory);
             }
+        }
+        catch (Exception ex)
+        {
+            AssignmentValidationText.Text =
+                $"No se pudo guardar la categoría/asignación: {ex.Message}";
+            AssignmentValidationText.Visibility = Visibility.Visible;
+            return;
         }
 
         _resolvedAssignments.RemoveAll(item =>
@@ -743,6 +758,34 @@ public sealed partial class OrganizePage : Page
         {
             target.Extensions.Add(extension);
         }
+
+        await global::BandaNV.App.App.Categories.SaveAllAsync(categories);
+    }
+
+    private static async Task PersistNewCategoryAsync(
+        OrganizeCategoryOption selectedCategory)
+    {
+        var categories = global::BandaNV.App.App.Categories.GetAll()
+            .Select(category => new CategorySettings(
+                category.Id,
+                category.Name,
+                category.Extensions,
+                category.Order))
+            .ToList();
+
+        if (categories.Any(category =>
+                category.Id.Equals(
+                    selectedCategory.Id,
+                    StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        categories.Add(new CategorySettings(
+            selectedCategory.Id,
+            selectedCategory.Name,
+            [],
+            selectedCategory.Order));
 
         await global::BandaNV.App.App.Categories.SaveAllAsync(categories);
     }
