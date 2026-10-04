@@ -577,18 +577,14 @@
             Visibility="Collapsed">
 
             <Border
-                Background="#B3080C11"
+                Background="{StaticResource BandaPopupBackdropBrush}"
                 Tapped="FiltersBackdrop_Tapped" />
 
             <Border
                 Width="620"
-                Padding="26"
+                Style="{StaticResource BandaPopupCardStyle}"
                 HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                CornerRadius="22"
-                Background="{StaticResource BandaPopupSurfaceBrush}"
-                BorderBrush="{StaticResource BandaBorderStrongBrush}"
-                BorderThickness="1">
+                VerticalAlignment="Center">
 
                 <Grid RowSpacing="20">
                     <Grid.RowDefinitions>
@@ -639,15 +635,7 @@
                             Grid.Column="2"
                             Content="×"
                             Click="CloseFiltersOverlayButton_Click"
-                            Width="36"
-                            Height="36"
-                            Padding="0"
-                            CornerRadius="12"
-                            Background="{StaticResource BandaCardBrush}"
-                            BorderBrush="{StaticResource BandaBorderBrush}"
-                            BorderThickness="1"
-                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                            FontSize="20"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
                             VerticalAlignment="Top" />
                     </Grid>
 
@@ -1047,37 +1035,21 @@
                             Grid.Column="1"
                             Content="Restablecer"
                             Click="ResetFiltersOverlayButton_Click"
-                            Padding="16,9"
-                            MinWidth="108"
-                            CornerRadius="11"
-                            Background="Transparent"
-                            BorderBrush="{StaticResource BandaBorderBrush}"
-                            BorderThickness="1"
-                            Foreground="{StaticResource BandaMutedStrongBrush}" />
+                            Style="{StaticResource BandaPopupGhostButtonStyle}"
+                            MinWidth="108" />
 
                         <Button
                             Grid.Column="2"
                             Content="Cancelar"
                             Click="CloseFiltersOverlayButton_Click"
-                            Padding="16,9"
-                            MinWidth="92"
-                            CornerRadius="11"
-                            Background="{StaticResource BandaCardBrush}"
-                            BorderBrush="{StaticResource BandaBorderBrush}"
-                            BorderThickness="1"
-                            Foreground="{StaticResource BandaTextBrush}" />
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
 
                         <Button
                             Grid.Column="3"
                             Content="Aplicar filtros"
                             Click="ApplyFiltersOverlayButton_Click"
-                            Padding="18,9"
-                            MinWidth="126"
-                            CornerRadius="11"
-                            Background="{StaticResource BandaAccentBrush}"
-                            BorderThickness="0"
-                            Foreground="#07110F"
-                            FontWeight="SemiBold" />
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}"
+                            MinWidth="126" />
                     </Grid>
                 </Grid>
             </Border>
