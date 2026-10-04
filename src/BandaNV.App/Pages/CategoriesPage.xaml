@@ -247,8 +247,8 @@
                                         Padding="8,0,8,8">
 
                                         <ListView.Resources>
-                                            <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#244FE0C6" />
-                                            <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="#304FE0C6" />
+                                            <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
+                                            <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
                                             <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
                                             <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
                                         </ListView.Resources>
@@ -483,15 +483,15 @@
                                         FontWeight="SemiBold"
                                         IsEnabled="False">
                                         <Button.Resources>
-                                            <SolidColorBrush x:Key="ButtonBackground" Color="#4FE0C6" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#67E7D2" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#39B9A7" />
-                                            <SolidColorBrush x:Key="ButtonForeground" Color="#07110F" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#07110F" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#07110F" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#4FE0C6" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#67E7D2" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#39B9A7" />
+                                            <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                            <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
                                             <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#151D262F" />
                                             <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#65747D" />
                                             <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#35424E59" />
