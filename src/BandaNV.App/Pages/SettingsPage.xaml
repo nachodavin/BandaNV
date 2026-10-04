@@ -1087,17 +1087,26 @@
                                         HorizontalAlignment="Left" />
                                 </StackPanel>
 
-                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                                <Grid
+                                    Grid.Column="1"
+                                    ColumnSpacing="10"
+                                    VerticalAlignment="Center">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
                                     <Button
                                         x:Name="CheckUpdatesButton"
-                                        Content="Buscar actualizaciones ahora"
+                                        Content="Buscar actualizaciones"
                                         Click="CheckUpdatesButton_Click"
                                         FontSize="14"
-                                        MinWidth="230"
-                                        MinHeight="46"
+                                        MinWidth="240"
+                                        MinHeight="54"
                                         HorizontalContentAlignment="Center"
-                                        Padding="18,11"
-                                        CornerRadius="12"
+                                        Padding="22,14"
+                                        CornerRadius="13"
                                         FontWeight="SemiBold">
                                         <Button.Resources>
                                             <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
@@ -1111,8 +1120,20 @@
                                             <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
                                         </Button.Resources>
                                     </Button>
-                                    <Button Content="Notas de versión" Click="ReleaseNotesButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" MinWidth="230" HorizontalContentAlignment="Center" />
-                                </StackPanel>
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Content="Notas de versión"
+                                        Click="ReleaseNotesButton_Click"
+                                        Style="{StaticResource SettingsInlineButtonStyle}"
+                                        FontSize="14"
+                                        MinWidth="240"
+                                        MinHeight="54"
+                                        Padding="22,14"
+                                        CornerRadius="13"
+                                        FontWeight="SemiBold"
+                                        HorizontalContentAlignment="Center" />
+                                </Grid>
                             </Grid>
                         </Border>
 
