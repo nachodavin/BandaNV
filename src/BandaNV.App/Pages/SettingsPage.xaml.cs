@@ -255,7 +255,7 @@ public sealed partial class SettingsPage : Page
         SetSolidBrushColor("BandaAccentCardBrush", accentCard);
     }
 
-    private static void ApplySecondaryColor(Windows.UI.Color color)
+    private void ApplySecondaryColor(Windows.UI.Color color)
     {
         SetSolidBrushColor("BandaSecondaryColorBrush", color);
         SetSolidBrushColor("BandaAccentBrush", color);
@@ -284,6 +284,13 @@ public sealed partial class SettingsPage : Page
         SetColorResource("BandaSelectionColor", WithAlpha(color, 0x24));
         SetColorResource("BandaSelectionHoverColor", WithAlpha(color, 0x30));
 
+        UpdateLocalActionButtonResources(
+            CheckUpdatesButton,
+            color,
+            hover,
+            pressed,
+            foreground);
+
         SetSolidBrushColor("ToggleSwitchFillOn", color);
         SetSolidBrushColor("ToggleSwitchFillOnPointerOver", hover);
         SetSolidBrushColor("ToggleSwitchFillOnPressed", pressed);
@@ -305,6 +312,57 @@ public sealed partial class SettingsPage : Page
         return luminance >= 0.56
             ? Windows.UI.Color.FromArgb(255, 0x07, 0x11, 0x0F)
             : Windows.UI.Color.FromArgb(255, 0xF5, 0xF8, 0xFA);
+    }
+
+    private static void UpdateLocalActionButtonResources(
+        Button button,
+        Windows.UI.Color normal,
+        Windows.UI.Color hover,
+        Windows.UI.Color pressed,
+        Windows.UI.Color foreground)
+    {
+        if (button.Resources["ButtonBackground"] is SolidColorBrush background)
+        {
+            background.Color = normal;
+        }
+
+        if (button.Resources["ButtonBackgroundPointerOver"] is SolidColorBrush backgroundHover)
+        {
+            backgroundHover.Color = hover;
+        }
+
+        if (button.Resources["ButtonBackgroundPressed"] is SolidColorBrush backgroundPressed)
+        {
+            backgroundPressed.Color = pressed;
+        }
+
+        if (button.Resources["ButtonBorderBrush"] is SolidColorBrush border)
+        {
+            border.Color = normal;
+        }
+
+        if (button.Resources["ButtonBorderBrushPointerOver"] is SolidColorBrush borderHover)
+        {
+            borderHover.Color = hover;
+        }
+
+        if (button.Resources["ButtonBorderBrushPressed"] is SolidColorBrush borderPressed)
+        {
+            borderPressed.Color = pressed;
+        }
+
+        foreach (var key in new[]
+                 {
+                     "ButtonForeground",
+                     "ButtonForegroundPointerOver",
+                     "ButtonForegroundPressed"
+                 })
+        {
+            if (button.Resources[key] is SolidColorBrush brush)
+            {
+                brush.Color = foreground;
+            }
+        }
     }
 
     private static void SetSolidBrushColor(string resourceKey, Windows.UI.Color color)
