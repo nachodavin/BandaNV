@@ -822,7 +822,7 @@
                                     FontSize="12"
                                     FontWeight="SemiBold" />
                                 <TextBlock
-                                    Text="Limitá los resultados a un formato puntual."
+                                    Text="Seleccioná uno o varios formatos presentes en los archivos organizados."
                                     Foreground="{StaticResource BandaMutedBrush}"
                                     FontSize="12"
                                     TextWrapping="Wrap" />
