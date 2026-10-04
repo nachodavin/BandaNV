@@ -739,7 +739,7 @@
                                                 <StackPanel Spacing="2">
                                                     <TextBlock Text="FECHA DE MODIFICACIÓN" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
                                                     <Button Tag="All" Content="Cualquier fecha" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                    <Button Tag="Last24Hours" Content="Últimas 24 horas" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Today" Content="Hoy" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Last7Days" Content="Últimos 7 días" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Last30Days" Content="Últimos 30 días" Click="DateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Border Height="1" Margin="8,5" Background="{StaticResource BandaBorderBrush}" />
