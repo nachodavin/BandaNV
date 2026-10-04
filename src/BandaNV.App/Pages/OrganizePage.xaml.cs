@@ -543,8 +543,22 @@ public sealed partial class OrganizePage : Page
         return normalized.StartsWith('.') ? normalized : $".{normalized}";
     }
 
-    private static Brush GetBrush(string resourceKey) =>
-        (Brush)Application.Current.Resources[resourceKey];
+    private Brush GetBrush(string resourceKey)
+    {
+        if (Resources.TryGetValue(resourceKey, out var pageResource) &&
+            pageResource is Brush pageBrush)
+        {
+            return pageBrush;
+        }
+
+        if (Application.Current.Resources.TryGetValue(resourceKey, out var appResource) &&
+            appResource is Brush appBrush)
+        {
+            return appBrush;
+        }
+
+        throw new InvalidOperationException($"No se encontró el recurso de pincel '{resourceKey}'.");
+    }
 
     private static string FormatBytes(long bytes)
     {
