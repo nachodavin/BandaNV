@@ -306,7 +306,8 @@
                             FontWeight="SemiBold" />
 
                         <TextBlock
-                            Text="BandaNV revisará los archivos pendientes y te mostrará la categoría y el destino de cada uno. Nada se moverá hasta que lo confirmes."
+                            x:Name="InitialAnalysisDescriptionText"
+                            Text="BandaNV revisará los archivos pendientes y te mostrará la categoría y el destino de cada uno. Nada se moverá durante el análisis."
                             Foreground="{StaticResource BandaMutedStrongBrush}"
                             FontSize="14"
                             TextWrapping="Wrap"
@@ -355,9 +356,17 @@
                             MinWidth="170"
                             CornerRadius="12"
                             Background="{StaticResource BandaAccentBrush}"
-                            Foreground="#07110F"
+                            Foreground="{StaticResource BandaActionForegroundBrush}"
                             BorderThickness="0"
                             FontWeight="SemiBold" />
+
+                        <TextBlock
+                            x:Name="AnalysisStatusText"
+                            Visibility="Collapsed"
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="12"
+                            TextWrapping="Wrap"
+                            MaxWidth="640" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -702,7 +711,8 @@
                             <StackPanel Spacing="3" Margin="0,4,0,0">
                                 <TextBlock Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" />
                                 <TextBlock
-                                    Text="...\ORGANIZADO"
+                                    x:Name="PreviewDestinationText"
+                                    Text="—"
                                     Foreground="{StaticResource BandaAccentBrush}"
                                     FontSize="13"
                                     FontWeight="SemiBold"
@@ -803,7 +813,7 @@
                         Foreground="{StaticResource BandaMutedStrongBrush}"
                         FontSize="13" />
                     <TextBlock
-                        Text="Esta pantalla es la maqueta visual del flujo. El movimiento real se conectará al motor de BandaNV en la integración final."
+                        Text="La ejecución física se habilitará en el siguiente bloque del motor. Este análisis no mueve ni crea archivos."
                         Foreground="{StaticResource BandaMutedBrush}"
                         FontSize="12"
                         TextWrapping="Wrap"
