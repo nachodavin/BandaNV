@@ -664,10 +664,28 @@
                                     x:Name="SearchOpenFileButton"
                                     Content="Abrir archivo"
                                     Click="SearchOpenFileButton_Click"
-                                    Style="{StaticResource BandaPopupPrimaryButtonStyle}"
+                                    FontSize="14"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
-                                    IsEnabled="False" />
+                                    Padding="14,10"
+                                    CornerRadius="12"
+                                    FontWeight="SemiBold"
+                                    IsEnabled="False">
+                                    <Button.Resources>
+                                        <SolidColorBrush x:Key="ButtonBackground" Color="#4FE0C6" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#67E7D2" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#39B9A7" />
+                                        <SolidColorBrush x:Key="ButtonForeground" Color="#07110F" />
+                                        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#07110F" />
+                                        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#07110F" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#4FE0C6" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#67E7D2" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#39B9A7" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#151D262F" />
+                                        <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#65747D" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#35424E59" />
+                                    </Button.Resources>
+                                </Button>
 
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
