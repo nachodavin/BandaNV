@@ -799,6 +799,20 @@ public sealed class HistoryExecutionPreview
     public string OriginShort { get; set; } = string.Empty;
     public string Origin { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;
+
+    public string DestinationShort
+    {
+        get
+        {
+            var normalized = Destination.TrimEnd('\\', '/');
+            var folderName = System.IO.Path.GetFileName(normalized);
+
+            return string.IsNullOrWhiteSpace(folderName)
+                ? Destination
+                : folderName;
+        }
+    }
+
     public int FileCount { get; set; }
     public string FileCountText { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
