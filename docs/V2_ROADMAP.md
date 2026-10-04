@@ -63,9 +63,10 @@ La v1.0 permanece como base estable en `main` mientras v2.0 se desarrolla en su 
 - Búsqueda por fecha, archivo, categoría, carpeta de origen o destino.
 - Tabla principal de ejecuciones con fecha/hora, tipo, origen, cantidad de archivos y tamaño.
 - Detalle integrado de la ejecución seleccionada dentro de la misma pantalla.
-- El detalle mostrará rutas, archivos afectados, categorías, tamaños, estado y disponibilidad de Undo.
+- El detalle mostrará rutas, todos los archivos afectados, categorías, tamaños, estado y disponibilidad de Undo.
+- Cuando una ejecución tenga muchos archivos, el panel derecho mantiene encabezado y botón de Undo fijos y desplaza verticalmente el contenido completo; no se resume con "+N archivos".
 - La maqueta visual incluye estados seleccionables de ejemplo: ejecución reversible, ejecución ya deshecha, log antiguo sin metadatos de Undo y registro de Deshacer.
-- El botón de Undo permanece fijo al pie del panel de detalle y solo se habilita cuando la ejecución seleccionada es reversible.
+- El botón de Undo permanece fijo al pie del panel de detalle, solo se habilita cuando la ejecución seleccionada es reversible y usa el teal principal de BandaNV como estado activo.
 - Deshacer seguro únicamente cuando la ejecución sea realmente reversible.
 
 ### Etapa 5 — Buscar
