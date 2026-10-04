@@ -1144,8 +1144,8 @@ public sealed partial class SearchPage : Page
         SearchManageDeletePanel.Visibility = Visibility.Visible;
 
         SearchManageDeleteText.Text =
-            $"¿Eliminar \"{file.Name}\" de Buscar? En la maqueta actual se eliminará del conjunto de datos de prueba; " +
-            "cuando conectemos el índice real, esta misma confirmación se usará antes de eliminar el archivo físico.";
+            $"¿Eliminar \"{file.Name}\"? La versión final eliminará físicamente el archivo de la PC. " +
+            "En esta maqueta todavía se elimina solo del conjunto de datos de prueba.";
 
         SearchManagePrimaryButton.Visibility = Visibility.Collapsed;
         SearchManageDangerButton.Visibility = Visibility.Visible;
