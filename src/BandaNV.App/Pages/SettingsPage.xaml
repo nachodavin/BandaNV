@@ -4,16 +4,1075 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
-    <Grid Padding="40,32,40,48">
-        <StackPanel Spacing="18">
-            <StackPanel Spacing="6">
-                <TextBlock Text="Configuración" Style="{StaticResource BandaSectionTitleStyle}" />
-                <TextBlock Text="Carpeta de origen, comportamiento y actualizaciones." Style="{StaticResource BandaMutedTextStyle}" />
+    <Page.Resources>
+        <Style x:Key="SettingsTabButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource BandaMutedStrongBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="SettingsInlineButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="{StaticResource BandaCardAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid
+            Padding="34,32,34,40"
+            RowSpacing="16">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Encabezado -->
+            <StackPanel Spacing="5">
+                <TextBlock
+                    Text="Configuración"
+                    Style="{StaticResource BandaSectionTitleStyle}"
+                    FontSize="32" />
+                <TextBlock
+                    Text="Definí cómo se comporta, se ve y protege tus archivos BandaNV."
+                    Style="{StaticResource BandaMutedTextStyle}"
+                    FontSize="14" />
             </StackPanel>
 
-            <Border Style="{StaticResource BandaCardStyle}">
-                <TextBlock Text="Esta sección va a conservar la configuración esencial de v1.0, pero con una interfaz más clara." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+            <!-- Pestañas superiores -->
+            <Border
+                Grid.Row="1"
+                Padding="6"
+                CornerRadius="16"
+                Background="{StaticResource BandaCardBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1">
+
+                <ScrollViewer
+                    HorizontalScrollMode="Auto"
+                    HorizontalScrollBarVisibility="Hidden"
+                    VerticalScrollMode="Disabled"
+                    VerticalScrollBarVisibility="Disabled">
+
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button
+                            x:Name="GeneralTabButton"
+                            Tag="General"
+                            Content="General"
+                            Click="SettingsTabButton_Click"
+                            Style="{StaticResource SettingsTabButtonStyle}" />
+                        <Button
+                            x:Name="AppearanceTabButton"
+                            Tag="Appearance"
+                            Content="Apariencia"
+                            Click="SettingsTabButton_Click"
+                            Style="{StaticResource SettingsTabButtonStyle}" />
+                        <Button
+                            x:Name="OrganizationTabButton"
+                            Tag="Organization"
+                            Content="Organización"
+                            Click="SettingsTabButton_Click"
+                            Style="{StaticResource SettingsTabButtonStyle}" />
+                        <Button
+                            x:Name="HistorySecurityTabButton"
+                            Tag="HistorySecurity"
+                            Content="Historial y seguridad"
+                            Click="SettingsTabButton_Click"
+                            Style="{StaticResource SettingsTabButtonStyle}" />
+                        <Button
+                            x:Name="AdvancedTabButton"
+                            Tag="Advanced"
+                            Content="Avanzado"
+                            Click="SettingsTabButton_Click"
+                            Style="{StaticResource SettingsTabButtonStyle}" />
+                        <Button
+                            x:Name="AboutTabButton"
+                            Tag="About"
+                            Content="Acerca de"
+                            Click="SettingsTabButton_Click"
+                            Style="{StaticResource SettingsTabButtonStyle}" />
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
-        </StackPanel>
+
+            <!-- Feedback -->
+            <Border
+                x:Name="SettingsFeedbackBorder"
+                Grid.Row="2"
+                Padding="12,8"
+                CornerRadius="11"
+                Background="{StaticResource BandaAccentFaintBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1"
+                Visibility="Collapsed">
+
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Ellipse
+                        Width="7"
+                        Height="7"
+                        Fill="{StaticResource BandaAccentBrush}"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock
+                        x:Name="SettingsFeedbackText"
+                        Grid.Column="1"
+                        Text=""
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="12"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap" />
+
+                    <Button
+                        Grid.Column="2"
+                        Content="×"
+                        Click="CloseSettingsFeedbackButton_Click"
+                        Width="28"
+                        Height="28"
+                        Padding="0"
+                        CornerRadius="8"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{StaticResource BandaMutedStrongBrush}" />
+                </Grid>
+            </Border>
+
+            <!-- Contenido de pestañas -->
+            <Grid Grid.Row="3">
+
+                <!-- GENERAL -->
+                <ScrollViewer
+                    x:Name="GeneralSettingsPanel"
+                    VerticalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel Spacing="14" Padding="0,0,12,0">
+
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.25*" />
+                                <ColumnDefinition Width="0.75*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border
+                                Grid.Column="0"
+                                Style="{StaticResource BandaCardStyle}"
+                                Padding="20">
+
+                                <StackPanel Spacing="16">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock
+                                            Text="Ubicaciones"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="19"
+                                            FontWeight="SemiBold" />
+                                        <TextBlock
+                                            Text="Definí de dónde toma los archivos BandaNV y dónde crea la organización."
+                                            Style="{StaticResource BandaMutedTextStyle}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Border
+                                        Padding="14"
+                                        CornerRadius="12"
+                                        Background="{StaticResource BandaCardAltBrush}"
+                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                        BorderThickness="1">
+
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="CARPETA DE ORIGEN" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                <TextBlock
+                                                    x:Name="SourceFolderText"
+                                                    Text="C:\Users\Usuario\Downloads"
+                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                    FontSize="13"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Content="Cambiar"
+                                                Click="ChangeSourceFolderButton_Click"
+                                                Style="{StaticResource SettingsInlineButtonStyle}"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border
+                                        Padding="14"
+                                        CornerRadius="12"
+                                        Background="{StaticResource BandaCardAltBrush}"
+                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                        BorderThickness="1">
+
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                <TextBlock
+                                                    x:Name="DestinationFolderText"
+                                                    Text="C:\Users\Usuario\Downloads\ORGANIZADO"
+                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                    FontSize="13"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Content="Cambiar"
+                                                Click="ChangeDestinationFolderButton_Click"
+                                                Style="{StaticResource SettingsInlineButtonStyle}"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <Border
+                                Grid.Column="1"
+                                Style="{StaticResource BandaCardStyle}"
+                                Padding="20">
+
+                                <StackPanel Spacing="16">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock
+                                            Text="Aplicación"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="19"
+                                            FontWeight="SemiBold" />
+                                        <TextBlock
+                                            Text="Comportamiento general al abrir, cerrar y usar BandaNV."
+                                            Style="{StaticResource BandaMutedTextStyle}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="180" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Text="Página inicial" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Sección que se abre al iniciar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <Button
+                                            x:Name="StartupPageSelectorButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="StartupPageValueText" Text="Inicio" Foreground="{StaticResource BandaTextBrush}" FontSize="13" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="190" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="Inicio" Content="Inicio" Click="StartupPageOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Organizar" Content="Organizar" Click="StartupPageOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Buscar" Content="Buscar" Click="StartupPageOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="180" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Text="Al cerrar la ventana" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Qué hacer al presionar cerrar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <Button
+                                            x:Name="CloseBehaviorSelectorButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="CloseBehaviorValueText" Text="Cerrar BandaNV" Foreground="{StaticResource BandaTextBrush}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="220" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="Cerrar BandaNV" Content="Cerrar BandaNV" Click="CloseBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Minimizar a bandeja" Content="Minimizar a bandeja" Click="CloseBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Iniciar con Windows" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Abrir BandaNV al iniciar sesión." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Buscar actualizaciones automáticamente" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Comprobar nuevas versiones al iniciar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- APARIENCIA -->
+                <ScrollViewer
+                    x:Name="AppearanceSettingsPanel"
+                    Visibility="Collapsed"
+                    VerticalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel Spacing="14" Padding="0,0,12,0">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.92*" />
+                                <ColumnDefinition Width="1.08*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="18">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Interfaz" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Personalizá cómo se siente BandaNV sin alterar su estructura." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="190" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Tema" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Modo visual de la aplicación." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="ThemeValueText" Text="Oscuro" Foreground="{StaticResource BandaTextBrush}" FontSize="13" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="200" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="Oscuro" Content="Oscuro" Click="ThemeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Sistema" Content="Usar sistema" Click="ThemeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Claro" Content="Claro" Click="ThemeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="190" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Densidad" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Espaciado general de controles." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DensityValueText" Text="Cómoda" Foreground="{StaticResource BandaTextBrush}" FontSize="13" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="200" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="Cómoda" Content="Cómoda" Click="DensityOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Compacta" Content="Compacta" Click="DensityOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Animaciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Transiciones y movimientos sutiles." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="16">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Vista previa" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Referencia visual de la identidad seleccionada." Style="{StaticResource BandaMutedTextStyle}" />
+                                    </StackPanel>
+
+                                    <Border
+                                        MinHeight="210"
+                                        CornerRadius="18"
+                                        Background="{StaticResource BandaAccentCardBrush}"
+                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                        BorderThickness="1"
+                                        Padding="22">
+
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                                <Ellipse Width="9" Height="9" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
+                                                <TextBlock Text="BandaNV" Foreground="{StaticResource BandaTextBrush}" FontSize="17" FontWeight="SemiBold" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="1" Spacing="5" VerticalAlignment="Center">
+                                                <TextBlock Text="Tu organización, bajo control." Foreground="{StaticResource BandaTextBrush}" FontSize="25" FontWeight="SemiBold" />
+                                                <TextBlock Text="Oscuro · teal · cómodo" x:Name="AppearancePreviewDescriptionText" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
+                                            </StackPanel>
+
+                                            <Grid Grid.Row="2" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Padding="10,5" CornerRadius="10" Background="{StaticResource BandaAccentSoftBrush}">
+                                                    <TextBlock Text="Seleccionado" Foreground="{StaticResource BandaAccentBrush}" FontSize="12" FontWeight="SemiBold" />
+                                                </Border>
+                                                <Border Grid.Column="1" Padding="10,5" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                                    <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="12" />
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+
+                                    <TextBlock
+                                        Text="La estructura general de BandaNV se mantiene consistente entre temas para no perder reconocimiento ni jerarquía."
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ORGANIZACIÓN -->
+                <ScrollViewer
+                    x:Name="OrganizationSettingsPanel"
+                    Visibility="Collapsed"
+                    VerticalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel Spacing="14" Padding="0,0,12,0">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="17">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Flujo de organización" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Decidí cuánto control querés antes de que BandaNV mueva archivos." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Mostrar vista previa antes de organizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Revisar destinos y excepciones antes de mover." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Incluir subcarpetas al analizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Buscar archivos también dentro de subdirectorios." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Crear carpetas faltantes" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Crear automáticamente la carpeta de cada categoría." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Eliminar carpetas vacías" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Limpiar directorios que queden vacíos después de mover." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="17">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Conflictos y excepciones" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Reglas para resolver situaciones ambiguas durante una organización." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="7">
+                                        <TextBlock Text="SI YA EXISTE UN ARCHIVO CON EL MISMO NOMBRE" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                        <Button Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="ConflictBehaviorValueText" Text="Preguntar" Foreground="{StaticResource BandaTextBrush}" FontSize="13" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="260" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="Preguntar" Content="Preguntar" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Renombrar automáticamente" Content="Renombrar automáticamente" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Omitir archivo" Content="Omitir archivo" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Reemplazar" Content="Reemplazar" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="7">
+                                        <TextBlock Text="EXTENSIONES SIN CATEGORÍA" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                        <Button Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="UnknownExtensionBehaviorValueText" Text="Preguntar en la vista previa" Foreground="{StaticResource BandaTextBrush}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="280" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="Preguntar en la vista previa" Content="Preguntar en la vista previa" Click="UnknownExtensionBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Dejar en origen" Content="Dejar en origen" Click="UnknownExtensionBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Mover a OTROS" Content="Mover a OTROS" Click="UnknownExtensionBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </StackPanel>
+
+                                    <Border
+                                        Padding="14"
+                                        CornerRadius="12"
+                                        Background="{StaticResource BandaAccentFaintBrush}"
+                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                        BorderThickness="1">
+                                        <TextBlock
+                                            Text="Recomendado: mantener “Preguntar” mientras terminamos de cerrar el flujo real del motor de organización."
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            FontSize="12"
+                                            TextWrapping="Wrap" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- HISTORIAL Y SEGURIDAD -->
+                <ScrollViewer
+                    x:Name="HistorySecuritySettingsPanel"
+                    Visibility="Collapsed"
+                    VerticalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel Spacing="14" Padding="0,0,12,0">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="17">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Seguridad" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Priorizá operaciones reversibles y confirmaciones antes de cambios importantes." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Permitir Undo" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Conservar información para revertir organizaciones." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Usar Papelera al eliminar archivos" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Evitar eliminación permanente siempre que sea posible." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Confirmar acciones destructivas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Pedir confirmación antes de borrar o reemplazar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="17">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Historial y logs" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Controlá cuánto tiempo se conserva el registro de actividad de BandaNV." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Guardar historial de ejecuciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Registrar organizaciones y Undo." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <StackPanel Spacing="7">
+                                        <TextBlock Text="CONSERVAR HISTORIAL" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                        <Button Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="HistoryRetentionValueText" Text="Siempre" Foreground="{StaticResource BandaTextBrush}" FontSize="13" />
+                                                <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
+                                            </Grid>
+                                            <Button.Flyout>
+                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border Width="220" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <Button Tag="30 días" Content="30 días" Click="HistoryRetentionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="90 días" Content="90 días" Click="HistoryRetentionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="1 año" Content="1 año" Click="HistoryRetentionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Siempre" Content="Siempre" Click="HistoryRetentionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Content="Abrir carpeta de logs" Click="OpenLogsFolderButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Content="Limpiar historial"
+                                            Click="ClearHistoryButton_Click"
+                                            FontSize="13"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"
+                                            Padding="14,9"
+                                            CornerRadius="11"
+                                            FontWeight="SemiBold">
+                                            <Button.Resources>
+                                                <SolidColorBrush x:Key="ButtonBackground" Color="#FF6F6F" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FF8585" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D95454" />
+                                                <SolidColorBrush x:Key="ButtonForeground" Color="#190909" />
+                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#190909" />
+                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#190909" />
+                                            </Button.Resources>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- AVANZADO -->
+                <ScrollViewer
+                    x:Name="AdvancedSettingsPanel"
+                    Visibility="Collapsed"
+                    VerticalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel Spacing="14" Padding="0,0,12,0">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.08*" />
+                                <ColumnDefinition Width="0.92*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="16">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Buscar e indexación" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Estado del índice que alimentará la búsqueda real de archivos." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Border
+                                        Padding="16"
+                                        CornerRadius="14"
+                                        Background="{StaticResource BandaAccentFaintBrush}"
+                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                        BorderThickness="1">
+
+                                        <Grid ColumnSpacing="18">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="ÍNDICE DE BUSCAR" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                                <TextBlock x:Name="SearchIndexStatusText" Text="Listo para conectar" Foreground="{StaticResource BandaTextBrush}" FontSize="17" FontWeight="SemiBold" />
+                                                <TextBlock x:Name="SearchIndexDetailText" Text="Maqueta · todavía sin índice persistente" Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            </StackPanel>
+
+                                            <Border Grid.Column="1" Width="38" Height="38" CornerRadius="12" Background="{StaticResource BandaAccentSoftBrush}" VerticalAlignment="Center">
+                                                <SymbolIcon Symbol="Find" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Content="Reconstruir índice" Click="RebuildIndexButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="1" Content="Abrir datos de BandaNV" Click="OpenDataFolderButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20">
+                                <StackPanel Spacing="16">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Datos y mantenimiento" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock Text="Copiá o recuperá la configuración del programa y accedé a herramientas de mantenimiento." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Content="Exportar configuración" Click="ExportSettingsButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                        <Button Grid.Column="1" Content="Importar configuración" Click="ImportSettingsButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" HorizontalAlignment="Stretch" />
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource BandaBorderBrush}" Margin="0,4" />
+
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="ZONA DE MANTENIMIENTO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                        <Button
+                                            Content="Restablecer configuración"
+                                            Click="ResetSettingsButton_Click"
+                                            FontSize="13"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"
+                                            Padding="14,9"
+                                            CornerRadius="11"
+                                            FontWeight="SemiBold">
+                                            <Button.Resources>
+                                                <SolidColorBrush x:Key="ButtonBackground" Color="#FF6F6F" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FF8585" />
+                                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D95454" />
+                                                <SolidColorBrush x:Key="ButtonForeground" Color="#190909" />
+                                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#190909" />
+                                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#190909" />
+                                            </Button.Resources>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ACERCA DE -->
+                <ScrollViewer
+                    x:Name="AboutSettingsPanel"
+                    Visibility="Collapsed"
+                    VerticalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel Spacing="14" Padding="0,0,12,0">
+                        <Border Style="{StaticResource BandaCardStyle}" Padding="24">
+                            <Grid ColumnSpacing="24">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="9">
+                                        <Ellipse Width="9" Height="9" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="BandaNV" Foreground="{StaticResource BandaTextBrush}" FontSize="26" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                    <TextBlock Text="Organizador de archivos · versión 2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
+                                    <TextBlock
+                                        Text="Esta versión reconstruye BandaNV alrededor de un flujo más visual, reversible y consistente entre Organizar, Buscar, Historial y Categorías."
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13"
+                                        TextWrapping="Wrap"
+                                        MaxWidth="720"
+                                        HorizontalAlignment="Left" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                                    <Button Content="Buscar actualizaciones" Click="CheckUpdatesButton_Click" Style="{StaticResource BandaPopupPrimaryButtonStyle}" MinWidth="190" HorizontalContentAlignment="Center" />
+                                    <Button Content="Notas de versión" Click="ReleaseNotesButton_Click" Style="{StaticResource SettingsInlineButtonStyle}" MinWidth="190" HorizontalContentAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="18">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="VERSIÓN" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                    <TextBlock Text="2.0 desarrollo" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="18">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="CANAL" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                    <TextBlock Text="v2.0" Foreground="{StaticResource BandaAccentBrush}" FontSize="18" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="18">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="ESTADO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                    <TextBlock Text="En desarrollo" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- Confirmación destructiva -->
+        <Grid
+            x:Name="SettingsConfirmOverlay"
+            Canvas.ZIndex="120"
+            Visibility="Collapsed">
+
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="SettingsConfirmBackdrop_Tapped" />
+
+            <Border
+                Width="560"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <Grid RowSpacing="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Width="46" Height="46" CornerRadius="14" Background="{StaticResource BandaDangerSoftBrush}">
+                            <TextBlock Text="!" Foreground="{StaticResource BandaDangerBrush}" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock x:Name="SettingsConfirmTitleText" Text="Confirmar acción" Foreground="{StaticResource BandaTextBrush}" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SettingsConfirmSubtitleText" Text="" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CloseSettingsConfirmButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        Padding="16"
+                        CornerRadius="16"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <TextBlock x:Name="SettingsConfirmBodyText" Text="" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" TextWrapping="Wrap" />
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Cancelar"
+                            Click="CloseSettingsConfirmButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+
+                        <Button
+                            x:Name="SettingsConfirmDangerButton"
+                            Grid.Column="2"
+                            Content="Confirmar"
+                            Click="SettingsConfirmDangerButton_Click"
+                            Style="{StaticResource BandaPopupDangerButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Page>
