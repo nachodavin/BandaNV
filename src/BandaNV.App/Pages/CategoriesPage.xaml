@@ -622,12 +622,15 @@
                                     PlaceholderText="Ej. IMAGES"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
                                     BorderBrush="{StaticResource BandaBorderBrush}"
-                                    BorderThickness="1"
-                                    CharacterCasing="Upper" />
+                                    BorderThickness="1" />
                             </StackPanel>
 
                             <StackPanel Spacing="7">
-                                <Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Text="EXTENSIONES" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
                                     <TextBlock
                                         Grid.Column="1"
