@@ -477,11 +477,19 @@
                                     x:Name="SearchResultsList"
                                     ItemsSource="{x:Bind VisibleSearchResults, Mode=OneWay}"
                                     ItemTemplate="{StaticResource SearchResultTemplate}"
-                                    SelectionMode="Multiple"
-                                    IsMultiSelectCheckBoxEnabled="True"
+                                    SelectionMode="Extended"
+                                    IsMultiSelectCheckBoxEnabled="False"
                                     SelectionChanged="SearchResultsList_SelectionChanged"
+                                    Tapped="SearchResultsList_Tapped"
+                                    DoubleTapped="SearchResultsList_DoubleTapped"
                                     HorizontalContentAlignment="Stretch"
                                     Padding="8,0,8,8">
+                                    <ListView.KeyboardAccelerators>
+                                        <KeyboardAccelerator
+                                            Key="A"
+                                            Modifiers="Control"
+                                            Invoked="SearchSelectAllAccelerator_Invoked" />
+                                    </ListView.KeyboardAccelerators>
 
                                     <ListView.Resources>
                                         <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#244FE0C6" />
