@@ -5,9 +5,10 @@
     xmlns:local="using:BandaNV.App.Pages"
     Background="Transparent">
 
-    <Grid
-        Padding="34,32,34,40"
-        RowSpacing="16">
+    <Grid>
+        <Grid
+            Padding="34,32,34,40"
+            RowSpacing="16">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -141,16 +142,58 @@
                 MinHeight="44"
                 CornerRadius="12" />
 
-            <ComboBox
+            <Button
+                x:Name="HistorySortSelectorButton"
                 Grid.Column="3"
-                MinWidth="170"
+                Width="190"
                 MinHeight="44"
-                PlaceholderText="Ordenar por">
-                <ComboBoxItem Content="Fecha" />
-                <ComboBoxItem Content="Archivos" />
-                <ComboBoxItem Content="Tamaño" />
-                <ComboBoxItem Content="Origen" />
-            </ComboBox>
+                Style="{StaticResource BandaSelectorButtonStyle}">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Name="HistorySortValueText"
+                        Text="Fecha"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        VerticalAlignment="Center" />
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="⌄"
+                        Foreground="{StaticResource BandaAccentBrush}"
+                        FontSize="14"
+                        VerticalAlignment="Center" />
+                </Grid>
+                <Button.Flyout>
+                    <Flyout
+                        x:Name="HistorySortFlyout"
+                        Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                        <Border
+                            Width="210"
+                            Padding="8"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaPopupSurfaceBrush}"
+                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    Text="ORDENAR POR"
+                                    Margin="10,6,10,4"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <Button Tag="Fecha" Content="Fecha" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Archivos" Content="Archivos" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Tamaño" Content="Tamaño" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Origen" Content="Origen" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
         </Grid>
 
         <!-- Historial + detalle integrado -->
@@ -558,5 +601,111 @@
                 </Grid>
             </Grid>
         </Border>
+        </Grid>
+
+        <Grid
+            x:Name="HistoryModalOverlay"
+            Canvas.ZIndex="100"
+            Visibility="Collapsed">
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="HistoryModalBackdrop_Tapped" />
+
+            <Border
+                Width="560"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Grid RowSpacing="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            x:Name="HistoryModalIconBorder"
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <TextBlock
+                                x:Name="HistoryModalIconText"
+                                Text="!"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="HistoryModalTitleText"
+                                Text="Historial"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="BandaNV"
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="12" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="HistoryModalCloseButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        Padding="16"
+                        CornerRadius="16"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <TextBlock
+                            x:Name="HistoryModalBodyText"
+                            Text=""
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="13"
+                            TextWrapping="Wrap"
+                            LineHeight="20" />
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            x:Name="HistoryModalSecondaryButton"
+                            Grid.Column="1"
+                            Content="Cancelar"
+                            Click="HistoryModalCloseButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+
+                        <Button
+                            x:Name="HistoryModalPrimaryButton"
+                            Grid.Column="2"
+                            Content="Eliminar"
+                            Click="HistoryModalPrimaryButton_Click"
+                            Style="{StaticResource BandaPopupDangerButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Page>
