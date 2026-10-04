@@ -189,6 +189,7 @@ public sealed partial class SearchPage : Page
     private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
         _selectedCategoryNames.Clear();
+        UpdateCategoryPage();
 
         if (!string.IsNullOrEmpty(SearchBox.Text))
         {
@@ -196,7 +197,6 @@ public sealed partial class SearchPage : Page
         }
         else
         {
-            UpdateCategoryPage();
             RefreshSearchResults();
         }
     }
