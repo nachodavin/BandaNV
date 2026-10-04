@@ -357,7 +357,9 @@
                             Text=""
                             Foreground="{StaticResource BandaAccentBrush}"
                             FontSize="13"
-                            FontWeight="SemiBold" />
+                            FontWeight="SemiBold"
+                            MaxWidth="560"
+                            TextTrimming="CharacterEllipsis" />
                     </Border>
 
                     <TextBlock
