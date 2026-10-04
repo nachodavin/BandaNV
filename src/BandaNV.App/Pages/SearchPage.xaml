@@ -37,7 +37,7 @@
                         <TextBlock
                             Text="{x:Bind Name}"
                             Foreground="{StaticResource BandaMutedStrongBrush}"
-                            FontSize="11"
+                            FontSize="13"
                             FontWeight="SemiBold"
                             TextTrimming="CharacterEllipsis"
                             MaxLines="1" />
@@ -46,7 +46,7 @@
                             Grid.Row="1"
                             Text="{x:Bind ExtensionsText}"
                             Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="9.5"
+                            FontSize="13"
                             Margin="0,5,0,0"
                             TextTrimming="CharacterEllipsis"
                             MaxLines="1" />
@@ -63,7 +63,7 @@
                             Grid.Row="3"
                             Text="archivos"
                             Style="{StaticResource BandaMutedTextStyle}"
-                            FontSize="11" />
+                            FontSize="13" />
                     </Grid>
                 </Border>
             </Button>
@@ -260,7 +260,7 @@
                         <TextBlock
                             Text="Todas"
                             Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="12"
+                            FontSize="13"
                             FontWeight="SemiBold" />
                     </Border>
 
@@ -272,7 +272,7 @@
                         <TextBlock
                             Text="Sin filtros"
                             Foreground="{StaticResource BandaMutedStrongBrush}"
-                            FontSize="12" />
+                            FontSize="13" />
                     </Border>
 
                     <Button
@@ -313,11 +313,11 @@
                                 <ColumnDefinition Width="36" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="4" Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="5" Text="" />
                         </Grid>
 
@@ -353,7 +353,7 @@
                                 <TextBlock
                                     Text="Cuando conectemos el motor, tus resultados aparecerán acá."
                                     Style="{StaticResource BandaMutedTextStyle}"
-                                    FontSize="12"
+                                    FontSize="13"
                                     HorizontalAlignment="Center" />
                             </StackPanel>
                         </Grid>
@@ -373,7 +373,7 @@
                     <TextBlock
                         Text="0 resultados"
                         Style="{StaticResource BandaMutedTextStyle}"
-                        FontSize="12"
+                        FontSize="13"
                         VerticalAlignment="Center" />
 
                     <StackPanel
