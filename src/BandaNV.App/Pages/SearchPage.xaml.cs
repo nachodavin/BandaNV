@@ -21,6 +21,9 @@ public sealed partial class SearchPage : Page
     public ObservableCollection<SearchFileResult> VisibleSearchResults { get; } = new();
 
     private SearchFileResult? _selectedSearchFile;
+    private SearchManageMode _searchManageMode = SearchManageMode.None;
+    private string? _pendingSearchCategoryName;
+
     private readonly HashSet<string> _selectedCategoryNames =
         new(StringComparer.CurrentCultureIgnoreCase);
 
@@ -947,6 +950,9 @@ public sealed partial class SearchPage : Page
         SearchOpenFileButton.IsEnabled = true;
         SearchOpenLocationButton.IsEnabled = true;
         SearchCopyPathButton.IsEnabled = true;
+        SearchChangeCategoryButton.IsEnabled = true;
+        SearchRenameButton.IsEnabled = true;
+        SearchDeleteButton.IsEnabled = true;
 
         SearchDetailActionStatusText.Text = string.Empty;
         SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
@@ -966,6 +972,9 @@ public sealed partial class SearchPage : Page
         SearchOpenFileButton.IsEnabled = false;
         SearchOpenLocationButton.IsEnabled = false;
         SearchCopyPathButton.IsEnabled = false;
+        SearchChangeCategoryButton.IsEnabled = false;
+        SearchRenameButton.IsEnabled = false;
+        SearchDeleteButton.IsEnabled = false;
     }
 
     private void SearchOpenFileButton_Click(object sender, RoutedEventArgs e)
@@ -1044,6 +1053,253 @@ public sealed partial class SearchPage : Page
         Clipboard.SetContent(dataPackage);
 
         ShowSearchDetailStatus("Ruta copiada al portapapeles.");
+    }
+
+    private void SearchChangeCategoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            return;
+        }
+
+        _searchManageMode = SearchManageMode.ChangeCategory;
+        _pendingSearchCategoryName = file.Category;
+
+        SearchManageTitleText.Text = "Cambiar categoría";
+        SearchManageSubtitleText.Text = file.Name;
+        SearchManageIconText.Text = "↻";
+        SearchManageIconBorder.Background =
+            (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+        SearchManageIconText.Foreground =
+            (Brush)Application.Current.Resources["BandaAccentBrush"];
+
+        SearchManageCategoryPanel.Visibility = Visibility.Visible;
+        SearchManageRenamePanel.Visibility = Visibility.Collapsed;
+        SearchManageDeletePanel.Visibility = Visibility.Collapsed;
+
+        SearchManageCategoryValueText.Text = file.Category;
+        SearchManagePrimaryButton.Content = "Cambiar categoría";
+        SearchManagePrimaryButton.Visibility = Visibility.Visible;
+        SearchManageDangerButton.Visibility = Visibility.Collapsed;
+
+        SearchManageValidationText.Visibility = Visibility.Collapsed;
+        BuildSearchManageCategoryOptions();
+        SearchManageOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void SearchRenameButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            return;
+        }
+
+        _searchManageMode = SearchManageMode.Rename;
+        _pendingSearchCategoryName = null;
+
+        SearchManageTitleText.Text = "Renombrar archivo";
+        SearchManageSubtitleText.Text = file.Name;
+        SearchManageIconText.Text = "✎";
+        SearchManageIconBorder.Background =
+            (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+        SearchManageIconText.Foreground =
+            (Brush)Application.Current.Resources["BandaAccentBrush"];
+
+        SearchManageCategoryPanel.Visibility = Visibility.Collapsed;
+        SearchManageRenamePanel.Visibility = Visibility.Visible;
+        SearchManageDeletePanel.Visibility = Visibility.Collapsed;
+
+        SearchManageRenameTextBox.Text = file.Name;
+        SearchManagePrimaryButton.Content = "Guardar nombre";
+        SearchManagePrimaryButton.Visibility = Visibility.Visible;
+        SearchManageDangerButton.Visibility = Visibility.Collapsed;
+
+        SearchManageValidationText.Visibility = Visibility.Collapsed;
+        SearchManageOverlay.Visibility = Visibility.Visible;
+
+        SearchManageRenameTextBox.SelectAll();
+        SearchManageRenameTextBox.Focus(FocusState.Programmatic);
+    }
+
+    private void SearchDeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            return;
+        }
+
+        _searchManageMode = SearchManageMode.Delete;
+        _pendingSearchCategoryName = null;
+
+        SearchManageTitleText.Text = "Eliminar archivo";
+        SearchManageSubtitleText.Text = file.Name;
+        SearchManageIconText.Text = "!";
+        SearchManageIconBorder.Background =
+            (Brush)Application.Current.Resources["BandaDangerSoftBrush"];
+        SearchManageIconText.Foreground =
+            (Brush)Application.Current.Resources["BandaDangerBrush"];
+
+        SearchManageCategoryPanel.Visibility = Visibility.Collapsed;
+        SearchManageRenamePanel.Visibility = Visibility.Collapsed;
+        SearchManageDeletePanel.Visibility = Visibility.Visible;
+
+        SearchManageDeleteText.Text =
+            $"¿Eliminar \"{file.Name}\" de Buscar? En la maqueta actual se eliminará del conjunto de datos de prueba; " +
+            "cuando conectemos el índice real, esta misma confirmación se usará antes de eliminar el archivo físico.";
+
+        SearchManagePrimaryButton.Visibility = Visibility.Collapsed;
+        SearchManageDangerButton.Visibility = Visibility.Visible;
+
+        SearchManageValidationText.Visibility = Visibility.Collapsed;
+        SearchManageOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void BuildSearchManageCategoryOptions()
+    {
+        SearchManageCategoryOptionsPanel.Children.Clear();
+
+        SearchManageCategoryOptionsPanel.Children.Add(new TextBlock
+        {
+            Text = "CATEGORÍAS",
+            Margin = new Thickness(10, 6, 10, 4),
+            Foreground =
+                (Brush)Application.Current.Resources["BandaMutedStrongBrush"],
+            FontSize = 11,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+        });
+
+        foreach (var category in _allCategoryCards
+                     .OrderBy(category => category.Order)
+                     .ThenBy(category => category.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            var button = new Button
+            {
+                Tag = category.Name,
+                Content = category.Name,
+                Style =
+                    (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
+            };
+
+            if (category.Name.Equals(
+                    _pendingSearchCategoryName,
+                    StringComparison.CurrentCultureIgnoreCase))
+            {
+                button.Background =
+                    (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+                button.Foreground =
+                    (Brush)Application.Current.Resources["BandaAccentBrush"];
+            }
+
+            button.Click += SearchManageCategoryOptionButton_Click;
+            SearchManageCategoryOptionsPanel.Children.Add(button);
+        }
+    }
+
+    private void SearchManageCategoryOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string categoryName })
+        {
+            return;
+        }
+
+        _pendingSearchCategoryName = categoryName;
+        SearchManageCategoryValueText.Text = categoryName;
+        SearchManageValidationText.Visibility = Visibility.Collapsed;
+
+        BuildSearchManageCategoryOptions();
+        SearchManageCategoryFlyout.Hide();
+    }
+
+    private void SearchManagePrimaryButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedSearchFile is not { } file)
+        {
+            CloseSearchManageOverlay();
+            return;
+        }
+
+        SearchManageValidationText.Visibility = Visibility.Collapsed;
+
+        switch (_searchManageMode)
+        {
+            case SearchManageMode.ChangeCategory:
+                if (string.IsNullOrWhiteSpace(_pendingSearchCategoryName))
+                {
+                    SearchManageValidationText.Text =
+                        "Elegí una categoría antes de continuar.";
+                    SearchManageValidationText.Visibility = Visibility.Visible;
+                    return;
+                }
+
+                file.ChangeCategory(_pendingSearchCategoryName);
+                CloseSearchManageOverlay();
+                LoadCategories(GetPreviewCategories());
+                RefreshSearchResults();
+                break;
+
+            case SearchManageMode.Rename:
+                var proposedName = SearchManageRenameTextBox.Text.Trim();
+
+                if (string.IsNullOrWhiteSpace(proposedName))
+                {
+                    SearchManageValidationText.Text =
+                        "Escribí un nombre para el archivo.";
+                    SearchManageValidationText.Visibility = Visibility.Visible;
+                    return;
+                }
+
+                if (proposedName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0)
+                {
+                    SearchManageValidationText.Text =
+                        "El nombre contiene caracteres no permitidos.";
+                    SearchManageValidationText.Visibility = Visibility.Visible;
+                    return;
+                }
+
+                file.Rename(proposedName);
+                CloseSearchManageOverlay();
+                RefreshSearchResults();
+                break;
+        }
+    }
+
+    private void SearchManageDangerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_searchManageMode != SearchManageMode.Delete ||
+            _selectedSearchFile is not { } file)
+        {
+            CloseSearchManageOverlay();
+            return;
+        }
+
+        _allFiles.Remove(file);
+        _selectedSearchFile = null;
+
+        CloseSearchManageOverlay();
+        LoadCategories(GetPreviewCategories());
+        RefreshSearchResults();
+    }
+
+    private void SearchManageBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseSearchManageOverlay();
+    }
+
+    private void CloseSearchManageOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        CloseSearchManageOverlay();
+    }
+
+    private void CloseSearchManageOverlay()
+    {
+        SearchManageCategoryFlyout.Hide();
+        SearchManageOverlay.Visibility = Visibility.Collapsed;
+        SearchManageValidationText.Visibility = Visibility.Collapsed;
+
+        _searchManageMode = SearchManageMode.None;
+        _pendingSearchCategoryName = null;
     }
 
     private void ShowSearchDetailStatus(string message)
@@ -1213,6 +1469,14 @@ public sealed partial class SearchPage : Page
     }
 }
 
+public enum SearchManageMode
+{
+    None,
+    ChangeCategory,
+    Rename,
+    Delete
+}
+
 public enum SearchDateFilter
 {
     All,
@@ -1298,14 +1562,38 @@ public sealed class SearchFileResult
         Location = location;
     }
 
-    public string Name { get; }
-    public string Category { get; }
+    public string Name { get; private set; }
+    public string Category { get; private set; }
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
-    public string Location { get; }
+    public string Location { get; private set; }
 
     public string FilePath =>
         System.IO.Path.Combine(Location, Name);
+
+    public void Rename(string proposedName)
+    {
+        var value = proposedName.Trim();
+
+        if (string.IsNullOrWhiteSpace(System.IO.Path.GetExtension(value)))
+        {
+            value += System.IO.Path.GetExtension(Name);
+        }
+
+        Name = value;
+    }
+
+    public void ChangeCategory(string categoryName)
+    {
+        var parent = System.IO.Directory.GetParent(Location)?.FullName;
+
+        Category = categoryName;
+
+        if (!string.IsNullOrWhiteSpace(parent))
+        {
+            Location = System.IO.Path.Combine(parent, categoryName);
+        }
+    }
 
     public string ExtensionDisplay =>
         System.IO.Path.GetExtension(Name).ToUpperInvariant();
