@@ -82,6 +82,7 @@ public sealed class OrganizationAnalysisService
                     extension,
                     file.Length,
                     file.LastWriteTime,
+                    file.LastWriteTimeUtc.Ticks,
                     category?.Id,
                     category?.Name,
                     category?.Order,
