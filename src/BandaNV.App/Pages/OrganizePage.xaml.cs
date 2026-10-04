@@ -15,6 +15,11 @@ public sealed partial class OrganizePage : Page
     private readonly List<ResolvedExtensionAssignment> _resolvedAssignments = new();
     private bool _isRefreshingPreview;
 
+    private string? _activeAssignmentExtension;
+    private List<OrganizePreviewFile> _activeAssignmentFiles = new();
+    private OrganizeCategoryOption? _pendingAssignmentCategory;
+    private bool _isCreatingAssignmentCategory;
+
     public OrganizePage()
     {
         InitializeComponent();
@@ -43,7 +48,7 @@ public sealed partial class OrganizePage : Page
         ShowInitialState();
     }
 
-    private async void AssignExtensionButton_Click(object sender, RoutedEventArgs e)
+    private void AssignExtensionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string extension } ||
             string.IsNullOrWhiteSpace(extension))
@@ -62,173 +67,150 @@ public sealed partial class OrganizePage : Page
             return;
         }
 
-        var categoryPicker = new ComboBox
-        {
-            Header = "Asignar a categoría",
-            ItemsSource = _categories
+        _activeAssignmentExtension = normalizedExtension;
+        _activeAssignmentFiles = affectedFiles;
+        _pendingAssignmentCategory =
+            GetSuggestedCategory(normalizedExtension) ??
+            _categories
                 .OrderBy(category => category.Order)
                 .ThenBy(category => category.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-            DisplayMemberPath = nameof(OrganizeCategoryOption.DisplayName),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            MinWidth = 320
-        };
+                .FirstOrDefault();
 
-        categoryPicker.SelectedItem =
-            GetSuggestedCategory(normalizedExtension) ??
-            categoryPicker.Items.OfType<OrganizeCategoryOption>().FirstOrDefault();
+        _isCreatingAssignmentCategory = false;
 
-        var rememberCheckBox = new CheckBox
+        AssignmentOverlayTitleText.Text = $"Asignar extensión {normalizedExtension}";
+        AssignmentHelperText.Text =
+            $"{affectedFiles.Count} archivo{(affectedFiles.Count == 1 ? string.Empty : "s")} con {normalizedExtension} " +
+            "quedarán asignados a la categoría elegida.";
+
+        AssignmentCategoryValueText.Text =
+            _pendingAssignmentCategory?.DisplayName ?? "Elegir categoría";
+
+        AssignmentCategorySelectorButton.Visibility = Visibility.Visible;
+        AssignmentCreateCategoryPanel.Visibility = Visibility.Collapsed;
+        AssignmentToggleCreateCategoryButton.Content = "Crear nueva categoría";
+        AssignmentCategoryNameTextBox.Text = string.Empty;
+        AssignmentCreateCategoryInfoText.Text =
+            $"La nueva categoría se agregará al final del orden actual. {normalizedExtension} se usará ahora; " +
+            "solo se recordará para futuras organizaciones si activás la opción de abajo.";
+
+        AssignmentRememberCheckBox.IsChecked = false;
+        AssignmentValidationText.Text = string.Empty;
+        AssignmentValidationText.Visibility = Visibility.Collapsed;
+
+        BuildAssignmentCategoryOptions();
+        AssignmentOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void BuildAssignmentCategoryOptions()
+    {
+        AssignmentCategoryOptionsPanel.Children.Clear();
+
+        AssignmentCategoryOptionsPanel.Children.Add(new TextBlock
         {
-            Content = "Recordar esta asignación para futuras organizaciones",
-            IsChecked = false,
-            Margin = new Thickness(0, 4, 0, 0)
-        };
+            Text = "CATEGORÍAS",
+            Margin = new Thickness(10, 6, 10, 4),
+            Foreground = GetBrush("BandaMutedStrongBrush"),
+            FontSize = 11,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+        });
 
-        var helperText = new TextBlock
+        foreach (var category in _categories
+                     .OrderBy(category => category.Order)
+                     .ThenBy(category => category.Name, StringComparer.CurrentCultureIgnoreCase))
         {
-            Text = $"{affectedFiles.Count} archivo{(affectedFiles.Count == 1 ? string.Empty : "s")} con {normalizedExtension} quedarán asignados a la categoría elegida.",
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = GetBrush("BandaMutedBrush"),
-            FontSize = 13
-        };
-
-        var categoryNameBox = new TextBox
-        {
-            Header = "Nombre de la nueva categoría",
-            PlaceholderText = "Ej: MODELOS 3D",
-            MinWidth = 320
-        };
-
-        var createCategoryInfo = new TextBlock
-        {
-            Text = $"La nueva categoría se agregará al final del orden actual. {normalizedExtension} se usará ahora; solo se recordará para futuras organizaciones si activás la opción de abajo.",
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = GetBrush("BandaMutedBrush"),
-            FontSize = 12
-        };
-
-        var createCategoryPanel = new StackPanel
-        {
-            Spacing = 8,
-            Visibility = Visibility.Collapsed
-        };
-
-        createCategoryPanel.Children.Add(categoryNameBox);
-        createCategoryPanel.Children.Add(createCategoryInfo);
-
-        var validationText = new TextBlock
-        {
-            Foreground = GetBrush("OrganizeWarningBrush"),
-            FontSize = 12,
-            TextWrapping = TextWrapping.Wrap,
-            Visibility = Visibility.Collapsed
-        };
-
-        var createCategoryButton = new Button
-        {
-            Content = "Crear nueva categoría",
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Padding = new Thickness(12, 7, 12, 7),
-            Background = GetBrush("BandaAccentFaintBrush"),
-            Foreground = GetBrush("BandaAccentBrush"),
-            BorderBrush = GetBrush("BandaBorderBrush"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10)
-        };
-
-        var creatingCategory = false;
-
-        createCategoryButton.Click += (_, _) =>
-        {
-            creatingCategory = !creatingCategory;
-
-            categoryPicker.Visibility =
-                creatingCategory ? Visibility.Collapsed : Visibility.Visible;
-
-            createCategoryPanel.Visibility =
-                creatingCategory ? Visibility.Visible : Visibility.Collapsed;
-
-            createCategoryButton.Content =
-                creatingCategory ? "Usar categoría existente" : "Crear nueva categoría";
-
-            validationText.Visibility = Visibility.Collapsed;
-
-            if (creatingCategory)
+            var optionButton = new Button
             {
-                categoryNameBox.Focus(FocusState.Programmatic);
-            }
-        };
+                Tag = category,
+                Content = category.DisplayName,
+                Style = (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
+            };
 
-        var dialogContent = new StackPanel
-        {
-            Spacing = 10
-        };
-
-        dialogContent.Children.Add(helperText);
-        dialogContent.Children.Add(categoryPicker);
-        dialogContent.Children.Add(createCategoryPanel);
-        dialogContent.Children.Add(createCategoryButton);
-        dialogContent.Children.Add(rememberCheckBox);
-        dialogContent.Children.Add(validationText);
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = $"Asignar extensión {normalizedExtension}",
-            PrimaryButtonText = "Guardar asignación",
-            CloseButtonText = "Cancelar",
-            DefaultButton = ContentDialogButton.Primary,
-            Content = dialogContent
-        };
-
-        dialog.PrimaryButtonClick += (_, args) =>
-        {
-            validationText.Visibility = Visibility.Collapsed;
-
-            if (!creatingCategory)
+            if (_pendingAssignmentCategory is not null &&
+                _pendingAssignmentCategory.Order == category.Order &&
+                _pendingAssignmentCategory.Name.Equals(
+                    category.Name,
+                    StringComparison.CurrentCultureIgnoreCase))
             {
-                if (categoryPicker.SelectedItem is not OrganizeCategoryOption)
-                {
-                    validationText.Text = "Elegí una categoría antes de continuar.";
-                    validationText.Visibility = Visibility.Visible;
-                    args.Cancel = true;
-                }
-
-                return;
+                optionButton.Background = GetBrush("BandaAccentSoftBrush");
+                optionButton.Foreground = GetBrush("BandaAccentBrush");
             }
 
-            var proposedName = categoryNameBox.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(proposedName))
+            optionButton.Click += (_, _) =>
             {
-                validationText.Text = "Escribí un nombre para la nueva categoría.";
-                validationText.Visibility = Visibility.Visible;
-                args.Cancel = true;
-                return;
-            }
+                _pendingAssignmentCategory = category;
+                AssignmentCategoryValueText.Text = category.DisplayName;
+                AssignmentValidationText.Visibility = Visibility.Collapsed;
+                BuildAssignmentCategoryOptions();
+                AssignmentCategoryFlyout.Hide();
+            };
 
-            if (_categories.Any(category =>
-                    category.Name.Equals(proposedName, StringComparison.CurrentCultureIgnoreCase)))
-            {
-                validationText.Text = "Ya existe una categoría con ese nombre. Usá la categoría existente o elegí otro nombre.";
-                validationText.Visibility = Visibility.Visible;
-                args.Cancel = true;
-            }
-        };
+            AssignmentCategoryOptionsPanel.Children.Add(optionButton);
+        }
+    }
 
-        var result = await dialog.ShowAsync();
+    private void AssignmentToggleCreateCategoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isCreatingAssignmentCategory = !_isCreatingAssignmentCategory;
 
-        if (result != ContentDialogResult.Primary)
+        AssignmentCategorySelectorButton.Visibility =
+            _isCreatingAssignmentCategory ? Visibility.Collapsed : Visibility.Visible;
+
+        AssignmentCreateCategoryPanel.Visibility =
+            _isCreatingAssignmentCategory ? Visibility.Visible : Visibility.Collapsed;
+
+        AssignmentToggleCreateCategoryButton.Content =
+            _isCreatingAssignmentCategory
+                ? "Usar categoría existente"
+                : "Crear nueva categoría";
+
+        AssignmentValidationText.Visibility = Visibility.Collapsed;
+
+        if (_isCreatingAssignmentCategory)
         {
+            AssignmentCategoryNameTextBox.Focus(FocusState.Programmatic);
+        }
+    }
+
+    private void SaveAssignmentOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        AssignmentValidationText.Visibility = Visibility.Collapsed;
+
+        if (string.IsNullOrWhiteSpace(_activeAssignmentExtension) ||
+            _activeAssignmentFiles.Count == 0)
+        {
+            CloseAssignmentOverlay();
             return;
         }
 
         OrganizeCategoryOption selectedCategory;
 
-        if (creatingCategory)
+        if (_isCreatingAssignmentCategory)
         {
-            var categoryName = categoryNameBox.Text.Trim().ToUpper(CultureInfo.CurrentCulture);
+            var proposedName = AssignmentCategoryNameTextBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(proposedName))
+            {
+                AssignmentValidationText.Text =
+                    "Escribí un nombre para la nueva categoría.";
+                AssignmentValidationText.Visibility = Visibility.Visible;
+                return;
+            }
+
+            if (_categories.Any(category =>
+                    category.Name.Equals(
+                        proposedName,
+                        StringComparison.CurrentCultureIgnoreCase)))
+            {
+                AssignmentValidationText.Text =
+                    "Ya existe una categoría con ese nombre. Usá la categoría existente o elegí otro nombre.";
+                AssignmentValidationText.Visibility = Visibility.Visible;
+                return;
+            }
+
+            var categoryName =
+                proposedName.ToUpper(CultureInfo.CurrentCulture);
+
             var nextOrder = _categories.Count == 0
                 ? 1
                 : _categories.Max(category => category.Order) + 1;
@@ -236,40 +218,73 @@ public sealed partial class OrganizePage : Page
             selectedCategory = new OrganizeCategoryOption(nextOrder, categoryName);
             _categories.Add(selectedCategory);
         }
-        else if (categoryPicker.SelectedItem is OrganizeCategoryOption existingCategory)
+        else if (_pendingAssignmentCategory is not null)
         {
-            selectedCategory = existingCategory;
+            selectedCategory = _pendingAssignmentCategory;
         }
         else
         {
+            AssignmentValidationText.Text =
+                "Elegí una categoría antes de continuar.";
+            AssignmentValidationText.Visibility = Visibility.Visible;
             return;
         }
 
-        foreach (var file in affectedFiles)
+        foreach (var file in _activeAssignmentFiles)
         {
-            file.AssignTo(selectedCategory, OrganizeAssignmentSource.ExtensionRule);
+            file.AssignTo(
+                selectedCategory,
+                OrganizeAssignmentSource.ExtensionRule);
         }
 
-        var rememberAssignment = rememberCheckBox.IsChecked == true;
+        var rememberAssignment =
+            AssignmentRememberCheckBox.IsChecked == true;
 
         if (rememberAssignment)
         {
-            _rememberedAssignments[normalizedExtension] = selectedCategory;
+            _rememberedAssignments[_activeAssignmentExtension] =
+                selectedCategory;
         }
 
         _resolvedAssignments.RemoveAll(item =>
-            item.Extension.Equals(normalizedExtension, StringComparison.OrdinalIgnoreCase));
+            item.Extension.Equals(
+                _activeAssignmentExtension,
+                StringComparison.OrdinalIgnoreCase));
 
         _resolvedAssignments.Add(new ResolvedExtensionAssignment(
-            normalizedExtension,
-            affectedFiles.Count,
+            _activeAssignmentExtension,
+            _activeAssignmentFiles.Count,
             selectedCategory,
             rememberAssignment,
             rememberAssignment
                 ? "Asignación recordada para próximas organizaciones"
                 : "Asignación aplicada solo a esta organización"));
 
+        CloseAssignmentOverlay();
         RefreshPreview();
+    }
+
+    private void CloseAssignmentOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        CloseAssignmentOverlay();
+    }
+
+    private void AssignmentBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseAssignmentOverlay();
+    }
+
+    private void CloseAssignmentOverlay()
+    {
+        AssignmentCategoryFlyout.Hide();
+        AssignmentOverlay.Visibility = Visibility.Collapsed;
+
+        _activeAssignmentExtension = null;
+        _activeAssignmentFiles = new List<OrganizePreviewFile>();
+        _pendingAssignmentCategory = null;
+        _isCreatingAssignmentCategory = false;
     }
 
     private void RevertExtensionAssignmentButton_Click(object sender, RoutedEventArgs e)
@@ -308,14 +323,10 @@ public sealed partial class OrganizePage : Page
         RefreshPreview();
     }
 
-    private void PreviewCategoryComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isRefreshingPreview ||
-            sender is not ComboBox
-            {
-                Tag: string itemId,
-                SelectedItem: OrganizeCategoryOption selectedCategory
-            })
+            sender is not Button { Tag: string itemId } selectorButton)
         {
             return;
         }
@@ -323,13 +334,88 @@ public sealed partial class OrganizePage : Page
         var file = _files.FirstOrDefault(item =>
             item.ItemId.Equals(itemId, StringComparison.Ordinal));
 
-        if (file is null || file.IsAssignedTo(selectedCategory.Order, selectedCategory.Name))
+        if (file is null)
         {
             return;
         }
 
-        file.AssignTo(selectedCategory, OrganizeAssignmentSource.IndividualOverride);
-        RefreshPreview();
+        var optionsPanel = new StackPanel
+        {
+            Spacing = 2,
+            Margin = new Thickness(0, 0, 12, 0)
+        };
+
+        optionsPanel.Children.Add(new TextBlock
+        {
+            Text = "CATEGORÍAS",
+            Margin = new Thickness(10, 6, 10, 4),
+            Foreground = GetBrush("BandaMutedStrongBrush"),
+            FontSize = 11,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+        });
+
+        var flyout = new Flyout
+        {
+            Placement =
+                Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedLeft,
+            FlyoutPresenterStyle =
+                (Style)Application.Current.Resources["BandaPopupFlyoutPresenterStyle"]
+        };
+
+        foreach (var category in _categories
+                     .OrderBy(category => category.Order)
+                     .ThenBy(category => category.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            var optionButton = new Button
+            {
+                Content = category.DisplayName,
+                Style =
+                    (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
+            };
+
+            if (file.IsAssignedTo(category.Order, category.Name))
+            {
+                optionButton.Background = GetBrush("BandaAccentSoftBrush");
+                optionButton.Foreground = GetBrush("BandaAccentBrush");
+            }
+
+            optionButton.Click += (_, _) =>
+            {
+                flyout.Hide();
+
+                if (file.IsAssignedTo(category.Order, category.Name))
+                {
+                    return;
+                }
+
+                file.AssignTo(
+                    category,
+                    OrganizeAssignmentSource.IndividualOverride);
+
+                RefreshPreview();
+            };
+
+            optionsPanel.Children.Add(optionButton);
+        }
+
+        flyout.Content = new Border
+        {
+            Width = 220,
+            MaxHeight = 330,
+            Padding = new Thickness(8),
+            CornerRadius = new CornerRadius(16),
+            Background = GetBrush("BandaPopupSurfaceBrush"),
+            BorderBrush = GetBrush("BandaBorderStrongBrush"),
+            BorderThickness = new Thickness(1),
+            Child = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = optionsPanel
+            }
+        };
+
+        flyout.ShowAt(selectorButton);
     }
 
     private async void OrganizeButton_Click(object sender, RoutedEventArgs e)
@@ -846,6 +932,9 @@ public sealed class OrganizePreviewFile
     public OrganizeCategoryOption? SelectedCategory =>
         CategoryOptions.FirstOrDefault(category =>
             IsAssignedTo(category.Order, category.Name));
+
+    public string SelectedCategoryDisplayName =>
+        SelectedCategory?.DisplayName ?? "Elegir categoría";
 
     public string ExtensionDisplay => Extension.ToUpperInvariant();
 
