@@ -6,6 +6,8 @@
     Background="Transparent">
 
     <Page.Resources>
+        <SolidColorBrush x:Key="BandaPopupSurfaceBrush" Color="#FF0C1418" />
+
         <DataTemplate x:Key="CategoryCardTemplate" x:DataType="local:SearchCategorySummary">
             <Button
                 Tag="{x:Bind Name}"
@@ -359,12 +361,13 @@
                 <Button.Flyout>
                     <Flyout
                         x:Name="SortFlyout"
+                        Placement="BottomEdgeAlignedLeft"
                         FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                         <Border
                             Width="245"
                             Padding="8"
                             CornerRadius="16"
-                            Background="{StaticResource BandaSidebarBrush}"
+                            Background="{StaticResource BandaPopupSurfaceBrush}"
                             BorderBrush="{StaticResource BandaBorderStrongBrush}"
                             BorderThickness="1">
                             <StackPanel Spacing="2">
@@ -601,7 +604,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 CornerRadius="22"
-                Background="{StaticResource BandaSidebarBrush}"
+                Background="{StaticResource BandaPopupSurfaceBrush}"
                 BorderBrush="{StaticResource BandaBorderStrongBrush}"
                 BorderThickness="1">
 
@@ -711,12 +714,13 @@
                                     <Button.Flyout>
                                         <Flyout
                                             x:Name="DateFilterFlyout"
-                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                             <Border
                                                 Width="245"
                                                 Padding="8"
                                                 CornerRadius="16"
-                                                Background="{StaticResource BandaSidebarBrush}"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
                                                 BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                                 BorderThickness="1">
                                                 <StackPanel Spacing="2">
@@ -771,12 +775,13 @@
                                     <Button.Flyout>
                                         <Flyout
                                             x:Name="SizeFilterFlyout"
-                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                             <Border
                                                 Width="245"
                                                 Padding="8"
                                                 CornerRadius="16"
-                                                Background="{StaticResource BandaSidebarBrush}"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
                                                 BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                                 BorderThickness="1">
                                                 <StackPanel Spacing="2">
@@ -847,18 +852,23 @@
                                 <Button.Flyout>
                                     <Flyout
                                         x:Name="ExtensionFilterFlyout"
-                                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                        Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                         <Border
                                             Width="245"
                                             MaxHeight="330"
-                                            Padding="8"
+                                            Padding="8,8,14,8"
                                             CornerRadius="16"
-                                            Background="{StaticResource BandaSidebarBrush}"
+                                            Background="{StaticResource BandaPopupSurfaceBrush}"
                                             BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                             BorderThickness="1">
-                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ScrollViewer
+                                                Margin="0,0,3,0"
+                                                VerticalScrollBarVisibility="Auto"
+                                                HorizontalScrollBarVisibility="Disabled">
                                                 <StackPanel
                                                     x:Name="ExtensionFilterOptionsPanel"
+                                                    Margin="0,0,3,0"
                                                     Spacing="2" />
                                             </ScrollViewer>
                                         </Border>
