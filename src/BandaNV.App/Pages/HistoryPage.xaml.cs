@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -9,6 +10,17 @@ public sealed partial class HistoryPage : Page
 {
     public ObservableCollection<HistoryExecutionPreview> PreviewExecutions { get; } = new();
     public ObservableCollection<HistoryFilePreview> SelectedFiles { get; } = new();
+
+    private readonly List<HistoryExecutionPreview> _allPreviewExecutions = new();
+
+    private HistoryTypeFilter _typeFilter = HistoryTypeFilter.All;
+    private HistoryUndoFilter _undoFilter = HistoryUndoFilter.All;
+    private string? _originFilter;
+    private HistorySortMode _sortMode = HistorySortMode.Newest;
+
+    private HistoryTypeFilter _pendingTypeFilter = HistoryTypeFilter.All;
+    private HistoryUndoFilter _pendingUndoFilter = HistoryUndoFilter.All;
+    private string? _pendingOriginFilter;
 
     private HistoryFilePreview? _pendingDeleteFile;
     private HistoryExecutionPreview? _pendingDeleteExecution;
@@ -23,9 +35,9 @@ public sealed partial class HistoryPage : Page
 
     private void LoadPreviewData()
     {
-        PreviewExecutions.Clear();
+        _allPreviewExecutions.Clear();
 
-        PreviewExecutions.Add(new HistoryExecutionPreview
+        _allPreviewExecutions.Add(new HistoryExecutionPreview
         {
             DateTimeText = "04/10/2026 · 00:47:18",
             Type = "ORGANIZAR",
@@ -40,7 +52,7 @@ public sealed partial class HistoryPage : Page
             Files = BuildPrimaryPreviewFiles()
         });
 
-        PreviewExecutions.Add(new HistoryExecutionPreview
+        _allPreviewExecutions.Add(new HistoryExecutionPreview
         {
             DateTimeText = "03/10/2026 · 18:12:42",
             Type = "ORGANIZAR",
@@ -61,7 +73,7 @@ public sealed partial class HistoryPage : Page
             ]
         });
 
-        PreviewExecutions.Add(new HistoryExecutionPreview
+        _allPreviewExecutions.Add(new HistoryExecutionPreview
         {
             DateTimeText = "02/10/2026 · 23:08:07",
             Type = "ORGANIZAR",
@@ -83,7 +95,7 @@ public sealed partial class HistoryPage : Page
             ]
         });
 
-        PreviewExecutions.Add(new HistoryExecutionPreview
+        _allPreviewExecutions.Add(new HistoryExecutionPreview
         {
             DateTimeText = "01/10/2026 · 14:36:55",
             Type = "DESHACER",
@@ -103,6 +115,8 @@ public sealed partial class HistoryPage : Page
                 new HistoryFilePreview("audio.wav", "AUDIO", "22.6 MB")
             ]
         });
+
+        RefreshHistoryResults();
     }
 
     private static IReadOnlyList<HistoryFilePreview> BuildPrimaryPreviewFiles()
@@ -188,15 +202,459 @@ public sealed partial class HistoryPage : Page
         file.RowOpacity = file.IsDeleted ? 0.58 : 1.0;
     }
 
-    private void HistorySortOptionButton_Click(object sender, RoutedEventArgs e)
+    private void HistorySearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (sender is not Button { Tag: string sortLabel })
+        RefreshHistoryResults();
+    }
+
+    private void HistoryFiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingTypeFilter = _typeFilter;
+        _pendingUndoFilter = _undoFilter;
+        _pendingOriginFilter = _originFilter;
+
+        UpdatePendingHistoryFilterLabels();
+        BuildHistoryOriginOptions();
+        HistoryFiltersOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void CloseHistoryFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        CloseHistoryFiltersOverlay();
+    }
+
+    private void HistoryFiltersBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseHistoryFiltersOverlay();
+    }
+
+    private void ResetHistoryFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingTypeFilter = HistoryTypeFilter.All;
+        _pendingUndoFilter = HistoryUndoFilter.All;
+        _pendingOriginFilter = null;
+
+        UpdatePendingHistoryFilterLabels();
+        BuildHistoryOriginOptions();
+    }
+
+    private void ApplyHistoryFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        _typeFilter = _pendingTypeFilter;
+        _undoFilter = _pendingUndoFilter;
+        _originFilter = _pendingOriginFilter;
+
+        CloseHistoryFiltersOverlay();
+        RefreshHistoryResults();
+    }
+
+    private void HistoryTypeOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key } ||
+            !Enum.TryParse<HistoryTypeFilter>(key, out var parsed))
         {
             return;
         }
 
-        HistorySortValueText.Text = sortLabel;
+        _pendingTypeFilter = parsed;
+        HistoryTypeValueText.Text = GetHistoryTypeFilterDisplayName(parsed);
+        HistoryTypeFlyout.Hide();
+    }
+
+    private void HistoryUndoOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key } ||
+            !Enum.TryParse<HistoryUndoFilter>(key, out var parsed))
+        {
+            return;
+        }
+
+        _pendingUndoFilter = parsed;
+        HistoryUndoValueText.Text = GetHistoryUndoFilterDisplayName(parsed);
+        HistoryUndoFlyout.Hide();
+    }
+
+    private void BuildHistoryOriginOptions()
+    {
+        HistoryOriginOptionsPanel.Children.Clear();
+
+        HistoryOriginOptionsPanel.Children.Add(new TextBlock
+        {
+            Text = "ORIGEN",
+            Margin = new Thickness(10, 6, 10, 4),
+            Foreground = (Brush)Application.Current.Resources["BandaMutedStrongBrush"],
+            FontSize = 11,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+        });
+
+        var origins = _allPreviewExecutions
+            .Select(execution => execution.OriginShort)
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(origin => origin, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        AddHistoryOriginOption("All", "Todos los orígenes", string.IsNullOrWhiteSpace(_pendingOriginFilter));
+
+        foreach (var origin in origins)
+        {
+            AddHistoryOriginOption(
+                origin,
+                origin,
+                string.Equals(
+                    origin,
+                    _pendingOriginFilter,
+                    StringComparison.CurrentCultureIgnoreCase));
+        }
+    }
+
+    private void AddHistoryOriginOption(string key, string label, bool isSelected)
+    {
+        var button = new Button
+        {
+            Tag = key,
+            Content = label,
+            Style = (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
+        };
+
+        if (isSelected)
+        {
+            button.Background =
+                (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+            button.Foreground =
+                (Brush)Application.Current.Resources["BandaAccentBrush"];
+        }
+
+        button.Click += HistoryOriginOptionButton_Click;
+        HistoryOriginOptionsPanel.Children.Add(button);
+    }
+
+    private void HistoryOriginOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key })
+        {
+            return;
+        }
+
+        _pendingOriginFilter =
+            key.Equals("All", StringComparison.OrdinalIgnoreCase)
+                ? null
+                : key;
+
+        HistoryOriginValueText.Text =
+            string.IsNullOrWhiteSpace(_pendingOriginFilter)
+                ? "Todos los orígenes"
+                : _pendingOriginFilter;
+
+        BuildHistoryOriginOptions();
+        HistoryOriginFlyout.Hide();
+    }
+
+    private void UpdatePendingHistoryFilterLabels()
+    {
+        HistoryTypeValueText.Text =
+            GetHistoryTypeFilterDisplayName(_pendingTypeFilter);
+        HistoryUndoValueText.Text =
+            GetHistoryUndoFilterDisplayName(_pendingUndoFilter);
+        HistoryOriginValueText.Text =
+            string.IsNullOrWhiteSpace(_pendingOriginFilter)
+                ? "Todos los orígenes"
+                : _pendingOriginFilter;
+    }
+
+    private static string GetHistoryTypeFilterDisplayName(HistoryTypeFilter filter) =>
+        filter switch
+        {
+            HistoryTypeFilter.Organize => "Organizar",
+            HistoryTypeFilter.Undo => "Deshacer",
+            _ => "Todos los tipos"
+        };
+
+    private static string GetHistoryUndoFilterDisplayName(HistoryUndoFilter filter) =>
+        filter switch
+        {
+            HistoryUndoFilter.Reversible => "Reversibles",
+            HistoryUndoFilter.NotReversible => "No reversibles",
+            _ => "Cualquier estado"
+        };
+
+    private void CloseHistoryFiltersOverlay()
+    {
+        HistoryTypeFlyout.Hide();
+        HistoryUndoFlyout.Hide();
+        HistoryOriginFlyout.Hide();
+        HistoryFiltersOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void HistoryClearFiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        _typeFilter = HistoryTypeFilter.All;
+        _undoFilter = HistoryUndoFilter.All;
+        _originFilter = null;
+
+        if (!string.IsNullOrEmpty(HistorySearchBox.Text))
+        {
+            HistorySearchBox.Text = string.Empty;
+        }
+        else
+        {
+            RefreshHistoryResults();
+        }
+    }
+
+    private void HistorySortOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string sortKey })
+        {
+            return;
+        }
+
+        _sortMode = sortKey switch
+        {
+            "Oldest" => HistorySortMode.Oldest,
+            "FilesDescending" => HistorySortMode.FilesDescending,
+            "FilesAscending" => HistorySortMode.FilesAscending,
+            "SizeDescending" => HistorySortMode.SizeDescending,
+            "SizeAscending" => HistorySortMode.SizeAscending,
+            "Origin" => HistorySortMode.Origin,
+            _ => HistorySortMode.Newest
+        };
+
+        HistorySortValueText.Text = GetHistorySortDisplayName(_sortMode);
         HistorySortFlyout.Hide();
+        RefreshHistoryResults();
+    }
+
+    private void RefreshHistoryResults()
+    {
+        var selectedExecution = HistoryList.SelectedItem as HistoryExecutionPreview;
+        IEnumerable<HistoryExecutionPreview> query = _allPreviewExecutions;
+
+        var searchText = HistorySearchBox?.Text?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            query = query.Where(execution =>
+                execution.DateTimeText.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                execution.Type.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                execution.OriginShort.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                execution.Origin.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                execution.Destination.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                execution.Files.Any(file =>
+                    file.Name.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                    file.Category.Contains(searchText, StringComparison.CurrentCultureIgnoreCase)));
+        }
+
+        query = _typeFilter switch
+        {
+            HistoryTypeFilter.Organize =>
+                query.Where(execution =>
+                    execution.Type.Equals("ORGANIZAR", StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.Undo =>
+                query.Where(execution =>
+                    execution.Type.Equals("DESHACER", StringComparison.OrdinalIgnoreCase)),
+            _ => query
+        };
+
+        query = _undoFilter switch
+        {
+            HistoryUndoFilter.Reversible =>
+                query.Where(execution => execution.CanUndo),
+            HistoryUndoFilter.NotReversible =>
+                query.Where(execution => !execution.CanUndo),
+            _ => query
+        };
+
+        if (!string.IsNullOrWhiteSpace(_originFilter))
+        {
+            query = query.Where(execution =>
+                execution.OriginShort.Equals(
+                    _originFilter,
+                    StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        var results = _sortMode switch
+        {
+            HistorySortMode.Oldest =>
+                query.OrderBy(GetExecutionDateTime).ToList(),
+            HistorySortMode.FilesDescending =>
+                query.OrderByDescending(execution => execution.FileCount)
+                    .ThenByDescending(GetExecutionDateTime)
+                    .ToList(),
+            HistorySortMode.FilesAscending =>
+                query.OrderBy(execution => execution.FileCount)
+                    .ThenByDescending(GetExecutionDateTime)
+                    .ToList(),
+            HistorySortMode.SizeDescending =>
+                query.OrderByDescending(execution => ParseSizeBytes(execution.SizeText))
+                    .ThenByDescending(GetExecutionDateTime)
+                    .ToList(),
+            HistorySortMode.SizeAscending =>
+                query.OrderBy(execution => ParseSizeBytes(execution.SizeText))
+                    .ThenByDescending(GetExecutionDateTime)
+                    .ToList(),
+            HistorySortMode.Origin =>
+                query.OrderBy(execution => execution.OriginShort, StringComparer.CurrentCultureIgnoreCase)
+                    .ThenByDescending(GetExecutionDateTime)
+                    .ToList(),
+            _ =>
+                query.OrderByDescending(GetExecutionDateTime).ToList()
+        };
+
+        PreviewExecutions.Clear();
+        foreach (var execution in results)
+        {
+            PreviewExecutions.Add(execution);
+        }
+
+        if (selectedExecution is not null && results.Contains(selectedExecution))
+        {
+            HistoryList.SelectedItem = selectedExecution;
+        }
+        else if (results.Count > 0)
+        {
+            HistoryList.SelectedIndex = 0;
+        }
+        else
+        {
+            SelectedFiles.Clear();
+            ClearExecutionDetails();
+        }
+
+        UpdateHistoryToolState(results.Count, searchText);
+    }
+
+    private void UpdateHistoryToolState(int resultCount, string searchText)
+    {
+        HistoryResultCountText.Text = resultCount.ToString(CultureInfo.CurrentCulture);
+        HistoryResultCountLabel.Text = resultCount == 1 ? "ejecución" : "ejecuciones";
+        HistoryFooterCountText.Text =
+            resultCount == 1 ? "1 resultado" : $"{resultCount} resultados";
+
+        HistorySortValueText.Text = GetHistorySortDisplayName(_sortMode);
+        HistoryActiveSortText.Text = GetHistorySortDisplayName(_sortMode);
+
+        var filterParts = new List<string>();
+
+        if (_typeFilter != HistoryTypeFilter.All)
+        {
+            filterParts.Add(GetHistoryTypeFilterDisplayName(_typeFilter));
+        }
+
+        if (_undoFilter != HistoryUndoFilter.All)
+        {
+            filterParts.Add(GetHistoryUndoFilterDisplayName(_undoFilter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_originFilter))
+        {
+            filterParts.Add(_originFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            filterParts.Add("búsqueda activa");
+        }
+
+        var advancedFilterCount =
+            (_typeFilter != HistoryTypeFilter.All ? 1 : 0) +
+            (_undoFilter != HistoryUndoFilter.All ? 1 : 0) +
+            (!string.IsNullOrWhiteSpace(_originFilter) ? 1 : 0);
+
+        var hasAdvancedFilters = advancedFilterCount > 0;
+        var hasAnyFilter = hasAdvancedFilters || !string.IsNullOrWhiteSpace(searchText);
+
+        HistoryAllChip.Visibility =
+            hasAnyFilter ? Visibility.Collapsed : Visibility.Visible;
+
+        HistoryActiveFilterText.Text =
+            filterParts.Count == 0
+                ? "Sin filtros"
+                : string.Join(" · ", filterParts);
+
+        HistoryFiltersButton.Content =
+            hasAdvancedFilters
+                ? $"Filtros ({advancedFilterCount})"
+                : "Filtros";
+
+        HistoryFiltersButton.Background =
+            (Brush)Application.Current.Resources[
+                hasAdvancedFilters ? "BandaAccentSoftBrush" : "BandaCardBrush"];
+
+        HistoryFiltersButton.Foreground =
+            (Brush)Application.Current.Resources[
+                hasAdvancedFilters ? "BandaAccentBrush" : "BandaTextBrush"];
+
+        HistoryClearFiltersButton.IsEnabled = hasAnyFilter;
+    }
+
+    private void ClearExecutionDetails()
+    {
+        DetailDateText.Text = "—";
+        DetailFileCountText.Text = "—";
+        DetailSizeText.Text = "—";
+        DetailOriginText.Text = "—";
+        DetailDestinationText.Text = "—";
+        UndoStatusText.Text = "Sin selección";
+        UndoPreviewButton.IsEnabled = false;
+
+        UndoStatusBorder.Background =
+            (Brush)Application.Current.Resources["BandaNavIconBrush"];
+        UndoStatusText.Foreground =
+            (Brush)Application.Current.Resources["BandaMutedStrongBrush"];
+    }
+
+    private static string GetHistorySortDisplayName(HistorySortMode sortMode) =>
+        sortMode switch
+        {
+            HistorySortMode.Oldest => "Fecha · más antigua",
+            HistorySortMode.FilesDescending => "Archivos · mayor primero",
+            HistorySortMode.FilesAscending => "Archivos · menor primero",
+            HistorySortMode.SizeDescending => "Tamaño · mayor primero",
+            HistorySortMode.SizeAscending => "Tamaño · menor primero",
+            HistorySortMode.Origin => "Origen · A–Z",
+            _ => "Fecha · más reciente"
+        };
+
+    private static DateTime GetExecutionDateTime(HistoryExecutionPreview execution)
+    {
+        return DateTime.TryParseExact(
+            execution.DateTimeText,
+            "dd/MM/yyyy · HH:mm:ss",
+            CultureInfo.GetCultureInfo("es-AR"),
+            DateTimeStyles.None,
+            out var parsed)
+                ? parsed
+                : DateTime.MinValue;
+    }
+
+    private static double ParseSizeBytes(string sizeText)
+    {
+        var parts = sizeText.Split(
+            ' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length != 2 ||
+            !double.TryParse(
+                parts[0],
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var value))
+        {
+            return 0;
+        }
+
+        var multiplier = parts[1].ToUpperInvariant() switch
+        {
+            "KB" => 1024d,
+            "MB" => 1024d * 1024d,
+            "GB" => 1024d * 1024d * 1024d,
+            "TB" => 1024d * 1024d * 1024d * 1024d,
+            _ => 1d
+        };
+
+        return value * multiplier;
     }
 
     private void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
@@ -307,6 +765,31 @@ public sealed partial class HistoryPage : Page
         _pendingDeleteExecution = null;
     }
 
+}
+
+public enum HistoryTypeFilter
+{
+    All,
+    Organize,
+    Undo
+}
+
+public enum HistoryUndoFilter
+{
+    All,
+    Reversible,
+    NotReversible
+}
+
+public enum HistorySortMode
+{
+    Newest,
+    Oldest,
+    FilesDescending,
+    FilesAscending,
+    SizeDescending,
+    SizeAscending,
+    Origin
 }
 
 public sealed class HistoryExecutionPreview
