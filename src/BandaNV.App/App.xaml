@@ -42,6 +42,16 @@
             <SolidColorBrush x:Key="BandaActionHoverBrush" Color="#67E7D2" />
             <SolidColorBrush x:Key="BandaActionPressedBrush" Color="#39B9A7" />
             <SolidColorBrush x:Key="BandaActionForegroundBrush" Color="#07110F" />
+
+            <!-- Colores escalares para controles que crean brushes locales.
+                 Al navegar a una página nueva toman los valores secundarios actuales. -->
+            <Color x:Key="BandaActionBaseColor">#FF4FE0C6</Color>
+            <Color x:Key="BandaActionHoverColor">#FF67E7D2</Color>
+            <Color x:Key="BandaActionPressedColor">#FF39B9A7</Color>
+            <Color x:Key="BandaActionForegroundColor">#FF07110F</Color>
+            <Color x:Key="BandaSelectionColor">#244FE0C6</Color>
+            <Color x:Key="BandaSelectionHoverColor">#304FE0C6</Color>
+
             <SolidColorBrush x:Key="BandaActionDisabledBackgroundBrush" Color="#151D262F" />
             <SolidColorBrush x:Key="BandaActionDisabledForegroundBrush" Color="#65747D" />
             <SolidColorBrush x:Key="BandaActionDisabledBorderBrush" Color="#35424E59" />
