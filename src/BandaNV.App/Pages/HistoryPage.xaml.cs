@@ -24,7 +24,7 @@ public sealed partial class HistoryPage : Page
 
         PreviewExecutions.Add(new HistoryExecutionPreview
         {
-            DateTimeText = "04/10/2026 · 00:47",
+            DateTimeText = "04/10/2026 · 00:47:18",
             Type = "ORGANIZAR",
             OriginShort = "Descargas",
             Origin = @"C:\Users\Usuario\Downloads",
@@ -39,7 +39,7 @@ public sealed partial class HistoryPage : Page
 
         PreviewExecutions.Add(new HistoryExecutionPreview
         {
-            DateTimeText = "03/10/2026 · 18:12",
+            DateTimeText = "03/10/2026 · 18:12:42",
             Type = "ORGANIZAR",
             OriginShort = "Escritorio",
             Origin = @"C:\Users\Usuario\Desktop",
@@ -60,7 +60,7 @@ public sealed partial class HistoryPage : Page
 
         PreviewExecutions.Add(new HistoryExecutionPreview
         {
-            DateTimeText = "02/10/2026 · 23:08",
+            DateTimeText = "02/10/2026 · 23:08:07",
             Type = "ORGANIZAR",
             OriginShort = "Descargas",
             Origin = @"C:\Users\Usuario\Downloads",
@@ -82,7 +82,7 @@ public sealed partial class HistoryPage : Page
 
         PreviewExecutions.Add(new HistoryExecutionPreview
         {
-            DateTimeText = "01/10/2026 · 14:36",
+            DateTimeText = "01/10/2026 · 14:36:55",
             Type = "DESHACER",
             OriginShort = "Descargas",
             Origin = @"C:\Users\Usuario\Downloads\ORGANIZADO",
