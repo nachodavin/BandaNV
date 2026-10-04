@@ -665,7 +665,14 @@ public sealed partial class SettingsPage : Page
             RecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructive = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
-            HistoryRetention = HistoryRetentionValueText.Text
+            HistoryRetention = HistoryRetentionValueText.Text,
+            Categories = global::BandaNV.App.App.Settings.Current.Categories
+                .Select(category => new CategorySettings(
+                    category.Id,
+                    category.Name,
+                    category.Extensions,
+                    category.Order))
+                .ToList()
         };
     }
 
@@ -693,6 +700,18 @@ public sealed partial class SettingsPage : Page
         ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
         SaveHistoryToggle.IsOn = backup.SaveHistory;
         HistoryRetentionValueText.Text = backup.HistoryRetention;
+
+        if (backup.Categories.Count > 0)
+        {
+            global::BandaNV.App.App.Settings.Current.Categories =
+                backup.Categories
+                    .Select(category => new CategorySettings(
+                        category.Id,
+                        category.Name,
+                        category.Extensions,
+                        category.Order))
+                    .ToList();
+        }
 
         var defaultPrimary =
             Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
@@ -1045,4 +1064,6 @@ internal sealed class SettingsBackupModel
 
     public bool SaveHistory { get; set; } = true;
     public string HistoryRetention { get; set; } = "Siempre";
+
+    public List<CategorySettings> Categories { get; set; } = [];
 }
