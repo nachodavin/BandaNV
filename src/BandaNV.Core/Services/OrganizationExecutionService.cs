@@ -30,7 +30,7 @@ public sealed class OrganizationExecutionService
                 requestedItems,
                 progress,
                 cancellationToken),
-            cancellationToken).Unwrap();
+            cancellationToken);
     }
 
     private static async Task<OrganizationExecutionResult> ExecuteCoreAsync(
@@ -143,7 +143,14 @@ public sealed class OrganizationExecutionService
                     settings,
                     destinationRoot,
                     record.ExecutionId,
+                    record,
                     item,
+                    historyPath,
+                    logPath,
+                    cancellationToken);
+
+                await PersistRecordAsync(
+                    record,
                     historyPath,
                     logPath,
                     cancellationToken);
@@ -212,6 +219,7 @@ public sealed class OrganizationExecutionService
         AppSettings settings,
         string destinationRoot,
         string executionId,
+        OrganizationExecutionRecord record,
         OrganizationExecutionItemRecord item,
         string historyPath,
         string? logPath,
@@ -221,14 +229,6 @@ public sealed class OrganizationExecutionService
         {
             item.Status = OrganizationExecutionItemStatus.SourceMissing;
             item.Message = "El archivo ya no existe en el origen.";
-
-            await PersistRecordAsync(
-                item: null,
-                record: null,
-                historyPath: string.Empty,
-                logPath: null,
-                cancellationToken: cancellationToken);
-
             return;
         }
 
@@ -300,7 +300,8 @@ public sealed class OrganizationExecutionService
 
         // El journal se escribe antes de tocar el archivo. Si la app se
         // interrumpe en este punto, el estado Moving permite reconciliarlo.
-        await PersistCurrentExecutionSnapshotAsync(
+        await PersistRecordAsync(
+            record,
             historyPath,
             logPath,
             cancellationToken);
@@ -566,38 +567,7 @@ public sealed class OrganizationExecutionService
                 cancellationToken);
         }
 
-        CurrentRecord.Value = record;
     }
-
-    private static readonly AsyncLocal<OrganizationExecutionRecord?> CurrentRecord =
-        new();
-
-    private static async Task PersistCurrentExecutionSnapshotAsync(
-        string historyPath,
-        string? logPath,
-        CancellationToken cancellationToken)
-    {
-        if (CurrentRecord.Value is not { } record)
-        {
-            return;
-        }
-
-        await PersistRecordAsync(
-            record,
-            historyPath,
-            logPath,
-            cancellationToken);
-    }
-
-    // Sobrecarga deliberadamente inocua para los estados que todavía no
-    // requieren persistencia inmediata. Evita duplicar I/O en validaciones.
-    private static Task PersistRecordAsync(
-        OrganizationExecutionItemRecord? item,
-        OrganizationExecutionRecord? record,
-        string historyPath,
-        string? logPath,
-        CancellationToken cancellationToken) =>
-        Task.CompletedTask;
 
     private static async Task WriteTextAtomicAsync(
         string path,
