@@ -429,7 +429,7 @@ public sealed class SearchFileResult
     public string Location { get; }
 
     public string ExtensionDisplay =>
-        Path.GetExtension(Name).ToUpperInvariant();
+        System.IO.Path.GetExtension(Name).ToUpperInvariant();
 
     public string SizeText => FormatBytes(SizeBytes);
 
