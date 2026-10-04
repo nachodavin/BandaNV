@@ -2,21 +2,783 @@
     x:Class="BandaNV.App.Pages.OrganizePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BandaNV.App.Pages"
     Background="Transparent">
 
-    <Grid Padding="40,32,40,48">
-        <StackPanel Spacing="18">
-            <StackPanel Spacing="6">
-                <TextBlock Text="Organizar" Style="{StaticResource BandaSectionTitleStyle}" />
-                <TextBlock Text="La vista previa de v1.0 pasa a ser una sección completa." Style="{StaticResource BandaMutedTextStyle}" />
-            </StackPanel>
+    <Page.Resources>
+        <SolidColorBrush x:Key="OrganizeWarningBrush" Color="#F2B85B" />
+        <SolidColorBrush x:Key="OrganizeWarningSoftBrush" Color="#24F2B85B" />
+        <SolidColorBrush x:Key="OrganizeSuccessSoftBrush" Color="#244FE0C6" />
 
-            <Border Style="{StaticResource BandaCardStyle}">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Vista previa de organización" Foreground="{StaticResource BandaTextBrush}" FontSize="20" FontWeight="SemiBold" />
-                    <TextBlock Text="Acá vamos a listar archivo, categoría y destino antes de confirmar el movimiento." Style="{StaticResource BandaMutedTextStyle}" TextWrapping="Wrap" />
+        <DataTemplate x:Key="UnassignedExtensionTemplate" x:DataType="local:UnassignedExtensionSummary">
+            <Border
+                Padding="14,12"
+                Margin="0,0,0,8"
+                CornerRadius="12"
+                Background="{StaticResource BandaCardAltBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="92" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Padding="10,5"
+                        CornerRadius="10"
+                        Background="{StaticResource OrganizeWarningSoftBrush}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind Extension}"
+                            Foreground="{StaticResource OrganizeWarningBrush}"
+                            FontSize="14"
+                            FontWeight="SemiBold" />
+                    </Border>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind FilesText}"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="{x:Bind SamplesText}"
+                        Foreground="{StaticResource BandaMutedBrush}"
+                        FontSize="13"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center" />
+
+                    <Button
+                        Grid.Column="3"
+                        Tag="{x:Bind Extension}"
+                        Content="Asignar"
+                        Click="AssignExtensionButton_Click"
+                        Padding="16,8"
+                        MinWidth="92"
+                        CornerRadius="10"
+                        Background="{StaticResource BandaAccentSoftBrush}"
+                        Foreground="{StaticResource BandaAccentBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PreviewFileTemplate" x:DataType="local:OrganizePreviewFile">
+            <Border
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="0,0,0,1">
+                <Grid Padding="14,11" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.3*" />
+                        <ColumnDefinition Width="1.05*" />
+                        <ColumnDefinition Width="0.75*" />
+                        <ColumnDefinition Width="1.8*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="3">
+                        <TextBlock
+                            Text="{x:Bind FileName}"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Text="{x:Bind ExtensionDisplay}"
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="12" />
+                    </StackPanel>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind CategoryDisplay}"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="{x:Bind SizeDisplay}"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="13"
+                        VerticalAlignment="Center" />
+
+                    <Grid Grid.Column="3" VerticalAlignment="Center">
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="7"
+                            Visibility="{x:Bind ClassifiedVisibility}">
+                            <TextBlock
+                                Text="→"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="14"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="{x:Bind DestinationDisplay}"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="7"
+                            Visibility="{x:Bind UnclassifiedVisibility}">
+                            <TextBlock
+                                Text="!"
+                                Foreground="{StaticResource OrganizeWarningBrush}"
+                                FontSize="13"
+                                FontWeight="Bold" />
+                            <TextBlock
+                                Text="Sin clasificar · No se moverá"
+                                Foreground="{StaticResource OrganizeWarningBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SummaryCategoryTemplate" x:DataType="local:OrganizeCategorySummary">
+            <Grid Padding="0,7" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Text="{x:Bind DisplayName}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
+                    TextTrimming="CharacterEllipsis" />
+
+                <Border
+                    Grid.Column="1"
+                    MinWidth="34"
+                    Padding="8,3"
+                    CornerRadius="10"
+                    Background="{StaticResource BandaAccentFaintBrush}">
+                    <TextBlock
+                        Text="{x:Bind CountText}"
+                        Foreground="{StaticResource BandaAccentBrush}"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Center" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="34,32,34,40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado -->
+        <StackPanel Spacing="5">
+            <TextBlock
+                Text="Organizar"
+                Style="{StaticResource BandaSectionTitleStyle}"
+                FontSize="32" />
+            <TextBlock
+                Text="Analizá los archivos pendientes, resolvé excepciones y confirmá cada destino antes de moverlos."
+                Style="{StaticResource BandaMutedTextStyle}"
+                FontSize="14" />
+        </StackPanel>
+
+        <!-- Estado inicial -->
+        <Grid
+            x:Name="InitialStatePanel"
+            Grid.Row="1">
+            <Border
+                MaxWidth="820"
+                Margin="0,92,0,0"
+                Padding="34"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                CornerRadius="22"
+                Background="{StaticResource BandaAccentCardBrush}"
+                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                BorderThickness="1">
+
+                <Grid ColumnSpacing="28">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Width="76"
+                        Height="76"
+                        CornerRadius="22"
+                        Background="{StaticResource BandaAccentSoftBrush}"
+                        VerticalAlignment="Top">
+                        <TextBlock
+                            Text="↻"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="34"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Spacing="10">
+                        <TextBlock
+                            Text="Todo listo para analizar"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="23"
+                            FontWeight="SemiBold" />
+
+                        <TextBlock
+                            Text="BandaNV revisará los archivos pendientes y te mostrará la categoría y el destino de cada uno. Nada se moverá hasta que lo confirmes."
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="14"
+                            TextWrapping="Wrap"
+                            MaxWidth="640" />
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Margin="0,4,0,0">
+                            <Border
+                                Padding="10,5"
+                                CornerRadius="10"
+                                Background="{StaticResource BandaCardBrush}">
+                                <TextBlock
+                                    Text="Vista previa segura"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12" />
+                            </Border>
+                            <Border
+                                Padding="10,5"
+                                CornerRadius="10"
+                                Background="{StaticResource BandaCardBrush}">
+                                <TextBlock
+                                    Text="Asignación rápida"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12" />
+                            </Border>
+                            <Border
+                                Padding="10,5"
+                                CornerRadius="10"
+                                Background="{StaticResource BandaCardBrush}">
+                                <TextBlock
+                                    Text="Sin movimientos automáticos"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12" />
+                            </Border>
+                        </StackPanel>
+
+                        <Button
+                            x:Name="AnalyzeButton"
+                            Content="Analizar archivos"
+                            Click="AnalyzeButton_Click"
+                            Margin="0,10,0,0"
+                            Padding="20,11"
+                            HorizontalAlignment="Left"
+                            MinWidth="170"
+                            CornerRadius="12"
+                            Background="{StaticResource BandaAccentBrush}"
+                            Foreground="#07110F"
+                            BorderThickness="0"
+                            FontWeight="SemiBold" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Estado de vista previa -->
+        <ScrollViewer
+            x:Name="PreviewStatePanel"
+            Grid.Row="1"
+            Visibility="Collapsed"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14" Padding="0,16,0,0">
+
+                <!-- Métricas -->
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Style="{StaticResource BandaCardStyle}" Padding="18" MinHeight="108">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="ARCHIVOS DETECTADOS" Style="{StaticResource BandaLabelTextStyle}" />
+                            <TextBlock
+                                x:Name="FilesMetricText"
+                                Text="0"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+                            <TextBlock Text="pendientes de revisión" Style="{StaticResource BandaMutedTextStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="18" MinHeight="108">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="CATEGORÍAS" Style="{StaticResource BandaLabelTextStyle}" />
+                            <TextBlock
+                                x:Name="CategoriesMetricText"
+                                Text="0"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+                            <TextBlock Text="con archivos asignados" Style="{StaticResource BandaMutedTextStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="18" MinHeight="108">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="TAMAÑO TOTAL" Style="{StaticResource BandaLabelTextStyle}" />
+                            <TextBlock
+                                x:Name="SizeMetricText"
+                                Text="0 MB"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+                            <TextBlock Text="entre todos los archivos" Style="{StaticResource BandaMutedTextStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Grid.Column="3"
+                        Padding="18"
+                        MinHeight="108"
+                        CornerRadius="18"
+                        Background="{StaticResource OrganizeWarningSoftBrush}"
+                        BorderBrush="{StaticResource OrganizeWarningBrush}"
+                        BorderThickness="1">
+                        <StackPanel Spacing="5">
+                            <TextBlock
+                                Text="SIN CLASIFICAR"
+                                Foreground="{StaticResource OrganizeWarningBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="UnclassifiedMetricText"
+                                Text="0"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="28"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="no se moverán sin asignación"
+                                Foreground="{StaticResource OrganizeWarningBrush}"
+                                FontSize="13" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Extensiones sin asignar -->
+                <Border
+                    x:Name="UnassignedCard"
+                    Padding="18"
+                    CornerRadius="18"
+                    Background="{StaticResource BandaCardBrush}"
+                    BorderBrush="{StaticResource OrganizeWarningBrush}"
+                    BorderThickness="1"
+                    Visibility="Collapsed">
+
+                    <StackPanel Spacing="12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock
+                                    Text="Extensiones sin asignar"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="17"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    Text="Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización."
+                                    Foreground="{StaticResource BandaMutedBrush}"
+                                    FontSize="13"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Border
+                                Grid.Column="1"
+                                Padding="12,6"
+                                CornerRadius="12"
+                                Background="{StaticResource OrganizeWarningSoftBrush}"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    x:Name="UnassignedSummaryText"
+                                    Text="0 extensiones"
+                                    Foreground="{StaticResource OrganizeWarningBrush}"
+                                    FontSize="13"
+                                    FontWeight="SemiBold" />
+                            </Border>
+                        </Grid>
+
+                        <ItemsControl
+                            x:Name="UnassignedExtensionsList"
+                            ItemTemplate="{StaticResource UnassignedExtensionTemplate}"
+                            HorizontalContentAlignment="Stretch" />
+
+                        <Border
+                            x:Name="AssignmentFeedbackBorder"
+                            Padding="12,9"
+                            CornerRadius="10"
+                            Background="{StaticResource BandaAccentFaintBrush}"
+                            Visibility="Collapsed">
+                            <TextBlock
+                                x:Name="AssignmentFeedbackText"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Vista previa + resumen -->
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.35*" />
+                        <ColumnDefinition Width="0.85*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Style="{StaticResource BandaCardStyle}"
+                        Padding="0"
+                        MinHeight="410">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Padding="18,15" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Spacing="3">
+                                    <TextBlock
+                                        Text="Vista previa"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="17"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Revisá qué va a pasar con cada archivo antes de confirmar."
+                                        Style="{StaticResource BandaMutedTextStyle}" />
+                                </StackPanel>
+
+                                <Button
+                                    Grid.Column="1"
+                                    Content="Analizar nuevamente"
+                                    Click="AnalyzeAgainButton_Click"
+                                    Padding="13,7"
+                                    VerticalAlignment="Center"
+                                    CornerRadius="10"
+                                    Background="Transparent"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}" />
+                            </Grid>
+
+                            <Border
+                                Grid.Row="1"
+                                Background="{StaticResource BandaCardAltBrush}"
+                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                BorderThickness="0,1,0,1">
+                                <Grid Padding="14,10" ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2.3*" />
+                                        <ColumnDefinition Width="1.05*" />
+                                        <ColumnDefinition Width="0.75*" />
+                                        <ColumnDefinition Width="1.8*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="ARCHIVO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Grid.Column="3" Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" />
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer
+                                Grid.Row="2"
+                                MaxHeight="420"
+                                VerticalScrollBarVisibility="Auto">
+                                <ItemsControl
+                                    x:Name="PreviewFilesList"
+                                    ItemTemplate="{StaticResource PreviewFileTemplate}"
+                                    HorizontalContentAlignment="Stretch" />
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
+                    <Border
+                        Grid.Column="1"
+                        Style="{StaticResource BandaCardStyle}"
+                        Padding="18">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock
+                                    Text="Resumen"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="17"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    Text="Distribución por categoría"
+                                    Style="{StaticResource BandaMutedTextStyle}" />
+                            </StackPanel>
+
+                            <ScrollViewer
+                                Grid.Row="1"
+                                Margin="0,12,0,12"
+                                MaxHeight="300"
+                                VerticalScrollBarVisibility="Auto">
+                                <ItemsControl
+                                    x:Name="SummaryCategoriesList"
+                                    ItemTemplate="{StaticResource SummaryCategoryTemplate}" />
+                            </ScrollViewer>
+
+                            <StackPanel Grid.Row="2" Spacing="10">
+                                <Border
+                                    Height="1"
+                                    Background="{StaticResource BandaBorderBrush}" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Se moverán" Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock
+                                        x:Name="SummaryMoveCountText"
+                                        Grid.Column="1"
+                                        Text="0"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Quedarán sin mover" Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock
+                                        x:Name="SummaryUnclassifiedCountText"
+                                        Grid.Column="1"
+                                        Text="0"
+                                        Foreground="{StaticResource OrganizeWarningBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+                                </Grid>
+
+                                <StackPanel Spacing="3" Margin="0,4,0,0">
+                                    <TextBlock Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock
+                                        Text="...\ORGANIZADO"
+                                        Foreground="{StaticResource BandaAccentBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Barra final de acciones -->
+                <Border
+                    Padding="16"
+                    CornerRadius="18"
+                    Background="{StaticResource BandaCardBrush}"
+                    BorderBrush="{StaticResource BandaBorderBrush}"
+                    BorderThickness="1">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock
+                                Text="Todo queda bajo tu control"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="FooterStatusText"
+                                Text="Revisá la vista previa antes de continuar."
+                                Style="{StaticResource BandaMutedTextStyle}" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Cancelar"
+                            Click="CancelPreviewButton_Click"
+                            Padding="18,10"
+                            MinWidth="100"
+                            CornerRadius="12"
+                            Background="Transparent"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1"
+                            Foreground="{StaticResource BandaMutedStrongBrush}" />
+
+                        <Button
+                            x:Name="OrganizeButton"
+                            Grid.Column="2"
+                            Content="Organizar archivos"
+                            Click="OrganizeButton_Click"
+                            Padding="20,10"
+                            MinWidth="190"
+                            CornerRadius="12"
+                            Background="{StaticResource BandaAccentBrush}"
+                            Foreground="#07110F"
+                            BorderThickness="0"
+                            FontWeight="SemiBold" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Estado de progreso -->
+        <Grid
+            x:Name="ProgressStatePanel"
+            Grid.Row="1"
+            Visibility="Collapsed">
+            <Border
+                MaxWidth="760"
+                Margin="0,100,0,0"
+                Padding="34"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Style="{StaticResource BandaCardStyle}">
+                <StackPanel Spacing="14">
+                    <TextBlock
+                        Text="Organizando archivos..."
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="23"
+                        FontWeight="SemiBold" />
+                    <TextBlock
+                        x:Name="ProgressStatusText"
+                        Text="Preparando movimientos"
+                        Style="{StaticResource BandaMutedTextStyle}"
+                        FontSize="14" />
+                    <ProgressBar
+                        x:Name="OrganizationProgressBar"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="0"
+                        Height="6" />
+                    <TextBlock
+                        x:Name="ProgressCountText"
+                        Text="0 de 0 archivos"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="13" />
+                    <TextBlock
+                        Text="Esta pantalla es la maqueta visual del flujo. El movimiento real se conectará al motor de BandaNV en la integración final."
+                        Foreground="{StaticResource BandaMutedBrush}"
+                        FontSize="12"
+                        TextWrapping="Wrap"
+                        Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
-        </StackPanel>
+        </Grid>
+
+        <!-- Estado final -->
+        <Grid
+            x:Name="CompletionStatePanel"
+            Grid.Row="1"
+            Visibility="Collapsed">
+            <Border
+                MaxWidth="760"
+                Margin="0,92,0,0"
+                Padding="34"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                CornerRadius="22"
+                Background="{StaticResource BandaAccentCardBrush}"
+                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <Border
+                        Width="62"
+                        Height="62"
+                        CornerRadius="20"
+                        Background="{StaticResource OrganizeSuccessSoftBrush}"
+                        HorizontalAlignment="Left">
+                        <TextBlock
+                            Text="✓"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="28"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Border>
+
+                    <TextBlock
+                        Text="Organización completada"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="23"
+                        FontWeight="SemiBold" />
+
+                    <TextBlock
+                        x:Name="CompletionText"
+                        Text="Los archivos fueron organizados correctamente."
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="14"
+                        TextWrapping="Wrap" />
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="10"
+                        Margin="0,8,0,0">
+                        <Button
+                            Content="Nueva organización"
+                            Click="NewOrganizationButton_Click"
+                            Padding="18,10"
+                            CornerRadius="12"
+                            Background="{StaticResource BandaAccentBrush}"
+                            Foreground="#07110F"
+                            BorderThickness="0"
+                            FontWeight="SemiBold" />
+                        <Button
+                            Content="Revisar otra vez"
+                            Click="AnalyzeAgainButton_Click"
+                            Padding="18,10"
+                            CornerRadius="12"
+                            Background="Transparent"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1"
+                            Foreground="{StaticResource BandaMutedStrongBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Page>
