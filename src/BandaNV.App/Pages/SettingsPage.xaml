@@ -298,7 +298,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="StartupPageFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="190" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Inicio" Content="Inicio" Click="StartupPageOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -333,7 +333,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="CloseBehaviorFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="220" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Cerrar BandaNV" Content="Cerrar BandaNV" Click="CloseBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -354,7 +354,7 @@
                                             <TextBlock Text="Iniciar con Windows" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Abrir BandaNV al iniciar sesión." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="StartWithWindowsToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -366,7 +366,7 @@
                                             <TextBlock Text="Buscar actualizaciones automáticamente" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Comprobar nuevas versiones al iniciar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="AutoUpdateToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -416,7 +416,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="ThemeFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="200" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Oscuro" Content="Oscuro" Click="ThemeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -448,7 +448,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="DensityFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="200" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Cómoda" Content="Cómoda" Click="DensityOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -469,7 +469,7 @@
                                             <TextBlock Text="Animaciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Transiciones y movimientos sutiles." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="AnimationsToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -563,7 +563,7 @@
                                             <TextBlock Text="Mostrar vista previa antes de organizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Revisar destinos y excepciones antes de mover." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="PreviewBeforeOrganizeToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -575,7 +575,7 @@
                                             <TextBlock Text="Incluir subcarpetas al analizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Buscar archivos también dentro de subdirectorios." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="IncludeSubfoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -587,7 +587,7 @@
                                             <TextBlock Text="Crear carpetas faltantes" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Crear automáticamente la carpeta de cada categoría." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="CreateFoldersToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -599,7 +599,7 @@
                                             <TextBlock Text="Eliminar carpetas vacías" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Limpiar directorios que queden vacíos después de mover." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="DeleteEmptyFoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -623,7 +623,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="ConflictBehaviorFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="260" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Preguntar" Content="Preguntar" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -649,7 +649,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="UnknownExtensionBehaviorFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="280" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Preguntar en la vista previa" Content="Preguntar en la vista previa" Click="UnknownExtensionBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -712,7 +712,7 @@
                                             <TextBlock Text="Permitir Undo" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Conservar información para revertir organizaciones." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="UndoToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -724,7 +724,7 @@
                                             <TextBlock Text="Usar Papelera al eliminar archivos" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Evitar eliminación permanente siempre que sea posible." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="RecycleBinToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -736,7 +736,7 @@
                                             <TextBlock Text="Confirmar acciones destructivas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Pedir confirmación antes de borrar o reemplazar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="ConfirmDestructiveToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -757,7 +757,7 @@
                                             <TextBlock Text="Guardar historial de ejecuciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Registrar organizaciones y Undo." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="SaveHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <StackPanel Spacing="7">
@@ -772,7 +772,7 @@
                                                 <TextBlock Grid.Column="1" Text="⌄" Foreground="{StaticResource BandaAccentBrush}" />
                                             </Grid>
                                             <Button.Flyout>
-                                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Flyout x:Name="HistoryRetentionFlyout" Placement="BottomEdgeAlignedLeft" FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                     <Border Width="220" Padding="8" CornerRadius="16" Background="{StaticResource BandaPopupSurfaceBrush}" BorderBrush="{StaticResource BandaBorderStrongBrush}" BorderThickness="1">
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="30 días" Content="30 días" Click="HistoryRetentionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
