@@ -298,7 +298,7 @@ public sealed partial class SearchPage : Page
 
         if (parsedFilter == SearchDateFilter.SpecificDate)
         {
-            var selectedDate = _pendingSpecificDateFilter ?? DateTime.Today;
+            var selectedDate = DateTime.Today;
             _pendingSpecificDateFilter = selectedDate.Date;
             SpecificDateWheelPanel.Visibility = Visibility.Visible;
             SetSpecificDateWheel(selectedDate);
@@ -611,7 +611,7 @@ public sealed partial class SearchPage : Page
         DateTime? specificDate = null) =>
         filter switch
         {
-            SearchDateFilter.Last24Hours => "Últimas 24 horas",
+            SearchDateFilter.Today => "Hoy",
             SearchDateFilter.Last7Days => "Últimos 7 días",
             SearchDateFilter.Last30Days => "Últimos 30 días",
             SearchDateFilter.SpecificDate when specificDate.HasValue =>
@@ -714,8 +714,10 @@ public sealed partial class SearchPage : Page
 
         query = _dateFilter switch
         {
-            SearchDateFilter.Last24Hours =>
-                query.Where(file => file.ModifiedAt >= now.AddHours(-24)),
+            SearchDateFilter.Today =>
+                query.Where(file =>
+                    file.ModifiedAt >= now.Date &&
+                    file.ModifiedAt < now.Date.AddDays(1)),
             SearchDateFilter.Last7Days =>
                 query.Where(file => file.ModifiedAt >= now.AddDays(-7)),
             SearchDateFilter.Last30Days =>
@@ -887,8 +889,8 @@ public sealed partial class SearchPage : Page
 
         switch (_dateFilter)
         {
-            case SearchDateFilter.Last24Hours:
-                descriptions.Add("últimas 24 h");
+            case SearchDateFilter.Today:
+                descriptions.Add("hoy");
                 break;
             case SearchDateFilter.Last7Days:
                 descriptions.Add("últimos 7 días");
@@ -1045,7 +1047,7 @@ public sealed partial class SearchPage : Page
 public enum SearchDateFilter
 {
     All,
-    Last24Hours,
+    Today,
     Last7Days,
     Last30Days,
     SpecificDate
