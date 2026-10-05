@@ -7,6 +7,7 @@ try {
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appProject = Join-Path $root 'src\BandaNV.App\BandaNV.App.csproj'
+$updaterProject = Join-Path $root 'src\BandaNV.Updater\BandaNV.Updater.csproj'
 
 try {
     Write-Host ''
@@ -21,10 +22,17 @@ try {
         throw "No se encontró el proyecto: $appProject"
     }
 
-    $running = @(Get-Process -Name 'BandaNV.App' -ErrorAction SilentlyContinue)
+    $running = @(
+        Get-Process -Name 'BandaNV' -ErrorAction SilentlyContinue
+        Get-Process -Name 'BandaNV.App' -ErrorAction SilentlyContinue
+    )
     if($running.Count -gt 0) {
         $ids = ($running | ForEach-Object { $_.Id }) -join ', '
-        throw "BandaNV v2.0 está abierto (PID: $ids). Cerralo antes de compilar para que Windows pueda reemplazar BandaNV.App.exe."
+        throw "BandaNV v2.0 está abierto (PID: $ids). Cerralo antes de compilar para que Windows pueda reemplazar sus binarios."
+    }
+
+    if(-not (Test-Path -LiteralPath $updaterProject -PathType Leaf)) {
+        throw "No se encontró el proyecto del updater: $updaterProject"
     }
 
     Push-Location $root
@@ -33,10 +41,16 @@ try {
         # BandaNV.Core se compila automáticamente por ProjectReference.
         # Esto evita forzar una configuración Debug|x64 inexistente a nivel solución.
         dotnet restore $appProject
-        if($LASTEXITCODE -ne 0){ throw 'dotnet restore falló.' }
+        if($LASTEXITCODE -ne 0){ throw 'dotnet restore de BandaNV falló.' }
+
+        dotnet restore $updaterProject
+        if($LASTEXITCODE -ne 0){ throw 'dotnet restore de NVupdate falló.' }
 
         dotnet build $appProject -c Debug --no-restore
-        if($LASTEXITCODE -ne 0){ throw 'dotnet build falló.' }
+        if($LASTEXITCODE -ne 0){ throw 'dotnet build de BandaNV falló.' }
+
+        dotnet build $updaterProject -c Debug --no-restore
+        if($LASTEXITCODE -ne 0){ throw 'dotnet build de NVupdate falló.' }
     }
     finally {
         Pop-Location
