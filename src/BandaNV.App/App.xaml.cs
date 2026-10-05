@@ -36,6 +36,17 @@ public partial class App : Application
 
         try
         {
+            WindowsStartupService.Apply(
+                Settings.Current.StartWithWindows);
+        }
+        catch
+        {
+            // El inicio automático es integración secundaria con Windows.
+            // Si el registro no está disponible, BandaNV abre normalmente.
+        }
+
+        try
+        {
             LastStartupRecovery =
                 await Recovery.RecoverAsync();
         }
