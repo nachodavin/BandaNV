@@ -514,33 +514,20 @@
                                                     Padding="12,10"
                                                     Margin="0,0,12,7"
                                                     CornerRadius="10"
-                                                    Background="{StaticResource BandaNavIconBrush}"
-                                                    Opacity="{x:Bind RowOpacity}">
+                                                    Background="{StaticResource BandaNavIconBrush}">
 
                                                     <Grid ColumnSpacing="10">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="Auto" />
-                                                            <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
 
                                                         <StackPanel Spacing="3">
-                                                            <Grid>
-                                                                <TextBlock
-                                                                    Text="{x:Bind Name}"
-                                                                    Foreground="{StaticResource BandaTextBrush}"
-                                                                    FontSize="14"
-                                                                    TextTrimming="CharacterEllipsis"
-                                                                    Visibility="{x:Bind NormalNameVisibility}" />
-
-                                                                <TextBlock
-                                                                    Text="{x:Bind Name}"
-                                                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                                    FontSize="14"
-                                                                    TextDecorations="Strikethrough"
-                                                                    TextTrimming="CharacterEllipsis"
-                                                                    Visibility="{x:Bind DeletedNameVisibility}" />
-                                                            </Grid>
+                                                            <TextBlock
+                                                                Text="{x:Bind Name}"
+                                                                Foreground="{StaticResource BandaTextBrush}"
+                                                                FontSize="14"
+                                                                TextTrimming="CharacterEllipsis" />
 
                                                             <StackPanel
                                                                 Orientation="Horizontal"
@@ -570,43 +557,6 @@
                                                             FontSize="13"
                                                             Margin="0,0,10,0"
                                                             VerticalAlignment="Center" />
-
-                                                        <Grid
-                                                            Grid.Column="2"
-                                                            MinWidth="72">
-
-                                                            <Button
-                                                                Tag="{x:Bind Name}"
-                                                                Click="DeleteFilePreviewButton_Click"
-                                                                Width="28"
-                                                                Height="28"
-                                                                Padding="0"
-                                                                CornerRadius="8"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center"
-                                                                Background="Transparent"
-                                                                BorderThickness="0"
-                                                                Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                                Visibility="{x:Bind DeleteVisibility}"
-                                                                IsEnabled="{x:Bind CanDelete}"
-                                                                ToolTipService.ToolTip="Eliminar archivo">
-                                                                <SymbolIcon Symbol="Delete" />
-                                                            </Button>
-
-                                                            <Border
-                                                                Padding="8,4"
-                                                                CornerRadius="9"
-                                                                Background="{StaticResource BandaNavIconBrush}"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center"
-                                                                Visibility="{x:Bind DeletedStatusVisibility}">
-                                                                <TextBlock
-                                                                    Text="ELIMINADO"
-                                                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                                    FontSize="13"
-                                                                    FontWeight="SemiBold" />
-                                                            </Border>
-                                                        </Grid>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
