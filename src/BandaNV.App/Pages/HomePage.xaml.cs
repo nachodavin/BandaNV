@@ -145,6 +145,9 @@ public sealed partial class HomePage : Page
                 result.UnclassifiedCount.ToString(
                     CultureInfo.CurrentCulture);
 
+            UpdateUnassignedCardState(
+                result.UnclassifiedCount);
+
             HomePendingDetailText.Text =
                 result.Files.Count == 0
                     ? "No hay archivos pendientes"
@@ -163,6 +166,7 @@ public sealed partial class HomePage : Page
         {
             HomePendingFilesText.Text = "—";
             HomeUnassignedFilesText.Text = "—";
+            UpdateUnassignedCardState(0);
             HomePendingDetailText.Text =
                 "La carpeta de origen no está disponible";
             HomeUnassignedDetailText.Text =
@@ -172,11 +176,60 @@ public sealed partial class HomePage : Page
         {
             HomePendingFilesText.Text = "—";
             HomeUnassignedFilesText.Text = "—";
+            UpdateUnassignedCardState(0);
             HomePendingDetailText.Text =
                 "No se pudo analizar el origen";
             HomeUnassignedDetailText.Text =
                 "No se pudo analizar el origen";
         }
+    }
+
+    private void UpdateUnassignedCardState(
+        int unassignedCount)
+    {
+        var hasUnassigned = unassignedCount > 0;
+
+        HomeUnassignedCard.Background =
+            (Brush)Application.Current.Resources[
+                hasUnassigned
+                    ? "BandaCardBrush"
+                    : "BandaCardBrush"];
+
+        HomeUnassignedCard.BorderBrush =
+            hasUnassigned
+                ? (Brush)Resources["HomeWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaBorderBrush"];
+
+        HomeUnassignedCard.Background =
+            hasUnassigned
+                ? (Brush)Resources["HomeWarningSoftBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaCardBrush"];
+
+        HomeUnassignedTitleText.Foreground =
+            hasUnassigned
+                ? (Brush)Resources["HomeWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaMutedStrongBrush"];
+
+        HomeUnassignedDetailText.Foreground =
+            hasUnassigned
+                ? (Brush)Resources["HomeWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaMutedBrush"];
+
+        HomeUnassignedIconBorder.Background =
+            hasUnassigned
+                ? (Brush)Resources["HomeWarningSoftBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaNavIconBrush"];
+
+        HomeUnassignedIconText.Foreground =
+            hasUnassigned
+                ? (Brush)Resources["HomeWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaAccentBrush"];
     }
 
     private void UpdateLastOrganization(
