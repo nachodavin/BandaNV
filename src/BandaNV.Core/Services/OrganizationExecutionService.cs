@@ -189,6 +189,12 @@ public sealed class OrganizationExecutionService
                         destinationRoot);
             }
 
+            if (!settings.UndoEnabled)
+            {
+                ReleaseReplacementBackups(
+                    record);
+            }
+
             record.FinishedAt = DateTime.Now;
             record.Status = record.Items.Any(item =>
                     item.Status is OrganizationExecutionItemStatus.Error or
@@ -537,6 +543,88 @@ public sealed class OrganizationExecutionService
     private sealed record TargetResolution(
         string? Target,
         OrganizationConflictAction? Action);
+
+    private static void ReleaseReplacementBackups(
+        OrganizationExecutionRecord record)
+    {
+        var backupRoot = Path.Combine(
+            PortablePaths.HistoryDirectory,
+            "replaced",
+            record.ExecutionId);
+
+        foreach (var item in record.Items)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    item.ReplacedBackupPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var backupPath =
+                    Path.GetFullPath(
+                        item.ReplacedBackupPath);
+                var normalizedRoot =
+                    Path.GetFullPath(
+                        backupRoot)
+                    .TrimEnd(
+                        Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar);
+
+                var isInsideRoot =
+                    backupPath.StartsWith(
+                        normalizedRoot +
+                        Path.DirectorySeparatorChar,
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (!isInsideRoot)
+                {
+                    continue;
+                }
+
+                if (!File.Exists(backupPath) ||
+                    TryDeleteAndConfirm(backupPath))
+                {
+                    item.ReplacedBackupPath = null;
+                    item.ReplacedSizeBytes = null;
+                    item.ReplacedModifiedUtcTicks = null;
+                }
+            }
+            catch
+            {
+                // Si la limpieza falla, se conserva la referencia para que el
+                // mantenimiento posterior pueda volver a intentarlo.
+            }
+        }
+
+        try
+        {
+            if (Directory.Exists(backupRoot) &&
+                !Directory.EnumerateFileSystemEntries(
+                    backupRoot).Any())
+            {
+                Directory.Delete(backupRoot);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static bool TryDeleteAndConfirm(
+        string path)
+    {
+        try
+        {
+            File.Delete(path);
+            return !File.Exists(path);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static string GetUniqueDestination(string desiredTarget)
     {
