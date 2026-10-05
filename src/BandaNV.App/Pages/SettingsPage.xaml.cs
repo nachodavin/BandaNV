@@ -191,11 +191,13 @@ public sealed partial class SettingsPage : Page
 
         ThemeValueText.Text = value;
         ThemeFlyout.Hide();
+
+        ApplyCurrentAppearance();
         UpdateAppearancePreview();
         QueuePersistSettings();
 
         ShowSettingsFeedback(
-            $"Tema seleccionado: {value}. El cambio global de tema se conectará en la siguiente etapa de Apariencia.");
+            $"Tema seleccionado: {value}.");
     }
 
     private void PrimaryColorPicker_ColorChanged(
@@ -299,6 +301,22 @@ public sealed partial class SettingsPage : Page
 
         color = Windows.UI.Color.FromArgb(255, r, g, b);
         return true;
+    }
+
+    private void ApplyCurrentAppearance()
+    {
+        AppearanceService.ApplyTheme(
+            ThemeValueText.Text,
+            PrimaryColorPicker.Color,
+            SecondaryColorPicker.Color);
+
+        AppearanceService.UpdateActionButtonResources(
+            CheckUpdatesButton,
+            SecondaryColorPicker.Color);
+
+        global::BandaNV.App.App.MainWindowInstance?
+            .ApplyThemeSetting(
+                ThemeValueText.Text);
     }
 
     private void UpdateAppearancePreview()
@@ -617,7 +635,8 @@ public sealed partial class SettingsPage : Page
             Theme = ThemeValueText.Text,
             PrimaryColor = PrimaryColorHexText.Text,
             SecondaryColor = SecondaryColorHexText.Text,
-            Animations = AnimationsToggle.IsOn,
+            Animations =
+                global::BandaNV.App.App.Settings.Current.Animations,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
@@ -652,7 +671,6 @@ public sealed partial class SettingsPage : Page
 
         StartWithWindowsToggle.IsOn = backup.StartWithWindows;
         AutoUpdateToggle.IsOn = backup.AutoUpdate;
-        AnimationsToggle.IsOn = backup.Animations;
         PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
         IncludeSubfoldersToggle.IsOn = backup.IncludeSubfolders;
         CreateFoldersToggle.IsOn = backup.CreateFolders;
@@ -704,8 +722,33 @@ public sealed partial class SettingsPage : Page
 
         _isPageReady = true;
 
-        ApplyPrimaryColor(primaryColor);
-        ApplySecondaryColor(secondaryColor);
+        ApplyCurrentAppearance();
+
+        try
+        {
+            WindowsStartupService.Apply(
+                StartWithWindowsToggle.IsOn);
+        }
+        catch
+        {
+            var wasReady =
+                _isPageReady;
+
+            _isPageReady =
+                false;
+
+            StartWithWindowsToggle.IsOn =
+                global::BandaNV.App.App.Settings.Current
+                    .StartWithWindows;
+
+            _isPageReady =
+                wasReady;
+        }
+
+        global::BandaNV.App.App.MainWindowInstance?
+            .SyncUpdateStartupNoticeToggle(
+                AutoUpdateToggle.IsOn);
+
         UpdateAppearancePreview();
         SetSettingsSection(_currentSection);
     }
@@ -943,8 +986,6 @@ public sealed partial class SettingsPage : Page
         PrimaryColorHexText.Text = ToHex(primary);
         SecondaryColorPicker.Color = secondary;
         SecondaryColorHexText.Text = ToHex(secondary);
-        AnimationsToggle.IsOn = true;
-
         PreviewBeforeOrganizeToggle.IsOn = true;
         IncludeSubfoldersToggle.IsOn = false;
         CreateFoldersToggle.IsOn = true;
@@ -962,8 +1003,21 @@ public sealed partial class SettingsPage : Page
 
         _isPageReady = true;
 
-        ApplyPrimaryColor(primary);
-        ApplySecondaryColor(secondary);
+        ApplyCurrentAppearance();
+
+        try
+        {
+            WindowsStartupService.Apply(
+                enabled: false);
+        }
+        catch
+        {
+        }
+
+        global::BandaNV.App.App.MainWindowInstance?
+            .SyncUpdateStartupNoticeToggle(
+                enabled: true);
+
         UpdateAppearancePreview();
         QueuePersistSettings();
     }
@@ -979,8 +1033,6 @@ public sealed partial class SettingsPage : Page
         AutoUpdateToggle.IsOn = settings.AutoUpdate;
 
         ThemeValueText.Text = settings.Theme;
-        AnimationsToggle.IsOn = settings.Animations;
-
         PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
         IncludeSubfoldersToggle.IsOn = settings.IncludeSubfolders;
         CreateFoldersToggle.IsOn = settings.CreateFolders;
@@ -1032,7 +1084,8 @@ public sealed partial class SettingsPage : Page
             Theme = ThemeValueText.Text,
             PrimaryColor = PrimaryColorHexText.Text,
             SecondaryColor = SecondaryColorHexText.Text,
-            Animations = AnimationsToggle.IsOn,
+            Animations =
+                global::BandaNV.App.App.Settings.Current.Animations,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
