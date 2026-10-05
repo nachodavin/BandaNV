@@ -23,12 +23,38 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         Title = "BandaNV";
-        _selectedNavigationButton = HomeButton;
-        ContentFrame.Navigate(typeof(HomePage));
+        ApplyStartupPage();
 
         Activated += MainWindow_Activated;
         ContentFrame.Loaded += ContentFrame_Loaded;
         ContentFrame.SizeChanged += ContentFrame_SizeChanged;
+    }
+
+    private void ApplyStartupPage()
+    {
+        var startupPage =
+            App.Settings.Current.StartupPage?
+                .Trim();
+
+        var (pageType, button) =
+            startupPage?.ToLowerInvariant() switch
+            {
+                "organizar" =>
+                    (typeof(OrganizePage), OrganizeButton),
+                "buscar" =>
+                    (typeof(SearchPage), SearchButton),
+                _ =>
+                    (typeof(HomePage), HomeButton)
+            };
+
+        _selectedNavigationButton =
+            button;
+
+        ContentFrame.Navigate(
+            pageType);
+
+        SetSelectedNavigationButton(
+            button);
     }
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
