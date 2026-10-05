@@ -18,7 +18,6 @@ public sealed class AppSettings
     public string Theme { get; set; } = "Oscuro";
     public string PrimaryColor { get; set; } = "#123A34";
     public string SecondaryColor { get; set; } = "#4FE0C6";
-    public bool Animations { get; set; } = true;
 
     public bool PreviewBeforeOrganize { get; set; } = true;
     public bool IncludeSubfolders { get; set; }
