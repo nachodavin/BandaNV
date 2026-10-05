@@ -345,12 +345,27 @@ public sealed class OrganizationExecutionService
             if (File.Exists(target) &&
                 targetResolution.Action == OrganizationConflictAction.Replace)
             {
+                var replacedInfo = new FileInfo(target);
+
+                item.ReplacedSizeBytes = replacedInfo.Length;
+                item.ReplacedModifiedUtcTicks =
+                    replacedInfo.LastWriteTimeUtc.Ticks;
+
                 replacedBackupPath = BackupReplacedFile(
                     target,
                     executionId,
                     item.UndoId);
 
                 item.ReplacedBackupPath = replacedBackupPath;
+
+                // La copia protegida ya existe físicamente. Persistimos esa
+                // evidencia antes de mover el archivo nuevo para que un cierre
+                // abrupto pueda reconciliar el estado sin inferencias.
+                await PersistRecordAsync(
+                    record,
+                    historyPath,
+                    logPath,
+                    cancellationToken);
             }
 
             MoveFileSafely(
@@ -740,6 +755,25 @@ public sealed class OrganizationExecutionService
         builder.AppendLine($"Origen: {record.SourceFolder}");
         builder.AppendLine($"Destino: {record.DestinationFolder}");
         builder.AppendLine($"Conflictos: {record.ConflictBehavior}");
+
+        if (!string.IsNullOrWhiteSpace(record.RelatedExecutionId))
+        {
+            builder.AppendLine(
+                $"Ejecución relacionada: {record.RelatedExecutionId}");
+        }
+
+        if (record.RecoveredAt is { } recoveredAt)
+        {
+            builder.AppendLine(
+                $"Recuperado: {recoveredAt:dd/MM/yyyy HH:mm:ss}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(record.RecoveryMessage))
+        {
+            builder.AppendLine(
+                $"Recuperación: {record.RecoveryMessage}");
+        }
+
         builder.AppendLine();
         builder.AppendLine("--------------------------------------------------");
         builder.AppendLine();
@@ -815,6 +849,7 @@ public sealed class OrganizationExecutionService
             OrganizationExecutionItemStatus.SkippedUnclassified => "SIN_CATEGORIA",
             OrganizationExecutionItemStatus.SkippedConflict => "OMITIDO",
             OrganizationExecutionItemStatus.ConflictNeedsDecision => "CONFLICTO",
+            OrganizationExecutionItemStatus.Interrupted => "INTERRUMPIDO",
             OrganizationExecutionItemStatus.SourceMissing => "NO_ENCONTRADO",
             OrganizationExecutionItemStatus.SourceChanged => "MODIFICADO",
             OrganizationExecutionItemStatus.Error => "ERROR",
@@ -829,6 +864,7 @@ public sealed class OrganizationExecutionService
             OrganizationExecutionItemStatus.Moved => "Movido",
             OrganizationExecutionItemStatus.SkippedConflict => "Omitido por conflicto",
             OrganizationExecutionItemStatus.ConflictNeedsDecision => "Conflicto pendiente",
+            OrganizationExecutionItemStatus.Interrupted => "Interrumpido",
             OrganizationExecutionItemStatus.SourceMissing => "Ya no existe",
             OrganizationExecutionItemStatus.SourceChanged => "Cambió desde el análisis",
             OrganizationExecutionItemStatus.Error => "Error",
