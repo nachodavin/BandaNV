@@ -13,6 +13,9 @@ public enum OrganizationExecutionItemStatus
     Planned,
     Moving,
     Moved,
+    Renamed,
+    Deleted,
+    CompletedAction,
     SkippedUnclassified,
     SkippedConflict,
     ConflictNeedsDecision,
@@ -36,6 +39,7 @@ public sealed class OrganizationExecutionRecord
     public string Format { get; set; } = "BandaNV.Execution.v2";
     public string ExecutionId { get; set; } = Guid.NewGuid().ToString("N");
     public string Type { get; set; } = "ORGANIZE";
+    public string? Action { get; set; }
     public OrganizationExecutionStatus Status { get; set; } =
         OrganizationExecutionStatus.Running;
 
@@ -55,9 +59,19 @@ public sealed class OrganizationExecutionRecord
     public int MovedCount =>
         Items.Count(item => item.Status == OrganizationExecutionItemStatus.Moved);
 
+    public int SuccessfulCount =>
+        Items.Count(item =>
+            item.Status is OrganizationExecutionItemStatus.Moved or
+                OrganizationExecutionItemStatus.Renamed or
+                OrganizationExecutionItemStatus.Deleted or
+                OrganizationExecutionItemStatus.CompletedAction);
+
     public int IssueCount =>
         Items.Count(item =>
             item.Status is not OrganizationExecutionItemStatus.Moved and
+            not OrganizationExecutionItemStatus.Renamed and
+            not OrganizationExecutionItemStatus.Deleted and
+            not OrganizationExecutionItemStatus.CompletedAction and
             not OrganizationExecutionItemStatus.SkippedUnclassified);
 }
 
