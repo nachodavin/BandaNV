@@ -1,4 +1,5 @@
 using BandaNV.App.Pages;
+using BandaNV.App.Services;
 using BandaNV.Core.Models;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -10,6 +11,7 @@ namespace BandaNV.App;
 public sealed partial class MainWindow : Window
 {
     private AppWindow? _appWindow;
+    private TrayIconService? _trayIconService;
     private Button? _selectedNavigationButton;
     private bool _xamlRootChangedHooked;
     private bool _layoutRefreshQueued;
@@ -71,8 +73,10 @@ public sealed partial class MainWindow : Window
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
             _appWindow = AppWindow.GetFromWindowId(windowId);
             _appWindow.Changed += AppWindow_Changed;
+            _appWindow.Closing += AppWindow_Closing;
             ConfigureTitleBar();
             ConfigureWindowIcon();
+            ConfigureTrayIcon(hwnd);
 
             if (_appWindow.Presenter is OverlappedPresenter presenter)
             {
@@ -85,6 +89,79 @@ public sealed partial class MainWindow : Window
         }
     }
 
+
+    private void ConfigureTrayIcon(
+        nint windowHandle)
+    {
+        if (_trayIconService is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            var iconPath =
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "assets",
+                    "BandaNV.ico");
+
+            _trayIconService =
+                new TrayIconService(
+                    windowHandle,
+                    iconPath);
+
+            _trayIconService.RestoreRequested +=
+                TrayIcon_RestoreRequested;
+        }
+        catch
+        {
+            _trayIconService =
+                null;
+        }
+    }
+
+    private void AppWindow_Closing(
+        AppWindow sender,
+        AppWindowClosingEventArgs args)
+    {
+        if (!App.Settings.Current.CloseBehavior.Equals(
+                "Minimizar a bandeja",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (_trayIconService?.Show() != true)
+        {
+            return;
+        }
+
+        args.Cancel =
+            true;
+
+        sender.Hide();
+    }
+
+    private void TrayIcon_RestoreRequested(
+        object? sender,
+        EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(
+            () =>
+            {
+                _trayIconService?.Hide();
+
+                try
+                {
+                    _appWindow?.Show();
+                    Activate();
+                }
+                catch
+                {
+                }
+            });
+    }
 
     private void ContentFrame_SizeChanged(object sender, SizeChangedEventArgs e)
     {
