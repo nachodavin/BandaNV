@@ -50,6 +50,13 @@ public sealed partial class HistoryPage : Page
             var records =
                 await global::BandaNV.App.App.History.LoadAsync();
 
+            var categoryColors =
+                global::BandaNV.App.App.Categories.GetAll()
+                    .ToDictionary(
+                        category => category.Id,
+                        category => category.ColorHex,
+                        StringComparer.OrdinalIgnoreCase);
+
             foreach (var record in records)
             {
                 var movedItems = record.Items
@@ -80,7 +87,13 @@ public sealed partial class HistoryPage : Page
                     .Select(item => new HistoryFilePreview(
                         item.FileName,
                         item.CategoryName ?? "Sin categoría",
-                        FormatHistoryBytes(item.SizeBytes)))
+                        FormatHistoryBytes(item.SizeBytes),
+                        item.CategoryId is not null &&
+                        categoryColors.TryGetValue(
+                            item.CategoryId,
+                            out var colorHex)
+                            ? colorHex
+                            : string.Empty))
                     .ToList();
 
                 _allPreviewExecutions.Add(new HistoryExecutionPreview
@@ -1147,16 +1160,43 @@ public sealed class HistoryFilePreview
     {
     }
 
-    public HistoryFilePreview(string name, string category, string sizeText)
+    public HistoryFilePreview(
+        string name,
+        string category,
+        string sizeText,
+        string colorHex)
     {
         Name = name;
         Category = category;
         SizeText = sizeText;
+        ColorHex = colorHex;
     }
 
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
+    public string ColorHex { get; set; } = string.Empty;
+
+    public Brush CategoryBrush
+    {
+        get
+        {
+            if (!CategoryColorPalette.TryNormalizeHex(
+                    ColorHex,
+                    out var normalized))
+            {
+                return (Brush)Application.Current.Resources[
+                    "BandaAccentBrush"];
+            }
+
+            return new SolidColorBrush(
+                Windows.UI.Color.FromArgb(
+                    255,
+                    Convert.ToByte(normalized.Substring(1, 2), 16),
+                    Convert.ToByte(normalized.Substring(3, 2), 16),
+                    Convert.ToByte(normalized.Substring(5, 2), 16)));
+        }
+    }
     public bool IsDeleted { get; set; }
     public bool CanDelete { get; set; }
     public double RowOpacity { get; set; } = 1.0;
