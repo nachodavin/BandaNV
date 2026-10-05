@@ -67,6 +67,8 @@ public partial class App : Application
             // Si falla el handshake, NVupdate hará rollback automáticamente.
         }
 
+        _ = Updates.CleanupStaleRunnerDirectoriesAsync();
+
         if (Settings.Current.AutoUpdate)
         {
             _ = CheckForUpdatesOnStartupAsync();
