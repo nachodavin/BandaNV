@@ -735,6 +735,9 @@ public sealed partial class HistoryPage : Page
         {
             HistoryTypeFilter.Organize => "Organizar",
             HistoryTypeFilter.Search => "Buscar",
+            HistoryTypeFilter.SearchCategory => "Buscar · Cambiar categoría",
+            HistoryTypeFilter.SearchRename => "Buscar · Renombrar",
+            HistoryTypeFilter.SearchDelete => "Buscar · Eliminar",
             HistoryTypeFilter.Undo => "Deshacer",
             _ => "Todos los tipos"
         };
@@ -824,6 +827,21 @@ public sealed partial class HistoryPage : Page
                 query.Where(execution =>
                     execution.Type.StartsWith(
                         "BUSCAR",
+                        StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.SearchCategory =>
+                query.Where(execution =>
+                    execution.Type.Equals(
+                        "BUSCAR · CATEGORÍA",
+                        StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.SearchRename =>
+                query.Where(execution =>
+                    execution.Type.Equals(
+                        "BUSCAR · RENOMBRAR",
+                        StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.SearchDelete =>
+                query.Where(execution =>
+                    execution.Type.Equals(
+                        "BUSCAR · ELIMINAR",
                         StringComparison.OrdinalIgnoreCase)),
             HistoryTypeFilter.Undo =>
                 query.Where(execution =>
@@ -1248,6 +1266,9 @@ public enum HistoryTypeFilter
     All,
     Organize,
     Search,
+    SearchCategory,
+    SearchRename,
+    SearchDelete,
     Undo
 }
 
