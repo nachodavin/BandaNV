@@ -6,6 +6,21 @@ public enum OrganizationAnalysisItemKind
     Folder
 }
 
+public sealed record OrganizationAnalysisFolderFile(
+    string RelativePath,
+    string FileName,
+    string Extension,
+    long SizeBytes,
+    DateTime ModifiedAt,
+    string? CategoryId,
+    string? CategoryName,
+    int? CategoryOrder)
+{
+    public bool IsClassified =>
+        CategoryOrder.HasValue &&
+        !string.IsNullOrWhiteSpace(CategoryName);
+}
+
 public sealed record OrganizationAnalysisFile(
     string FullPath,
     string RelativePath,
@@ -23,7 +38,8 @@ public sealed record OrganizationAnalysisFile(
     int ContainedFileCount = 1,
     int RecognizedFileCount = 0,
     int DistinctCategoryCount = 0,
-    bool ScanIncomplete = false)
+    bool ScanIncomplete = false,
+    IReadOnlyList<OrganizationAnalysisFolderFile>? FolderFiles = null)
 {
     public bool IsClassified =>
         CategoryOrder.HasValue &&
@@ -31,6 +47,9 @@ public sealed record OrganizationAnalysisFile(
 
     public bool IsDirectory =>
         Kind == OrganizationAnalysisItemKind.Folder;
+
+    public IReadOnlyList<OrganizationAnalysisFolderFile> FolderContents =>
+        FolderFiles ?? [];
 }
 
 public sealed record OrganizationAnalysisResult(
