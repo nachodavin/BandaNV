@@ -106,5 +106,6 @@ public sealed class CategoryService
             category.Id,
             category.Name,
             category.Extensions,
-            category.Order);
+            category.Order,
+            category.ColorHex);
 }
