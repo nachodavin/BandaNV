@@ -193,23 +193,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    public void ShowQuickUpdate(
-        string latestVersion)
-    {
-        QuickUpdateTitle.Text =
-            "Nueva versión";
-        QuickUpdateSubtitle.Text =
-            $"Disponible: {latestVersion}";
-        QuickUpdateButton.Visibility =
-            Visibility.Visible;
-    }
-
-    public void HideQuickUpdate()
-    {
-        QuickUpdateButton.Visibility =
-            Visibility.Collapsed;
-    }
-
     private void QuickUpdateButton_Click(
         object sender,
         RoutedEventArgs e)
