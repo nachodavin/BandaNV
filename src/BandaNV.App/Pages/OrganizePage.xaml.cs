@@ -824,7 +824,12 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     categoryName: file.CategoryName,
                     destinationRoot: result.DestinationFolder,
                     conflictBehavior: global::BandaNV.App.App.Settings.Current.ConflictBehavior,
-                    hasDestinationConflict: file.HasDestinationConflict));
+                    hasDestinationConflict: file.HasDestinationConflict,
+                    isDirectory: file.IsDirectory,
+                    containedFileCount: file.ContainedFileCount,
+                    recognizedFileCount: file.RecognizedFileCount,
+                    distinctCategoryCount: file.DistinctCategoryCount,
+                    scanIncomplete: file.ScanIncomplete));
             }
 
             ApplyRememberedAssignments();
@@ -854,8 +859,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     "Preguntar en la vista previa",
                     StringComparison.OrdinalIgnoreCase);
 
+            var hasFolderItems =
+                _files.Any(file =>
+                    file.IsDirectory);
+
             if (settings.PreviewBeforeOrganize ||
-                requiresPreviewForUnknown)
+                requiresPreviewForUnknown ||
+                hasFolderItems)
             {
                 ShowPreviewState();
 
@@ -1127,6 +1137,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         }
 
         foreach (var file in _files.Where(file =>
+                     !file.IsDirectory &&
                      !file.IsClassified))
         {
             file.AssignTo(
@@ -1138,7 +1149,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private void ApplyRememberedAssignments()
     {
         var pendingByExtension = _files
-            .Where(file => !file.IsClassified)
+            .Where(file =>
+                !file.IsDirectory &&
+                !file.IsClassified)
             .GroupBy(file => file.Extension, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -1167,28 +1180,62 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
     private void RefreshPreview()
     {
-        var classifiedFiles = _files.Where(file => file.IsClassified).ToList();
-        var unclassifiedFiles = _files.Where(file => !file.IsClassified).ToList();
-        var pendingConflicts = classifiedFiles.Count(file => file.HasPendingConflict);
+        var classifiedFiles =
+            _files
+                .Where(file => file.IsClassified)
+                .ToList();
 
-        var unassignedExtensions = unclassifiedFiles
-            .GroupBy(file => file.Extension, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(group =>
-            {
-                var samples = group
-                    .Take(2)
-                    .Select(file => file.FileName)
-                    .ToList();
+        var unclassifiedFiles =
+            _files
+                .Where(file => !file.IsClassified)
+                .ToList();
 
-                var suffix = group.Count() > samples.Count ? " · …" : string.Empty;
+        var unclassifiedFolders =
+            unclassifiedFiles
+                .Where(file => file.IsDirectory)
+                .ToList();
 
-                return new UnassignedExtensionSummary(
-                    group.Key,
-                    group.Count(),
-                    string.Join(" · ", samples) + suffix);
-            })
-            .ToList();
+        var unclassifiedLooseFiles =
+            unclassifiedFiles
+                .Where(file => !file.IsDirectory)
+                .ToList();
+
+        var folderItems =
+            _files
+                .Where(file => file.IsDirectory)
+                .ToList();
+
+        var pendingConflicts =
+            classifiedFiles.Count(file =>
+                file.HasPendingConflict);
+
+        var unassignedExtensions =
+            unclassifiedLooseFiles
+                .GroupBy(
+                    file => file.Extension,
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(
+                    group => group.Key,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group =>
+                {
+                    var samples =
+                        group
+                            .Take(2)
+                            .Select(file => file.FileName)
+                            .ToList();
+
+                    var suffix =
+                        group.Count() > samples.Count
+                            ? " · …"
+                            : string.Empty;
+
+                    return new UnassignedExtensionSummary(
+                        group.Key,
+                        group.Count(),
+                        string.Join(" · ", samples) + suffix);
+                })
+                .ToList();
 
         var categorySummary = classifiedFiles
             .GroupBy(file => new
@@ -1206,6 +1253,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         foreach (var assignment in _resolvedAssignments)
         {
             var activeCount = _files.Count(file =>
+                !file.IsDirectory &&
                 file.Extension.Equals(assignment.Extension, StringComparison.OrdinalIgnoreCase) &&
                 file.AssignmentSource == OrganizeAssignmentSource.ExtensionRule &&
                 file.IsAssignedTo(assignment.CategoryOrder, assignment.CategoryName));
@@ -1218,6 +1266,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         PreviewFilesList.ItemsSource = null;
         PreviewFilesList.ItemsSource = _files
             .OrderBy(file => file.IsClassified ? 0 : 1)
+            .ThenBy(file => file.IsDirectory ? 0 : 1)
             .ThenBy(file => file.CategoryOrder ?? int.MaxValue)
             .ThenBy(file => file.FileName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
@@ -1249,13 +1298,25 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         SummaryMoveCountText.Text = classifiedFiles.Count.ToString(CultureInfo.CurrentCulture);
         SummaryUnclassifiedCountText.Text = unclassifiedFiles.Count.ToString(CultureInfo.CurrentCulture);
 
-        OrganizeButton.Content = $"Organizar {classifiedFiles.Count} archivos";
-        OrganizeButton.IsEnabled = classifiedFiles.Count > 0;
+        var hasFolderItems =
+            folderItems.Count > 0;
+
+        OrganizeButton.Content =
+            hasFolderItems
+                ? "Carpetas detectadas · ejecución pendiente"
+                : $"Organizar {classifiedFiles.Count} archivo{(classifiedFiles.Count == 1 ? string.Empty : "s")}";
+
+        OrganizeButton.IsEnabled =
+            classifiedFiles.Count > 0 &&
+            !hasFolderItems;
+
         ToolTipService.SetToolTip(
             OrganizeButton,
-            classifiedFiles.Count > 0
-                ? "Ejecuta exactamente la organización mostrada en esta vista previa."
-                : null);
+            hasFolderItems
+                ? "La detección de carpetas ya está activa. El movimiento seguro se conecta en el siguiente bloque."
+                : classifiedFiles.Count > 0
+                    ? "Ejecuta exactamente la organización mostrada en esta vista previa."
+                    : null);
 
         var warningBrush = GetBrush("OrganizeWarningBrush");
         var warningSoftBrush = GetBrush("OrganizeWarningSoftBrush");
@@ -1276,8 +1337,16 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             SummaryUnclassifiedCountText.Foreground = warningBrush;
             FooterStatusText.Foreground = mutedBrush;
+            var pendingLabel =
+                unclassifiedFiles.Count == 1
+                    ? "elemento quedará"
+                    : "elementos quedarán";
+
             FooterStatusText.Text =
-                $"{unclassifiedFiles.Count} archivos quedarán sin mover si no resolvés sus extensiones." +
+                $"{unclassifiedFiles.Count} {pendingLabel} sin mover hasta tener una categoría." +
+                (unclassifiedFolders.Count > 0
+                    ? $" {unclassifiedFolders.Count} carpeta{(unclassifiedFolders.Count == 1 ? string.Empty : "s")} se asigna{(unclassifiedFolders.Count == 1 ? string.Empty : "n")} desde la vista previa."
+                    : string.Empty) +
                 (pendingConflicts > 0
                     ? $" Además, {pendingConflicts} conflicto{(pendingConflicts == 1 ? string.Empty : "s")} de nombre se resolverá{(pendingConflicts == 1 ? string.Empty : "n")} al organizar."
                     : string.Empty);
@@ -1300,34 +1369,63 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             }
             else
             {
-                FooterStatusText.Foreground = accentBrush;
+                FooterStatusText.Foreground =
+                    hasFolderItems
+                        ? mutedBrush
+                        : accentBrush;
+
                 FooterStatusText.Text =
-                    "Todos los archivos tienen destino. Ya podés ejecutar esta organización.";
+                    hasFolderItems
+                        ? $"Detección lista: {folderItems.Count} carpeta{(folderItems.Count == 1 ? string.Empty : "s")} analizada{(folderItems.Count == 1 ? string.Empty : "s")} como unidad. El movimiento seguro se conecta en el siguiente bloque."
+                        : "Todos los archivos tienen destino. Ya podés ejecutar esta organización.";
             }
         }
 
         UnassignedCard.Visibility = Visibility.Visible;
 
-        if (unassignedExtensions.Count > 0)
+        if (unassignedExtensions.Count > 0 ||
+            unclassifiedFolders.Count > 0)
         {
-            UnassignedCard.BorderBrush = warningBrush;
+            UnassignedCard.BorderBrush =
+                warningBrush;
 
-            UnassignedTitleText.Text = "Extensiones sin asignar";
+            UnassignedTitleText.Text =
+                "Elementos sin asignar";
+
             UnassignedDescriptionText.Text =
-                _resolvedAssignments.Count > 0
-                    ? "Todavía quedan extensiones pendientes. Las asignaciones que ya resolviste se mantienen registradas abajo."
-                    : "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
+                unclassifiedFolders.Count > 0
+                    ? "Las extensiones nuevas pueden resolverse aquí. Las carpetas con contenido mixto, desconocido o incompleto se asignan directamente desde su selector en la vista previa."
+                    : _resolvedAssignments.Count > 0
+                        ? "Todavía quedan extensiones pendientes. Las asignaciones que ya resolviste se mantienen registradas abajo."
+                        : "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
 
-            UnassignedSummaryBadge.Background = warningSoftBrush;
-            UnassignedSummaryText.Foreground = warningBrush;
+            UnassignedSummaryBadge.Background =
+                warningSoftBrush;
+            UnassignedSummaryText.Foreground =
+                warningBrush;
 
-            var extensionLabel = unassignedExtensions.Count == 1 ? "extensión" : "extensiones";
-            var fileLabel = unclassifiedFiles.Count == 1 ? "archivo" : "archivos";
+            var parts =
+                new List<string>();
+
+            if (unassignedExtensions.Count > 0)
+            {
+                parts.Add(
+                    $"{unassignedExtensions.Count} {(unassignedExtensions.Count == 1 ? "extensión" : "extensiones")}");
+            }
+
+            if (unclassifiedFolders.Count > 0)
+            {
+                parts.Add(
+                    $"{unclassifiedFolders.Count} {(unclassifiedFolders.Count == 1 ? "carpeta" : "carpetas")}");
+            }
 
             UnassignedSummaryText.Text =
-                $"{unassignedExtensions.Count} {extensionLabel} · {unclassifiedFiles.Count} {fileLabel}";
+                string.Join(
+                    " · ",
+                    parts);
 
-            ResolvedAssignmentsTitle.Text = "Asignaciones realizadas";
+            ResolvedAssignmentsTitle.Text =
+                "Asignaciones realizadas";
         }
         else
         {
@@ -1436,7 +1534,12 @@ public sealed class OrganizePreviewFile
         string? categoryName,
         string destinationRoot,
         string conflictBehavior,
-        bool hasDestinationConflict)
+        bool hasDestinationConflict,
+        bool isDirectory = false,
+        int containedFileCount = 1,
+        int recognizedFileCount = 0,
+        int distinctCategoryCount = 0,
+        bool scanIncomplete = false)
     {
         ItemId = Guid.NewGuid().ToString("N");
         FullPath = fullPath;
@@ -1453,6 +1556,11 @@ public sealed class OrganizePreviewFile
         _destinationRoot = destinationRoot;
         _conflictBehavior = conflictBehavior;
         HasPendingConflict = hasDestinationConflict;
+        IsDirectory = isDirectory;
+        ContainedFileCount = containedFileCount;
+        RecognizedFileCount = recognizedFileCount;
+        DistinctCategoryCount = distinctCategoryCount;
+        ScanIncomplete = scanIncomplete;
         AssignmentSource =
             categoryOrder.HasValue && !string.IsNullOrWhiteSpace(categoryName)
                 ? OrganizeAssignmentSource.InitialCategory
@@ -1471,6 +1579,11 @@ public sealed class OrganizePreviewFile
     public DateTime ModifiedAt { get; }
     public long ModifiedUtcTicks { get; }
     public IReadOnlyList<OrganizeCategoryOption> CategoryOptions { get; }
+    public bool IsDirectory { get; }
+    public int ContainedFileCount { get; }
+    public int RecognizedFileCount { get; }
+    public int DistinctCategoryCount { get; }
+    public bool ScanIncomplete { get; }
 
     public string? CategoryId { get; private set; }
     public int? CategoryOrder { get; private set; }
@@ -1483,7 +1596,9 @@ public sealed class OrganizePreviewFile
 
     public string ConflictDisplay =>
         HasPendingConflict
-            ? "Conflicto de nombre · se preguntará al organizar"
+            ? IsDirectory
+                ? "Conflicto de carpeta · se preguntará al organizar"
+                : "Conflicto de nombre · se preguntará al organizar"
             : string.Empty;
 
     public bool IsClassified =>
@@ -1497,7 +1612,44 @@ public sealed class OrganizePreviewFile
     public string SelectedCategoryDisplayName =>
         SelectedCategory?.DisplayName ?? "Elegir categoría";
 
-    public string ExtensionDisplay => Extension.ToUpperInvariant();
+    public string ExtensionDisplay
+    {
+        get
+        {
+            if (!IsDirectory)
+            {
+                return Extension.ToUpperInvariant();
+            }
+
+            var fileLabel =
+                ContainedFileCount == 1
+                    ? "1 archivo"
+                    : $"{ContainedFileCount} archivos";
+
+            if (ScanIncomplete)
+            {
+                return $"CARPETA · {fileLabel} · análisis parcial";
+            }
+
+            var unknownCount =
+                Math.Max(
+                    0,
+                    ContainedFileCount -
+                    RecognizedFileCount);
+
+            if (unknownCount > 0)
+            {
+                return $"CARPETA · {fileLabel} · {unknownCount} sin reconocer";
+            }
+
+            if (DistinctCategoryCount > 1)
+            {
+                return $"CARPETA · {fileLabel} · {DistinctCategoryCount} categorías";
+            }
+
+            return $"CARPETA · {fileLabel}";
+        }
+    }
 
     public string CategoryDisplay =>
         IsClassified
@@ -1560,11 +1712,14 @@ public sealed class OrganizePreviewFile
                 !Path.GetFullPath(destinationPath).Equals(
                     Path.GetFullPath(FullPath),
                     StringComparison.OrdinalIgnoreCase) &&
-                File.Exists(destinationPath);
+                (File.Exists(destinationPath) ||
+                 Directory.Exists(destinationPath));
         }
         catch
         {
-            HasPendingConflict = File.Exists(destinationPath);
+            HasPendingConflict =
+                File.Exists(destinationPath) ||
+                Directory.Exists(destinationPath);
         }
     }
 
