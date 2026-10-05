@@ -42,6 +42,17 @@ public partial class App : Application
             LastStartupRecovery = null;
         }
 
+        try
+        {
+            await History.ApplyRetentionAsync(
+                Settings.Current);
+        }
+        catch
+        {
+            // La conservación es mantenimiento secundario. Si falla, BandaNV
+            // abre normalmente y conserva los archivos para el próximo intento.
+        }
+
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Activate();
     }
