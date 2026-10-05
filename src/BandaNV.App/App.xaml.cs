@@ -13,6 +13,7 @@ public partial class App : Application
     public static OrganizationExecutionService OrganizationExecution { get; } = new();
     public static HistoryService History { get; } = new();
     public static SearchIndexService SearchIndex { get; } = new();
+    public static UndoService Undo { get; } = new();
 
     public App()
     {
