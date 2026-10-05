@@ -17,6 +17,10 @@ public sealed partial class HomePage : Page
         new(StringComparer.OrdinalIgnoreCase);
 
     private IReadOnlyList<HomeCategoryUsageItem> _currentCategoryUsage = [];
+    private readonly object _liveRefreshSync = new();
+    private FileSystemWatcher? _sourceWatcher;
+    private FileSystemWatcher? _destinationWatcher;
+    private CancellationTokenSource? _liveRefreshDebounceCts;
     private int _currentOrganizedFileCount;
     private long _currentOrganizedSize;
 
@@ -24,14 +28,24 @@ public sealed partial class HomePage : Page
     {
         InitializeComponent();
         Loaded += HomePage_Loaded;
+        Unloaded += HomePage_Unloaded;
     }
 
     private async void HomePage_Loaded(
         object sender,
         RoutedEventArgs e)
     {
-        Loaded -= HomePage_Loaded;
+        ConfigureLiveWatchers(
+            global::BandaNV.App.App.Settings.Current);
+
         await LoadHomeAsync();
+    }
+
+    private void HomePage_Unloaded(
+        object sender,
+        RoutedEventArgs e)
+    {
+        StopLiveWatchers();
     }
 
     private async Task LoadHomeAsync()
@@ -70,6 +84,176 @@ public sealed partial class HomePage : Page
         UpdateLastOrganization(records);
         BuildCurrentLibrary(organizedFiles, settings);
         await UpdatePendingFilesAsync(settings);
+    }
+
+    private void ConfigureLiveWatchers(
+        AppSettings settings)
+    {
+        StopLiveWatchers();
+
+        _sourceWatcher = CreateWatcher(
+            settings.SourceFolder,
+            settings.IncludeSubfolders);
+
+        _destinationWatcher = CreateWatcher(
+            settings.DestinationFolder,
+            includeSubdirectories: true);
+    }
+
+    private FileSystemWatcher? CreateWatcher(
+        string? path,
+        bool includeSubdirectories)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var expanded =
+                Path.GetFullPath(
+                    Environment.ExpandEnvironmentVariables(
+                        path.Trim()));
+
+            if (!Directory.Exists(expanded))
+            {
+                return null;
+            }
+
+            var watcher = new FileSystemWatcher(expanded)
+            {
+                IncludeSubdirectories = includeSubdirectories,
+                NotifyFilter =
+                    NotifyFilters.FileName |
+                    NotifyFilters.DirectoryName |
+                    NotifyFilters.Size |
+                    NotifyFilters.LastWrite,
+                Filter = "*",
+                EnableRaisingEvents = false
+            };
+
+            watcher.Created += WatchedFileSystem_Changed;
+            watcher.Deleted += WatchedFileSystem_Changed;
+            watcher.Changed += WatchedFileSystem_Changed;
+            watcher.Renamed += WatchedFileSystem_Renamed;
+            watcher.Error += WatchedFileSystem_Error;
+            watcher.EnableRaisingEvents = true;
+
+            return watcher;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void WatchedFileSystem_Changed(
+        object sender,
+        FileSystemEventArgs e)
+    {
+        QueueLiveRefresh();
+    }
+
+    private void WatchedFileSystem_Renamed(
+        object sender,
+        RenamedEventArgs e)
+    {
+        QueueLiveRefresh();
+    }
+
+    private void WatchedFileSystem_Error(
+        object sender,
+        ErrorEventArgs e)
+    {
+        QueueLiveRefresh();
+    }
+
+    private void QueueLiveRefresh()
+    {
+        CancellationTokenSource next;
+
+        lock (_liveRefreshSync)
+        {
+            _liveRefreshDebounceCts?.Cancel();
+            _liveRefreshDebounceCts?.Dispose();
+
+            next = new CancellationTokenSource();
+            _liveRefreshDebounceCts = next;
+        }
+
+        _ = DebouncedLiveRefreshAsync(next.Token);
+    }
+
+    private async Task DebouncedLiveRefreshAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(300),
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (cancellationToken.IsCancellationRequested ||
+                !IsLoaded)
+            {
+                return;
+            }
+
+            await LoadHomeAsync();
+        });
+    }
+
+    private void StopLiveWatchers()
+    {
+        DisposeWatcher(ref _sourceWatcher);
+        DisposeWatcher(ref _destinationWatcher);
+
+        lock (_liveRefreshSync)
+        {
+            _liveRefreshDebounceCts?.Cancel();
+            _liveRefreshDebounceCts?.Dispose();
+            _liveRefreshDebounceCts = null;
+        }
+    }
+
+    private void DisposeWatcher(
+        ref FileSystemWatcher? watcher)
+    {
+        if (watcher is null)
+        {
+            return;
+        }
+
+        try
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.Created -= WatchedFileSystem_Changed;
+            watcher.Deleted -= WatchedFileSystem_Changed;
+            watcher.Changed -= WatchedFileSystem_Changed;
+            watcher.Renamed -= WatchedFileSystem_Renamed;
+            watcher.Error -= WatchedFileSystem_Error;
+            watcher.Dispose();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            watcher = null;
+        }
     }
 
     private void UpdateConfigurationState(
@@ -412,7 +596,7 @@ public sealed partial class HomePage : Page
         var row = new Border
         {
             Tag = item.Id,
-            Padding = new Thickness(10, 7, 10, 7),
+            Padding = new Thickness(12, 10, 12, 10),
             CornerRadius = new CornerRadius(10),
             Background =
                 new SolidColorBrush(
@@ -444,8 +628,8 @@ public sealed partial class HomePage : Page
 
         var dot = new Ellipse
         {
-            Width = 9,
-            Height = 9,
+            Width = 11,
+            Height = 11,
             Fill = brush,
             VerticalAlignment =
                 VerticalAlignment.Center
@@ -457,7 +641,7 @@ public sealed partial class HomePage : Page
             Foreground =
                 (Brush)Application.Current.Resources[
                     "BandaMutedStrongBrush"],
-            FontSize = 13,
+            FontSize = 15,
             FontWeight =
                 Microsoft.UI.Text.FontWeights.SemiBold,
             TextTrimming =
@@ -475,7 +659,7 @@ public sealed partial class HomePage : Page
             Foreground =
                 (Brush)Application.Current.Resources[
                     "BandaMutedBrush"],
-            FontSize = 12,
+            FontSize = 13,
             VerticalAlignment =
                 VerticalAlignment.Center
         };
@@ -503,8 +687,8 @@ public sealed partial class HomePage : Page
         double sweepAngle,
         Brush brush)
     {
-        const double center = 160;
-        const double radius = 119;
+        const double center = 210;
+        const double radius = 165;
 
         var start =
             PointOnCircle(
@@ -544,7 +728,7 @@ public sealed partial class HomePage : Page
         {
             Data = geometry,
             Stroke = brush,
-            StrokeThickness = 32,
+            StrokeThickness = 44,
             Opacity = 1,
             IsHitTestVisible = true
         };
@@ -584,7 +768,7 @@ public sealed partial class HomePage : Page
                 isActive ? 1 : 0.22;
 
             pair.Value.Segment.StrokeThickness =
-                isActive ? 39 : 30;
+                isActive ? 52 : 40;
 
             pair.Value.LegendRow.Opacity =
                 isActive ? 1 : 0.48;
@@ -627,7 +811,7 @@ public sealed partial class HomePage : Page
         foreach (var visual in _donutVisuals.Values)
         {
             visual.Segment.Opacity = 1;
-            visual.Segment.StrokeThickness = 32;
+            visual.Segment.StrokeThickness = 44;
             visual.LegendRow.Opacity = 1;
             visual.LegendRow.Background =
                 new SolidColorBrush(
