@@ -96,7 +96,8 @@ public sealed class SettingsService
                     category.Id,
                     category.Name,
                     category.Extensions,
-                    category.Order))
+                    category.Order,
+                    category.ColorHex))
                 .ToList();
 
             Current = Normalize(Current);
@@ -125,6 +126,11 @@ public sealed class SettingsService
             }
 
             category.Name = category.Name.Trim();
+            category.ColorHex =
+                CategoryColorPalette.NormalizeOrGenerate(
+                    category.ColorHex,
+                    category.Id,
+                    settings.SecondaryColor);
 
             category.Extensions = category.Extensions
                 .Select(NormalizeExtension)
