@@ -25,7 +25,7 @@
                 FontSize="32" />
 
             <TextBlock
-                Text="Revisá, buscá y consultá las organizaciones realizadas por BandaNV."
+                Text="Revisá, buscá y consultá la actividad registrada por BandaNV."
                 Style="{StaticResource BandaMutedTextStyle}"
                 FontSize="14" />
         </StackPanel>
@@ -305,7 +305,7 @@
                             <Grid Padding="16,0" ColumnSpacing="18">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="1.22*" />
-                                    <ColumnDefinition Width="0.72*" />
+                                    <ColumnDefinition Width="1.05*" />
                                     <ColumnDefinition Width="1.45*" />
                                     <ColumnDefinition Width="1.45*" />
                                     <ColumnDefinition Width="0.62*" />
@@ -360,7 +360,7 @@
                                         <Grid Padding="10,0" ColumnSpacing="18">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="1.22*" />
-                                                <ColumnDefinition Width="0.72*" />
+                                                <ColumnDefinition Width="1.05*" />
                                                 <ColumnDefinition Width="1.45*" />
                                                 <ColumnDefinition Width="1.45*" />
                                                 <ColumnDefinition Width="0.62*" />
@@ -554,6 +554,12 @@
                                                                     Text="{x:Bind Category}"
                                                                     Foreground="{x:Bind CategoryBrush}"
                                                                     FontSize="13" />
+                                                                <TextBlock
+                                                                    Text="{x:Bind StatusText}"
+                                                                    Foreground="{x:Bind StatusBrush}"
+                                                                    FontSize="12"
+                                                                    FontWeight="SemiBold"
+                                                                    Visibility="{x:Bind StatusVisibility}" />
                                                             </StackPanel>
                                                         </StackPanel>
 
@@ -768,6 +774,7 @@
                                                     <TextBlock Text="TIPO DE EJECUCIÓN" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
                                                     <Button Tag="All" Content="Todos los tipos" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Organize" Content="Organizar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Search" Content="Buscar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Undo" Content="Deshacer" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                 </StackPanel>
                                             </Border>
