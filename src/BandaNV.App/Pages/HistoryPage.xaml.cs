@@ -59,19 +59,36 @@ public sealed partial class HistoryPage : Page
 
             foreach (var record in records)
             {
+                var isOrganization =
+                    record.Type.Equals(
+                        "ORGANIZE",
+                        StringComparison.OrdinalIgnoreCase);
+
+                var isUndo =
+                    record.Type.Equals(
+                        "UNDO",
+                        StringComparison.OrdinalIgnoreCase);
+
+                var isSearch =
+                    record.Type.Equals(
+                        "SEARCH",
+                        StringComparison.OrdinalIgnoreCase);
+
                 var movedItems = record.Items
                     .Where(item =>
                         item.Status == OrganizationExecutionItemStatus.Moved)
                     .ToList();
 
-                var type = record.Type.Equals(
-                        "UNDO",
-                        StringComparison.OrdinalIgnoreCase)
-                    ? "DESHACER"
-                    : "ORGANIZAR";
+                var displayedItems = isSearch
+                    ? record.Items.ToList()
+                    : movedItems;
+
+                var type =
+                    GetHistoryExecutionTypeDisplayName(
+                        record);
 
                 var reversibleFileCount =
-                    type == "ORGANIZAR"
+                    isOrganization
                         ? movedItems.Count(item =>
                             IsItemCurrentlyReversible(
                                 record,
@@ -79,13 +96,15 @@ public sealed partial class HistoryPage : Page
                         : 0;
 
                 var canUndo =
-                    type == "ORGANIZAR" &&
+                    isOrganization &&
                     global::BandaNV.App.App.Settings.Current.UndoEnabled &&
                     reversibleFileCount > 0;
 
-                var files = movedItems
+                var files = displayedItems
                     .Select(item => new HistoryFilePreview(
-                        item.FileName,
+                        GetHistoryItemDisplayName(
+                            record,
+                            item),
                         item.CategoryName ?? "Sin categoría",
                         FormatHistoryBytes(item.SizeBytes),
                         item.CategoryId is not null &&
@@ -93,7 +112,9 @@ public sealed partial class HistoryPage : Page
                             item.CategoryId,
                             out var colorHex)
                             ? colorHex
-                            : string.Empty))
+                            : string.Empty,
+                        GetHistoryItemStatusText(item.Status),
+                        IsHistoryItemIssue(item.Status)))
                     .ToList();
 
                 _allPreviewExecutions.Add(new HistoryExecutionPreview
@@ -108,23 +129,25 @@ public sealed partial class HistoryPage : Page
                     OriginShort = GetFolderDisplayName(record.SourceFolder),
                     Origin = record.SourceFolder,
                     Destination = record.DestinationFolder,
-                    FileCount = movedItems.Count,
+                    FileCount = displayedItems.Count,
                     FileCountText =
-                        movedItems.Count.ToString(CultureInfo.CurrentCulture),
+                        displayedItems.Count.ToString(CultureInfo.CurrentCulture),
                     SizeText = FormatHistoryBytes(
-                        movedItems.Sum(item => item.SizeBytes)),
+                        displayedItems.Sum(item => item.SizeBytes)),
                     CanUndo = canUndo,
                     ReversibleFileCount = reversibleFileCount,
-                    UndoBadgeText = type == "DESHACER"
-                        ? "Registro Undo"
-                        : reversibleFileCount == movedItems.Count &&
-                          reversibleFileCount > 0
-                            ? "Reversible"
-                            : reversibleFileCount > 0
-                                ? $"Parcial · {reversibleFileCount}/{movedItems.Count}"
-                                : movedItems.Count == 0
-                                    ? "Sin movimientos"
-                                    : "No reversible",
+                    UndoBadgeText = isSearch
+                        ? "Sin Undo · acción de Buscar"
+                        : isUndo
+                            ? "Registro Undo"
+                            : reversibleFileCount == movedItems.Count &&
+                              reversibleFileCount > 0
+                                ? "Reversible"
+                                : reversibleFileCount > 0
+                                    ? $"Parcial · {reversibleFileCount}/{movedItems.Count}"
+                                    : movedItems.Count == 0
+                                        ? "Sin movimientos"
+                                        : "No reversible",
                     Files = files
                 });
             }
@@ -228,6 +251,78 @@ public sealed partial class HistoryPage : Page
             return false;
         }
     }
+
+    private static string GetHistoryExecutionTypeDisplayName(
+        OrganizationExecutionRecord record)
+    {
+        if (record.Type.Equals(
+                "UNDO",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "DESHACER";
+        }
+
+        if (record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return record.Action?.ToUpperInvariant() switch
+            {
+                "CHANGE_CATEGORY" => "BUSCAR · CATEGORÍA",
+                "RENAME" => "BUSCAR · RENOMBRAR",
+                "DELETE" => "BUSCAR · ELIMINAR",
+                _ => "BUSCAR"
+            };
+        }
+
+        return "ORGANIZAR";
+    }
+
+    private static string GetHistoryItemDisplayName(
+        OrganizationExecutionRecord record,
+        OrganizationExecutionItemRecord item)
+    {
+        if (record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase) &&
+            record.Action?.Equals(
+                "RENAME",
+                StringComparison.OrdinalIgnoreCase) == true &&
+            !string.IsNullOrWhiteSpace(
+                item.FinalPath))
+        {
+            return Path.GetFileName(
+                item.FinalPath);
+        }
+
+        return item.FileName;
+    }
+
+    private static string GetHistoryItemStatusText(
+        OrganizationExecutionItemStatus status) =>
+        status switch
+        {
+            OrganizationExecutionItemStatus.Moved => "Movido",
+            OrganizationExecutionItemStatus.Renamed => "Renombrado",
+            OrganizationExecutionItemStatus.Deleted => "Eliminado",
+            OrganizationExecutionItemStatus.CompletedAction => "Sin cambios",
+            OrganizationExecutionItemStatus.SkippedConflict => "Conflicto",
+            OrganizationExecutionItemStatus.ConflictNeedsDecision => "Conflicto pendiente",
+            OrganizationExecutionItemStatus.Interrupted => "Interrumpido",
+            OrganizationExecutionItemStatus.SourceMissing => "No encontrado",
+            OrganizationExecutionItemStatus.SourceChanged => "Modificado",
+            OrganizationExecutionItemStatus.Error => "Error",
+            _ => string.Empty
+        };
+
+    private static bool IsHistoryItemIssue(
+        OrganizationExecutionItemStatus status) =>
+        status is OrganizationExecutionItemStatus.SkippedConflict or
+            OrganizationExecutionItemStatus.ConflictNeedsDecision or
+            OrganizationExecutionItemStatus.Interrupted or
+            OrganizationExecutionItemStatus.SourceMissing or
+            OrganizationExecutionItemStatus.SourceChanged or
+            OrganizationExecutionItemStatus.Error;
 
     private static string GetFolderDisplayName(string path)
     {
@@ -606,6 +701,7 @@ public sealed partial class HistoryPage : Page
         filter switch
         {
             HistoryTypeFilter.Organize => "Organizar",
+            HistoryTypeFilter.Search => "Buscar",
             HistoryTypeFilter.Undo => "Deshacer",
             _ => "Todos los tipos"
         };
@@ -691,6 +787,11 @@ public sealed partial class HistoryPage : Page
             HistoryTypeFilter.Organize =>
                 query.Where(execution =>
                     execution.Type.Equals("ORGANIZAR", StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.Search =>
+                query.Where(execution =>
+                    execution.Type.StartsWith(
+                        "BUSCAR",
+                        StringComparison.OrdinalIgnoreCase)),
             HistoryTypeFilter.Undo =>
                 query.Where(execution =>
                     execution.Type.Equals("DESHACER", StringComparison.OrdinalIgnoreCase)),
@@ -1113,6 +1214,7 @@ public enum HistoryTypeFilter
 {
     All,
     Organize,
+    Search,
     Undo
 }
 
@@ -1175,18 +1277,35 @@ public sealed class HistoryFilePreview
         string name,
         string category,
         string sizeText,
-        string colorHex)
+        string colorHex,
+        string statusText = "",
+        bool isIssue = false)
     {
         Name = name;
         Category = category;
         SizeText = sizeText;
         ColorHex = colorHex;
+        StatusText = statusText;
+        IsIssue = isIssue;
     }
 
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
     public string ColorHex { get; set; } = string.Empty;
+    public string StatusText { get; set; } = string.Empty;
+    public bool IsIssue { get; set; }
+
+    public Visibility StatusVisibility =>
+        string.IsNullOrWhiteSpace(StatusText)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+    public Brush StatusBrush =>
+        (Brush)Application.Current.Resources[
+            IsIssue
+                ? "BandaDangerBrush"
+                : "BandaMutedStrongBrush"];
 
     public Brush CategoryBrush
     {
