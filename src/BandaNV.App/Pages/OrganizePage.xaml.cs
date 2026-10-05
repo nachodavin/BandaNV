@@ -592,14 +592,20 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         CompleteConflictResolution(OrganizationConflictAction.Skip);
 
     private void CloseConflictOverlayButton_Click(object sender, RoutedEventArgs e) =>
-        CompleteConflictResolution(OrganizationConflictAction.Skip);
+        CompleteConflictResolution(
+            OrganizationConflictAction.Skip,
+            allowApplyToRemaining: false);
 
     private void ConflictBackdrop_Tapped(
         object sender,
         Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e) =>
-        CompleteConflictResolution(OrganizationConflictAction.Skip);
+        CompleteConflictResolution(
+            OrganizationConflictAction.Skip,
+            allowApplyToRemaining: false);
 
-    private void CompleteConflictResolution(OrganizationConflictAction action)
+    private void CompleteConflictResolution(
+        OrganizationConflictAction action,
+        bool allowApplyToRemaining = true)
     {
         var completion = _conflictResolutionTcs;
         if (completion is null)
@@ -614,6 +620,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         completion.TrySetResult(
             new OrganizationConflictResolution(
                 action,
+                allowApplyToRemaining &&
                 ConflictApplyAllCheckBox.IsChecked == true));
     }
 
