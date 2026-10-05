@@ -303,9 +303,13 @@ public sealed class RecoveryService
 
                 item.Status = OrganizationExecutionItemStatus.SourceMissing;
                 item.Message = backupExists
-                    ? "La ejecución se interrumpió y el archivo nuevo ya no estaba disponible. El archivo anterior del destino fue restaurado."
-                    : "La ejecución se interrumpió y no se encontró el archivo ni en origen ni en destino.";
+                    ? "La ejecución se interrumpió y el archivo nuevo ya no estaba disponible. El archivo anterior del destino fue restaurado. Los temporales asociados se conservaron por seguridad."
+                    : "La ejecución se interrumpió y no se encontró el archivo ni en origen ni en destino. Los temporales asociados se conservaron por seguridad.";
                 stats.InterruptedItems++;
+
+                // Si faltan ambas copias principales, un temporal puede ser
+                // la única copia restante. No se elimina automáticamente.
+                continue;
             }
 
             stats.TemporaryFilesDeleted +=
@@ -342,23 +346,9 @@ public sealed class RecoveryService
                     "El Undo se interrumpió y no se pudo identificar con certeza su ejecución original. BandaNV no modificó archivos durante la recuperación.");
                 stats.InterruptedItems++;
 
-                if (!string.IsNullOrWhiteSpace(item.FinalPath) &&
-                    IsSameOrInside(
-                        item.FinalPath,
-                        undoRecord.DestinationFolder))
-                {
-                    stats.TemporaryFilesDeleted +=
-                        CleanupTemporaryCopies(item.FinalPath);
-                }
-
-                if (!string.IsNullOrWhiteSpace(item.OriginalPath) &&
-                    IsSameOrInside(
-                        item.OriginalPath,
-                        undoRecord.SourceFolder))
-                {
-                    stats.TemporaryFilesDeleted +=
-                        CleanupTemporaryCopies(item.OriginalPath);
-                }
+                // Sin el vínculo con la ejecución original tampoco se
+                // eliminan temporales: alguno podría ser la única copia útil
+                // disponible después del cierre abrupto.
             }
 
             return stats;
@@ -443,7 +433,11 @@ public sealed class RecoveryService
                     undoItem.Status =
                         OrganizationExecutionItemStatus.SourceMissing;
                     undoItem.Message =
-                        "El Undo se interrumpió y el archivo ya no está disponible ni en la ubicación organizada ni en su ubicación original.";
+                        "El Undo se interrumpió y el archivo ya no está disponible ni en la ubicación organizada ni en su ubicación original. Los temporales asociados se conservaron por seguridad.";
+                    stats.InterruptedItems++;
+
+                    // No se eliminan temporales si podrían ser la única copia.
+                    continue;
                 }
 
                 stats.InterruptedItems++;
