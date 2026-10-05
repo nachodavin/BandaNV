@@ -439,6 +439,25 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
+                        <StackPanel
+                            Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="10"
+                            VerticalAlignment="Center">
+
+                            <ToggleSwitch
+                                x:Name="UpdateStartupNoticeToggle"
+                                IsOn="True"
+                                Toggled="UpdateStartupNoticeToggle_Toggled"
+                                VerticalAlignment="Center" />
+
+                            <TextBlock
+                                Text="Mostrar aviso al iniciar"
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="12"
+                                VerticalAlignment="Center" />
+                        </StackPanel>
+
                         <Button
                             x:Name="UpdateModalSecondaryButton"
                             Grid.Column="1"
