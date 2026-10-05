@@ -116,14 +116,12 @@ public sealed class OrganizationExecutionService
                 $"BandaNV_{now:dd-MM-yyyy____HH-mm-ss}",
                 ".json"));
 
-        var logPath = settings.SaveHistory
-            ? Path.Combine(
+        var logPath = Path.Combine(
+            PortablePaths.LogsDirectory,
+            BuildUniqueFileName(
                 PortablePaths.LogsDirectory,
-                BuildUniqueFileName(
-                    PortablePaths.LogsDirectory,
-                    $"BandaNV_{now:dd-MM-yyyy____HH-mm-ss}",
-                    ".txt"))
-            : null;
+                $"BandaNV_{now:dd-MM-yyyy____HH-mm-ss}",
+                ".txt"));
 
         await PersistRecordAsync(
             record,
@@ -583,7 +581,7 @@ public sealed class OrganizationExecutionService
         {
             await WriteTextAtomicAsync(
                 logPath,
-                BuildHumanLog(record),
+                FormatHumanLog(record),
                 cancellationToken);
         }
 
@@ -619,7 +617,7 @@ public sealed class OrganizationExecutionService
         }
     }
 
-    private static string BuildHumanLog(
+    public static string FormatHumanLog(
         OrganizationExecutionRecord record)
     {
         var builder = new StringBuilder();
