@@ -2,6 +2,7 @@ using BandaNV.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Win32;
 
 namespace BandaNV.App.Services;
 
@@ -20,6 +21,8 @@ public static class AppearanceService
             0x4F,
             0xE0,
             0xC6);
+
+    private static bool _isLightMode;
 
     public static void ApplySettings(
         AppSettings settings)
@@ -41,12 +44,45 @@ public static class AppearanceService
                 ? parsedSecondary
                 : DefaultSecondary;
 
+        ApplyTheme(
+            settings.Theme,
+            primary,
+            secondary);
+    }
+
+    public static void ApplyTheme(
+        string? theme,
+        Windows.UI.Color primary,
+        Windows.UI.Color secondary)
+    {
+        _isLightMode =
+            ResolveLightMode(
+                theme);
+
+        ApplyNeutralThemeResources();
         ApplyPrimaryColor(
             primary);
-
         ApplySecondaryColor(
             secondary);
     }
+
+    public static ElementTheme GetElementTheme(
+        string? theme) =>
+        theme?.Trim() switch
+        {
+            "Claro" => ElementTheme.Light,
+            "Oscuro" => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
+
+    public static bool ResolveLightMode(
+        string? theme) =>
+        theme?.Trim() switch
+        {
+            "Claro" => true,
+            "Oscuro" => false,
+            _ => IsWindowsLightTheme()
+        };
 
     public static void ApplyPrimaryColor(
         Windows.UI.Color color)
@@ -56,100 +92,154 @@ public static class AppearanceService
             color);
 
         var backgroundBase =
-            Windows.UI.Color.FromArgb(
-                255,
-                0x06,
-                0x0A,
-                0x0D);
+            _isLightMode
+                ? Windows.UI.Color.FromArgb(
+                    255,
+                    0xF4,
+                    0xF7,
+                    0xF8)
+                : Windows.UI.Color.FromArgb(
+                    255,
+                    0x06,
+                    0x0A,
+                    0x0D);
 
         var sidebarBase =
-            Windows.UI.Color.FromArgb(
-                255,
-                0x07,
-                0x0C,
-                0x10);
+            _isLightMode
+                ? Windows.UI.Color.FromArgb(
+                    255,
+                    0xEE,
+                    0xF2,
+                    0xF3)
+                : Windows.UI.Color.FromArgb(
+                    255,
+                    0x07,
+                    0x0C,
+                    0x10);
 
         var cardBase =
-            Windows.UI.Color.FromArgb(
-                255,
-                0x0C,
-                0x12,
-                0x16);
+            _isLightMode
+                ? Windows.UI.Color.FromArgb(
+                    255,
+                    0xFF,
+                    0xFF,
+                    0xFF)
+                : Windows.UI.Color.FromArgb(
+                    255,
+                    0x0C,
+                    0x12,
+                    0x16);
 
         var cardAltBase =
-            Windows.UI.Color.FromArgb(
-                255,
-                0x0D,
-                0x14,
-                0x18);
+            _isLightMode
+                ? Windows.UI.Color.FromArgb(
+                    255,
+                    0xF2,
+                    0xF5,
+                    0xF6)
+                : Windows.UI.Color.FromArgb(
+                    255,
+                    0x0D,
+                    0x14,
+                    0x18);
 
         var popupBase =
-            Windows.UI.Color.FromArgb(
-                255,
-                0x08,
-                0x0E,
-                0x12);
+            _isLightMode
+                ? Windows.UI.Color.FromArgb(
+                    255,
+                    0xFF,
+                    0xFF,
+                    0xFF)
+                : Windows.UI.Color.FromArgb(
+                    255,
+                    0x08,
+                    0x0E,
+                    0x12);
 
         var borderBase =
-            Windows.UI.Color.FromArgb(
-                255,
-                0x43,
-                0x50,
-                0x59);
+            _isLightMode
+                ? Windows.UI.Color.FromArgb(
+                    255,
+                    0x98,
+                    0xA6,
+                    0xAD)
+                : Windows.UI.Color.FromArgb(
+                    255,
+                    0x43,
+                    0x50,
+                    0x59);
 
         var background =
             BlendColor(
                 backgroundBase,
                 color,
-                0.07);
+                _isLightMode
+                    ? 0.035
+                    : 0.07);
 
         var sidebar =
             BlendColor(
                 sidebarBase,
                 color,
-                0.09);
+                _isLightMode
+                    ? 0.045
+                    : 0.09);
 
         var card =
             BlendColor(
                 cardBase,
                 color,
-                0.10);
+                _isLightMode
+                    ? 0.035
+                    : 0.10);
 
         var cardAlt =
             BlendColor(
                 cardAltBase,
                 color,
-                0.14);
+                _isLightMode
+                    ? 0.055
+                    : 0.14);
 
         var navIcon =
             BlendColor(
                 cardAltBase,
                 color,
-                0.16);
+                _isLightMode
+                    ? 0.075
+                    : 0.16);
 
         var popup =
             BlendColor(
                 popupBase,
                 color,
-                0.10);
+                _isLightMode
+                    ? 0.03
+                    : 0.10);
 
         var border =
             BlendColor(
                 borderBase,
                 color,
-                0.10);
+                _isLightMode
+                    ? 0.07
+                    : 0.10);
 
         var borderStrong =
             BlendColor(
                 borderBase,
                 color,
-                0.16);
+                _isLightMode
+                    ? 0.10
+                    : 0.16);
 
         var accentCard =
             BlendColor(
                 cardBase,
                 color,
-                0.22);
+                _isLightMode
+                    ? 0.12
+                    : 0.22);
 
         SetSolidBrushColor(
             "BandaBackgroundBrush",
@@ -195,13 +285,17 @@ public static class AppearanceService
             "BandaBorderBrush",
             WithAlpha(
                 border,
-                0x4A));
+                _isLightMode
+                    ? (byte)0x78
+                    : (byte)0x4A));
 
         SetSolidBrushColor(
             "BandaBorderStrongBrush",
             WithAlpha(
                 borderStrong,
-                0x72));
+                _isLightMode
+                    ? (byte)0xA0
+                    : (byte)0x72));
 
         SetSolidBrushColor(
             "BandaAccentCardBrush",
@@ -223,19 +317,25 @@ public static class AppearanceService
             "BandaAccentSoftBrush",
             WithAlpha(
                 color,
-                0x24));
+                _isLightMode
+                    ? (byte)0x30
+                    : (byte)0x24));
 
         SetSolidBrushColor(
             "BandaAccentFaintBrush",
             WithAlpha(
                 color,
-                0x12));
+                _isLightMode
+                    ? (byte)0x18
+                    : (byte)0x12));
 
         SetSolidBrushColor(
             "BandaNavActiveBrush",
             WithAlpha(
                 color,
-                0x22));
+                _isLightMode
+                    ? (byte)0x2C
+                    : (byte)0x22));
 
         SetSolidBrushColor(
             "BandaAccentGradientBrush",
@@ -383,6 +483,179 @@ public static class AppearanceService
             hover,
             pressed,
             foreground);
+    }
+
+    private static void ApplyNeutralThemeResources()
+    {
+        if (_isLightMode)
+        {
+            SetSolidBrushColor(
+                "BandaTextBrush",
+                Windows.UI.Color.FromArgb(
+                    255,
+                    0x17,
+                    0x22,
+                    0x28));
+
+            SetSolidBrushColor(
+                "BandaMutedBrush",
+                Windows.UI.Color.FromArgb(
+                    255,
+                    0x68,
+                    0x75,
+                    0x7C));
+
+            SetSolidBrushColor(
+                "BandaMutedStrongBrush",
+                Windows.UI.Color.FromArgb(
+                    255,
+                    0x45,
+                    0x53,
+                    0x5B));
+
+            SetSolidBrushColor(
+                "BandaActionDisabledBackgroundBrush",
+                Windows.UI.Color.FromArgb(
+                    0x18,
+                    0x4A,
+                    0x56,
+                    0x5E));
+
+            SetSolidBrushColor(
+                "BandaActionDisabledForegroundBrush",
+                Windows.UI.Color.FromArgb(
+                    255,
+                    0x8A,
+                    0x96,
+                    0x9D));
+
+            SetSolidBrushColor(
+                "BandaActionDisabledBorderBrush",
+                Windows.UI.Color.FromArgb(
+                    0x60,
+                    0x8A,
+                    0x96,
+                    0x9D));
+
+            SetSolidBrushColor(
+                "BandaPopupBackdropBrush",
+                Windows.UI.Color.FromArgb(
+                    0x66,
+                    0x08,
+                    0x0C,
+                    0x11));
+
+            SetSolidBrushColor(
+                "BandaDangerBrush",
+                Windows.UI.Color.FromArgb(
+                    255,
+                    0xD8,
+                    0x52,
+                    0x52));
+
+            SetSolidBrushColor(
+                "BandaDangerSoftBrush",
+                Windows.UI.Color.FromArgb(
+                    0x24,
+                    0xD8,
+                    0x52,
+                    0x52));
+
+            return;
+        }
+
+        SetSolidBrushColor(
+            "BandaTextBrush",
+            Windows.UI.Color.FromArgb(
+                255,
+                0xF5,
+                0xF8,
+                0xFA));
+
+        SetSolidBrushColor(
+            "BandaMutedBrush",
+            Windows.UI.Color.FromArgb(
+                255,
+                0x93,
+                0xA1,
+                0xAA));
+
+        SetSolidBrushColor(
+            "BandaMutedStrongBrush",
+            Windows.UI.Color.FromArgb(
+                255,
+                0xC1,
+                0xCB,
+                0xD1));
+
+        SetSolidBrushColor(
+            "BandaActionDisabledBackgroundBrush",
+            Windows.UI.Color.FromArgb(
+                0x15,
+                0x1D,
+                0x26,
+                0x2F));
+
+        SetSolidBrushColor(
+            "BandaActionDisabledForegroundBrush",
+            Windows.UI.Color.FromArgb(
+                255,
+                0x65,
+                0x74,
+                0x7D));
+
+        SetSolidBrushColor(
+            "BandaActionDisabledBorderBrush",
+            Windows.UI.Color.FromArgb(
+                0x35,
+                0x42,
+                0x4E,
+                0x59));
+
+        SetSolidBrushColor(
+            "BandaPopupBackdropBrush",
+            Windows.UI.Color.FromArgb(
+                0xB3,
+                0x08,
+                0x0C,
+                0x11));
+
+        SetSolidBrushColor(
+            "BandaDangerBrush",
+            Windows.UI.Color.FromArgb(
+                255,
+                0xFF,
+                0x7B,
+                0x7B));
+
+        SetSolidBrushColor(
+            "BandaDangerSoftBrush",
+            Windows.UI.Color.FromArgb(
+                0x24,
+                0xFF,
+                0x7B,
+                0x7B));
+    }
+
+    private static bool IsWindowsLightTheme()
+    {
+        try
+        {
+            using var key =
+                Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+
+            var value =
+                key?.GetValue(
+                    "AppsUseLightTheme");
+
+            return value is int intValue &&
+                   intValue != 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static Windows.UI.Color GetReadableForeground(
