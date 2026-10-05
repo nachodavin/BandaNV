@@ -1082,8 +1082,6 @@ public sealed partial class SettingsPage : Page
             Theme = ThemeValueText.Text,
             PrimaryColor = PrimaryColorHexText.Text,
             SecondaryColor = SecondaryColorHexText.Text,
-            Animations =
-                global::BandaNV.App.App.Settings.Current.Animations,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
