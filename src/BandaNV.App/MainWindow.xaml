@@ -150,9 +150,8 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="2">
-                    <!-- Quick Update Status
-                         Estado visual listo para conectarse al updater de v2.0.
-                         Por ahora abre Configuración, donde vivirán también las opciones nativas. -->
+                    <!-- Estado rápido del actualizador. Solo aparece cuando
+                         GitHub Releases informa una versión estable más nueva. -->
                     <Button
                         x:Name="QuickUpdateButton"
                         Click="QuickUpdateButton_Click"
