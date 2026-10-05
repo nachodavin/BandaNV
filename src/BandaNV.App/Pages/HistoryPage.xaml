@@ -30,7 +30,7 @@
                 FontSize="14" />
         </StackPanel>
 
-        <!-- Métricas del historial: datos de maqueta hasta conectar logs reales -->
+        <!-- Métricas del historial real -->
         <Grid
             Grid.Row="1"
             ColumnSpacing="12">
@@ -50,7 +50,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="TOTAL EJECUCIONES" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
-                    <TextBlock Grid.Row="1" Text="4" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="HistoryTotalExecutionsText" Grid.Row="1" Text="0" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <TextBlock Grid.Row="2" Text="registradas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
             </Border>
@@ -63,7 +63,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="ARCHIVOS ORGANIZADOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
-                    <TextBlock Grid.Row="1" Text="103" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="HistoryTotalFilesText" Grid.Row="1" Text="0" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <TextBlock Grid.Row="2" Text="movimientos históricos" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
             </Border>
@@ -76,7 +76,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="TAMAÑO MOVIDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
-                    <TextBlock Grid.Row="1" Text="5.32 GB" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="HistoryTotalSizeText" Grid.Row="1" Text="0 B" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <TextBlock Grid.Row="2" Text="acumulado" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
             </Border>
@@ -96,8 +96,8 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="ÚLTIMA ORGANIZACIÓN" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
-                    <TextBlock Grid.Row="1" Text="04/10 · 00:47:18" Foreground="{StaticResource BandaTextBrush}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <TextBlock Grid.Row="2" Text="34 archivos · 1.8 GB" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                    <TextBlock x:Name="HistoryLastOrganizationText" Grid.Row="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="HistoryLastOrganizationDetailText" Grid.Row="2" Text="Sin ejecuciones" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
             </Border>
         </Grid>
@@ -134,7 +134,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
                     <TextBlock
                         x:Name="HistoryResultCountText"
-                        Text="4"
+                        Text="0"
                         Foreground="{StaticResource BandaTextBrush}"
                         FontWeight="SemiBold" />
                     <TextBlock
