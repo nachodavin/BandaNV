@@ -697,7 +697,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <TextBlock Text="Incluir subcarpetas al analizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Buscar archivos también dentro de subdirectorios." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            <TextBlock Text="Buscar archivos individuales dentro de subdirectorios cuando no se organizan carpetas completas." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="IncludeSubfoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
