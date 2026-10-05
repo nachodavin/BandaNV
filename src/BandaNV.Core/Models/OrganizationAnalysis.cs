@@ -11,7 +11,8 @@ public sealed record OrganizationAnalysisFile(
     string? CategoryId,
     string? CategoryName,
     int? CategoryOrder,
-    string? DestinationPath)
+    string? DestinationPath,
+    bool HasDestinationConflict)
 {
     public bool IsClassified =>
         CategoryOrder.HasValue &&
