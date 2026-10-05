@@ -1754,6 +1754,8 @@ public sealed partial class SearchPage : Page
                     paths,
                     targetCategory);
 
+            await ApplySearchHistoryRetentionAsync();
+
             var completed = result.CompletedCount;
             var issues = result.IssueCount;
 
@@ -1792,6 +1794,8 @@ public sealed partial class SearchPage : Page
                     global::BandaNV.App.App.Settings.Current,
                     file.FilePath,
                     proposedName);
+
+            await ApplySearchHistoryRetentionAsync();
 
             var item = result.Items.Single();
 
@@ -1838,6 +1842,8 @@ public sealed partial class SearchPage : Page
                     global::BandaNV.App.App.Settings.Current,
                     paths);
 
+            await ApplySearchHistoryRetentionAsync();
+
             var completed = result.CompletedCount;
             var issues = result.IssueCount;
 
@@ -1867,6 +1873,20 @@ public sealed partial class SearchPage : Page
         finally
         {
             SetSearchManageBusyState(false);
+        }
+    }
+
+    private static async Task ApplySearchHistoryRetentionAsync()
+    {
+        try
+        {
+            await global::BandaNV.App.App.History.ApplyRetentionAsync(
+                global::BandaNV.App.App.Settings.Current);
+        }
+        catch
+        {
+            // La acción de Buscar ya terminó. Un fallo de mantenimiento
+            // no cambia su resultado y podrá reintentarse más adelante.
         }
     }
 
