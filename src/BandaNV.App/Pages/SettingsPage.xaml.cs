@@ -483,7 +483,9 @@ public sealed partial class SettingsPage : Page
         ShowSettingsFeedback($"Extensiones sin categoría: {value}.");
     }
 
-    private void HistoryRetentionOptionButton_Click(object sender, RoutedEventArgs e)
+    private async void HistoryRetentionOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string value })
         {
@@ -492,14 +494,78 @@ public sealed partial class SettingsPage : Page
 
         HistoryRetentionValueText.Text = value;
         HistoryRetentionFlyout.Hide();
-        QueuePersistSettings();
-        ShowSettingsFeedback($"Conservación del historial: {value}.");
+
+        _saveDebounceCts?.Cancel();
+        _saveDebounceCts?.Dispose();
+        _saveDebounceCts = null;
+
+        try
+        {
+            var snapshot =
+                CapturePersistentSettings();
+
+            await global::BandaNV.App.App.Settings.SaveAsync(
+                snapshot);
+
+            var result =
+                await global::BandaNV.App.App.History.ApplyRetentionAsync(
+                    global::BandaNV.App.App.Settings.Current);
+
+            var removed =
+                result.DeletedExecutions +
+                result.DeletedLogs +
+                result.DeletedBackupDirectories;
+
+            ShowSettingsFeedback(
+                removed == 0
+                    ? $"Conservación del historial: {value}. No había archivos vencidos para limpiar."
+                    : $"Conservación del historial: {value}. Se limpiaron {result.DeletedExecutions} ejecuciones, {result.DeletedLogs} logs y {result.DeletedBackupDirectories} carpetas de backup.");
+        }
+        catch (Exception ex)
+        {
+            ShowSettingsFeedback(
+                $"La política se actualizó en pantalla, pero no se pudo completar el mantenimiento: {ex.Message}");
+        }
     }
 
-    private void GenericSettingToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void GenericSettingToggle_Toggled(
+        object sender,
+        RoutedEventArgs e)
     {
         if (!_isPageReady)
         {
+            return;
+        }
+
+        if (ReferenceEquals(sender, UndoToggle))
+        {
+            _saveDebounceCts?.Cancel();
+            _saveDebounceCts?.Dispose();
+            _saveDebounceCts = null;
+
+            try
+            {
+                var snapshot =
+                    CapturePersistentSettings();
+
+                await global::BandaNV.App.App.Settings.SaveAsync(
+                    snapshot);
+
+                var result =
+                    await global::BandaNV.App.App.History.ApplyRetentionAsync(
+                        global::BandaNV.App.App.Settings.Current);
+
+                ShowSettingsFeedback(
+                    result.DeletedBackupDirectories > 0
+                        ? $"Preferencia actualizada. Se liberaron {result.DeletedBackupDirectories} carpetas de backup que ya no eran necesarias."
+                        : "Preferencia actualizada.");
+            }
+            catch (Exception ex)
+            {
+                ShowSettingsFeedback(
+                    $"No se pudo completar el mantenimiento del historial: {ex.Message}");
+            }
+
             return;
         }
 
@@ -542,8 +608,8 @@ public sealed partial class SettingsPage : Page
         OpenSettingsConfirmation(
             SettingsConfirmMode.ClearHistory,
             "Limpiar historial",
-            "Historial y logs",
-            "¿Querés limpiar el historial guardado? En esta maqueta la confirmación queda preparada; el borrado persistente se conectará cuando Historial deje de usar datos de prueba.",
+            "Historial, logs y backups",
+            "¿Querés eliminar el historial guardado, sus logs y los backups protegidos asociados? Las ejecuciones que estuvieran activas se conservarán por seguridad. Esta acción no se puede deshacer.",
             "Limpiar historial");
     }
 
@@ -785,14 +851,47 @@ public sealed partial class SettingsPage : Page
         SettingsConfirmOverlay.Visibility = Visibility.Visible;
     }
 
-    private void SettingsConfirmDangerButton_Click(object sender, RoutedEventArgs e)
+    private async void SettingsConfirmDangerButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
         switch (_confirmMode)
         {
             case SettingsConfirmMode.ClearHistory:
-                CloseSettingsConfirmation();
-                ShowSettingsFeedback(
-                    "Confirmación aplicada en la maqueta. El historial persistente se limpiará desde este mismo flujo.");
+                SettingsConfirmDangerButton.IsEnabled = false;
+                SettingsConfirmSecondaryButton.IsEnabled = false;
+
+                try
+                {
+                    var result =
+                        await global::BandaNV.App.App.History.ClearAsync();
+
+                    CloseSettingsConfirmation();
+
+                    var message =
+                        $"Historial limpiado: {result.DeletedExecutions} ejecuciones, " +
+                        $"{result.DeletedLogs} logs y " +
+                        $"{result.DeletedBackupDirectories} carpetas de backup eliminadas.";
+
+                    if (result.ProtectedExecutions > 0)
+                    {
+                        message +=
+                            $" {result.ProtectedExecutions} ejecución{(result.ProtectedExecutions == 1 ? string.Empty : "es")} activa{(result.ProtectedExecutions == 1 ? string.Empty : "s")} se conservó{(result.ProtectedExecutions == 1 ? string.Empty : "aron")} por seguridad.";
+                    }
+
+                    ShowSettingsFeedback(message);
+                }
+                catch (Exception ex)
+                {
+                    CloseSettingsConfirmation();
+                    ShowSettingsFeedback(
+                        $"No se pudo completar la limpieza del historial: {ex.Message}");
+                }
+                finally
+                {
+                    SettingsConfirmDangerButton.IsEnabled = true;
+                    SettingsConfirmSecondaryButton.IsEnabled = true;
+                }
                 break;
 
             case SettingsConfirmMode.ResetSettings:
