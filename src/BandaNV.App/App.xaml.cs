@@ -1,3 +1,4 @@
+using BandaNV.App.Services;
 using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
 
@@ -29,6 +30,9 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         await Settings.LoadAsync();
+
+        AppearanceService.ApplySettings(
+            Settings.Current);
 
         try
         {
