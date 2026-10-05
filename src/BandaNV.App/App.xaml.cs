@@ -68,11 +68,7 @@ public partial class App : Application
         }
 
         _ = Updates.CleanupStaleRunnerDirectoriesAsync();
-
-        if (Settings.Current.AutoUpdate)
-        {
-            _ = CheckForUpdatesOnStartupAsync();
-        }
+        _ = CheckForUpdatesOnStartupAsync();
     }
 
     private static async Task CheckForUpdatesOnStartupAsync()
@@ -85,8 +81,17 @@ public partial class App : Application
             if (result.Status ==
                 BandaNV.Core.Models.UpdateCheckStatus.Available)
             {
-                MainWindowInstance?.ShowQuickUpdate(
-                    result.AvailableVersion);
+                MainWindowInstance?.SetAvailableUpdate(
+                    result,
+                    showModal:
+                        Settings.Current.AutoUpdate);
+            }
+            else if (result.Status is
+                     BandaNV.Core.Models.UpdateCheckStatus.Current or
+                     BandaNV.Core.Models.UpdateCheckStatus.LocalNewer or
+                     BandaNV.Core.Models.UpdateCheckStatus.FailedSuppressed)
+            {
+                MainWindowInstance?.ClearAvailableUpdate();
             }
         }
         catch
