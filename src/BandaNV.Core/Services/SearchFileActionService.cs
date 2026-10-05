@@ -443,7 +443,14 @@ public sealed class SearchFileActionService
             StartedAt = startedAt,
             FinishedAt = DateTime.Now,
             SourceFolder = destinationRoot,
-            DestinationFolder = destinationRoot,
+            DestinationFolder =
+                action.Equals(
+                    "DELETE",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? settings.UseRecycleBin
+                        ? "Papelera de reciclaje"
+                        : "Eliminación permanente"
+                    : destinationRoot,
             ConflictBehavior =
                 GetAuditBehavior(
                     settings,
