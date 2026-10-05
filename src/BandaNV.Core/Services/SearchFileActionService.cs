@@ -40,14 +40,13 @@ public sealed class SearchFileActionService
                 cancellationToken),
             cancellationToken);
 
-        await PersistAuditAsync(
+        await TryPersistAuditAsync(
             settings,
             "CHANGE_CATEGORY",
             startedAt,
             result,
             auditSources,
-            targetCategory,
-            cancellationToken);
+            targetCategory);
 
         return result;
     }
@@ -74,14 +73,13 @@ public sealed class SearchFileActionService
                 cancellationToken),
             cancellationToken);
 
-        await PersistAuditAsync(
+        await TryPersistAuditAsync(
             settings,
             "RENAME",
             startedAt,
             result,
             auditSources,
-            targetCategory: null,
-            cancellationToken);
+            targetCategory: null);
 
         return result;
     }
@@ -107,14 +105,13 @@ public sealed class SearchFileActionService
                 cancellationToken),
             cancellationToken);
 
-        await PersistAuditAsync(
+        await TryPersistAuditAsync(
             settings,
             "DELETE",
             startedAt,
             result,
             auditSources,
-            targetCategory: null,
-            cancellationToken);
+            targetCategory: null);
 
         return result;
     }
@@ -386,6 +383,33 @@ public sealed class SearchFileActionService
         }
 
         return new SearchFileActionResult(results);
+    }
+
+    private static async Task TryPersistAuditAsync(
+        AppSettings settings,
+        string action,
+        DateTime startedAt,
+        SearchFileActionResult result,
+        IReadOnlyList<SearchAuditSourceInfo> auditSources,
+        CategorySettings? targetCategory)
+    {
+        try
+        {
+            await PersistAuditAsync(
+                settings,
+                action,
+                startedAt,
+                result,
+                auditSources,
+                targetCategory,
+                CancellationToken.None);
+        }
+        catch
+        {
+            // La auditoría es secundaria al resultado físico. Si el archivo
+            // ya fue modificado correctamente, un fallo de log no debe hacer
+            // que Buscar informe una operación fallida.
+        }
     }
 
     private static async Task PersistAuditAsync(
