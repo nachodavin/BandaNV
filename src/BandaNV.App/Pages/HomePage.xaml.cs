@@ -418,41 +418,28 @@ public sealed partial class HomePage : Page
     private void UpdateLastOrganization(
         IReadOnlyList<OrganizationExecutionRecord> records)
     {
-        var last = records
+        var organizations = records
             .Where(IsOrganization)
             .OrderByDescending(record => record.StartedAt)
-            .FirstOrDefault();
-
-        if (last is null)
-        {
-            HomeLastOrganizationHeaderText.Text = "—";
-            HomeLastMovedSizeText.Text = "—";
-            HomeLastMovedSizeDetailText.Text =
-                "Sin organizaciones todavía";
-            return;
-        }
-
-        var movedItems = last.Items
-            .Where(item =>
-                item.Status ==
-                OrganizationExecutionItemStatus.Moved)
             .ToList();
 
-        var movedSize =
-            movedItems.Sum(item => item.SizeBytes);
+        HomeTotalExecutionsText.Text =
+            organizations.Count.ToString(
+                CultureInfo.CurrentCulture);
+
+        HomeTotalExecutionsDetailText.Text =
+            organizations.Count == 1
+                ? "acción de organizar registrada"
+                : "acciones de organizar registradas";
+
+        var last = organizations.FirstOrDefault();
 
         HomeLastOrganizationHeaderText.Text =
-            last.StartedAt.ToString(
-                "dd/MM · HH:mm:ss",
-                EsAr);
-
-        HomeLastMovedSizeText.Text =
-            FormatBytes(movedSize);
-
-        HomeLastMovedSizeDetailText.Text =
-            movedItems.Count == 1
-                ? "1 archivo"
-                : $"{movedItems.Count} archivos";
+            last is null
+                ? "—"
+                : last.StartedAt.ToString(
+                    "dd/MM · HH:mm:ss",
+                    EsAr);
     }
 
     private void BuildCurrentLibrary(
