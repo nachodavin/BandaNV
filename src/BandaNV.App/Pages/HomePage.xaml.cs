@@ -21,6 +21,7 @@ public sealed partial class HomePage : Page
     private FileSystemWatcher? _sourceWatcher;
     private FileSystemWatcher? _destinationWatcher;
     private CancellationTokenSource? _liveRefreshDebounceCts;
+    private bool _isHomeLoaded;
     private int _currentOrganizedFileCount;
     private long _currentOrganizedSize;
 
@@ -35,6 +36,8 @@ public sealed partial class HomePage : Page
         object sender,
         RoutedEventArgs e)
     {
+        _isHomeLoaded = true;
+
         ConfigureLiveWatchers(
             global::BandaNV.App.App.Settings.Current);
 
@@ -45,6 +48,7 @@ public sealed partial class HomePage : Page
         object sender,
         RoutedEventArgs e)
     {
+        _isHomeLoaded = false;
         StopLiveWatchers();
     }
 
@@ -207,7 +211,7 @@ public sealed partial class HomePage : Page
         DispatcherQueue.TryEnqueue(async () =>
         {
             if (cancellationToken.IsCancellationRequested ||
-                !IsLoaded)
+                !_isHomeLoaded)
             {
                 return;
             }
