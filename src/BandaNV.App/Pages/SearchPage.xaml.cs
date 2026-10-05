@@ -1088,13 +1088,12 @@ public sealed partial class SearchPage : Page
         SearchOpenFileButton.IsEnabled = true;
         SearchOpenLocationButton.IsEnabled = true;
         SearchCopyPathButton.IsEnabled = true;
-        SearchChangeCategoryButton.IsEnabled = false;
-        SearchRenameButton.IsEnabled = false;
-        SearchDeleteButton.IsEnabled = false;
+        SearchChangeCategoryButton.IsEnabled = true;
+        SearchRenameButton.IsEnabled = true;
+        SearchDeleteButton.IsEnabled = true;
 
-        SearchDetailActionStatusText.Text =
-            "Resultados reales del destino. Las acciones que modifican archivos se conectarán con su motor seguro en el próximo bloque.";
-        SearchDetailActionStatusText.Visibility = Visibility.Visible;
+        SearchDetailActionStatusText.Text = string.Empty;
+        SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
     }
 
     private void ShowMultipleSearchFileDetails(IReadOnlyList<SearchFileResult> files)
@@ -1141,12 +1140,12 @@ public sealed partial class SearchPage : Page
         SearchOpenFileButton.IsEnabled = false;
         SearchOpenLocationButton.IsEnabled = false;
         SearchCopyPathButton.IsEnabled = true;
-        SearchChangeCategoryButton.IsEnabled = false;
+        SearchChangeCategoryButton.IsEnabled = true;
         SearchRenameButton.IsEnabled = false;
-        SearchDeleteButton.IsEnabled = false;
+        SearchDeleteButton.IsEnabled = true;
 
         SearchDetailActionStatusText.Text =
-            "Las rutas son reales. Copiar rutas está disponible; las acciones que modifican archivos se conectarán con su motor seguro en el próximo bloque.";
+            "Abrir archivo, abrir ubicación y renombrar requieren una selección individual.";
         SearchDetailActionStatusText.Visibility = Visibility.Visible;
     }
 
@@ -1353,7 +1352,7 @@ public sealed partial class SearchPage : Page
         SearchManageRenameTextBox.Focus(FocusState.Programmatic);
     }
 
-    private void SearchDeleteButton_Click(object sender, RoutedEventArgs e)
+    private async void SearchDeleteButton_Click(object sender, RoutedEventArgs e)
     {
         var files = GetSelectedSearchFiles();
         if (files.Count == 0)
@@ -1383,10 +1382,23 @@ public sealed partial class SearchPage : Page
         SearchManageRenamePanel.Visibility = Visibility.Collapsed;
         SearchManageDeletePanel.Visibility = Visibility.Visible;
 
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
         SearchManageDeleteText.Text =
             files.Count == 1
-                ? $"¿Eliminar \"{files[0].Name}\"?"
-                : $"¿Eliminar los {files.Count} archivos seleccionados?";
+                ? settings.UseRecycleBin
+                    ? $"¿Enviar \"{files[0].Name}\" a la Papelera?"
+                    : $"¿Eliminar permanentemente \"{files[0].Name}\"?"
+                : settings.UseRecycleBin
+                    ? $"¿Enviar los {files.Count} archivos seleccionados a la Papelera?"
+                    : $"¿Eliminar permanentemente los {files.Count} archivos seleccionados?";
+
+        if (!settings.UseRecycleBin)
+        {
+            SearchManageDeleteText.Text +=
+                " Esta acción no pasa por la Papelera.";
+        }
 
         SearchManagePrimaryButton.Visibility = Visibility.Collapsed;
         SearchManageDangerButton.Content =
@@ -1394,6 +1406,13 @@ public sealed partial class SearchPage : Page
         SearchManageDangerButton.Visibility = Visibility.Visible;
 
         SearchManageValidationText.Visibility = Visibility.Collapsed;
+
+        if (!settings.ConfirmDestructiveActions)
+        {
+            await ExecuteDeleteManagedFilesAsync();
+            return;
+        }
+
         SearchManageOverlay.Visibility = Visibility.Visible;
     }
 
@@ -1453,7 +1472,7 @@ public sealed partial class SearchPage : Page
         SearchManageCategoryFlyout.Hide();
     }
 
-    private void SearchManagePrimaryButton_Click(object sender, RoutedEventArgs e)
+    private async void SearchManagePrimaryButton_Click(object sender, RoutedEventArgs e)
     {
         if (_managedSearchFiles.Count == 0)
         {
@@ -1474,14 +1493,22 @@ public sealed partial class SearchPage : Page
                     return;
                 }
 
-                foreach (var file in _managedSearchFiles)
+                var targetCategory =
+                    global::BandaNV.App.App.Categories.GetAll()
+                        .FirstOrDefault(category =>
+                            category.Name.Equals(
+                                _pendingSearchCategoryName,
+                                StringComparison.CurrentCultureIgnoreCase));
+
+                if (targetCategory is null)
                 {
-                    file.ChangeCategory(_pendingSearchCategoryName);
+                    SearchManageValidationText.Text =
+                        "La categoría elegida ya no existe.";
+                    SearchManageValidationText.Visibility = Visibility.Visible;
+                    return;
                 }
 
-                CloseSearchManageOverlay();
-                LoadCategories(GetCurrentCategories());
-                RefreshSearchResults();
+                await ExecuteChangeCategoryAsync(targetCategory);
                 break;
 
             case SearchManageMode.Rename:
@@ -1509,14 +1536,14 @@ public sealed partial class SearchPage : Page
                     return;
                 }
 
-                _managedSearchFiles[0].Rename(proposedName);
-                CloseSearchManageOverlay();
-                RefreshSearchResults();
+                await ExecuteRenameAsync(
+                    _managedSearchFiles[0],
+                    proposedName);
                 break;
         }
     }
 
-    private void SearchManageDangerButton_Click(object sender, RoutedEventArgs e)
+    private async void SearchManageDangerButton_Click(object sender, RoutedEventArgs e)
     {
         if (_searchManageMode != SearchManageMode.Delete ||
             _managedSearchFiles.Count == 0)
@@ -1525,16 +1552,148 @@ public sealed partial class SearchPage : Page
             return;
         }
 
-        foreach (var file in _managedSearchFiles.ToList())
+        await ExecuteDeleteManagedFilesAsync();
+    }
+
+    private async Task ExecuteChangeCategoryAsync(
+        CategorySettings targetCategory)
+    {
+        SetSearchManageBusyState(true);
+
+        try
         {
-            _allFiles.Remove(file);
+            var paths = _managedSearchFiles
+                .Select(file => file.FilePath)
+                .ToList();
+
+            var result =
+                await global::BandaNV.App.App.SearchActions.MoveToCategoryAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    paths,
+                    targetCategory);
+
+            var completed = result.CompletedCount;
+            var issues = result.IssueCount;
+
+            CloseSearchManageOverlay();
+            await LoadRealSearchDataAsync();
+
+            ShowSearchDetailStatus(
+                issues == 0
+                    ? completed == 1
+                        ? $"Archivo movido a {targetCategory.Name}."
+                        : $"{completed} archivos movidos a {targetCategory.Name}."
+                    : $"{completed} movidos · {issues} no se modificaron por conflicto o error.");
         }
+        catch (Exception ex)
+        {
+            SearchManageValidationText.Text =
+                $"No se pudo cambiar la categoría: {ex.Message}";
+            SearchManageValidationText.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            SetSearchManageBusyState(false);
+        }
+    }
 
-        _selectedSearchFile = null;
+    private async Task ExecuteRenameAsync(
+        SearchFileResult file,
+        string proposedName)
+    {
+        SetSearchManageBusyState(true);
 
-        CloseSearchManageOverlay();
-        LoadCategories(GetCurrentCategories());
-        RefreshSearchResults();
+        try
+        {
+            var result =
+                await global::BandaNV.App.App.SearchActions.RenameAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    file.FilePath,
+                    proposedName);
+
+            var item = result.Items.Single();
+
+            if (item.Status != SearchFileActionStatus.Completed)
+            {
+                SearchManageValidationText.Text =
+                    item.Message ?? "No se pudo renombrar el archivo.";
+                SearchManageValidationText.Visibility = Visibility.Visible;
+                return;
+            }
+
+            CloseSearchManageOverlay();
+            await LoadRealSearchDataAsync();
+            ShowSearchDetailStatus("Archivo renombrado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            SearchManageValidationText.Text =
+                $"No se pudo renombrar: {ex.Message}";
+            SearchManageValidationText.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            SetSearchManageBusyState(false);
+        }
+    }
+
+    private async Task ExecuteDeleteManagedFilesAsync()
+    {
+        SetSearchManageBusyState(true);
+
+        try
+        {
+            var files = _managedSearchFiles.ToList();
+            var paths = files
+                .Select(file => file.FilePath)
+                .ToList();
+
+            var useRecycleBin =
+                global::BandaNV.App.App.Settings.Current.UseRecycleBin;
+
+            var result =
+                await global::BandaNV.App.App.SearchActions.DeleteAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    paths);
+
+            var completed = result.CompletedCount;
+            var issues = result.IssueCount;
+
+            CloseSearchManageOverlay();
+            await LoadRealSearchDataAsync();
+
+            var destinationText = useRecycleBin
+                ? "enviados a la Papelera"
+                : "eliminados permanentemente";
+
+            ShowSearchDetailStatus(
+                issues == 0
+                    ? $"{completed} archivo{(completed == 1 ? string.Empty : "s")} {destinationText}."
+                    : $"{completed} {destinationText} · {issues} no pudieron eliminarse.");
+        }
+        catch (Exception ex)
+        {
+            SearchManageValidationText.Text =
+                $"No se pudo eliminar: {ex.Message}";
+            SearchManageValidationText.Visibility = Visibility.Visible;
+
+            if (SearchManageOverlay.Visibility != Visibility.Visible)
+            {
+                SearchManageOverlay.Visibility = Visibility.Visible;
+            }
+        }
+        finally
+        {
+            SetSearchManageBusyState(false);
+        }
+    }
+
+    private void SetSearchManageBusyState(bool isBusy)
+    {
+        SearchManagePrimaryButton.IsEnabled = !isBusy;
+        SearchManageDangerButton.IsEnabled = !isBusy;
+        SearchManageCategorySelectorButton.IsEnabled = !isBusy;
+        SearchManageRenameTextBox.IsEnabled = !isBusy;
     }
 
     private void SearchManageBackdrop_Tapped(
@@ -1559,6 +1718,7 @@ public sealed partial class SearchPage : Page
         _pendingSearchCategoryName = null;
         _managedSearchFiles.Clear();
         SearchManageDangerButton.Content = "Eliminar";
+        SetSearchManageBusyState(false);
     }
 
     private static string FormatSearchBytes(long bytes)
