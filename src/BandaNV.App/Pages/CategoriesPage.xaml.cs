@@ -20,6 +20,9 @@ public sealed partial class CategoriesPage : Page
     private CategoryAdminItem? _editorCategory;
     private CategoryAdminItem? _pendingDeleteCategory;
     private CategoryEditorMode _editorMode = CategoryEditorMode.Create;
+    private string _editorCategoryId = string.Empty;
+    private string _editorColorHex = "#4FE0C6";
+    private bool _isUpdatingCategoryColor;
 
     public CategoriesPage()
     {
@@ -52,7 +55,8 @@ public sealed partial class CategoriesPage : Page
                 CategoryService.GetFolderPath(
                     destinationRoot,
                     category.Order,
-                    category.Name)));
+                    category.Name),
+                category.ColorHex));
         }
     }
 
@@ -172,6 +176,7 @@ public sealed partial class CategoriesPage : Page
     private void ShowCategoryDetails(CategoryAdminItem category)
     {
         CategoryDetailNameText.Text = category.Name;
+        CategoryDetailColorDot.Fill = category.ColorBrush;
         CategoryDetailOrderText.Text = $"#{category.Order:00}";
         CategoryDetailExtensionCountText.Text =
             category.Extensions.Count.ToString(CultureInfo.CurrentCulture);
@@ -196,6 +201,8 @@ public sealed partial class CategoriesPage : Page
     private void ClearCategoryDetails()
     {
         CategoryDetailNameText.Text = "Seleccioná una categoría";
+        CategoryDetailColorDot.Fill =
+            (Brush)Application.Current.Resources["BandaMutedBrush"];
         CategoryDetailOrderText.Text = "—";
         CategoryDetailExtensionCountText.Text = "—";
         CategoryDetailFileCountText.Text = "—";
@@ -359,6 +366,28 @@ public sealed partial class CategoriesPage : Page
         CategoryEditorNameTextBox.IsReadOnly =
             mode == CategoryEditorMode.Extensions;
 
+        _editorCategoryId =
+            mode is CategoryEditorMode.Create or CategoryEditorMode.Duplicate
+                ? Guid.NewGuid().ToString("D")
+                : category?.Id ?? Guid.NewGuid().ToString("D");
+
+        _editorColorHex =
+            mode is CategoryEditorMode.Create or CategoryEditorMode.Duplicate
+                ? CategoryColorPalette.Generate(
+                    _editorCategoryId,
+                    global::BandaNV.App.App.Settings.Current.SecondaryColor)
+                : CategoryColorPalette.NormalizeOrGenerate(
+                    category?.ColorHex,
+                    _editorCategoryId,
+                    global::BandaNV.App.App.Settings.Current.SecondaryColor);
+
+        CategoryEditorColorSection.Visibility =
+            mode == CategoryEditorMode.Extensions
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+        ApplyEditorColorToUi();
+
         switch (mode)
         {
             case CategoryEditorMode.Edit:
@@ -408,6 +437,78 @@ public sealed partial class CategoriesPage : Page
             CategoryEditorNameTextBox.SelectAll();
         }
     }
+
+    private void CategoryColorPicker_ColorChanged(
+        ColorPicker sender,
+        ColorChangedEventArgs args)
+    {
+        if (_isUpdatingCategoryColor)
+        {
+            return;
+        }
+
+        _editorColorHex = ToHex(args.NewColor);
+        CategoryEditorColorHexText.Text = _editorColorHex;
+        CategoryEditorColorPreview.Background =
+            new SolidColorBrush(args.NewColor);
+    }
+
+    private void ApplyEditorColorToUi()
+    {
+        if (!TryParseHexColor(
+                _editorColorHex,
+                out var color))
+        {
+            _editorColorHex =
+                CategoryColorPalette.Generate(
+                    _editorCategoryId,
+                    global::BandaNV.App.App.Settings.Current.SecondaryColor);
+
+            TryParseHexColor(
+                _editorColorHex,
+                out color);
+        }
+
+        _isUpdatingCategoryColor = true;
+        CategoryColorPicker.Color = color;
+        _isUpdatingCategoryColor = false;
+
+        CategoryEditorColorHexText.Text =
+            _editorColorHex;
+
+        CategoryEditorColorPreview.Background =
+            new SolidColorBrush(color);
+    }
+
+    private static bool TryParseHexColor(
+        string? value,
+        out Windows.UI.Color color)
+    {
+        color = Windows.UI.Color.FromArgb(
+            255,
+            0x4F,
+            0xE0,
+            0xC6);
+
+        if (!CategoryColorPalette.TryNormalizeHex(
+                value,
+                out var normalized))
+        {
+            return false;
+        }
+
+        color = Windows.UI.Color.FromArgb(
+            255,
+            Convert.ToByte(normalized.Substring(1, 2), 16),
+            Convert.ToByte(normalized.Substring(3, 2), 16),
+            Convert.ToByte(normalized.Substring(5, 2), 16));
+
+        return true;
+    }
+
+    private static string ToHex(
+        Windows.UI.Color color) =>
+        $"#{color.R:X2}{color.G:X2}{color.B:X2}";
 
     private void BuildCategoryEditorExtensionBadges()
     {
@@ -663,7 +764,7 @@ public sealed partial class CategoriesPage : Page
                 global::BandaNV.App.App.Settings.Current.DestinationFolder;
 
             savedCategory = new CategoryAdminItem(
-                Guid.NewGuid().ToString("D"),
+                _editorCategoryId,
                 name,
                 _editorExtensions,
                 order,
@@ -671,7 +772,8 @@ public sealed partial class CategoriesPage : Page
                 CategoryService.GetFolderPath(
                     destinationRoot,
                     order,
-                    name));
+                    name),
+                _editorColorHex);
 
             _allCategories.Add(savedCategory);
         }
@@ -685,6 +787,7 @@ public sealed partial class CategoriesPage : Page
 
             _editorCategory.Name = name;
             _editorCategory.ReplaceExtensions(_editorExtensions);
+            _editorCategory.SetColorHex(_editorColorHex);
             savedCategory = _editorCategory;
         }
 
@@ -733,6 +836,7 @@ public sealed partial class CategoriesPage : Page
         _editorExtensions.Clear();
         _editorCategory = null;
         _editorMode = CategoryEditorMode.Create;
+        _editorCategoryId = string.Empty;
     }
 
     private void DeleteCategoryButton_Click(object sender, RoutedEventArgs e)
@@ -910,10 +1014,15 @@ public sealed class CategoryAdminItem
         IEnumerable<string> extensions,
         int order,
         int fileCount,
-        string folderPath)
+        string folderPath,
+        string colorHex)
     {
         Id = id;
         Name = name;
+        ColorHex = CategoryColorPalette.NormalizeOrGenerate(
+            colorHex,
+            id,
+            global::BandaNV.App.App.Settings.Current.SecondaryColor);
         Extensions = extensions
             .Select(extension =>
                 extension.StartsWith('.')
@@ -929,6 +1038,8 @@ public sealed class CategoryAdminItem
 
     public string Id { get; }
     public string Name { get; set; }
+    public string ColorHex { get; private set; }
+    public Brush ColorBrush => CreateColorBrush(ColorHex);
     public List<string> Extensions { get; private set; }
     public int Order { get; set; }
     public int FileCount { get; private set; }
@@ -962,6 +1073,32 @@ public sealed class CategoryAdminItem
             .ToList();
     }
 
+    public void SetColorHex(string colorHex)
+    {
+        ColorHex = CategoryColorPalette.NormalizeOrGenerate(
+            colorHex,
+            Id,
+            global::BandaNV.App.App.Settings.Current.SecondaryColor);
+    }
+
+    private static Brush CreateColorBrush(string colorHex)
+    {
+        if (!CategoryColorPalette.TryNormalizeHex(
+                colorHex,
+                out var normalized))
+        {
+            return (Brush)Application.Current.Resources[
+                "BandaAccentBrush"];
+        }
+
+        return new SolidColorBrush(
+            Windows.UI.Color.FromArgb(
+                255,
+                Convert.ToByte(normalized.Substring(1, 2), 16),
+                Convert.ToByte(normalized.Substring(3, 2), 16),
+                Convert.ToByte(normalized.Substring(5, 2), 16)));
+    }
+
     public void UpdateDerivedState(string destinationRoot)
     {
         FolderPath = CategoryService.GetFolderPath(
@@ -980,5 +1117,6 @@ public sealed class CategoryAdminItem
             Id,
             Name,
             Extensions,
-            Order);
+            Order,
+            ColorHex);
 }
