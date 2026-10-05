@@ -5,6 +5,11 @@
     xmlns:local="using:BandaNV.App.Pages"
     Background="Transparent">
 
+    <Page.Resources>
+        <SolidColorBrush x:Key="CategoriesWarningBrush" Color="#F2B85B" />
+        <SolidColorBrush x:Key="CategoriesWarningSoftBrush" Color="#24F2B85B" />
+    </Page.Resources>
+
     <Grid>
         <Grid
             Padding="34,32,34,40"
@@ -102,29 +107,63 @@
                 </Border>
 
                 <Border
+                    x:Name="CategoriesUnassignedCard"
                     Grid.Column="3"
+                    Style="{StaticResource BandaCardStyle}"
                     Padding="18"
-                    MinHeight="104"
-                    CornerRadius="18"
-                    Background="{StaticResource BandaAccentCardBrush}"
-                    BorderBrush="{StaticResource BandaBorderStrongBrush}"
-                    BorderThickness="1">
+                    MinHeight="104">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Text="SIN CATEGORÍA" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                x:Name="CategoriesUnassignedTitleText"
+                                Text="ARCHIVOS SIN ASIGNAR"
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="13" />
+
+                            <Border
+                                x:Name="CategoriesUnassignedIconBorder"
+                                Grid.Column="1"
+                                Width="30"
+                                Height="30"
+                                CornerRadius="10"
+                                Background="{StaticResource BandaNavIconBrush}">
+                                <TextBlock
+                                    x:Name="CategoriesUnassignedIconText"
+                                    Text="?"
+                                    Foreground="{StaticResource BandaAccentBrush}"
+                                    FontSize="15"
+                                    FontWeight="SemiBold"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+
                         <TextBlock
-                            x:Name="UnassignedExtensionsText"
+                            x:Name="UnassignedFilesText"
                             Grid.Row="1"
-                            Text="0"
+                            Text="—"
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="30"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Text="Extensiones detectadas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+
+                        <TextBlock
+                            x:Name="CategoriesUnassignedDetailText"
+                            Grid.Row="2"
+                            Text="Analizando origen..."
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="13" />
                     </Grid>
                 </Border>
             </Grid>
