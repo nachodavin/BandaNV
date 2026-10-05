@@ -515,14 +515,12 @@ public sealed class SearchFileActionService
         }
 
         var baseName =
-            $"BandaNV_{startedAt:dd-MM-yyyy____HH-mm-ss}";
+            BuildUniqueAuditBaseName(
+                startedAt);
 
         var logPath = Path.Combine(
             PortablePaths.LogsDirectory,
-            BuildUniqueFileName(
-                PortablePaths.LogsDirectory,
-                baseName,
-                ".txt"));
+            baseName + ".txt");
 
         await WriteTextAtomicAsync(
             logPath,
@@ -537,9 +535,7 @@ public sealed class SearchFileActionService
 
         var historyPath = Path.Combine(
             PortablePaths.HistoryDirectory,
-            Path.GetFileNameWithoutExtension(
-                logPath) +
-            ".json");
+            baseName + ".json");
 
         await WriteTextAtomicAsync(
             historyPath,
@@ -881,34 +877,27 @@ public sealed class SearchFileActionService
         }
     }
 
-    private static string BuildUniqueFileName(
-        string directory,
-        string baseName,
-        string extension)
+    private static string BuildUniqueAuditBaseName(
+        DateTime startedAt)
     {
-        var candidate =
-            baseName + extension;
-
-        if (!File.Exists(
-                Path.Combine(
-                    directory,
-                    candidate)))
-        {
-            return candidate;
-        }
-
+        var baseName =
+            $"BandaNV_{startedAt:dd-MM-yyyy____HH-mm-ss}";
+        var candidate = baseName;
         var index = 2;
 
-        do
+        while (File.Exists(
+                   Path.Combine(
+                       PortablePaths.LogsDirectory,
+                       candidate + ".txt")) ||
+               File.Exists(
+                   Path.Combine(
+                       PortablePaths.HistoryDirectory,
+                       candidate + ".json")))
         {
             candidate =
-                $"{baseName}__{index}{extension}";
+                $"{baseName}__{index}";
             index++;
         }
-        while (File.Exists(
-            Path.Combine(
-                directory,
-                candidate)));
 
         return candidate;
     }
