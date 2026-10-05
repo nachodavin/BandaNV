@@ -116,7 +116,7 @@ public sealed partial class HomePage : Page
         try
         {
             var expanded =
-                Path.GetFullPath(
+                System.IO.Path.GetFullPath(
                     Environment.ExpandEnvironmentVariables(
                         path.Trim()));
 
