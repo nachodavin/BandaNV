@@ -136,14 +136,6 @@ public sealed class SearchFileActionService
 
             try
             {
-                if (File.Exists(target) &&
-                    settings.ConflictBehavior.Equals(
-                        "Reemplazar",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    File.Delete(target);
-                }
-
                 MoveFileSafely(source, target);
 
                 results.Add(new SearchFileActionItemResult(
@@ -350,14 +342,9 @@ public sealed class SearchFileActionService
             return GetUniqueDestination(desiredTarget);
         }
 
-        if (behavior.Equals(
-                "Reemplazar",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return desiredTarget;
-        }
-
-        // "Preguntar" y "Omitir archivo" nunca pisan nada desde Buscar.
+        // Buscar nunca pisa un archivo existente silenciosamente. La opción
+        // Reemplazar requiere un journal/backup propio antes de habilitarse.
+        // Preguntar, Omitir y Reemplazar devuelven conflicto seguro.
         return null;
     }
 
