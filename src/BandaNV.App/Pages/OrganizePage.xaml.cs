@@ -902,7 +902,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         finally
         {
             AnalyzeButton.IsEnabled = true;
-            AnalyzeButton.Content = "Analizar archivos";
+            UpdateInitialStateText();
         }
     }
 
@@ -922,14 +922,33 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
     private void UpdateInitialStateText()
     {
-        var settings = global::BandaNV.App.App.Settings.Current;
-        var source = string.IsNullOrWhiteSpace(settings.SourceFolder)
-            ? "Sin configurar"
-            : settings.SourceFolder;
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        var source =
+            string.IsNullOrWhiteSpace(
+                settings.SourceFolder)
+                ? "Sin configurar"
+                : settings.SourceFolder;
+
+        var requiresPreviewForUnknown =
+            settings.UnknownExtensionBehavior.Equals(
+                "Preguntar en la vista previa",
+                StringComparison.OrdinalIgnoreCase);
+
+        var willShowPreview =
+            settings.PreviewBeforeOrganize ||
+            requiresPreviewForUnknown;
+
+        AnalyzeButton.Content =
+            willShowPreview
+                ? "Analizar archivos"
+                : "Organizar archivos";
 
         InitialAnalysisDescriptionText.Text =
-            $"Origen: {source}\n" +
-            "BandaNV analizará los archivos y calculará sus destinos sin modificar el disco.";
+            willShowPreview
+                ? $"Origen: {source}\nBandaNV analizará los archivos y calculará sus destinos sin modificar el disco."
+                : $"Origen: {source}\nBandaNV analizará y organizará directamente los archivos según la configuración actual.";
     }
 
     private static async Task PersistRememberedAssignmentAsync(
