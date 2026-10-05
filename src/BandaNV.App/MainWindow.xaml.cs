@@ -13,6 +13,7 @@ public sealed partial class MainWindow : Window
     private Button? _selectedNavigationButton;
     private bool _xamlRootChangedHooked;
     private bool _layoutRefreshQueued;
+    private bool _syncingUpdateStartupNoticeToggle;
     private CancellationTokenSource? _updateDownloadCts;
     private UpdateCheckResult? _availableUpdate;
     private bool _isUpdateModalBusy;
@@ -267,8 +268,65 @@ public sealed partial class MainWindow : Window
             true;
         UpdateModalCloseButton.Opacity = 1;
 
+        UpdateStartupNoticeToggle.IsEnabled =
+            true;
+
+        SyncUpdateStartupNoticeToggle(
+            App.Settings.Current.AutoUpdate);
+
         UpdateModalOverlay.Visibility =
             Visibility.Visible;
+    }
+
+    public void SyncUpdateStartupNoticeToggle(
+        bool enabled)
+    {
+        _syncingUpdateStartupNoticeToggle =
+            true;
+
+        try
+        {
+            UpdateStartupNoticeToggle.IsOn =
+                enabled;
+        }
+        finally
+        {
+            _syncingUpdateStartupNoticeToggle =
+                false;
+        }
+    }
+
+    private async void UpdateStartupNoticeToggle_Toggled(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_syncingUpdateStartupNoticeToggle)
+        {
+            return;
+        }
+
+        var enabled =
+            UpdateStartupNoticeToggle.IsOn;
+
+        App.Settings.Current.AutoUpdate =
+            enabled;
+
+        try
+        {
+            await App.Settings.SaveAsync(
+                App.Settings.Current);
+
+            if (ContentFrame.Content is SettingsPage settingsPage)
+            {
+                settingsPage.SyncUpdateStartupNoticeToggle(
+                    enabled);
+            }
+        }
+        catch
+        {
+            SyncUpdateStartupNoticeToggle(
+                App.Settings.Current.AutoUpdate);
+        }
     }
 
     private async void UpdateModalPrimaryButton_Click(
@@ -363,6 +421,8 @@ public sealed partial class MainWindow : Window
         UpdateModalCloseButton.IsEnabled =
             false;
         UpdateModalCloseButton.Opacity = 0.45;
+        UpdateStartupNoticeToggle.IsEnabled =
+            false;
     }
 
     private void SetUpdateModalError(
@@ -399,6 +459,8 @@ public sealed partial class MainWindow : Window
         UpdateModalCloseButton.IsEnabled =
             true;
         UpdateModalCloseButton.Opacity = 1;
+        UpdateStartupNoticeToggle.IsEnabled =
+            true;
     }
 
     private async Task DownloadAndInstallUpdateAsync(
