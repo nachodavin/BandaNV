@@ -426,6 +426,66 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RefreshPreview();
     }
 
+    private void FolderDetailButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string itemId })
+        {
+            return;
+        }
+
+        var folder =
+            _files.FirstOrDefault(item =>
+                item.ItemId.Equals(
+                    itemId,
+                    StringComparison.Ordinal));
+
+        if (folder is null ||
+            !folder.IsDirectory)
+        {
+            return;
+        }
+
+        FolderDetailTitleText.Text =
+            folder.FileName;
+
+        FolderDetailSummaryText.Text =
+            folder.FolderDetailSummary;
+
+        FolderDetailPathText.Text =
+            folder.FullPath;
+
+        FolderDetailFilesList.ItemsSource =
+            folder.FolderContents;
+
+        FolderDetailOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private void CloseFolderDetailButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        CloseFolderDetail();
+    }
+
+    private void FolderDetailBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseFolderDetail();
+    }
+
+    private void CloseFolderDetail()
+    {
+        FolderDetailOverlay.Visibility =
+            Visibility.Collapsed;
+
+        FolderDetailFilesList.ItemsSource =
+            null;
+    }
+
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isRefreshingPreview ||
@@ -829,7 +889,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     containedFileCount: file.ContainedFileCount,
                     recognizedFileCount: file.RecognizedFileCount,
                     distinctCategoryCount: file.DistinctCategoryCount,
-                    scanIncomplete: file.ScanIncomplete));
+                    scanIncomplete: file.ScanIncomplete,
+                    folderFiles: file.FolderContents));
             }
 
             ApplyRememberedAssignments();
@@ -1275,6 +1336,17 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         UnassignedExtensionsList.ItemsSource = null;
         UnassignedExtensionsList.ItemsSource = unassignedExtensions;
+        UnassignedExtensionsList.Visibility =
+            unassignedExtensions.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        UnassignedFoldersList.ItemsSource = null;
+        UnassignedFoldersList.ItemsSource = unclassifiedFolders;
+        UnassignedFoldersPanel.Visibility =
+            unclassifiedFolders.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
         ResolvedAssignmentsList.ItemsSource = null;
         ResolvedAssignmentsList.ItemsSource = _resolvedAssignments
@@ -1394,7 +1466,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             UnassignedDescriptionText.Text =
                 unclassifiedFolders.Count > 0
-                    ? "Las extensiones nuevas pueden resolverse aquí. Las carpetas con contenido mixto, desconocido o incompleto se asignan directamente desde su selector en la vista previa."
+                    ? "Las extensiones nuevas y las carpetas con contenido mixto, desconocido o incompleto se resuelven directamente en este panel."
                     : _resolvedAssignments.Count > 0
                         ? "Todavía quedan extensiones pendientes. Las asignaciones que ya resolviste se mantienen registradas abajo."
                         : "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
@@ -1539,7 +1611,8 @@ public sealed class OrganizePreviewFile
         int containedFileCount = 1,
         int recognizedFileCount = 0,
         int distinctCategoryCount = 0,
-        bool scanIncomplete = false)
+        bool scanIncomplete = false,
+        IReadOnlyList<OrganizationAnalysisFolderFile>? folderFiles = null)
     {
         ItemId = Guid.NewGuid().ToString("N");
         FullPath = fullPath;
@@ -1561,6 +1634,17 @@ public sealed class OrganizePreviewFile
         RecognizedFileCount = recognizedFileCount;
         DistinctCategoryCount = distinctCategoryCount;
         ScanIncomplete = scanIncomplete;
+        FolderContents =
+            (folderFiles ?? [])
+                .Select(item =>
+                    new FolderContentPreviewItem(
+                        item.RelativePath,
+                        item.FileName,
+                        item.Extension,
+                        item.SizeBytes,
+                        item.ModifiedAt,
+                        item.CategoryName))
+                .ToList();
         AssignmentSource =
             categoryOrder.HasValue && !string.IsNullOrWhiteSpace(categoryName)
                 ? OrganizeAssignmentSource.InitialCategory
@@ -1584,6 +1668,7 @@ public sealed class OrganizePreviewFile
     public int RecognizedFileCount { get; }
     public int DistinctCategoryCount { get; }
     public bool ScanIncomplete { get; }
+    public IReadOnlyList<FolderContentPreviewItem> FolderContents { get; }
 
     public string? CategoryId { get; private set; }
     public int? CategoryOrder { get; private set; }
@@ -1610,7 +1695,100 @@ public sealed class OrganizePreviewFile
             IsAssignedTo(category.Order, category.Name));
 
     public string SelectedCategoryDisplayName =>
-        SelectedCategory?.DisplayName ?? "Elegir categoría";
+        SelectedCategory?.DisplayName ??
+        (IsDirectory
+            ? "Resolver arriba"
+            : "Elegir categoría");
+
+    public bool CanAssignFromPreview =>
+        !IsDirectory ||
+        IsClassified;
+
+    public Visibility FolderDetailVisibility =>
+        IsDirectory
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    public string FolderIssueDisplay
+    {
+        get
+        {
+            if (!IsDirectory)
+            {
+                return string.Empty;
+            }
+
+            if (ScanIncomplete)
+            {
+                return "Análisis parcial · requiere revisión manual";
+            }
+
+            var unknownCount =
+                Math.Max(
+                    0,
+                    ContainedFileCount -
+                    RecognizedFileCount);
+
+            if (DistinctCategoryCount > 1 &&
+                unknownCount > 0)
+            {
+                return $"{DistinctCategoryCount} categorías · {unknownCount} sin reconocer";
+            }
+
+            if (DistinctCategoryCount > 1)
+            {
+                return $"{DistinctCategoryCount} categorías detectadas";
+            }
+
+            if (unknownCount > 0)
+            {
+                return $"{unknownCount} archivo{(unknownCount == 1 ? string.Empty : "s")} sin reconocer";
+            }
+
+            return "Requiere asignación manual";
+        }
+    }
+
+    public string FolderDetailSummary
+    {
+        get
+        {
+            var parts =
+                new List<string>
+                {
+                    $"{ContainedFileCount} archivo{(ContainedFileCount == 1 ? string.Empty : "s")}",
+                    $"{RecognizedFileCount} reconocido{(RecognizedFileCount == 1 ? string.Empty : "s")}"
+                };
+
+            if (DistinctCategoryCount > 0)
+            {
+                parts.Add(
+                    $"{DistinctCategoryCount} categoría{(DistinctCategoryCount == 1 ? string.Empty : "s")}");
+            }
+
+            var unknownCount =
+                Math.Max(
+                    0,
+                    ContainedFileCount -
+                    RecognizedFileCount);
+
+            if (unknownCount > 0)
+            {
+                parts.Add(
+                    $"{unknownCount} sin reconocer");
+            }
+
+            if (ScanIncomplete)
+            {
+                parts.Add(
+                    "análisis parcial");
+            }
+
+            return string.Join(
+                " · ",
+                parts);
+        }
+    }
 
     public string ExtensionDisplay
     {
@@ -1731,6 +1909,82 @@ public sealed class OrganizePreviewFile
         var unitIndex = 0;
 
         while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return unitIndex == 0
+            ? $"{value:0} {units[unitIndex]}"
+            : $"{value:0.##} {units[unitIndex]}";
+    }
+}
+
+public sealed class FolderContentPreviewItem
+{
+    public FolderContentPreviewItem(
+        string relativePath,
+        string fileName,
+        string extension,
+        long sizeBytes,
+        DateTime modifiedAt,
+        string? categoryName)
+    {
+        RelativePath =
+            relativePath;
+
+        FileName =
+            fileName;
+
+        Extension =
+            extension;
+
+        SizeBytes =
+            sizeBytes;
+
+        ModifiedAt =
+            modifiedAt;
+
+        CategoryName =
+            categoryName;
+    }
+
+    public string RelativePath { get; }
+    public string FileName { get; }
+    public string Extension { get; }
+    public long SizeBytes { get; }
+    public DateTime ModifiedAt { get; }
+    public string? CategoryName { get; }
+
+    public string ExtensionDisplay =>
+        Extension.ToUpperInvariant();
+
+    public string CategoryDisplay =>
+        string.IsNullOrWhiteSpace(
+            CategoryName)
+            ? "Sin categoría"
+            : CategoryName;
+
+    public string SizeDisplay =>
+        FormatBytes(
+            SizeBytes);
+
+    private static string FormatBytes(
+        long bytes)
+    {
+        string[] units =
+            ["B", "KB", "MB", "GB", "TB"];
+
+        var value =
+            (double)Math.Max(
+                0,
+                bytes);
+
+        var unitIndex =
+            0;
+
+        while (value >= 1024 &&
+               unitIndex < units.Length - 1)
         {
             value /= 1024;
             unitIndex++;
