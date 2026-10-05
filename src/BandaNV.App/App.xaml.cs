@@ -16,6 +16,9 @@ public partial class App : Application
     public static SearchIndexService SearchIndex { get; } = new();
     public static SearchFileActionService SearchActions { get; } = new();
     public static UndoService Undo { get; } = new();
+    public static RecoveryService Recovery { get; } = new();
+
+    public static StartupRecoveryResult? LastStartupRecovery { get; private set; }
 
     public App()
     {
@@ -25,6 +28,19 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         await Settings.LoadAsync();
+
+        try
+        {
+            LastStartupRecovery =
+                await Recovery.RecoverAsync();
+        }
+        catch
+        {
+            // La recuperación nunca debe impedir que BandaNV abra.
+            // Cualquier journal que no pueda reconciliarse queda intacto
+            // para un próximo inicio o una revisión manual.
+            LastStartupRecovery = null;
+        }
 
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Activate();
