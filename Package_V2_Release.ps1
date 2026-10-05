@@ -12,7 +12,16 @@ $versionSource = Join-Path $root 'src\BandaNV.Core\Infrastructure\AppVersionInfo
 $dist = Join-Path $root 'dist-v2'
 
 function Get-RelativeUnixPath([string]$base,[string]$path) {
-    $relative = [IO.Path]::GetRelativePath($base,$path)
+    $baseFull = [IO.Path]::GetFullPath($base).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
+    $pathFull = [IO.Path]::GetFullPath($path)
+
+    $baseUri = New-Object System.Uri($baseFull)
+    $pathUri = New-Object System.Uri($pathFull)
+
+    $relative = [Uri]::UnescapeDataString(
+        $baseUri.MakeRelativeUri($pathUri).ToString()
+    )
+
     return $relative.Replace('\','/')
 }
 
