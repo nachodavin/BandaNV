@@ -836,7 +836,17 @@ public sealed class OrganizationExecutionService
         builder.AppendLine("==================================================");
         builder.AppendLine();
         builder.AppendLine(
-            $"Tipo: {(record.Type.Equals("UNDO", StringComparison.OrdinalIgnoreCase) ? "DESHACER" : "ORGANIZAR")}");
+            $"Tipo: {GetExecutionTypeDisplayName(record)}");
+
+        if (record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(record.Action))
+        {
+            builder.AppendLine(
+                $"Acción: {GetSearchActionDisplayName(record.Action)}");
+        }
+
         builder.AppendLine("Formato: v2");
         builder.AppendLine($"ExecutionID: {record.ExecutionId}");
         builder.AppendLine($"Inicio: {record.StartedAt:dd/MM/yyyy HH:mm:ss}");
@@ -909,7 +919,7 @@ public sealed class OrganizationExecutionService
 
         builder.AppendLine("--------------------------------------------------");
         builder.AppendLine();
-        builder.AppendLine($"Archivos procesados: {record.MovedCount}");
+        builder.AppendLine($"Archivos procesados: {record.SuccessfulCount}");
         builder.AppendLine($"Incidencias: {record.IssueCount}");
         builder.AppendLine(
             $"Estado: {record.Status}");
@@ -929,11 +939,44 @@ public sealed class OrganizationExecutionService
         return builder.ToString();
     }
 
+    private static string GetExecutionTypeDisplayName(
+        OrganizationExecutionRecord record)
+    {
+        if (record.Type.Equals(
+                "UNDO",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "DESHACER";
+        }
+
+        if (record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "BUSCAR";
+        }
+
+        return "ORGANIZAR";
+    }
+
+    private static string GetSearchActionDisplayName(
+        string action) =>
+        action.ToUpperInvariant() switch
+        {
+            "CHANGE_CATEGORY" => "CAMBIAR CATEGORÍA",
+            "RENAME" => "RENOMBRAR",
+            "DELETE" => "ELIMINAR",
+            _ => action
+        };
+
     private static string GetLogStatus(
         OrganizationExecutionItemStatus status) =>
         status switch
         {
             OrganizationExecutionItemStatus.Moved => "MOVIDO",
+            OrganizationExecutionItemStatus.Renamed => "RENOMBRADO",
+            OrganizationExecutionItemStatus.Deleted => "ELIMINADO",
+            OrganizationExecutionItemStatus.CompletedAction => "COMPLETADO",
             OrganizationExecutionItemStatus.SkippedUnclassified => "SIN_CATEGORIA",
             OrganizationExecutionItemStatus.SkippedConflict => "OMITIDO",
             OrganizationExecutionItemStatus.ConflictNeedsDecision => "CONFLICTO",
@@ -950,6 +993,9 @@ public sealed class OrganizationExecutionService
         item.Status switch
         {
             OrganizationExecutionItemStatus.Moved => "Movido",
+            OrganizationExecutionItemStatus.Renamed => "Renombrado",
+            OrganizationExecutionItemStatus.Deleted => "Eliminado",
+            OrganizationExecutionItemStatus.CompletedAction => "Completado",
             OrganizationExecutionItemStatus.SkippedConflict => "Omitido por conflicto",
             OrganizationExecutionItemStatus.ConflictNeedsDecision => "Conflicto pendiente",
             OrganizationExecutionItemStatus.Interrupted => "Interrumpido",
