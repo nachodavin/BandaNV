@@ -625,7 +625,7 @@ public sealed partial class HomePage : Page
             StableHash(categoryId);
 
         var hueOffset =
-            (hash % 191) - 95;
+            (int)(hash % 191) - 95;
 
         var hue =
             (baseHue + hueOffset + 360) % 360;
