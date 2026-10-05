@@ -13,6 +13,9 @@ public sealed partial class SettingsPage : Page
     private SettingsSection _currentSection = SettingsSection.General;
     private SettingsConfirmMode _confirmMode = SettingsConfirmMode.None;
     private CancellationTokenSource? _saveDebounceCts;
+    private CancellationTokenSource? _updateDownloadCts;
+    private UpdateCheckResult? _pendingUpdate;
+    private bool _isUpdateModalBusy;
     private bool _isPageReady;
 
     public SettingsPage()
@@ -893,7 +896,7 @@ public sealed partial class SettingsPage : Page
                         return;
                     }
 
-                    await ShowAvailableUpdateDialogAsync(
+                    ShowAvailableUpdateModal(
                         result);
                     break;
 
@@ -966,78 +969,64 @@ public sealed partial class SettingsPage : Page
         }
     }
 
-    private async Task ShowAvailableUpdateDialogAsync(
+    private void ShowAvailableUpdateModal(
         UpdateCheckResult result)
     {
-        if (XamlRoot is null)
-        {
-            ShowSettingsFeedback(
-                $"Nueva versión disponible: {result.AvailableVersion}.");
-            return;
-        }
+        _pendingUpdate = result;
+        _isUpdateModalBusy = false;
 
-        var notes =
-            string.IsNullOrWhiteSpace(
-                result.ReleaseNotes)
-                ? "La Release no incluye notas adicionales."
-                : result.ReleaseNotes.Trim();
+        _updateDownloadCts?.Cancel();
+        _updateDownloadCts?.Dispose();
+        _updateDownloadCts = null;
 
-        if (notes.Length > 700)
-        {
-            notes =
-                notes[..700].TrimEnd() +
-                "…";
-        }
+        UpdateModalTitleText.Text =
+            "Actualización disponible";
+        UpdateModalSubtitleText.Text =
+            "Hay una nueva versión de BandaNV lista para instalar.";
 
-        var content =
-            new StackPanel
-            {
-                Spacing = 10
-            };
+        UpdateInstalledVersionText.Text =
+            result.InstalledVersion;
+        UpdateAvailableVersionText.Text =
+            result.AvailableVersion;
+        UpdateReleaseNotesText.Text =
+            FormatReleaseNotesForDisplay(
+                result.ReleaseNotes);
 
-        content.Children.Add(
-            new TextBlock
-            {
-                Text =
-                    $"Instalada: {result.InstalledVersion}\nDisponible: {result.AvailableVersion}",
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaTextBrush"],
-                FontSize = 14,
-                TextWrapping =
-                    TextWrapping.Wrap
-            });
+        UpdateNotesPanel.Visibility =
+            Visibility.Visible;
+        UpdateProgressPanel.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressBar.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Value = 0;
+        UpdateProgressStateText.Text =
+            "Preparando descarga...";
 
-        content.Children.Add(
-            new TextBlock
-            {
-                Text = notes,
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedStrongBrush"],
-                FontSize = 13,
-                TextWrapping =
-                    TextWrapping.Wrap,
-                MaxHeight = 220
-            });
+        UpdateModalPrimaryButton.Content =
+            "Actualizar";
+        UpdateModalPrimaryButton.Visibility =
+            Visibility.Visible;
+        UpdateModalPrimaryButton.IsEnabled = true;
 
-        var dialog =
-            new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Title = "Actualización disponible",
-                Content = content,
-                PrimaryButtonText = "Actualizar",
-                CloseButtonText = "Más tarde",
-                DefaultButton =
-                    ContentDialogButton.Primary
-            };
+        UpdateModalSecondaryButton.Content =
+            "Más tarde";
+        UpdateModalSecondaryButton.Visibility =
+            Visibility.Visible;
+        UpdateModalSecondaryButton.IsEnabled = true;
 
-        var choice =
-            await dialog.ShowAsync();
+        UpdateModalCloseButton.IsEnabled = true;
+        UpdateModalCloseButton.Opacity = 1;
 
-        if (choice !=
-            ContentDialogResult.Primary)
+        UpdateModalOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private async void UpdateModalPrimaryButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_isUpdateModalBusy ||
+            _pendingUpdate is not { } result)
         {
             return;
         }
@@ -1046,77 +1035,144 @@ public sealed partial class SettingsPage : Page
             result);
     }
 
-    private async Task DownloadAndInstallUpdateAsync(
-        UpdateCheckResult result)
+    private void UpdateModalSecondaryButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        if (XamlRoot is null)
+        if (_isUpdateModalBusy)
+        {
+            _updateDownloadCts?.Cancel();
+            UpdateProgressStateText.Text =
+                "Cancelando descarga...";
+            UpdateModalSecondaryButton.IsEnabled =
+                false;
+            return;
+        }
+
+        CloseUpdateModal();
+    }
+
+    private void UpdateModalCloseButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        CloseUpdateModal();
+    }
+
+    private void UpdateModalBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseUpdateModal();
+    }
+
+    private void CloseUpdateModal()
+    {
+        if (_isUpdateModalBusy)
         {
             return;
         }
 
-        using var cancellation =
+        UpdateModalOverlay.Visibility =
+            Visibility.Collapsed;
+
+        _pendingUpdate = null;
+
+        _updateDownloadCts?.Cancel();
+        _updateDownloadCts?.Dispose();
+        _updateDownloadCts = null;
+    }
+
+    private void SetUpdateModalBusy(
+        UpdateCheckResult result)
+    {
+        _isUpdateModalBusy = true;
+
+        UpdateModalTitleText.Text =
+            "Preparando actualización";
+        UpdateModalSubtitleText.Text =
+            $"{result.InstalledVersion} → {result.AvailableVersion}";
+
+        UpdateNotesPanel.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressPanel.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Value = 0;
+        UpdateProgressStateText.Text =
+            "Preparando descarga...";
+
+        UpdateModalPrimaryButton.Visibility =
+            Visibility.Collapsed;
+
+        UpdateModalSecondaryButton.Content =
+            "Cancelar";
+        UpdateModalSecondaryButton.IsEnabled = true;
+
+        UpdateModalCloseButton.IsEnabled = false;
+        UpdateModalCloseButton.Opacity = 0.45;
+    }
+
+    private void SetUpdateModalError(
+        string message)
+    {
+        _isUpdateModalBusy = false;
+
+        UpdateModalTitleText.Text =
+            "No se pudo preparar la actualización";
+        UpdateModalSubtitleText.Text =
+            message;
+
+        UpdateNotesPanel.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressPanel.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressStateText.Text =
+            "BandaNV no fue modificado. Podés volver a intentarlo o cerrar este aviso.";
+
+        UpdateModalPrimaryButton.Content =
+            "Reintentar";
+        UpdateModalPrimaryButton.Visibility =
+            Visibility.Visible;
+        UpdateModalPrimaryButton.IsEnabled = true;
+
+        UpdateModalSecondaryButton.Content =
+            "Cerrar";
+        UpdateModalSecondaryButton.IsEnabled = true;
+
+        UpdateModalCloseButton.IsEnabled = true;
+        UpdateModalCloseButton.Opacity = 1;
+    }
+
+    private async Task DownloadAndInstallUpdateAsync(
+        UpdateCheckResult result)
+    {
+        _updateDownloadCts?.Cancel();
+        _updateDownloadCts?.Dispose();
+
+        var cancellation =
             new CancellationTokenSource();
 
-        var progressBar =
-            new ProgressBar
-            {
-                Minimum = 0,
-                Maximum = 100,
-                Value = 0,
-                Width = 420
-            };
+        _updateDownloadCts = cancellation;
 
-        var stateText =
-            new TextBlock
-            {
-                Text = "Preparando descarga...",
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedStrongBrush"],
-                FontSize = 13,
-                TextWrapping =
-                    TextWrapping.Wrap
-            };
-
-        var content =
-            new StackPanel
-            {
-                Spacing = 12
-            };
-
-        content.Children.Add(
-            stateText);
-        content.Children.Add(
-            progressBar);
-
-        var progressDialog =
-            new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Title =
-                    $"Descargando {result.AvailableVersion}",
-                Content = content,
-                CloseButtonText = "Cancelar"
-            };
-
-        progressDialog.Closed +=
-            (_, _) =>
-                cancellation.Cancel();
+        SetUpdateModalBusy(
+            result);
 
         var progress =
             new Progress<UpdateDownloadProgress>(
                 state =>
                 {
-                    progressBar.Value =
+                    UpdateProgressBar.Value =
                         state.Percentage;
 
-                    stateText.Text =
+                    UpdateProgressStateText.Text =
                         state.TotalBytes.HasValue
-                            ? $"Descargando y verificando paquete... {state.Percentage}%"
+                            ? $"Descargando paquete... {state.Percentage}%"
                             : $"Descargando paquete... {FormatUpdateBytes(state.BytesReceived)}";
                 });
-
-        _ = progressDialog.ShowAsync();
 
         PreparedUpdate? prepared =
             null;
@@ -1129,23 +1185,16 @@ public sealed partial class SettingsPage : Page
                     progress,
                     cancellation.Token);
 
-            if (cancellation.IsCancellationRequested)
-            {
-                global::BandaNV.App.App.Updates.TryDeleteWorkspace(
-                    prepared);
-                return;
-            }
+            cancellation.Token.ThrowIfCancellationRequested();
 
-            stateText.Text =
+            UpdateProgressStateText.Text =
                 "Paquete verificado. Preparando reinicio...";
-            progressBar.Value = 100;
-            progressDialog.Hide();
+            UpdateProgressBar.Value = 100;
+            UpdateModalSecondaryButton.IsEnabled =
+                false;
 
             global::BandaNV.App.App.Updates.LaunchPreparedUpdate(
                 prepared);
-
-            ShowSettingsFeedback(
-                "Actualización preparada. BandaNV se reiniciará para instalarla.");
 
             await Task.Delay(
                 200);
@@ -1155,21 +1204,98 @@ public sealed partial class SettingsPage : Page
         }
         catch (OperationCanceledException)
         {
-            progressDialog.Hide();
+            global::BandaNV.App.App.Updates.TryDeleteWorkspace(
+                prepared);
+
+            _isUpdateModalBusy = false;
+            CloseUpdateModal();
 
             ShowSettingsFeedback(
                 "Descarga de actualización cancelada.");
         }
         catch (Exception ex)
         {
-            progressDialog.Hide();
-
             global::BandaNV.App.App.Updates.TryDeleteWorkspace(
                 prepared);
 
-            ShowSettingsFeedback(
-                $"No se pudo preparar la actualización: {ex.Message}");
+            SetUpdateModalError(
+                ex.Message);
         }
+        finally
+        {
+            if (ReferenceEquals(
+                    _updateDownloadCts,
+                    cancellation))
+            {
+                _updateDownloadCts = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private static string FormatReleaseNotesForDisplay(
+        string releaseNotes)
+    {
+        if (string.IsNullOrWhiteSpace(
+                releaseNotes))
+        {
+            return "La Release no incluye notas adicionales.";
+        }
+
+        var lines =
+            releaseNotes
+                .Replace(
+                    "\r\n",
+                    "\n",
+                    StringComparison.Ordinal)
+                .Split(
+                    '\n');
+
+        var formatted =
+            new List<string>(
+                lines.Length);
+
+        foreach (var rawLine in lines)
+        {
+            var line =
+                rawLine.Trim();
+
+            while (line.StartsWith(
+                       '#'))
+            {
+                line =
+                    line[1..]
+                        .TrimStart();
+            }
+
+            if (line.StartsWith(
+                    "- ",
+                    StringComparison.Ordinal))
+            {
+                line =
+                    "• " +
+                    line[2..];
+            }
+
+            line =
+                line.Replace(
+                        "**",
+                        string.Empty,
+                        StringComparison.Ordinal)
+                    .Replace(
+                        "`",
+                        string.Empty,
+                        StringComparison.Ordinal);
+
+            formatted.Add(
+                line);
+        }
+
+        return string.Join(
+                Environment.NewLine,
+                formatted)
+            .Trim();
     }
 
     private static string FormatUpdateBytes(
