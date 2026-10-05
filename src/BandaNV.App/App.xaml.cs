@@ -17,6 +17,7 @@ public partial class App : Application
     public static SearchFileActionService SearchActions { get; } = new();
     public static UndoService Undo { get; } = new();
     public static RecoveryService Recovery { get; } = new();
+    public static UpdateService Updates { get; } = new();
 
     public static StartupRecoveryResult? LastStartupRecovery { get; private set; }
 
@@ -55,5 +56,40 @@ public partial class App : Application
 
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Activate();
+
+        try
+        {
+            await Updates.ConfirmPendingUpdateAsync(
+                Environment.GetCommandLineArgs());
+        }
+        catch
+        {
+            // Si falla el handshake, NVupdate hará rollback automáticamente.
+        }
+
+        if (Settings.Current.AutoUpdate)
+        {
+            _ = CheckForUpdatesOnStartupAsync();
+        }
+    }
+
+    private static async Task CheckForUpdatesOnStartupAsync()
+    {
+        try
+        {
+            var result =
+                await Updates.CheckAsync();
+
+            if (result.Status ==
+                BandaNV.Core.Models.UpdateCheckStatus.Available)
+            {
+                MainWindowInstance?.ShowQuickUpdate(
+                    result.AvailableVersion);
+            }
+        }
+        catch
+        {
+            // La red o GitHub nunca deben bloquear ni ensuciar el inicio.
+        }
     }
 }
