@@ -18,6 +18,9 @@ public static class PortablePaths
     public static string SettingsFile =>
         Path.Combine(ConfigDirectory, "bandanv_settings.json");
 
+    public static string UpdateStateFile =>
+        Path.Combine(ConfigDirectory, "bandanv_update_state.json");
+
     public static void EnsureDirectories()
     {
         Directory.CreateDirectory(ConfigDirectory);
