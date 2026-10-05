@@ -132,7 +132,8 @@ public sealed partial class SearchPage : Page
                 category.Order,
                 BuildExtensionsText(category.Extensions),
                 fileCount.ToString(CultureInfo.CurrentCulture),
-                _selectedCategoryNames.Contains(category.Name)));
+                _selectedCategoryNames.Contains(category.Name),
+                category.ColorHex));
         }
 
         _currentCategoryPage = Math.Min(_currentCategoryPage, CategoryPageCount - 1);
@@ -1808,7 +1809,8 @@ public sealed partial class SearchPage : Page
             .Select(category => new CategoryDefinition(
                 category.Name,
                 category.Extensions,
-                category.Order))
+                category.Order,
+                category.ColorHex))
             .ToList();
     }
 
@@ -1888,20 +1890,44 @@ public sealed class SearchCategorySummary
         int order,
         string extensionsText,
         string countText,
-        bool isSelected)
+        bool isSelected,
+        string colorHex)
     {
         Name = name;
         Order = order;
         ExtensionsText = extensionsText;
         CountText = countText;
         IsSelected = isSelected;
+        ColorHex = colorHex;
     }
 
     public string Name { get; set; } = string.Empty;
     public int Order { get; set; }
     public string ExtensionsText { get; set; } = "Sin extensiones";
     public string CountText { get; set; } = "0";
+    public string ColorHex { get; set; } = string.Empty;
     public bool IsSelected { get; set; }
+
+    public Brush CategoryBrush
+    {
+        get
+        {
+            if (!CategoryColorPalette.TryNormalizeHex(
+                    ColorHex,
+                    out var normalized))
+            {
+                return (Brush)Application.Current.Resources[
+                    "BandaAccentBrush"];
+            }
+
+            return new SolidColorBrush(
+                Windows.UI.Color.FromArgb(
+                    255,
+                    Convert.ToByte(normalized.Substring(1, 2), 16),
+                    Convert.ToByte(normalized.Substring(3, 2), 16),
+                    Convert.ToByte(normalized.Substring(5, 2), 16)));
+        }
+    }
 
     public Visibility SelectedVisibility =>
         IsSelected ? Visibility.Visible : Visibility.Collapsed;
