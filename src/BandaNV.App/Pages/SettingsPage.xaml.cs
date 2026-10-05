@@ -428,6 +428,37 @@ public sealed partial class SettingsPage : Page
 
         if (ReferenceEquals(
                 sender,
+                StartWithWindowsToggle))
+        {
+            try
+            {
+                WindowsStartupService.Apply(
+                    StartWithWindowsToggle.IsOn);
+            }
+            catch (Exception ex)
+            {
+                var wasReady =
+                    _isPageReady;
+
+                _isPageReady =
+                    false;
+
+                StartWithWindowsToggle.IsOn =
+                    global::BandaNV.App.App.Settings.Current
+                        .StartWithWindows;
+
+                _isPageReady =
+                    wasReady;
+
+                ShowSettingsFeedback(
+                    $"No se pudo cambiar el inicio con Windows: {ex.Message}");
+
+                return;
+            }
+        }
+
+        if (ReferenceEquals(
+                sender,
                 AutoUpdateToggle))
         {
             global::BandaNV.App.App.MainWindowInstance?
