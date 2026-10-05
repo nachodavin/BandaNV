@@ -1,5 +1,11 @@
 namespace BandaNV.Core.Models;
 
+public enum OrganizationAnalysisItemKind
+{
+    File,
+    Folder
+}
+
 public sealed record OrganizationAnalysisFile(
     string FullPath,
     string RelativePath,
@@ -12,11 +18,19 @@ public sealed record OrganizationAnalysisFile(
     string? CategoryName,
     int? CategoryOrder,
     string? DestinationPath,
-    bool HasDestinationConflict)
+    bool HasDestinationConflict,
+    OrganizationAnalysisItemKind Kind = OrganizationAnalysisItemKind.File,
+    int ContainedFileCount = 1,
+    int RecognizedFileCount = 0,
+    int DistinctCategoryCount = 0,
+    bool ScanIncomplete = false)
 {
     public bool IsClassified =>
         CategoryOrder.HasValue &&
         !string.IsNullOrWhiteSpace(CategoryName);
+
+    public bool IsDirectory =>
+        Kind == OrganizationAnalysisItemKind.Folder;
 }
 
 public sealed record OrganizationAnalysisResult(
@@ -30,6 +44,9 @@ public sealed record OrganizationAnalysisResult(
 
     public int UnclassifiedCount =>
         Files.Count - ClassifiedCount;
+
+    public int FolderCount =>
+        Files.Count(file => file.IsDirectory);
 
     public long TotalSizeBytes =>
         Files.Sum(file => file.SizeBytes);
