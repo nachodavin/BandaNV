@@ -303,7 +303,7 @@
                     <!-- Estado actual de la biblioteca organizada -->
                     <Grid Grid.Row="3" ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.25*" />
+                            <ColumnDefinition Width="1.35*" />
                             <ColumnDefinition Width="1*" />
                         </Grid.ColumnDefinitions>
 
@@ -351,44 +351,44 @@
 
                                 <Grid
                                     Grid.Row="1"
-                                    MinHeight="360"
-                                    ColumnSpacing="26">
+                                    MinHeight="470"
+                                    ColumnSpacing="30">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="360" />
+                                        <ColumnDefinition Width="450" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
 
                                     <Grid
-                                        Width="320"
-                                        Height="320"
+                                        Width="420"
+                                        Height="420"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                         <Ellipse
-                                            Width="238"
-                                            Height="238"
+                                            Width="330"
+                                            Height="330"
                                             Stroke="{StaticResource BandaBorderStrongBrush}"
-                                            StrokeThickness="32"
+                                            StrokeThickness="44"
                                             Opacity="0.55"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center" />
 
                                         <Canvas
                                             x:Name="HomeDonutCanvas"
-                                            Width="320"
-                                            Height="320"
+                                            Width="420"
+                                            Height="420"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center" />
 
                                         <StackPanel
-                                            Width="172"
+                                            Width="228"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
-                                            Spacing="2">
+                                            Spacing="4">
                                             <TextBlock
                                                 x:Name="HomeDonutCenterCategoryText"
                                                 Text="TODAS LAS CATEGORÍAS"
                                                 Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                FontSize="11"
+                                                FontSize="13"
                                                 FontWeight="SemiBold"
                                                 TextAlignment="Center"
                                                 TextWrapping="Wrap" />
@@ -397,7 +397,7 @@
                                                 x:Name="HomeDonutCenterCountText"
                                                 Text="0"
                                                 Foreground="{StaticResource BandaTextBrush}"
-                                                FontSize="34"
+                                                FontSize="46"
                                                 FontWeight="SemiBold"
                                                 TextAlignment="Center" />
 
@@ -405,14 +405,14 @@
                                                 x:Name="HomeDonutCenterFilesLabelText"
                                                 Text="archivos organizados"
                                                 Foreground="{StaticResource BandaMutedBrush}"
-                                                FontSize="12"
+                                                FontSize="14"
                                                 TextAlignment="Center" />
 
                                             <TextBlock
                                                 x:Name="HomeDonutCenterSizeText"
                                                 Text=""
                                                 Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                FontSize="12"
+                                                FontSize="13"
                                                 TextAlignment="Center"
                                                 Visibility="Collapsed"
                                                 Margin="0,5,0,0" />
@@ -421,7 +421,7 @@
                                                 x:Name="HomeDonutCenterUsageText"
                                                 Text=""
                                                 Foreground="{StaticResource BandaAccentBrush}"
-                                                FontSize="12"
+                                                FontSize="13"
                                                 FontWeight="SemiBold"
                                                 TextAlignment="Center"
                                                 Visibility="Collapsed" />
@@ -470,7 +470,7 @@
                                         Grid.Row="1"
                                         Text="0 B"
                                         Foreground="{StaticResource BandaTextBrush}"
-                                        FontSize="34"
+                                        FontSize="40"
                                         FontWeight="SemiBold"
                                         VerticalAlignment="Center" />
                                     <TextBlock
@@ -499,7 +499,7 @@
                                         Grid.Row="1"
                                         Text="0"
                                         Foreground="{StaticResource BandaTextBrush}"
-                                        FontSize="34"
+                                        FontSize="40"
                                         FontWeight="SemiBold"
                                         VerticalAlignment="Center" />
                                     <TextBlock
@@ -528,7 +528,7 @@
                                         Grid.Row="1"
                                         Text="0 / 0"
                                         Foreground="{StaticResource BandaTextBrush}"
-                                        FontSize="34"
+                                        FontSize="40"
                                         FontWeight="SemiBold"
                                         VerticalAlignment="Center" />
                                     <TextBlock
