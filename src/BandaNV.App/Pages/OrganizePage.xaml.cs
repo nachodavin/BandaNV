@@ -1006,7 +1006,7 @@ public sealed partial class OrganizePage : Page
             UnclassifiedMetricCard.BorderBrush = warningBrush;
             UnclassifiedMetricTitle.Foreground = warningBrush;
             UnclassifiedMetricSubtitle.Foreground = warningBrush;
-            UnclassifiedMetricSubtitle.Text = "no se moverán sin asignación";
+            UnclassifiedMetricSubtitle.Text = "No se moverán sin asignación";
 
             SummaryUnclassifiedCountText.Foreground = warningBrush;
             FooterStatusText.Foreground = mutedBrush;
@@ -1019,7 +1019,7 @@ public sealed partial class OrganizePage : Page
             UnclassifiedMetricCard.BorderBrush = borderBrush;
             UnclassifiedMetricTitle.Foreground = mutedBrush;
             UnclassifiedMetricSubtitle.Foreground = mutedBrush;
-            UnclassifiedMetricSubtitle.Text = "todos tienen destino";
+            UnclassifiedMetricSubtitle.Text = "Todos tienen destino";
 
             SummaryUnclassifiedCountText.Foreground = accentBrush;
             FooterStatusText.Foreground = accentBrush;
