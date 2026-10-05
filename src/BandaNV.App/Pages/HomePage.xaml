@@ -264,7 +264,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock
-                                        Text="TAMAÑO MOVIDO · ÚLTIMA ORGANIZACIÓN"
+                                        Text="TAMAÑO MOVIDO"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                     <Border
