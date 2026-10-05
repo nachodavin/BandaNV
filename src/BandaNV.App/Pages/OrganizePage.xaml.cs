@@ -1,4 +1,5 @@
 using BandaNV.Core.Models;
+using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -128,7 +129,7 @@ public sealed partial class OrganizePage : Page
             var optionButton = new Button
             {
                 Tag = category,
-                Content = category.DisplayName,
+                Content = CreateCategoryOptionContent(category),
                 Style = (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
             };
 
@@ -153,6 +154,52 @@ public sealed partial class OrganizePage : Page
 
             AssignmentCategoryOptionsPanel.Children.Add(optionButton);
         }
+    }
+
+    private StackPanel CreateCategoryOptionContent(
+        OrganizeCategoryOption category)
+    {
+        var content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8
+        };
+
+        content.Children.Add(
+            new Microsoft.UI.Xaml.Shapes.Ellipse
+            {
+                Width = 9,
+                Height = 9,
+                Fill = CreateCategoryBrush(category.ColorHex),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+        content.Children.Add(
+            new TextBlock
+            {
+                Text = category.DisplayName,
+                Foreground = GetBrush("BandaTextBrush"),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+        return content;
+    }
+
+    private Brush CreateCategoryBrush(string colorHex)
+    {
+        if (!CategoryColorPalette.TryNormalizeHex(
+                colorHex,
+                out var normalized))
+        {
+            return GetBrush("BandaAccentBrush");
+        }
+
+        return new SolidColorBrush(
+            Windows.UI.Color.FromArgb(
+                255,
+                Convert.ToByte(normalized.Substring(1, 2), 16),
+                Convert.ToByte(normalized.Substring(3, 2), 16),
+                Convert.ToByte(normalized.Substring(5, 2), 16)));
     }
 
     private void AssignmentToggleCreateCategoryButton_Click(object sender, RoutedEventArgs e)
@@ -423,7 +470,7 @@ public sealed partial class OrganizePage : Page
         {
             var optionButton = new Button
             {
-                Content = category.DisplayName,
+                Content = CreateCategoryOptionContent(category),
                 Style =
                     (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
             };
