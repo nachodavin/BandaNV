@@ -43,6 +43,7 @@ public sealed partial class SearchPage : Page
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<int> _dateWheelYears = new();
+    private CancellationTokenSource? _scanCts;
     private bool _isUpdatingDateWheels;
     private int _wheelDay = 1;
     private int _wheelMonth = 1;
@@ -53,10 +54,56 @@ public sealed partial class SearchPage : Page
         InitializeComponent();
         InitializeSpecificDateWheels();
 
-        // Datos de maqueta hasta conectar el índice real de archivos.
-        // La interacción de filtros ya queda preparada para reutilizarse con datos reales.
-        _allFiles.AddRange(BuildPreviewFiles());
-        LoadCategories(GetPreviewCategories());
+        Loaded += SearchPage_Loaded;
+    }
+
+    private async void SearchPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= SearchPage_Loaded;
+        await LoadRealSearchDataAsync();
+    }
+
+    private async Task LoadRealSearchDataAsync()
+    {
+        _scanCts?.Cancel();
+        _scanCts?.Dispose();
+        _scanCts = new CancellationTokenSource();
+
+        _allFiles.Clear();
+        LoadCategories(GetCurrentCategories());
+        RefreshSearchResults();
+
+        try
+        {
+            var indexedFiles =
+                await global::BandaNV.App.App.SearchIndex.ScanAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    _scanCts.Token);
+
+            foreach (var file in indexedFiles)
+            {
+                var location =
+                    System.IO.Path.GetDirectoryName(file.FullPath) ??
+                    global::BandaNV.App.App.Settings.Current.DestinationFolder;
+
+                _allFiles.Add(new SearchFileResult(
+                    file.Name,
+                    file.CategoryName,
+                    file.SizeBytes,
+                    file.ModifiedAt,
+                    location));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch
+        {
+            // Buscar queda vacío si el destino no puede escanearse.
+        }
+
+        LoadCategories(GetCurrentCategories());
         RefreshSearchResults();
     }
 
@@ -1041,12 +1088,13 @@ public sealed partial class SearchPage : Page
         SearchOpenFileButton.IsEnabled = true;
         SearchOpenLocationButton.IsEnabled = true;
         SearchCopyPathButton.IsEnabled = true;
-        SearchChangeCategoryButton.IsEnabled = true;
-        SearchRenameButton.IsEnabled = true;
-        SearchDeleteButton.IsEnabled = true;
+        SearchChangeCategoryButton.IsEnabled = false;
+        SearchRenameButton.IsEnabled = false;
+        SearchDeleteButton.IsEnabled = false;
 
-        SearchDetailActionStatusText.Text = string.Empty;
-        SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
+        SearchDetailActionStatusText.Text =
+            "Resultados reales del destino. Las acciones que modifican archivos se conectarán con su motor seguro en el próximo bloque.";
+        SearchDetailActionStatusText.Visibility = Visibility.Visible;
     }
 
     private void ShowMultipleSearchFileDetails(IReadOnlyList<SearchFileResult> files)
@@ -1093,12 +1141,12 @@ public sealed partial class SearchPage : Page
         SearchOpenFileButton.IsEnabled = false;
         SearchOpenLocationButton.IsEnabled = false;
         SearchCopyPathButton.IsEnabled = true;
-        SearchChangeCategoryButton.IsEnabled = true;
+        SearchChangeCategoryButton.IsEnabled = false;
         SearchRenameButton.IsEnabled = false;
-        SearchDeleteButton.IsEnabled = true;
+        SearchDeleteButton.IsEnabled = false;
 
         SearchDetailActionStatusText.Text =
-            "Abrir archivo, abrir ubicación y renombrar requieren una selección individual.";
+            "Las rutas son reales. Copiar rutas está disponible; las acciones que modifican archivos se conectarán con su motor seguro en el próximo bloque.";
         SearchDetailActionStatusText.Visibility = Visibility.Visible;
     }
 
@@ -1144,8 +1192,7 @@ public sealed partial class SearchPage : Page
         if (!System.IO.File.Exists(filePath))
         {
             ShowSearchDetailStatus(
-                "El archivo de esta maqueta todavía no existe físicamente. " +
-                "Cuando Buscar use el índice real, este botón abrirá el archivo directamente.");
+                "El archivo ya no existe en la ubicación registrada. Volvé a entrar a Buscar para refrescar los resultados.");
             return;
         }
 
@@ -1175,8 +1222,7 @@ public sealed partial class SearchPage : Page
         if (!System.IO.Directory.Exists(file.Location))
         {
             ShowSearchDetailStatus(
-                "La ubicación de esta maqueta todavía no existe físicamente. " +
-                "Con el índice real, este botón abrirá la carpeta correspondiente.");
+                "La ubicación ya no existe. Volvé a entrar a Buscar para refrescar los resultados.");
             return;
         }
 
@@ -1339,10 +1385,8 @@ public sealed partial class SearchPage : Page
 
         SearchManageDeleteText.Text =
             files.Count == 1
-                ? $"¿Eliminar \"{files[0].Name}\"? La versión final eliminará físicamente el archivo de la PC. " +
-                  "En esta maqueta todavía se elimina solo del conjunto de datos de prueba."
-                : $"¿Eliminar los {files.Count} archivos seleccionados? La versión final los eliminará físicamente de la PC. " +
-                  "En esta maqueta todavía se eliminan solo del conjunto de datos de prueba.";
+                ? $"¿Eliminar \"{files[0].Name}\"?"
+                : $"¿Eliminar los {files.Count} archivos seleccionados?";
 
         SearchManagePrimaryButton.Visibility = Visibility.Collapsed;
         SearchManageDangerButton.Content =
@@ -1436,7 +1480,7 @@ public sealed partial class SearchPage : Page
                 }
 
                 CloseSearchManageOverlay();
-                LoadCategories(GetPreviewCategories());
+                LoadCategories(GetCurrentCategories());
                 RefreshSearchResults();
                 break;
 
@@ -1489,7 +1533,7 @@ public sealed partial class SearchPage : Page
         _selectedSearchFile = null;
 
         CloseSearchManageOverlay();
-        LoadCategories(GetPreviewCategories());
+        LoadCategories(GetCurrentCategories());
         RefreshSearchResults();
     }
 
@@ -1597,82 +1641,15 @@ public sealed partial class SearchPage : Page
         return descriptions;
     }
 
-    private static IReadOnlyList<CategoryDefinition> GetPreviewCategories()
+    private static IReadOnlyList<CategoryDefinition> GetCurrentCategories()
     {
-        return
-        [
-            new("RAR", [".zip", ".rar", ".7z"], 1),
-            new("INSTALLERS", [".exe", ".msi", ".bat"], 2),
-            new("DOCUMENTS", [".pdf", ".docx", ".xlsx", ".txt"], 3),
-            new("IMAGES", [".jpg", ".jpeg", ".png", ".webp", ".avif"], 4),
-            new("GIF", [".gif"], 5),
-            new("VIDEOS", [".mp4", ".mkv", ".mov", ".avi"], 6),
-            new("AUDIO", [".mp3", ".wav", ".flac", ".aac", ".ogg"], 7),
-            new("FONTS", [".ttf", ".otf", ".woff", ".woff2"], 8),
-            new("DESIGN", [".ai", ".psd", ".indd", ".fig"], 9),
-            new("CODE", [".cs", ".ps1", ".js", ".json"], 10),
-            new("BACKUPS", [".bak", ".backup"], 11),
-            new("PROJECTS", [".sln", ".slnx", ".csproj"], 12),
-            new("TEXTURES", [".tga", ".dds", ".exr"], 13),
-            new("PACKAGES", [".nupkg", ".appx", ".msix"], 14)
-        ];
-    }
-
-    private static IReadOnlyList<SearchFileResult> BuildPreviewFiles()
-    {
-        var categories = GetPreviewCategories();
-        var files = new List<SearchFileResult>();
-        var anchor = DateTime.Now;
-
-        foreach (var category in categories)
-        {
-            var fileCount = 2 + (category.Order % 3);
-
-            for (var index = 1; index <= fileCount; index++)
-            {
-                var extension = category.Extensions[(index - 1) % category.Extensions.Count];
-                var normalizedExtension =
-                    extension.StartsWith('.') ? extension.ToLowerInvariant() : $".{extension.ToLowerInvariant()}";
-
-                var fileName =
-                    $"{category.Name.ToLowerInvariant()}_{index:00}{normalizedExtension}";
-
-                var sizeBytes = GetPreviewFileSizeBytes(category.Order, index);
-
-                var modifiedAt = anchor
-                    .AddDays(-(category.Order - 1))
-                    .AddHours(-(index * 2))
-                    .AddMinutes(-(index * 11))
-                    .AddSeconds(-(category.Order * index));
-
-                files.Add(new SearchFileResult(
-                    fileName,
-                    category.Name,
-                    sizeBytes,
-                    modifiedAt,
-                    $@"C:\Users\Usuario\Downloads\ORGANIZADO\{category.Name}"));
-            }
-        }
-
-        return files;
-    }
-
-    private static long GetPreviewFileSizeBytes(int categoryOrder, int index)
-    {
-        const long megabyte = 1024L * 1024L;
-        const long gigabyte = 1024L * megabyte;
-
-        var bucket = (categoryOrder + index - 2) % 6;
-
-        return bucket switch
-        {
-            0 => (35L + categoryOrder + index) * megabyte,
-            1 => (140L + (categoryOrder * 9L) + (index * 18L)) * megabyte,
-            2 => (560L + (categoryOrder * 12L) + (index * 24L)) * megabyte,
-            3 => gigabyte + ((categoryOrder * 180L) + (index * 260L)) * megabyte,
-            4 => (5L * gigabyte) + ((categoryOrder * 420L) + (index * 520L)) * megabyte,
-            _ => (20L * gigabyte) + ((categoryOrder * 650L) + (index * 800L)) * megabyte
-        };
+        return global::BandaNV.App.App.Categories.GetAll()
+            .OrderBy(category => category.Order)
+            .Select(category => new CategoryDefinition(
+                category.Name,
+                category.Extensions,
+                category.Order))
+            .ToList();
     }
 
     private static string BuildExtensionsText(IReadOnlyList<string> extensions)
