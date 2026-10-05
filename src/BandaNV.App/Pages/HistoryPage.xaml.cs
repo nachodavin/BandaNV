@@ -811,8 +811,7 @@ public sealed partial class HistoryPage : Page
 
         HistoryModalTitleText.Text = "Eliminar archivo";
         HistoryModalBodyText.Text =
-            $"¿Eliminar \"{file.Name}\"? En esta maqueta no se modifica ningún archivo real: " +
-            "se simula el resultado para definir cómo queda registrado en Historial.";
+            $"La eliminación individual desde Historial todavía no está habilitada para \"{file.Name}\".";
 
         HistoryModalIconText.Text = "!";
         HistoryModalIconBorder.Background =
