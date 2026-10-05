@@ -38,7 +38,7 @@
                             Width="9"
                             Height="9"
                             CornerRadius="5"
-                            Background="{StaticResource BandaAccentBrush}"
+                            Background="{x:Bind CategoryBrush}"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Top"
                             Visibility="{x:Bind SelectedVisibility}" />
@@ -111,13 +111,24 @@
                         FontSize="11" />
                 </StackPanel>
 
-                <TextBlock
+                <StackPanel
                     Grid.Column="1"
-                    Text="{x:Bind Category}"
-                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                    FontSize="13"
-                    VerticalAlignment="Center"
-                    TextTrimming="CharacterEllipsis" />
+                    Orientation="Horizontal"
+                    Spacing="7"
+                    VerticalAlignment="Center">
+                    <Ellipse
+                        Width="8"
+                        Height="8"
+                        Fill="{x:Bind CategoryBrush}"
+                        VerticalAlignment="Center" />
+                    <TextBlock
+                        Text="{x:Bind Category}"
+                        Foreground="{x:Bind CategoryBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
 
                 <TextBlock
                     Grid.Column="2"
@@ -407,16 +418,15 @@
                         Grid.Column="1"
                         Padding="12,6"
                         CornerRadius="14"
-                        Background="{StaticResource BandaAccentSoftBrush}"
+                        Background="{StaticResource BandaCardAltBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1"
                         Visibility="Collapsed">
-                        <TextBlock
-                            x:Name="ActiveCategoriesText"
-                            Text=""
-                            Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            MaxWidth="560"
-                            TextTrimming="CharacterEllipsis" />
+                        <StackPanel
+                            x:Name="ActiveCategoriesVisualPanel"
+                            Orientation="Horizontal"
+                            Spacing="10"
+                            MaxWidth="560" />
                     </Border>
 
                     <TextBlock
@@ -603,18 +613,31 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Border
+                                    x:Name="SearchDetailCategoryCard"
                                     Padding="12"
                                     CornerRadius="12"
-                                    Background="{StaticResource BandaNavIconBrush}">
-                                    <StackPanel Spacing="4">
+                                    Background="{StaticResource BandaNavIconBrush}"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1">
+                                    <StackPanel Spacing="5">
                                         <TextBlock Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                        <TextBlock
-                                            x:Name="SearchDetailCategoryText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaAccentBrush}"
-                                            FontSize="14"
-                                            FontWeight="SemiBold"
-                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel
+                                            Orientation="Horizontal"
+                                            Spacing="7">
+                                            <Ellipse
+                                                x:Name="SearchDetailCategoryDot"
+                                                Width="9"
+                                                Height="9"
+                                                Fill="{StaticResource BandaAccentBrush}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                x:Name="SearchDetailCategoryText"
+                                                Text="—"
+                                                Foreground="{StaticResource BandaAccentBrush}"
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
