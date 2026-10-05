@@ -876,8 +876,7 @@ public sealed class UpdateService
         }
 
         if (raw.Contains(
-                '-',
-                StringComparison.Ordinal))
+                '-'))
         {
             return false;
         }
