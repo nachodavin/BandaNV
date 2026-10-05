@@ -35,7 +35,6 @@ public sealed partial class CategoriesPage : Page
         LoadPersistentCategories();
         RefreshCategoryList();
         UpdateCategoryMetrics();
-        _ = RefreshUnassignedFilesMetricAsync();
         ClearCategoryDetails();
 
         Loaded += CategoriesPage_Loaded;
