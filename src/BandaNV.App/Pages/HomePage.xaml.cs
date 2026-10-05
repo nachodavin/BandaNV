@@ -602,33 +602,18 @@ public sealed partial class HomePage : Page
             Tag = item.Id,
             Padding = new Thickness(12, 10, 12, 10),
             CornerRadius = new CornerRadius(10),
+            HorizontalAlignment = HorizontalAlignment.Left,
             Background =
                 new SolidColorBrush(
                     Microsoft.UI.Colors.Transparent)
         };
 
-        var grid = new Grid
+        var content = new StackPanel
         {
-            ColumnSpacing = 10
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            HorizontalAlignment = HorizontalAlignment.Left
         };
-
-        grid.ColumnDefinitions.Add(
-            new ColumnDefinition
-            {
-                Width = GridLength.Auto
-            });
-        grid.ColumnDefinitions.Add(
-            new ColumnDefinition
-            {
-                Width = new GridLength(
-                    1,
-                    GridUnitType.Star)
-            });
-        grid.ColumnDefinitions.Add(
-            new ColumnDefinition
-            {
-                Width = GridLength.Auto
-            });
 
         var dot = new Ellipse
         {
@@ -645,7 +630,7 @@ public sealed partial class HomePage : Page
             Foreground =
                 (Brush)Application.Current.Resources[
                     "BandaMutedStrongBrush"],
-            FontSize = 15,
+            FontSize = 16,
             FontWeight =
                 Microsoft.UI.Text.FontWeights.SemiBold,
             TextTrimming =
@@ -663,20 +648,16 @@ public sealed partial class HomePage : Page
             Foreground =
                 (Brush)Application.Current.Resources[
                     "BandaMutedBrush"],
-            FontSize = 13,
+            FontSize = 14,
             VerticalAlignment =
                 VerticalAlignment.Center
         };
 
-        Grid.SetColumn(dot, 0);
-        Grid.SetColumn(name, 1);
-        Grid.SetColumn(count, 2);
+        content.Children.Add(dot);
+        content.Children.Add(name);
+        content.Children.Add(count);
 
-        grid.Children.Add(dot);
-        grid.Children.Add(name);
-        grid.Children.Add(count);
-
-        row.Child = grid;
+        row.Child = content;
 
         row.PointerEntered +=
             (_, _) => HighlightDonutCategory(item.Id);
@@ -691,8 +672,8 @@ public sealed partial class HomePage : Page
         double sweepAngle,
         Brush brush)
     {
-        const double center = 210;
-        const double radius = 165;
+        const double center = 275;
+        const double radius = 215;
 
         var start =
             PointOnCircle(
@@ -732,7 +713,7 @@ public sealed partial class HomePage : Page
         {
             Data = geometry,
             Stroke = brush,
-            StrokeThickness = 44,
+            StrokeThickness = 56,
             Opacity = 1,
             IsHitTestVisible = true
         };
@@ -772,7 +753,7 @@ public sealed partial class HomePage : Page
                 isActive ? 1 : 0.22;
 
             pair.Value.Segment.StrokeThickness =
-                isActive ? 52 : 40;
+                isActive ? 66 : 52;
 
             pair.Value.LegendRow.Opacity =
                 isActive ? 1 : 0.48;
@@ -815,7 +796,7 @@ public sealed partial class HomePage : Page
         foreach (var visual in _donutVisuals.Values)
         {
             visual.Segment.Opacity = 1;
-            visual.Segment.StrokeThickness = 44;
+            visual.Segment.StrokeThickness = 56;
             visual.LegendRow.Opacity = 1;
             visual.LegendRow.Background =
                 new SolidColorBrush(
