@@ -35,6 +35,8 @@ internal static class Program
             return 0;
         }
 
+        var backupCreated = false;
+
         try
         {
             ValidateOptions(options);
@@ -54,6 +56,8 @@ internal static class Program
             BackupCurrentInstallation(
                 options.AppDirectory,
                 options.BackupDirectory);
+
+            backupCreated = true;
 
             InstallStagedApplication(
                 options.AppDirectory,
@@ -85,7 +89,8 @@ internal static class Program
         {
             return RollbackAfterFailure(
                 options,
-                ex.Message);
+                ex.Message,
+                backupCreated);
         }
     }
 
@@ -640,21 +645,36 @@ internal static class Program
 
     private static int RollbackAfterFailure(
         UpdateOptions options,
-        string failure)
+        string failure,
+        bool backupCreated)
     {
+        if (!backupCreated)
+        {
+            WriteFailedUpdateState(
+                options.AppDirectory,
+                options.ReleaseTag,
+                failure);
+
+            TryStartCurrentApplication(
+                options.AppDirectory);
+
+            TryDeleteWorkspace(
+                options.WorkspaceRoot);
+
+            ShowError(
+                "La actualización no pudo iniciarse." +
+                Environment.NewLine +
+                Environment.NewLine +
+                "No se modificó BandaNV." +
+                Environment.NewLine +
+                Environment.NewLine +
+                $"Detalle: {failure}");
+
+            return 1;
+        }
+
         try
         {
-            if (!Directory.Exists(
-                    options.BackupDirectory))
-            {
-                ShowError(
-                    "La actualización no pudo completarse y no existe un backup para restaurar." +
-                    Environment.NewLine +
-                    Environment.NewLine +
-                    $"Detalle: {failure}");
-
-                return 3;
-            }
 
             var stagedManifest =
                 TryReadManifest(
@@ -712,24 +732,8 @@ internal static class Program
                 options.ReleaseTag,
                 failure);
 
-            var restoredExecutable =
-                Path.Combine(
-                    options.AppDirectory,
-                    "BandaNV.exe");
-
-            if (File.Exists(
-                    restoredExecutable))
-            {
-                Process.Start(
-                    new ProcessStartInfo
-                    {
-                        FileName =
-                            restoredExecutable,
-                        WorkingDirectory =
-                            options.AppDirectory,
-                        UseShellExecute = false
-                    });
-            }
+            TryStartCurrentApplication(
+                options.AppDirectory);
 
             TryDeleteWorkspace(
                 options.WorkspaceRoot);
@@ -754,6 +758,36 @@ internal static class Program
                 $"Detalle: {rollbackException.Message}");
 
             return 3;
+        }
+    }
+
+    private static void TryStartCurrentApplication(
+        string appDirectory)
+    {
+        try
+        {
+            var executable =
+                Path.Combine(
+                    appDirectory,
+                    "BandaNV.exe");
+
+            if (!File.Exists(executable))
+            {
+                return;
+            }
+
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        executable,
+                    WorkingDirectory =
+                        appDirectory,
+                    UseShellExecute = false
+                });
+        }
+        catch
+        {
         }
     }
 
