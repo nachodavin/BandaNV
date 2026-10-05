@@ -626,7 +626,8 @@ public sealed class OrganizationExecutionService
         builder.AppendLine("BandaNV - Registro de ejecución");
         builder.AppendLine("==================================================");
         builder.AppendLine();
-        builder.AppendLine("Tipo: ORGANIZAR");
+        builder.AppendLine(
+            $"Tipo: {(record.Type.Equals("UNDO", StringComparison.OrdinalIgnoreCase) ? "DESHACER" : "ORGANIZAR")}");
         builder.AppendLine("Formato: v2");
         builder.AppendLine($"ExecutionID: {record.ExecutionId}");
         builder.AppendLine($"Inicio: {record.StartedAt:dd/MM/yyyy HH:mm:ss}");
@@ -639,8 +640,14 @@ public sealed class OrganizationExecutionService
 
         foreach (var item in record.Items)
         {
+            var logStatus =
+                record.Type.Equals("UNDO", StringComparison.OrdinalIgnoreCase) &&
+                item.Status == OrganizationExecutionItemStatus.Moved
+                    ? "RESTAURADO"
+                    : GetLogStatus(item.Status);
+
             builder.AppendLine(
-                $"[{GetLogStatus(item.Status)}] {item.FileName}");
+                $"[{logStatus}] {item.FileName}");
             builder.AppendLine($"         UndoID: {item.UndoId}");
             builder.AppendLine($"         Original: {item.OriginalPath}");
 
