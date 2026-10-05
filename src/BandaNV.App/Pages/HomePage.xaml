@@ -22,7 +22,6 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <!-- Encabezado -->
@@ -59,7 +58,7 @@
                         </Border>
                     </Grid>
 
-                    <!-- Estado general -->
+                    <!-- Estado general: se mantiene igual -->
                     <Border
                         Grid.Row="1"
                         Style="{StaticResource BandaCardStyle}"
@@ -95,7 +94,12 @@
                                     FontSize="13" />
 
                                 <StackPanel Orientation="Horizontal" Spacing="7">
-                                    <Ellipse x:Name="HomeStatusDot" Width="7" Height="7" Fill="{StaticResource BandaSecondaryAccentBrush}" VerticalAlignment="Center" />
+                                    <Ellipse
+                                        x:Name="HomeStatusDot"
+                                        Width="7"
+                                        Height="7"
+                                        Fill="{StaticResource BandaSecondaryAccentBrush}"
+                                        VerticalAlignment="Center" />
                                     <TextBlock
                                         x:Name="HomeStatusText"
                                         Text="Comprobando..."
@@ -121,7 +125,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- Métricas principales -->
+                    <!-- Tres métricas útiles -->
                     <Grid Grid.Row="2" ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -146,9 +150,21 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="ARCHIVOS PENDIENTES" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
-                                    <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaAccentSoftBrush}">
-                                        <SymbolIcon Symbol="Folder" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="ARCHIVOS PENDIENTES"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="13" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="11"
+                                        Background="{StaticResource BandaAccentSoftBrush}">
+                                        <SymbolIcon
+                                            Symbol="Folder"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
                                     </Border>
                                 </Grid>
 
@@ -170,7 +186,9 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="1" Style="{StaticResource BandaMetricCardStyle}">
+                        <Border
+                            Grid.Column="1"
+                            Style="{StaticResource BandaMetricCardStyle}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -183,30 +201,47 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="ARCHIVOS ORGANIZADOS TOTALES" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
-                                    <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaNavIconBrush}">
-                                        <SymbolIcon Symbol="Accept" Foreground="{StaticResource BandaAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="ARCHIVOS SIN ASIGNAR"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="11"
+                                        Background="{StaticResource BandaNavIconBrush}">
+                                        <TextBlock
+                                            Text="?"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="17"
+                                            FontWeight="SemiBold"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
                                     </Border>
                                 </Grid>
 
                                 <TextBlock
-                                    x:Name="HomeTotalOrganizedText"
+                                    x:Name="HomeUnassignedFilesText"
                                     Grid.Row="1"
-                                    Text="0"
+                                    Text="—"
                                     Foreground="{StaticResource BandaTextBrush}"
                                     FontSize="42"
                                     FontWeight="SemiBold"
                                     VerticalAlignment="Center" />
 
                                 <TextBlock
+                                    x:Name="HomeUnassignedDetailText"
                                     Grid.Row="2"
-                                    Text="Movimientos de Organización"
+                                    Text="Sin analizar"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="14" />
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="2" Style="{StaticResource BandaMetricCardStyle}">
+                        <Border
+                            Grid.Column="2"
+                            Style="{StaticResource BandaMetricCardStyle}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -219,90 +254,56 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="TAMAÑO TOTAL MOVIDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
-                                    <Border Grid.Column="1" Width="34" Height="34" CornerRadius="11" Background="{StaticResource BandaNavIconBrush}">
-                                        <SymbolIcon Symbol="Save" Foreground="{StaticResource BandaSecondaryAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="TAMAÑO MOVIDO · ÚLTIMA ORGANIZACIÓN"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="11"
+                                        Background="{StaticResource BandaNavIconBrush}">
+                                        <SymbolIcon
+                                            Symbol="Save"
+                                            Foreground="{StaticResource BandaSecondaryAccentBrush}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
                                     </Border>
                                 </Grid>
 
                                 <TextBlock
-                                    x:Name="HomeTotalMovedSizeText"
+                                    x:Name="HomeLastMovedSizeText"
                                     Grid.Row="1"
-                                    Text="0 B"
+                                    Text="—"
                                     Foreground="{StaticResource BandaTextBrush}"
                                     FontSize="42"
                                     FontWeight="SemiBold"
                                     VerticalAlignment="Center" />
 
                                 <TextBlock
+                                    x:Name="HomeLastMovedSizeDetailText"
                                     Grid.Row="2"
-                                    Text="Movido por Organización"
+                                    Text="Sin organizaciones todavía"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="14" />
                             </Grid>
                         </Border>
                     </Grid>
 
-                    <!-- Métricas secundarias -->
-                    <Grid Grid.Row="3" ColumnSpacing="14">
+                    <!-- Estado actual de la biblioteca organizada -->
+                    <Grid Grid.Row="3" ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1.75*" />
+                            <ColumnDefinition Width="0.75*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="20,16">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="Categorías activas" Style="{StaticResource BandaMutedTextStyle}" />
-                                    <TextBlock Text="Configuradas actualmente" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" />
-                                </StackPanel>
-                                <TextBlock x:Name="HomeCategoriesCountText" Grid.Column="1" Text="0" Foreground="{StaticResource BandaTextBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-
-                        <Border Grid.Column="1" Style="{StaticResource BandaCardStyle}" Padding="20,16">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="Organizados última ejecución" Style="{StaticResource BandaMutedTextStyle}" />
-                                    <TextBlock Text="Último movimiento completo" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" />
-                                </StackPanel>
-                                <TextBlock x:Name="HomeLastExecutionFilesText" Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource BandaCardStyle}" Padding="20,16">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="Última organización" Style="{StaticResource BandaMutedTextStyle}" />
-                                    <TextBlock Text="Fecha y hora" Foreground="{StaticResource BandaMutedBrush}" FontSize="13" />
-                                </StackPanel>
-                                <TextBlock x:Name="HomeLastExecutionDateText" Grid.Column="1" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-                    </Grid>
-
-                    <!-- Zona analítica -->
-                    <Grid Grid.Row="4" ColumnSpacing="16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.35*" />
-                            <ColumnDefinition Width="1*" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="24">
-                            <Grid>
+                        <!-- Dona interactiva -->
+                        <Border
+                            Grid.Column="0"
+                            Style="{StaticResource BandaCardStyle}"
+                            Padding="24">
+                            <Grid RowSpacing="18">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
@@ -315,63 +316,218 @@
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Actividad de organización" Foreground="{StaticResource BandaTextBrush}" FontSize="20" FontWeight="SemiBold" />
-                                        <TextBlock Text="Evolución de archivos organizados con el tiempo." Style="{StaticResource BandaMutedTextStyle}" FontSize="14" />
+                                        <TextBlock
+                                            Text="Uso por categoría"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="20"
+                                            FontWeight="SemiBold" />
+                                        <TextBlock
+                                            Text="Distribución actual según la cantidad de archivos organizados."
+                                            Style="{StaticResource BandaMutedTextStyle}"
+                                            FontSize="14" />
                                     </StackPanel>
 
-                                    <Border Grid.Column="1" Padding="10,5" CornerRadius="14" Background="{StaticResource BandaNavIconBrush}" VerticalAlignment="Top">
-                                        <TextBlock Text="Histórico" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="13" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Padding="10,5"
+                                        CornerRadius="14"
+                                        Background="{StaticResource BandaNavIconBrush}"
+                                        VerticalAlignment="Top">
+                                        <TextBlock
+                                            Text="Estado actual"
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            FontSize="13" />
                                     </Border>
                                 </Grid>
 
-                                <Grid Grid.Row="1" MinHeight="210" Margin="0,22,0,0">
-                                    <Border
-                                        CornerRadius="14"
-                                        Background="{StaticResource BandaAccentFaintBrush}"
-                                        BorderBrush="{StaticResource BandaBorderBrush}"
-                                        BorderThickness="1">
+                                <Grid
+                                    Grid.Row="1"
+                                    MinHeight="360"
+                                    ColumnSpacing="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="360" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid
+                                        Width="320"
+                                        Height="320"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                        <Ellipse
+                                            Width="238"
+                                            Height="238"
+                                            Stroke="{StaticResource BandaBorderStrongBrush}"
+                                            StrokeThickness="32"
+                                            Opacity="0.55"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+
+                                        <Canvas
+                                            x:Name="HomeDonutCanvas"
+                                            Width="320"
+                                            Height="320"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
 
                                         <StackPanel
-                                            x:Name="HomeActivityPanel"
-                                            Margin="18"
+                                            Width="172"
+                                            HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
-                                            Spacing="10" />
-                                    </Border>
+                                            Spacing="2">
+                                            <TextBlock
+                                                x:Name="HomeDonutCenterCategoryText"
+                                                Text="TODAS LAS CATEGORÍAS"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="11"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center"
+                                                TextWrapping="Wrap" />
+
+                                            <TextBlock
+                                                x:Name="HomeDonutCenterCountText"
+                                                Text="0"
+                                                Foreground="{StaticResource BandaTextBrush}"
+                                                FontSize="34"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+
+                                            <TextBlock
+                                                x:Name="HomeDonutCenterFilesLabelText"
+                                                Text="archivos organizados"
+                                                Foreground="{StaticResource BandaMutedBrush}"
+                                                FontSize="12"
+                                                TextAlignment="Center" />
+
+                                            <TextBlock
+                                                x:Name="HomeDonutCenterSizeText"
+                                                Text=""
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="12"
+                                                TextAlignment="Center"
+                                                Visibility="Collapsed"
+                                                Margin="0,5,0,0" />
+
+                                            <TextBlock
+                                                x:Name="HomeDonutCenterUsageText"
+                                                Text=""
+                                                Foreground="{StaticResource BandaAccentBrush}"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center"
+                                                Visibility="Collapsed" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <ScrollViewer
+                                        Grid.Column="1"
+                                        VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Disabled"
+                                        VerticalAlignment="Stretch">
+                                        <StackPanel
+                                            x:Name="HomeDonutLegendPanel"
+                                            Margin="0,4,10,4"
+                                            Spacing="5" />
+                                    </ScrollViewer>
                                 </Grid>
                             </Grid>
                         </Border>
 
-                        <Grid Grid.Column="1" RowSpacing="16">
+                        <!-- Métricas del gráfico -->
+                        <Grid
+                            Grid.Column="1"
+                            RowSpacing="14">
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Style="{StaticResource BandaCardStyle}" Padding="22">
-                                <StackPanel Spacing="16">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="Uso por categoría" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                        <TextBlock Text="Distribución histórica." Style="{StaticResource BandaMutedTextStyle}" FontSize="14" />
-                                    </StackPanel>
-
-                                    <StackPanel
-                                        x:Name="HomeCategoryUsagePanel"
-                                        Spacing="11" />
-                                </StackPanel>
+                            <Border
+                                Grid.Row="0"
+                                Style="{StaticResource BandaMetricCardStyle}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock
+                                        Text="TAMAÑO TOTAL"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                    <TextBlock
+                                        x:Name="HomeCurrentTotalSizeText"
+                                        Grid.Row="1"
+                                        Text="0 B"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="34"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Text="almacenados actualmente"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                </Grid>
                             </Border>
 
-                            <Border Grid.Row="1" Style="{StaticResource BandaCardStyle}" Padding="22">
-                                <StackPanel Spacing="14">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="Actividad reciente" Foreground="{StaticResource BandaTextBrush}" FontSize="19" FontWeight="SemiBold" />
-                                        <TextBlock Text="Últimos movimientos registrados." Style="{StaticResource BandaMutedTextStyle}" FontSize="14" />
-                                    </StackPanel>
+                            <Border
+                                Grid.Row="1"
+                                Style="{StaticResource BandaMetricCardStyle}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock
+                                        Text="ARCHIVOS ORGANIZADOS TOTALES"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                    <TextBlock
+                                        x:Name="HomeCurrentOrganizedFilesText"
+                                        Grid.Row="1"
+                                        Text="0"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="34"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Text="archivos actualmente organizados"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                </Grid>
+                            </Border>
 
-                                    <StackPanel
-                                        x:Name="HomeRecentActivityPanel"
-                                        MinHeight="92"
-                                        Spacing="8" />
-                                </StackPanel>
+                            <Border
+                                Grid.Row="2"
+                                Style="{StaticResource BandaMetricCardStyle}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock
+                                        Text="CATEGORÍAS EN USO"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                    <TextBlock
+                                        x:Name="HomeCategoriesInUseText"
+                                        Grid.Row="1"
+                                        Text="0 / 0"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="34"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        Text="categorías con archivos"
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="13" />
+                                </Grid>
                             </Border>
                         </Grid>
                     </Grid>
