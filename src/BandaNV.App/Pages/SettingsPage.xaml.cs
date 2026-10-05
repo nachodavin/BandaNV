@@ -671,7 +671,8 @@ public sealed partial class SettingsPage : Page
                     category.Id,
                     category.Name,
                     category.Extensions,
-                    category.Order))
+                    category.Order,
+                    category.ColorHex))
                 .ToList()
         };
     }
@@ -934,7 +935,8 @@ public sealed partial class SettingsPage : Page
                     category.Id,
                     category.Name,
                     category.Extensions,
-                    category.Order))
+                    category.Order,
+                    category.ColorHex))
                 .ToList()
         };
     }
