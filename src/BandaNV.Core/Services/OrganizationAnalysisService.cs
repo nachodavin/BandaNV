@@ -19,7 +19,9 @@ public sealed class OrganizationAnalysisService
         AppSettings settings,
         CancellationToken cancellationToken)
     {
-        var source = NormalizeDirectoryPath(settings.SourceFolder);
+        var source =
+            NormalizeDirectoryPath(
+                settings.SourceFolder);
 
         if (string.IsNullOrWhiteSpace(source) ||
             !Directory.Exists(source))
@@ -28,7 +30,9 @@ public sealed class OrganizationAnalysisService
                 "La carpeta de origen configurada no existe o no está disponible.");
         }
 
-        var destination = NormalizeDirectoryPath(settings.DestinationFolder);
+        var destination =
+            NormalizeDirectoryPath(
+                settings.DestinationFolder);
 
         if (string.IsNullOrWhiteSpace(destination))
         {
@@ -36,37 +40,135 @@ public sealed class OrganizationAnalysisService
                 "Configurá una carpeta de destino antes de analizar.");
         }
 
-        var categories = settings.Categories
-            .OrderBy(category => category.Order)
-            .ToList();
+        var categories =
+            settings.Categories
+                .OrderBy(category => category.Order)
+                .ToList();
 
-        var extensionMap = BuildExtensionMap(categories);
-        var excludedRoots = BuildExcludedRoots(
+        var extensionMap =
+            BuildExtensionMap(
+                categories);
+
+        var excludedRoots =
+            BuildExcludedRoots(
+                source,
+                destination,
+                categories);
+
+        var items =
+            new List<OrganizationAnalysisFile>();
+
+        var skippedDirectories =
+            0;
+
+        if (settings.OrganizeFoldersAsUnits)
+        {
+            foreach (var path in EnumerateFilesSafely(
+                         source,
+                         includeSubfolders: false,
+                         excludedRoots,
+                         () => skippedDirectories++,
+                         cancellationToken))
+            {
+                var item =
+                    TryAnalyzeFile(
+                        path,
+                        source,
+                        destination,
+                        extensionMap,
+                        settings.ConflictBehavior);
+
+                if (item is not null)
+                {
+                    items.Add(
+                        item);
+                }
+            }
+
+            foreach (var directory in EnumerateTopLevelDirectoriesSafely(
+                         source,
+                         excludedRoots,
+                         () => skippedDirectories++,
+                         cancellationToken))
+            {
+                var item =
+                    TryAnalyzeFolder(
+                        directory,
+                        source,
+                        destination,
+                        extensionMap,
+                        excludedRoots,
+                        settings.ConflictBehavior,
+                        () => skippedDirectories++,
+                        cancellationToken);
+
+                if (item is not null)
+                {
+                    items.Add(
+                        item);
+                }
+            }
+        }
+        else
+        {
+            foreach (var path in EnumerateFilesSafely(
+                         source,
+                         settings.IncludeSubfolders,
+                         excludedRoots,
+                         () => skippedDirectories++,
+                         cancellationToken))
+            {
+                var item =
+                    TryAnalyzeFile(
+                        path,
+                        source,
+                        destination,
+                        extensionMap,
+                        settings.ConflictBehavior);
+
+                if (item is not null)
+                {
+                    items.Add(
+                        item);
+                }
+            }
+        }
+
+        return new OrganizationAnalysisResult(
             source,
             destination,
-            categories,
-            settings.IncludeSubfolders);
+            items
+                .OrderBy(item => item.IsClassified ? 0 : 1)
+                .ThenBy(item => item.IsDirectory ? 0 : 1)
+                .ThenBy(item => item.CategoryOrder ?? int.MaxValue)
+                .ThenBy(item => item.FileName, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+            skippedDirectories);
+    }
 
-        var files = new List<OrganizationAnalysisFile>();
-        var skippedDirectories = 0;
-
-        foreach (var path in EnumerateFilesSafely(
-                     source,
-                     settings.IncludeSubfolders,
-                     excludedRoots,
-                     () => skippedDirectories++,
-                     cancellationToken))
+    private static OrganizationAnalysisFile? TryAnalyzeFile(
+        string path,
+        string source,
+        string destination,
+        IReadOnlyDictionary<string, CategorySettings> extensionMap,
+        string conflictBehavior)
+    {
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            var file =
+                new FileInfo(
+                    path);
 
-            try
-            {
-                var file = new FileInfo(path);
-                var extension = NormalizeExtension(file.Extension);
+            var extension =
+                NormalizeExtension(
+                    file.Extension);
 
-                extensionMap.TryGetValue(extension, out var category);
+            extensionMap.TryGetValue(
+                extension,
+                out var category);
 
-                var destinationPath = category is null
+            var destinationPath =
+                category is null
                     ? null
                     : Path.Combine(
                         destination,
@@ -75,72 +177,271 @@ public sealed class OrganizationAnalysisService
                             category.Name),
                         file.Name);
 
-                var hasDestinationConflict =
-                    destinationPath is not null &&
-                    settings.ConflictBehavior.Equals(
-                        "Preguntar",
-                        StringComparison.OrdinalIgnoreCase) &&
-                    !PathsEqual(file.FullName, destinationPath) &&
-                    File.Exists(destinationPath);
-
-                files.Add(new OrganizationAnalysisFile(
+            var hasDestinationConflict =
+                HasDestinationConflict(
                     file.FullName,
-                    Path.GetRelativePath(source, file.FullName),
-                    file.Name,
-                    extension,
-                    file.Length,
-                    file.LastWriteTime,
-                    file.LastWriteTimeUtc.Ticks,
-                    category?.Id,
-                    category?.Name,
-                    category?.Order,
                     destinationPath,
-                    hasDestinationConflict));
+                    conflictBehavior);
+
+            return new OrganizationAnalysisFile(
+                file.FullName,
+                Path.GetRelativePath(
+                    source,
+                    file.FullName),
+                file.Name,
+                extension,
+                file.Length,
+                file.LastWriteTime,
+                file.LastWriteTimeUtc.Ticks,
+                category?.Id,
+                category?.Name,
+                category?.Order,
+                destinationPath,
+                hasDestinationConflict,
+                OrganizationAnalysisItemKind.File,
+                ContainedFileCount: 1,
+                RecognizedFileCount:
+                    category is null ? 0 : 1,
+                DistinctCategoryCount:
+                    category is null ? 0 : 1,
+                ScanIncomplete: false);
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    private static OrganizationAnalysisFile? TryAnalyzeFolder(
+        string folderPath,
+        string source,
+        string destination,
+        IReadOnlyDictionary<string, CategorySettings> extensionMap,
+        HashSet<string> excludedRoots,
+        string conflictBehavior,
+        Action onSkippedDirectory,
+        CancellationToken cancellationToken)
+    {
+        DirectoryInfo directory;
+
+        try
+        {
+            directory =
+                new DirectoryInfo(
+                    folderPath);
+        }
+        catch
+        {
+            return null;
+        }
+
+        var totalFiles =
+            0;
+
+        var recognizedFiles =
+            0;
+
+        var totalSize =
+            0L;
+
+        var scanIncomplete =
+            false;
+
+        var detectedCategories =
+            new Dictionary<string, CategorySettings>(
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var path in EnumerateFilesSafely(
+                     folderPath,
+                     includeSubfolders: true,
+                     excludedRoots,
+                     () =>
+                     {
+                         scanIncomplete = true;
+                         onSkippedDirectory();
+                     },
+                     cancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                var file =
+                    new FileInfo(
+                        path);
+
+                totalFiles++;
+                totalSize +=
+                    file.Length;
+
+                var extension =
+                    NormalizeExtension(
+                        file.Extension);
+
+                if (!extensionMap.TryGetValue(
+                        extension,
+                        out var category))
+                {
+                    continue;
+                }
+
+                recognizedFiles++;
+
+                detectedCategories.TryAdd(
+                    category.Id,
+                    category);
             }
             catch (FileNotFoundException)
             {
-                // El archivo desapareció mientras se analizaba. Se omite.
+                scanIncomplete = true;
             }
             catch (DirectoryNotFoundException)
             {
-                // La carpeta cambió durante el análisis. Se omite.
+                scanIncomplete = true;
             }
             catch (UnauthorizedAccessException)
             {
-                // El archivo no puede leerse. El análisis continúa.
+                scanIncomplete = true;
             }
             catch (IOException)
             {
-                // Un archivo bloqueado o transitorio no debe tumbar el análisis.
+                scanIncomplete = true;
             }
         }
 
-        return new OrganizationAnalysisResult(
-            source,
-            destination,
-            files
-                .OrderBy(file => file.IsClassified ? 0 : 1)
-                .ThenBy(file => file.CategoryOrder ?? int.MaxValue)
-                .ThenBy(file => file.FileName, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-            skippedDirectories);
+        if (totalFiles == 0)
+        {
+            return null;
+        }
+
+        CategorySettings? inferredCategory =
+            null;
+
+        if (!scanIncomplete &&
+            recognizedFiles == totalFiles &&
+            detectedCategories.Count == 1)
+        {
+            inferredCategory =
+                detectedCategories.Values.First();
+        }
+
+        var destinationPath =
+            inferredCategory is null
+                ? null
+                : Path.Combine(
+                    destination,
+                    CategoryService.GetFolderName(
+                        inferredCategory.Order,
+                        inferredCategory.Name),
+                    directory.Name);
+
+        var hasDestinationConflict =
+            HasDestinationConflict(
+                directory.FullName,
+                destinationPath,
+                conflictBehavior);
+
+        DateTime modifiedAt;
+        long modifiedUtcTicks;
+
+        try
+        {
+            modifiedAt =
+                directory.LastWriteTime;
+
+            modifiedUtcTicks =
+                directory.LastWriteTimeUtc.Ticks;
+        }
+        catch
+        {
+            modifiedAt =
+                DateTime.MinValue;
+
+            modifiedUtcTicks =
+                0;
+        }
+
+        return new OrganizationAnalysisFile(
+            directory.FullName,
+            Path.GetRelativePath(
+                source,
+                directory.FullName),
+            directory.Name,
+            string.Empty,
+            totalSize,
+            modifiedAt,
+            modifiedUtcTicks,
+            inferredCategory?.Id,
+            inferredCategory?.Name,
+            inferredCategory?.Order,
+            destinationPath,
+            hasDestinationConflict,
+            OrganizationAnalysisItemKind.Folder,
+            ContainedFileCount:
+                totalFiles,
+            RecognizedFileCount:
+                recognizedFiles,
+            DistinctCategoryCount:
+                detectedCategories.Count,
+            ScanIncomplete:
+                scanIncomplete);
+    }
+
+    private static bool HasDestinationConflict(
+        string sourcePath,
+        string? destinationPath,
+        string conflictBehavior)
+    {
+        if (string.IsNullOrWhiteSpace(
+                destinationPath) ||
+            !conflictBehavior.Equals(
+                "Preguntar",
+                StringComparison.OrdinalIgnoreCase) ||
+            PathsEqual(
+                sourcePath,
+                destinationPath))
+        {
+            return false;
+        }
+
+        return File.Exists(
+                   destinationPath) ||
+               Directory.Exists(
+                   destinationPath);
     }
 
     private static Dictionary<string, CategorySettings> BuildExtensionMap(
         IEnumerable<CategorySettings> categories)
     {
-        var map = new Dictionary<string, CategorySettings>(
-            StringComparer.OrdinalIgnoreCase);
+        var map =
+            new Dictionary<string, CategorySettings>(
+                StringComparer.OrdinalIgnoreCase);
 
         foreach (var category in categories)
         {
             foreach (var rawExtension in category.Extensions)
             {
-                var extension = NormalizeExtension(rawExtension);
+                var extension =
+                    NormalizeExtension(
+                        rawExtension);
 
-                if (!map.ContainsKey(extension))
+                if (!map.ContainsKey(
+                        extension))
                 {
-                    map[extension] = category;
+                    map[extension] =
+                        category;
                 }
             }
         }
@@ -151,18 +452,15 @@ public sealed class OrganizationAnalysisService
     private static HashSet<string> BuildExcludedRoots(
         string source,
         string destination,
-        IReadOnlyList<CategorySettings> categories,
-        bool includeSubfolders)
+        IReadOnlyList<CategorySettings> categories)
     {
-        var excluded = new HashSet<string>(
-            StringComparer.OrdinalIgnoreCase);
+        var excluded =
+            new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
 
-        if (!includeSubfolders)
-        {
-            return excluded;
-        }
-
-        if (PathsEqual(source, destination))
+        if (PathsEqual(
+                source,
+                destination))
         {
             foreach (var category in categories)
             {
@@ -177,12 +475,80 @@ public sealed class OrganizationAnalysisService
             return excluded;
         }
 
-        if (IsDescendantOf(destination, source))
+        if (IsDescendantOf(
+                destination,
+                source))
         {
-            excluded.Add(destination);
+            excluded.Add(
+                destination);
         }
 
         return excluded;
+    }
+
+    private static IEnumerable<string> EnumerateTopLevelDirectoriesSafely(
+        string source,
+        HashSet<string> excludedRoots,
+        Action onSkippedDirectory,
+        CancellationToken cancellationToken)
+    {
+        string[] directories;
+
+        try
+        {
+            directories =
+                Directory.GetDirectories(
+                    source,
+                    "*",
+                    SearchOption.TopDirectoryOnly);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            onSkippedDirectory();
+            yield break;
+        }
+        catch (IOException)
+        {
+            onSkippedDirectory();
+            yield break;
+        }
+
+        foreach (var directory in directories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var normalized =
+                NormalizeDirectoryPath(
+                    directory);
+
+            if (IsFolderCandidateExcluded(
+                    normalized,
+                    excludedRoots))
+            {
+                continue;
+            }
+
+            try
+            {
+                var attributes =
+                    File.GetAttributes(
+                        normalized);
+
+                if ((attributes &
+                     FileAttributes.ReparsePoint) != 0)
+                {
+                    onSkippedDirectory();
+                    continue;
+                }
+            }
+            catch
+            {
+                onSkippedDirectory();
+                continue;
+            }
+
+            yield return normalized;
+        }
     }
 
     private static IEnumerable<string> EnumerateFilesSafely(
@@ -198,10 +564,11 @@ public sealed class OrganizationAnalysisService
 
             try
             {
-                files = Directory.GetFiles(
-                    source,
-                    "*",
-                    SearchOption.TopDirectoryOnly);
+                files =
+                    Directory.GetFiles(
+                        source,
+                        "*",
+                        SearchOption.TopDirectoryOnly);
             }
             catch (UnauthorizedAccessException)
             {
@@ -223,17 +590,25 @@ public sealed class OrganizationAnalysisService
             yield break;
         }
 
-        var pending = new Stack<string>();
-        pending.Push(source);
+        var pending =
+            new Stack<string>();
+
+        pending.Push(
+            source);
 
         while (pending.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var current = pending.Pop();
+            var current =
+                pending.Pop();
 
-            if (!PathsEqual(current, source) &&
-                IsExcluded(current, excludedRoots))
+            if (!PathsEqual(
+                    current,
+                    source) &&
+                IsExcluded(
+                    current,
+                    excludedRoots))
             {
                 continue;
             }
@@ -243,15 +618,17 @@ public sealed class OrganizationAnalysisService
 
             try
             {
-                files = Directory.GetFiles(
-                    current,
-                    "*",
-                    SearchOption.TopDirectoryOnly);
+                files =
+                    Directory.GetFiles(
+                        current,
+                        "*",
+                        SearchOption.TopDirectoryOnly);
 
-                directories = Directory.GetDirectories(
-                    current,
-                    "*",
-                    SearchOption.TopDirectoryOnly);
+                directories =
+                    Directory.GetDirectories(
+                        current,
+                        "*",
+                        SearchOption.TopDirectoryOnly);
             }
             catch (UnauthorizedAccessException)
             {
@@ -274,17 +651,25 @@ public sealed class OrganizationAnalysisService
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var normalized = NormalizeDirectoryPath(directory);
+                var normalized =
+                    NormalizeDirectoryPath(
+                        directory);
 
-                if (IsExcluded(normalized, excludedRoots))
+                if (IsExcluded(
+                        normalized,
+                        excludedRoots))
                 {
                     continue;
                 }
 
                 try
                 {
-                    var attributes = File.GetAttributes(normalized);
-                    if ((attributes & FileAttributes.ReparsePoint) != 0)
+                    var attributes =
+                        File.GetAttributes(
+                            normalized);
+
+                    if ((attributes &
+                         FileAttributes.ReparsePoint) != 0)
                     {
                         onSkippedDirectory();
                         continue;
@@ -296,61 +681,99 @@ public sealed class OrganizationAnalysisService
                     continue;
                 }
 
-                pending.Push(normalized);
+                pending.Push(
+                    normalized);
             }
         }
     }
+
+    private static bool IsFolderCandidateExcluded(
+        string path,
+        IEnumerable<string> excludedRoots) =>
+        excludedRoots.Any(root =>
+            PathsEqual(
+                path,
+                root) ||
+            IsDescendantOf(
+                path,
+                root) ||
+            IsDescendantOf(
+                root,
+                path));
 
     private static bool IsExcluded(
         string path,
         IEnumerable<string> excludedRoots) =>
         excludedRoots.Any(root =>
-            PathsEqual(path, root) ||
-            IsDescendantOf(path, root));
+            PathsEqual(
+                path,
+                root) ||
+            IsDescendantOf(
+                path,
+                root));
 
     private static bool IsDescendantOf(
         string candidate,
         string parent)
     {
-        var normalizedCandidate = NormalizeDirectoryPath(candidate);
-        var normalizedParent = NormalizeDirectoryPath(parent);
+        var normalizedCandidate =
+            NormalizeDirectoryPath(
+                candidate);
 
-        if (PathsEqual(normalizedCandidate, normalizedParent))
+        var normalizedParent =
+            NormalizeDirectoryPath(
+                parent);
+
+        if (PathsEqual(
+                normalizedCandidate,
+                normalizedParent))
         {
             return false;
         }
 
-        var prefix = normalizedParent + Path.DirectorySeparatorChar;
+        var prefix =
+            normalizedParent +
+            Path.DirectorySeparatorChar;
 
         return normalizedCandidate.StartsWith(
             prefix,
             StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool PathsEqual(string left, string right) =>
-        NormalizeDirectoryPath(left).Equals(
-            NormalizeDirectoryPath(right),
-            StringComparison.OrdinalIgnoreCase);
+    private static bool PathsEqual(
+        string left,
+        string right) =>
+        NormalizeDirectoryPath(
+                left)
+            .Equals(
+                NormalizeDirectoryPath(
+                    right),
+                StringComparison.OrdinalIgnoreCase);
 
-    private static string NormalizeDirectoryPath(string? path)
+    private static string NormalizeDirectoryPath(
+        string? path)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (string.IsNullOrWhiteSpace(
+                path))
         {
             return string.Empty;
         }
 
         return Path.GetFullPath(
-                Environment.ExpandEnvironmentVariables(path.Trim()))
+                Environment.ExpandEnvironmentVariables(
+                    path.Trim()))
             .TrimEnd(
                 Path.DirectorySeparatorChar,
                 Path.AltDirectorySeparatorChar);
     }
 
-    private static string NormalizeExtension(string? extension)
+    private static string NormalizeExtension(
+        string? extension)
     {
-        var normalized = (extension ?? string.Empty)
-            .Trim()
-            .ToLowerInvariant();
+        var normalized =
+            (extension ?? string.Empty)
+                .Trim()
+                .ToLowerInvariant();
 
         if (normalized.Length == 0)
         {
