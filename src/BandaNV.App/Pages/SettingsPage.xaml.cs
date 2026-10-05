@@ -637,6 +637,7 @@ public sealed partial class SettingsPage : Page
             SecondaryColor = SecondaryColorHexText.Text,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
+            OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
             DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
@@ -671,6 +672,7 @@ public sealed partial class SettingsPage : Page
         AutoUpdateToggle.IsOn = backup.AutoUpdate;
         PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
         IncludeSubfoldersToggle.IsOn = backup.IncludeSubfolders;
+        OrganizeFoldersToggle.IsOn = backup.OrganizeFoldersAsUnits;
         CreateFoldersToggle.IsOn = backup.CreateFolders;
         DeleteEmptyFoldersToggle.IsOn = backup.DeleteEmptyFolders;
         ConflictBehaviorValueText.Text = backup.ConflictBehavior;
@@ -986,6 +988,7 @@ public sealed partial class SettingsPage : Page
         SecondaryColorHexText.Text = ToHex(secondary);
         PreviewBeforeOrganizeToggle.IsOn = true;
         IncludeSubfoldersToggle.IsOn = false;
+        OrganizeFoldersToggle.IsOn = false;
         CreateFoldersToggle.IsOn = true;
         DeleteEmptyFoldersToggle.IsOn = false;
 
@@ -1033,6 +1036,7 @@ public sealed partial class SettingsPage : Page
         ThemeValueText.Text = settings.Theme;
         PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
         IncludeSubfoldersToggle.IsOn = settings.IncludeSubfolders;
+        OrganizeFoldersToggle.IsOn = settings.OrganizeFoldersAsUnits;
         CreateFoldersToggle.IsOn = settings.CreateFolders;
         DeleteEmptyFoldersToggle.IsOn = settings.DeleteEmptyFolders;
 
@@ -1084,6 +1088,7 @@ public sealed partial class SettingsPage : Page
             SecondaryColor = SecondaryColorHexText.Text,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
+            OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
             DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
@@ -1215,6 +1220,7 @@ internal sealed class SettingsBackupModel
 
     public bool PreviewBeforeOrganize { get; set; } = true;
     public bool IncludeSubfolders { get; set; }
+    public bool OrganizeFoldersAsUnits { get; set; }
     public bool CreateFolders { get; set; } = true;
     public bool DeleteEmptyFolders { get; set; }
 
