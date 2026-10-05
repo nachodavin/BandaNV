@@ -1454,6 +1454,20 @@ public sealed partial class SearchPage : Page
 
         SearchManageCategoryValueText.Text =
             _pendingSearchCategoryName ?? "Elegir categoría";
+
+        var currentCategoryVisual =
+            _pendingSearchCategoryName is null
+                ? null
+                : _allCategoryCards.FirstOrDefault(category =>
+                    category.Name.Equals(
+                        _pendingSearchCategoryName,
+                        StringComparison.CurrentCultureIgnoreCase));
+
+        SearchManageCategoryValueText.Foreground =
+            currentCategoryVisual?.CategoryBrush ??
+            (Brush)Application.Current.Resources[
+                "BandaTextBrush"];
+
         SearchManagePrimaryButton.Content =
             files.Count == 1
                 ? "Cambiar categoría"
@@ -1620,6 +1634,18 @@ public sealed partial class SearchPage : Page
 
         _pendingSearchCategoryName = categoryName;
         SearchManageCategoryValueText.Text = categoryName;
+
+        var selectedCategoryVisual =
+            _allCategoryCards.FirstOrDefault(category =>
+                category.Name.Equals(
+                    categoryName,
+                    StringComparison.CurrentCultureIgnoreCase));
+
+        SearchManageCategoryValueText.Foreground =
+            selectedCategoryVisual?.CategoryBrush ??
+            (Brush)Application.Current.Resources[
+                "BandaTextBrush"];
+
         SearchManageValidationText.Visibility = Visibility.Collapsed;
 
         BuildSearchManageCategoryOptions();
