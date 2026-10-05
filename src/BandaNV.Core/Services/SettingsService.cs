@@ -127,6 +127,8 @@ public sealed class SettingsService
 
         settings.PrimaryColor = NormalizeHex(settings.PrimaryColor, "#123A34");
         settings.SecondaryColor = NormalizeHex(settings.SecondaryColor, "#4FE0C6");
+        settings.HistoryRetention =
+            NormalizeHistoryRetention(settings.HistoryRetention);
 
         settings.Categories ??= [];
 
@@ -179,6 +181,17 @@ public sealed class SettingsService
             ? extension
             : $".{extension}";
     }
+
+    private static string NormalizeHistoryRetention(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "30 días" => "30 días",
+            "90 días" => "90 días",
+            "1 año" => "1 año",
+            "Siempre" => "Siempre",
+            _ => "Siempre"
+        };
 
     private static string NormalizeHex(string? value, string fallback)
     {
