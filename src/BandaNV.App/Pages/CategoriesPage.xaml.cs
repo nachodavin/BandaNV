@@ -23,6 +23,10 @@ public sealed partial class CategoriesPage : Page
     private string _editorCategoryId = string.Empty;
     private string _editorColorHex = "#4FE0C6";
     private bool _isUpdatingCategoryColor;
+    private readonly object _unassignedRefreshSync = new();
+    private FileSystemWatcher? _sourceWatcher;
+    private CancellationTokenSource? _unassignedRefreshDebounceCts;
+    private bool _isPageLoaded;
 
     public CategoriesPage()
     {
@@ -31,7 +35,28 @@ public sealed partial class CategoriesPage : Page
         LoadPersistentCategories();
         RefreshCategoryList();
         UpdateCategoryMetrics();
+        _ = RefreshUnassignedFilesMetricAsync();
         ClearCategoryDetails();
+
+        Loaded += CategoriesPage_Loaded;
+        Unloaded += CategoriesPage_Unloaded;
+    }
+
+    private async void CategoriesPage_Loaded(
+        object sender,
+        RoutedEventArgs e)
+    {
+        _isPageLoaded = true;
+        ConfigureSourceWatcher();
+        await RefreshUnassignedFilesMetricAsync();
+    }
+
+    private void CategoriesPage_Unloaded(
+        object sender,
+        RoutedEventArgs e)
+    {
+        _isPageLoaded = false;
+        StopSourceWatcher();
     }
 
     private void LoadPersistentCategories()
@@ -163,6 +188,7 @@ public sealed partial class CategoriesPage : Page
         RefreshDerivedCategoryData();
         RefreshCategoryList(_selectedCategory);
         UpdateCategoryMetrics();
+        _ = RefreshUnassignedFilesMetricAsync();
     }
 
     private void NormalizeCategoryOrder()
@@ -267,10 +293,239 @@ public sealed partial class CategoriesPage : Page
             _allCategories
                 .Sum(category => category.FileCount)
                 .ToString(CultureInfo.CurrentCulture);
+    }
 
-        // Este valor será alimentado por AnalyzeAsync cuando conectemos
-        // el escaneo real del origen. Categorías ya no inventa extensiones.
-        UnassignedExtensionsText.Text = "0";
+    private async Task RefreshUnassignedFilesMetricAsync()
+    {
+        UnassignedFilesText.Text = "—";
+        CategoriesUnassignedDetailText.Text =
+            "Analizando origen...";
+
+        try
+        {
+            var result =
+                await global::BandaNV.App.App.OrganizationAnalysis.AnalyzeAsync(
+                    global::BandaNV.App.App.Settings.Current);
+
+            UnassignedFilesText.Text =
+                result.UnclassifiedCount.ToString(
+                    CultureInfo.CurrentCulture);
+
+            CategoriesUnassignedDetailText.Text =
+                result.UnclassifiedCount == 0
+                    ? "Todo tiene una categoría asignada"
+                    : result.UnclassifiedCount == 1
+                        ? "1 archivo necesita categoría"
+                        : $"{result.UnclassifiedCount} archivos necesitan categoría";
+
+            UpdateUnassignedCardState(
+                result.UnclassifiedCount);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            UnassignedFilesText.Text = "—";
+            CategoriesUnassignedDetailText.Text =
+                "La carpeta de origen no está disponible";
+            UpdateUnassignedCardState(0);
+        }
+        catch
+        {
+            UnassignedFilesText.Text = "—";
+            CategoriesUnassignedDetailText.Text =
+                "No se pudo analizar el origen";
+            UpdateUnassignedCardState(0);
+        }
+    }
+
+    private void UpdateUnassignedCardState(
+        int unassignedCount)
+    {
+        var hasUnassigned = unassignedCount > 0;
+
+        CategoriesUnassignedCard.BorderBrush =
+            hasUnassigned
+                ? (Brush)Resources["CategoriesWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaBorderBrush"];
+
+        CategoriesUnassignedCard.Background =
+            hasUnassigned
+                ? (Brush)Resources["CategoriesWarningSoftBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaCardBrush"];
+
+        CategoriesUnassignedTitleText.Foreground =
+            hasUnassigned
+                ? (Brush)Resources["CategoriesWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaMutedStrongBrush"];
+
+        CategoriesUnassignedDetailText.Foreground =
+            hasUnassigned
+                ? (Brush)Resources["CategoriesWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaMutedBrush"];
+
+        CategoriesUnassignedIconBorder.Background =
+            hasUnassigned
+                ? (Brush)Resources["CategoriesWarningSoftBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaNavIconBrush"];
+
+        CategoriesUnassignedIconText.Foreground =
+            hasUnassigned
+                ? (Brush)Resources["CategoriesWarningBrush"]
+                : (Brush)Application.Current.Resources[
+                    "BandaAccentBrush"];
+    }
+
+    private void ConfigureSourceWatcher()
+    {
+        StopSourceWatcher();
+
+        var sourceFolder =
+            global::BandaNV.App.App.Settings.Current.SourceFolder;
+
+        if (string.IsNullOrWhiteSpace(sourceFolder))
+        {
+            return;
+        }
+
+        try
+        {
+            var sourcePath =
+                System.IO.Path.GetFullPath(
+                    Environment.ExpandEnvironmentVariables(
+                        sourceFolder.Trim()));
+
+            if (!Directory.Exists(sourcePath))
+            {
+                return;
+            }
+
+            _sourceWatcher = new FileSystemWatcher(sourcePath)
+            {
+                IncludeSubdirectories =
+                    global::BandaNV.App.App.Settings.Current.IncludeSubfolders,
+                NotifyFilter =
+                    NotifyFilters.FileName |
+                    NotifyFilters.DirectoryName |
+                    NotifyFilters.Size |
+                    NotifyFilters.LastWrite,
+                Filter = "*",
+                EnableRaisingEvents = false
+            };
+
+            _sourceWatcher.Created += SourceWatcher_Changed;
+            _sourceWatcher.Deleted += SourceWatcher_Changed;
+            _sourceWatcher.Changed += SourceWatcher_Changed;
+            _sourceWatcher.Renamed += SourceWatcher_Renamed;
+            _sourceWatcher.Error += SourceWatcher_Error;
+            _sourceWatcher.EnableRaisingEvents = true;
+        }
+        catch
+        {
+            _sourceWatcher = null;
+        }
+    }
+
+    private void SourceWatcher_Changed(
+        object sender,
+        FileSystemEventArgs e)
+    {
+        QueueUnassignedRefresh();
+    }
+
+    private void SourceWatcher_Renamed(
+        object sender,
+        RenamedEventArgs e)
+    {
+        QueueUnassignedRefresh();
+    }
+
+    private void SourceWatcher_Error(
+        object sender,
+        ErrorEventArgs e)
+    {
+        QueueUnassignedRefresh();
+    }
+
+    private void QueueUnassignedRefresh()
+    {
+        CancellationTokenSource next;
+
+        lock (_unassignedRefreshSync)
+        {
+            _unassignedRefreshDebounceCts?.Cancel();
+            _unassignedRefreshDebounceCts?.Dispose();
+
+            next = new CancellationTokenSource();
+            _unassignedRefreshDebounceCts = next;
+        }
+
+        _ = DebouncedUnassignedRefreshAsync(next.Token);
+    }
+
+    private async Task DebouncedUnassignedRefreshAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(300),
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (!_isPageLoaded ||
+                cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await RefreshUnassignedFilesMetricAsync();
+        });
+    }
+
+    private void StopSourceWatcher()
+    {
+        if (_sourceWatcher is not null)
+        {
+            try
+            {
+                _sourceWatcher.EnableRaisingEvents = false;
+                _sourceWatcher.Created -= SourceWatcher_Changed;
+                _sourceWatcher.Deleted -= SourceWatcher_Changed;
+                _sourceWatcher.Changed -= SourceWatcher_Changed;
+                _sourceWatcher.Renamed -= SourceWatcher_Renamed;
+                _sourceWatcher.Error -= SourceWatcher_Error;
+                _sourceWatcher.Dispose();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _sourceWatcher = null;
+            }
+        }
+
+        lock (_unassignedRefreshSync)
+        {
+            _unassignedRefreshDebounceCts?.Cancel();
+            _unassignedRefreshDebounceCts?.Dispose();
+            _unassignedRefreshDebounceCts = null;
+        }
     }
 
     private void NewCategoryButton_Click(object sender, RoutedEventArgs e)
@@ -805,6 +1060,7 @@ public sealed partial class CategoriesPage : Page
         CloseCategoryEditor();
         RefreshCategoryList(savedCategory);
         UpdateCategoryMetrics();
+        _ = RefreshUnassignedFilesMetricAsync();
 
         _selectedCategory = savedCategory;
         CategoryList.SelectedItem = savedCategory;
@@ -882,6 +1138,7 @@ public sealed partial class CategoriesPage : Page
         CloseDeleteCategoryOverlay();
         RefreshCategoryList();
         UpdateCategoryMetrics();
+        _ = RefreshUnassignedFilesMetricAsync();
         ClearCategoryDetails();
     }
 
@@ -988,6 +1245,7 @@ public sealed partial class CategoriesPage : Page
         LoadPersistentCategories();
         RefreshCategoryList();
         UpdateCategoryMetrics();
+        _ = RefreshUnassignedFilesMetricAsync();
         ClearCategoryDetails();
 
         CategoryDetailStatusText.Text =
