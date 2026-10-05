@@ -293,7 +293,7 @@
                                 <TextBlock
                                     x:Name="HomeTotalExecutionsDetailText"
                                     Grid.Row="2"
-                                    Text="acciones de organizar registradas"
+                                    Text="Acciones de organizar registradas"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="14" />
                             </Grid>
@@ -403,7 +403,7 @@
 
                                             <TextBlock
                                                 x:Name="HomeDonutCenterFilesLabelText"
-                                                Text="archivos organizados"
+                                                Text="Archivos organizados"
                                                 Foreground="{StaticResource BandaMutedBrush}"
                                                 FontSize="16"
                                                 TextAlignment="Center" />
@@ -476,7 +476,7 @@
                                         VerticalAlignment="Center" />
                                     <TextBlock
                                         Grid.Row="2"
-                                        Text="almacenados actualmente"
+                                        Text="Almacenados actualmente"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                 </Grid>
@@ -505,7 +505,7 @@
                                         VerticalAlignment="Center" />
                                     <TextBlock
                                         Grid.Row="2"
-                                        Text="archivos actualmente organizados"
+                                        Text="Archivos actualmente organizados"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                 </Grid>
@@ -534,7 +534,7 @@
                                         VerticalAlignment="Center" />
                                     <TextBlock
                                         Grid.Row="2"
-                                        Text="categorías con archivos"
+                                        Text="Categorías con archivos"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                 </Grid>
