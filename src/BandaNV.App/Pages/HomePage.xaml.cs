@@ -499,6 +499,10 @@ public sealed partial class HomePage : Page
                     group.Key,
                     category?.Name ?? first.CategoryName,
                     category?.Order ?? first.CategoryOrder,
+                    category?.ColorHex ??
+                    CategoryColorPalette.Generate(
+                        group.Key,
+                        settings.SecondaryColor),
                     count,
                     group.Sum(file => file.SizeBytes),
                     percentage);
@@ -560,7 +564,7 @@ public sealed partial class HomePage : Page
                 Math.Max(0.35, sweep - gap);
 
             var brush =
-                CreateCategoryBrush(item.Id);
+                CreateCategoryBrush(item.ColorHex);
 
             var segment =
                 CreateDonutSegment(
@@ -827,139 +831,23 @@ public sealed partial class HomePage : Page
     }
 
     private static SolidColorBrush CreateCategoryBrush(
-        string categoryId)
+        string colorHex)
     {
-        var accent =
-            (SolidColorBrush)Application.Current.Resources[
+        if (!CategoryColorPalette.TryNormalizeHex(
+                colorHex,
+                out var normalized))
+        {
+            return (SolidColorBrush)Application.Current.Resources[
                 "BandaAccentBrush"];
-
-        var (baseHue, _, _) =
-            RgbToHsl(accent.Color);
-
-        var hash =
-            StableHash(categoryId);
-
-        var hueOffset =
-            (int)(hash % 191) - 95;
-
-        var hue =
-            (baseHue + hueOffset + 360) % 360;
-
-        var saturation =
-            0.58 + ((hash >> 8) % 13) / 100d;
-
-        var lightness =
-            0.54 + ((hash >> 16) % 10) / 100d;
+        }
 
         return new SolidColorBrush(
-            HslToColor(
-                hue,
-                saturation,
-                lightness));
+            Windows.UI.Color.FromArgb(
+                255,
+                Convert.ToByte(normalized.Substring(1, 2), 16),
+                Convert.ToByte(normalized.Substring(3, 2), 16),
+                Convert.ToByte(normalized.Substring(5, 2), 16)));
     }
-
-    private static uint StableHash(string value)
-    {
-        const uint offset = 2166136261;
-        const uint prime = 16777619;
-
-        var hash = offset;
-
-        foreach (var character in value)
-        {
-            hash ^= character;
-            hash *= prime;
-        }
-
-        return hash;
-    }
-
-    private static (double Hue, double Saturation, double Lightness)
-        RgbToHsl(Windows.UI.Color color)
-    {
-        var r = color.R / 255d;
-        var g = color.G / 255d;
-        var b = color.B / 255d;
-
-        var max = Math.Max(r, Math.Max(g, b));
-        var min = Math.Min(r, Math.Min(g, b));
-        var delta = max - min;
-
-        var lightness = (max + min) / 2d;
-
-        if (delta == 0)
-        {
-            return (0, 0, lightness);
-        }
-
-        var saturation =
-            delta /
-            (1 - Math.Abs(2 * lightness - 1));
-
-        double hue;
-
-        if (max == r)
-        {
-            hue =
-                60 * (((g - b) / delta) % 6);
-        }
-        else if (max == g)
-        {
-            hue =
-                60 * (((b - r) / delta) + 2);
-        }
-        else
-        {
-            hue =
-                60 * (((r - g) / delta) + 4);
-        }
-
-        if (hue < 0)
-        {
-            hue += 360;
-        }
-
-        return (hue, saturation, lightness);
-    }
-
-    private static Windows.UI.Color HslToColor(
-        double hue,
-        double saturation,
-        double lightness)
-    {
-        var chroma =
-            (1 - Math.Abs(2 * lightness - 1)) *
-            saturation;
-
-        var hPrime = hue / 60d;
-        var x =
-            chroma *
-            (1 - Math.Abs(hPrime % 2 - 1));
-
-        var (r1, g1, b1) =
-            hPrime switch
-            {
-                < 1 => (chroma, x, 0d),
-                < 2 => (x, chroma, 0d),
-                < 3 => (0d, chroma, x),
-                < 4 => (0d, x, chroma),
-                < 5 => (x, 0d, chroma),
-                _ => (chroma, 0d, x)
-            };
-
-        var m =
-            lightness - chroma / 2d;
-
-        return Windows.UI.Color.FromArgb(
-            255,
-            ToByte(r1 + m),
-            ToByte(g1 + m),
-            ToByte(b1 + m));
-    }
-
-    private static byte ToByte(double value) =>
-        (byte)Math.Round(
-            Math.Clamp(value, 0, 1) * 255);
 
     private static bool IsOrganization(
         OrganizationExecutionRecord record) =>
@@ -992,6 +880,7 @@ public sealed partial class HomePage : Page
         string Id,
         string Name,
         int Order,
+        string ColorHex,
         int FileCount,
         long SizeBytes,
         double Percentage);
