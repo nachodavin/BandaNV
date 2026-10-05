@@ -2,8 +2,8 @@ namespace BandaNV.Core.Infrastructure;
 
 public static class AppVersionInfo
 {
-    public const string Version = "2.0";
-    public const string Tag = "v2.0";
+    public const string Version = "2.0.1";
+    public const string Tag = "v2.0.1";
 
     public const string GitHubRepository = "nachodavin/BandaNV";
     public const string GitHubApiBase =
