@@ -35,4 +35,15 @@
     <ProjectReference Include="..\BandaNV.Core\BandaNV.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\assets\BandaNV.ico"
+             Link="assets\BandaNV.ico"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\BandaNV_AppIcon.png"
+             Link="assets\BandaNV_AppIcon.png"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
