@@ -105,7 +105,54 @@ public sealed partial class HistoryPage : Page
             // Historial queda vacío si no puede leerse; nunca se rellenan mocks.
         }
 
+        UpdateHistoryMetrics();
         RefreshHistoryResults();
+    }
+
+    private void UpdateHistoryMetrics()
+    {
+        HistoryTotalExecutionsText.Text =
+            _allPreviewExecutions.Count.ToString(CultureInfo.CurrentCulture);
+
+        var totalFiles =
+            _allPreviewExecutions.Sum(execution => execution.FileCount);
+
+        HistoryTotalFilesText.Text =
+            totalFiles.ToString(CultureInfo.CurrentCulture);
+
+        var totalBytes =
+            _allPreviewExecutions.Sum(execution =>
+                ParseSizeBytes(execution.SizeText));
+
+        HistoryTotalSizeText.Text =
+            FormatHistoryBytes(totalBytes);
+
+        var lastOrganization = _allPreviewExecutions
+            .Where(execution =>
+                execution.Type.Equals(
+                    "ORGANIZAR",
+                    StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(GetExecutionDateTime)
+            .FirstOrDefault();
+
+        if (lastOrganization is null)
+        {
+            HistoryLastOrganizationText.Text = "—";
+            HistoryLastOrganizationDetailText.Text = "Sin ejecuciones";
+            return;
+        }
+
+        var parsed = GetExecutionDateTime(lastOrganization);
+
+        HistoryLastOrganizationText.Text =
+            parsed == DateTime.MinValue
+                ? lastOrganization.DateTimeText
+                : parsed.ToString(
+                    "dd/MM · HH:mm:ss",
+                    CultureInfo.GetCultureInfo("es-AR"));
+
+        HistoryLastOrganizationDetailText.Text =
+            $"{lastOrganization.FileCountText} archivos · {lastOrganization.SizeText}";
     }
 
     private static bool IsItemCurrentlyReversible(
