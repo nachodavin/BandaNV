@@ -25,7 +25,7 @@ public sealed class SettingsService
 
             if (!File.Exists(PortablePaths.SettingsFile))
             {
-                Current = AppSettings.CreateDefault();
+                Current = Normalize(AppSettings.CreateDefault());
                 await SaveInternalAsync(Current, cancellationToken);
                 return Current;
             }
@@ -38,14 +38,26 @@ public sealed class SettingsService
                     JsonOptions,
                     cancellationToken);
 
+                var originalSchemaVersion = loaded?.SchemaVersion ?? 0;
+                var hadMissingCategoryColors =
+                    loaded?.Categories?.Any(category =>
+                        string.IsNullOrWhiteSpace(category.ColorHex)) == true;
+
                 Current = Normalize(loaded ?? AppSettings.CreateDefault());
+
+                if (originalSchemaVersion < AppSettings.CurrentSchemaVersion ||
+                    hadMissingCategoryColors)
+                {
+                    await SaveInternalAsync(Current, cancellationToken);
+                }
+
                 return Current;
             }
             catch
             {
                 BackupCorruptSettingsFile();
 
-                Current = AppSettings.CreateDefault();
+                Current = Normalize(AppSettings.CreateDefault());
                 await SaveInternalAsync(Current, cancellationToken);
                 return Current;
             }
