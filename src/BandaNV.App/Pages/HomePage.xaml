@@ -4,6 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
+    <Page.Resources>
+        <SolidColorBrush x:Key="HomeWarningBrush" Color="#F2B85B" />
+        <SolidColorBrush x:Key="HomeWarningSoftBrush" Color="#24F2B85B" />
+    </Page.Resources>
+
     <Grid x:Name="PageRoot">
         <ScrollViewer
             HorizontalScrollMode="Disabled"
@@ -187,6 +192,7 @@
                         </Border>
 
                         <Border
+                            x:Name="HomeUnassignedCard"
                             Grid.Column="1"
                             Style="{StaticResource BandaMetricCardStyle}">
                             <Grid>
@@ -202,16 +208,19 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock
+                                        x:Name="HomeUnassignedTitleText"
                                         Text="ARCHIVOS SIN ASIGNAR"
-                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
                                         FontSize="13" />
                                     <Border
+                                        x:Name="HomeUnassignedIconBorder"
                                         Grid.Column="1"
                                         Width="34"
                                         Height="34"
                                         CornerRadius="11"
                                         Background="{StaticResource BandaNavIconBrush}">
                                         <TextBlock
+                                            x:Name="HomeUnassignedIconText"
                                             Text="?"
                                             Foreground="{StaticResource BandaAccentBrush}"
                                             FontSize="17"
@@ -294,8 +303,8 @@
                     <!-- Estado actual de la biblioteca organizada -->
                     <Grid Grid.Row="3" ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.75*" />
-                            <ColumnDefinition Width="0.75*" />
+                            <ColumnDefinition Width="1.25*" />
+                            <ColumnDefinition Width="1*" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Dona interactiva -->
