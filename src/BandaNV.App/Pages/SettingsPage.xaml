@@ -1147,7 +1147,7 @@
                             <Border Grid.Column="0" Style="{StaticResource BandaCardStyle}" Padding="18">
                                 <StackPanel Spacing="5">
                                     <TextBlock Text="VERSIÓN" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
-                                    <TextBlock Text="2.0 desarrollo" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="2.0.1 desarrollo" Foreground="{StaticResource BandaTextBrush}" FontSize="18" FontWeight="SemiBold" />
                                 </StackPanel>
                             </Border>
 
