@@ -16,6 +16,7 @@ public enum OrganizationExecutionItemStatus
     SkippedUnclassified,
     SkippedConflict,
     ConflictNeedsDecision,
+    Interrupted,
     SourceMissing,
     SourceChanged,
     Error
@@ -44,6 +45,9 @@ public sealed class OrganizationExecutionRecord
     public string SourceFolder { get; set; } = string.Empty;
     public string DestinationFolder { get; set; } = string.Empty;
     public string ConflictBehavior { get; set; } = string.Empty;
+    public string? RelatedExecutionId { get; set; }
+    public DateTime? RecoveredAt { get; set; }
+    public string? RecoveryMessage { get; set; }
 
     public int EmptyDirectoriesDeleted { get; set; }
     public List<OrganizationExecutionItemRecord> Items { get; set; } = [];
@@ -65,6 +69,8 @@ public sealed class OrganizationExecutionItemRecord
     public string? FinalPath { get; set; }
     public string? ReplacedBackupPath { get; set; }
     public string? ConflictResolution { get; set; }
+    public long? ReplacedSizeBytes { get; set; }
+    public long? ReplacedModifiedUtcTicks { get; set; }
 
     public string? CategoryId { get; set; }
     public string? CategoryName { get; set; }
