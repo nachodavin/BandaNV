@@ -43,18 +43,27 @@
                             VerticalAlignment="Top"
                             Visibility="{x:Bind SelectedVisibility}" />
 
-                        <TextBlock
-                            Text="{x:Bind Name}"
-                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            TextTrimming="CharacterEllipsis"
-                            MaxLines="1" />
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="7">
+                            <Ellipse
+                                Width="9"
+                                Height="9"
+                                Fill="{x:Bind CategoryBrush}"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Text="{x:Bind Name}"
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                TextTrimming="CharacterEllipsis"
+                                MaxLines="1" />
+                        </StackPanel>
 
                         <TextBlock
                             Grid.Row="1"
                             Text="{x:Bind ExtensionsText}"
-                            Foreground="{StaticResource BandaAccentBrush}"
+                            Foreground="{x:Bind CategoryBrush}"
                             FontSize="13"
                             Margin="0,6,0,0"
                             TextTrimming="CharacterEllipsis"
