@@ -13,9 +13,6 @@ public sealed partial class SettingsPage : Page
     private SettingsSection _currentSection = SettingsSection.General;
     private SettingsConfirmMode _confirmMode = SettingsConfirmMode.None;
     private CancellationTokenSource? _saveDebounceCts;
-    private CancellationTokenSource? _updateDownloadCts;
-    private UpdateCheckResult? _pendingUpdate;
-    private bool _isUpdateModalBusy;
     private bool _isPageReady;
 
     public SettingsPage()
@@ -28,15 +25,6 @@ public sealed partial class SettingsPage : Page
 
         SetSettingsSection(SettingsSection.General);
         UpdateAppearancePreview();
-    }
-
-    public void OpenUpdatesSection()
-    {
-        SetSettingsSection(
-            SettingsSection.About);
-
-        _ = CheckForUpdatesAndOfferAsync(
-            showNonAvailableResult: false);
     }
 
     private void SettingsTabButton_Click(object sender, RoutedEventArgs e)
@@ -882,27 +870,22 @@ public sealed partial class SettingsPage : Page
             switch (result.Status)
             {
                 case UpdateCheckStatus.Available:
-                    global::BandaNV.App.App.MainWindowInstance?
-                        .ShowQuickUpdate(
-                            result.AvailableVersion);
-
-                    if (!result.CanInstall)
+                    if (global::BandaNV.App.App.MainWindowInstance is { } mainWindow)
+                    {
+                        mainWindow.SetAvailableUpdate(
+                            result,
+                            showModal: true);
+                    }
+                    else
                     {
                         ShowSettingsFeedback(
-                            string.IsNullOrWhiteSpace(
-                                result.Message)
-                                ? "Hay una actualización, pero su paquete no es instalable automáticamente."
-                                : result.Message);
-                        return;
+                            $"Nueva versión disponible: {result.AvailableVersion}.");
                     }
-
-                    ShowAvailableUpdateModal(
-                        result);
                     break;
 
                 case UpdateCheckStatus.Current:
                     global::BandaNV.App.App.MainWindowInstance?
-                        .HideQuickUpdate();
+                        .ClearAvailableUpdate();
 
                     if (showNonAvailableResult)
                     {
@@ -967,365 +950,6 @@ public sealed partial class SettingsPage : Page
                 "Buscar actualizaciones";
             CheckUpdatesButton.IsEnabled = true;
         }
-    }
-
-    private void ShowAvailableUpdateModal(
-        UpdateCheckResult result)
-    {
-        _pendingUpdate = result;
-        _isUpdateModalBusy = false;
-
-        _updateDownloadCts?.Cancel();
-        _updateDownloadCts?.Dispose();
-        _updateDownloadCts = null;
-
-        UpdateModalTitleText.Text =
-            "Actualización disponible";
-        UpdateModalSubtitleText.Text =
-            "Hay una nueva versión de BandaNV lista para instalar.";
-
-        UpdateInstalledVersionText.Text =
-            result.InstalledVersion;
-        UpdateAvailableVersionText.Text =
-            result.AvailableVersion;
-        UpdateReleaseNotesText.Text =
-            FormatReleaseNotesForDisplay(
-                result.ReleaseNotes);
-
-        UpdateNotesPanel.Visibility =
-            Visibility.Visible;
-        UpdateProgressPanel.Visibility =
-            Visibility.Collapsed;
-        UpdateProgressBar.Visibility =
-            Visibility.Visible;
-        UpdateProgressBar.Value = 0;
-        UpdateProgressStateText.Text =
-            "Preparando descarga...";
-
-        UpdateModalPrimaryButton.Content =
-            "Actualizar";
-        UpdateModalPrimaryButton.Visibility =
-            Visibility.Visible;
-        UpdateModalPrimaryButton.IsEnabled = true;
-
-        UpdateModalSecondaryButton.Content =
-            "Más tarde";
-        UpdateModalSecondaryButton.Visibility =
-            Visibility.Visible;
-        UpdateModalSecondaryButton.IsEnabled = true;
-
-        UpdateModalCloseButton.IsEnabled = true;
-        UpdateModalCloseButton.Opacity = 1;
-
-        UpdateModalOverlay.Visibility =
-            Visibility.Visible;
-    }
-
-    private async void UpdateModalPrimaryButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        if (_isUpdateModalBusy ||
-            _pendingUpdate is not { } result)
-        {
-            return;
-        }
-
-        await DownloadAndInstallUpdateAsync(
-            result);
-    }
-
-    private void UpdateModalSecondaryButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        if (_isUpdateModalBusy)
-        {
-            _updateDownloadCts?.Cancel();
-            UpdateProgressStateText.Text =
-                "Cancelando descarga...";
-            UpdateModalSecondaryButton.IsEnabled =
-                false;
-            return;
-        }
-
-        CloseUpdateModal();
-    }
-
-    private void UpdateModalCloseButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        CloseUpdateModal();
-    }
-
-    private void UpdateModalBackdrop_Tapped(
-        object sender,
-        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
-    {
-        CloseUpdateModal();
-    }
-
-    private void CloseUpdateModal()
-    {
-        if (_isUpdateModalBusy)
-        {
-            return;
-        }
-
-        UpdateModalOverlay.Visibility =
-            Visibility.Collapsed;
-
-        _pendingUpdate = null;
-
-        _updateDownloadCts?.Cancel();
-        _updateDownloadCts?.Dispose();
-        _updateDownloadCts = null;
-    }
-
-    private void SetUpdateModalBusy(
-        UpdateCheckResult result)
-    {
-        _isUpdateModalBusy = true;
-
-        UpdateModalTitleText.Text =
-            "Preparando actualización";
-        UpdateModalSubtitleText.Text =
-            $"{result.InstalledVersion} → {result.AvailableVersion}";
-
-        UpdateNotesPanel.Visibility =
-            Visibility.Collapsed;
-        UpdateProgressPanel.Visibility =
-            Visibility.Visible;
-        UpdateProgressBar.Visibility =
-            Visibility.Visible;
-        UpdateProgressBar.Value = 0;
-        UpdateProgressStateText.Text =
-            "Preparando descarga...";
-
-        UpdateModalPrimaryButton.Visibility =
-            Visibility.Collapsed;
-
-        UpdateModalSecondaryButton.Content =
-            "Cancelar";
-        UpdateModalSecondaryButton.IsEnabled = true;
-
-        UpdateModalCloseButton.IsEnabled = false;
-        UpdateModalCloseButton.Opacity = 0.45;
-    }
-
-    private void SetUpdateModalError(
-        string message)
-    {
-        _isUpdateModalBusy = false;
-
-        UpdateModalTitleText.Text =
-            "No se pudo preparar la actualización";
-        UpdateModalSubtitleText.Text =
-            message;
-
-        UpdateNotesPanel.Visibility =
-            Visibility.Collapsed;
-        UpdateProgressPanel.Visibility =
-            Visibility.Visible;
-        UpdateProgressBar.Visibility =
-            Visibility.Collapsed;
-        UpdateProgressStateText.Text =
-            "BandaNV no fue modificado. Podés volver a intentarlo o cerrar este aviso.";
-
-        UpdateModalPrimaryButton.Content =
-            "Reintentar";
-        UpdateModalPrimaryButton.Visibility =
-            Visibility.Visible;
-        UpdateModalPrimaryButton.IsEnabled = true;
-
-        UpdateModalSecondaryButton.Content =
-            "Cerrar";
-        UpdateModalSecondaryButton.IsEnabled = true;
-
-        UpdateModalCloseButton.IsEnabled = true;
-        UpdateModalCloseButton.Opacity = 1;
-    }
-
-    private async Task DownloadAndInstallUpdateAsync(
-        UpdateCheckResult result)
-    {
-        _updateDownloadCts?.Cancel();
-        _updateDownloadCts?.Dispose();
-
-        var cancellation =
-            new CancellationTokenSource();
-
-        _updateDownloadCts = cancellation;
-
-        SetUpdateModalBusy(
-            result);
-
-        var progress =
-            new Progress<UpdateDownloadProgress>(
-                state =>
-                {
-                    UpdateProgressBar.Value =
-                        state.Percentage;
-
-                    UpdateProgressStateText.Text =
-                        state.TotalBytes.HasValue
-                            ? $"Descargando paquete... {state.Percentage}%"
-                            : $"Descargando paquete... {FormatUpdateBytes(state.BytesReceived)}";
-                });
-
-        PreparedUpdate? prepared =
-            null;
-
-        try
-        {
-            prepared =
-                await global::BandaNV.App.App.Updates.PrepareAsync(
-                    result,
-                    progress,
-                    cancellation.Token);
-
-            cancellation.Token.ThrowIfCancellationRequested();
-
-            UpdateProgressStateText.Text =
-                "Paquete verificado. Preparando reinicio...";
-            UpdateProgressBar.Value = 100;
-            UpdateModalSecondaryButton.IsEnabled =
-                false;
-
-            global::BandaNV.App.App.Updates.LaunchPreparedUpdate(
-                prepared);
-
-            await Task.Delay(
-                200);
-
-            Environment.Exit(
-                0);
-        }
-        catch (OperationCanceledException)
-        {
-            global::BandaNV.App.App.Updates.TryDeleteWorkspace(
-                prepared);
-
-            _isUpdateModalBusy = false;
-            CloseUpdateModal();
-
-            ShowSettingsFeedback(
-                "Descarga de actualización cancelada.");
-        }
-        catch (Exception ex)
-        {
-            global::BandaNV.App.App.Updates.TryDeleteWorkspace(
-                prepared);
-
-            SetUpdateModalError(
-                ex.Message);
-        }
-        finally
-        {
-            if (ReferenceEquals(
-                    _updateDownloadCts,
-                    cancellation))
-            {
-                _updateDownloadCts = null;
-            }
-
-            cancellation.Dispose();
-        }
-    }
-
-    private static string FormatReleaseNotesForDisplay(
-        string releaseNotes)
-    {
-        if (string.IsNullOrWhiteSpace(
-                releaseNotes))
-        {
-            return "La Release no incluye notas adicionales.";
-        }
-
-        var lines =
-            releaseNotes
-                .Replace(
-                    "\r\n",
-                    "\n",
-                    StringComparison.Ordinal)
-                .Split(
-                    '\n');
-
-        var formatted =
-            new List<string>(
-                lines.Length);
-
-        foreach (var rawLine in lines)
-        {
-            var line =
-                rawLine.Trim();
-
-            while (line.StartsWith(
-                       '#'))
-            {
-                line =
-                    line[1..]
-                        .TrimStart();
-            }
-
-            if (line.StartsWith(
-                    "- ",
-                    StringComparison.Ordinal))
-            {
-                line =
-                    "• " +
-                    line[2..];
-            }
-
-            line =
-                line.Replace(
-                        "**",
-                        string.Empty,
-                        StringComparison.Ordinal)
-                    .Replace(
-                        "`",
-                        string.Empty,
-                        StringComparison.Ordinal);
-
-            formatted.Add(
-                line);
-        }
-
-        return string.Join(
-                Environment.NewLine,
-                formatted)
-            .Trim();
-    }
-
-    private static string FormatUpdateBytes(
-        long bytes)
-    {
-        string[] units =
-        [
-            "B",
-            "KB",
-            "MB",
-            "GB"
-        ];
-
-        var value =
-            (double)Math.Max(
-                0,
-                bytes);
-        var index = 0;
-
-        while (value >= 1024 &&
-               index <
-               units.Length - 1)
-        {
-            value /= 1024;
-            index++;
-        }
-
-        return index == 0
-            ? $"{value:0} {units[index]}"
-            : $"{value:0.##} {units[index]}";
     }
 
     private void OpenSettingsConfirmation(
