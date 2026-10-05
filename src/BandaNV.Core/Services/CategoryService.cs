@@ -56,6 +56,51 @@ public sealed class CategoryService
         }
     }
 
+    public static string? ResolveCurrentOrganizedFilePath(
+        AppSettings settings,
+        OrganizationExecutionRecord execution,
+        OrganizationExecutionItemRecord item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.FinalPath) &&
+            File.Exists(item.FinalPath))
+        {
+            return item.FinalPath;
+        }
+
+        if (string.IsNullOrWhiteSpace(item.CategoryId))
+        {
+            return item.FinalPath;
+        }
+
+        var currentCategory = settings.Categories
+            .FirstOrDefault(category =>
+                category.Id.Equals(
+                    item.CategoryId,
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (currentCategory is null)
+        {
+            return item.FinalPath;
+        }
+
+        var fileName =
+            !string.IsNullOrWhiteSpace(item.FinalPath)
+                ? Path.GetFileName(item.FinalPath)
+                : item.FileName;
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return item.FinalPath;
+        }
+
+        return Path.Combine(
+            GetFolderPath(
+                execution.DestinationFolder,
+                currentCategory.Order,
+                currentCategory.Name),
+            fileName);
+    }
+
     private static CategorySettings Clone(CategorySettings category) =>
         new(
             category.Id,
