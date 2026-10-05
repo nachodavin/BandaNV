@@ -626,6 +626,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
     private async void OrganizeButton_Click(object sender, RoutedEventArgs e)
     {
+        await ExecuteOrganizationAsync();
+    }
+
+    private async Task ExecuteOrganizationAsync()
+    {
         var movableFiles = _files
             .Where(file => file.IsClassified)
             .ToList();
@@ -782,6 +787,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         _analysisCts?.Dispose();
         _analysisCts = new CancellationTokenSource();
 
+        await EnsureOthersCategoryIfNeededAsync();
         LoadCategoryOptions();
 
         AnalyzeButton.IsEnabled = false;
@@ -822,6 +828,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             }
 
             ApplyRememberedAssignments();
+            ApplyUnknownExtensionBehavior();
 
             PreviewDestinationText.Text = result.DestinationFolder;
 
@@ -834,14 +841,49 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 return;
             }
 
-            ShowPreviewState();
+            var settings =
+                global::BandaNV.App.App.Settings.Current;
 
-            if (result.SkippedDirectories > 0)
+            var hasUnclassified =
+                _files.Any(file =>
+                    !file.IsClassified);
+
+            var requiresPreviewForUnknown =
+                hasUnclassified &&
+                settings.UnknownExtensionBehavior.Equals(
+                    "Preguntar en la vista previa",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (settings.PreviewBeforeOrganize ||
+                requiresPreviewForUnknown)
             {
-                FooterStatusText.Foreground = GetBrush("BandaMutedBrush");
-                FooterStatusText.Text =
-                    $"Análisis real completado. {result.SkippedDirectories} carpeta(s) no pudieron leerse y fueron omitidas.";
+                ShowPreviewState();
+
+                if (result.SkippedDirectories > 0)
+                {
+                    FooterStatusText.Foreground =
+                        GetBrush("BandaMutedBrush");
+                    FooterStatusText.Text =
+                        $"Análisis real completado. {result.SkippedDirectories} carpeta(s) no pudieron leerse y fueron omitidas.";
+                }
+
+                return;
             }
+
+            if (!_files.Any(file =>
+                    file.IsClassified))
+            {
+                ShowInitialState();
+                AnalysisStatusText.Visibility =
+                    Visibility.Visible;
+                AnalysisStatusText.Foreground =
+                    GetBrush("BandaMutedStrongBrush");
+                AnalysisStatusText.Text =
+                    "No hay archivos clasificables para organizar. Los archivos sin categoría permanecen en origen.";
+                return;
+            }
+
+            await ExecuteOrganizationAsync();
         }
         catch (OperationCanceledException)
         {
@@ -987,6 +1029,96 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             value.Equals(extension, StringComparison.OrdinalIgnoreCase));
 
         await global::BandaNV.App.App.Categories.SaveAllAsync(categories);
+    }
+
+    private async Task EnsureOthersCategoryIfNeededAsync()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        if (!settings.UnknownExtensionBehavior.Equals(
+                "Mover a OTROS",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var categories =
+            global::BandaNV.App.App.Categories
+                .GetAll()
+                .Select(category =>
+                    new CategorySettings(
+                        category.Id,
+                        category.Name,
+                        category.Extensions,
+                        category.Order,
+                        category.ColorHex))
+                .ToList();
+
+        if (categories.Any(category =>
+                category.Name.Equals(
+                    "OTROS",
+                    StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        var id =
+            Guid.NewGuid()
+                .ToString("D");
+
+        var order =
+            categories.Count == 0
+                ? 1
+                : categories.Max(category =>
+                    category.Order) + 1;
+
+        categories.Add(
+            new CategorySettings(
+                id,
+                "OTROS",
+                [],
+                order,
+                CategoryColorPalette.Generate(
+                    id,
+                    settings.SecondaryColor)));
+
+        await global::BandaNV.App.App.Categories
+            .SaveAllAsync(
+                categories);
+    }
+
+    private void ApplyUnknownExtensionBehavior()
+    {
+        var behavior =
+            global::BandaNV.App.App.Settings.Current
+                .UnknownExtensionBehavior;
+
+        if (!behavior.Equals(
+                "Mover a OTROS",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var others =
+            _categories.FirstOrDefault(category =>
+                category.Name.Equals(
+                    "OTROS",
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (others is null)
+        {
+            return;
+        }
+
+        foreach (var file in _files.Where(file =>
+                     !file.IsClassified))
+        {
+            file.AssignTo(
+                others,
+                OrganizeAssignmentSource.IndividualOverride);
+        }
     }
 
     private void ApplyRememberedAssignments()
