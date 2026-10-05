@@ -189,12 +189,6 @@ public sealed partial class HomePage : Page
     {
         var hasUnassigned = unassignedCount > 0;
 
-        HomeUnassignedCard.Background =
-            (Brush)Application.Current.Resources[
-                hasUnassigned
-                    ? "BandaCardBrush"
-                    : "BandaCardBrush"];
-
         HomeUnassignedCard.BorderBrush =
             hasUnassigned
                 ? (Brush)Resources["HomeWarningBrush"]
