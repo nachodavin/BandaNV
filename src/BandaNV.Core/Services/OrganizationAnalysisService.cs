@@ -75,6 +75,14 @@ public sealed class OrganizationAnalysisService
                             category.Name),
                         file.Name);
 
+                var hasDestinationConflict =
+                    destinationPath is not null &&
+                    settings.ConflictBehavior.Equals(
+                        "Preguntar",
+                        StringComparison.OrdinalIgnoreCase) &&
+                    !PathsEqual(file.FullName, destinationPath) &&
+                    File.Exists(destinationPath);
+
                 files.Add(new OrganizationAnalysisFile(
                     file.FullName,
                     Path.GetRelativePath(source, file.FullName),
@@ -86,7 +94,8 @@ public sealed class OrganizationAnalysisService
                     category?.Id,
                     category?.Name,
                     category?.Order,
-                    destinationPath));
+                    destinationPath,
+                    hasDestinationConflict));
             }
             catch (FileNotFoundException)
             {
