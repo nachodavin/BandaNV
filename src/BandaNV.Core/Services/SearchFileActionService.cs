@@ -1,3 +1,7 @@
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using BandaNV.Core.Infrastructure;
 using BandaNV.Core.Models;
 using Microsoft.VisualBasic.FileIO;
 
@@ -5,7 +9,14 @@ namespace BandaNV.Core.Services;
 
 public sealed class SearchFileActionService
 {
-    public Task<SearchFileActionResult> MoveToCategoryAsync(
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public async Task<SearchFileActionResult> MoveToCategoryAsync(
         AppSettings settings,
         IReadOnlyList<string> filePaths,
         CategorySettings targetCategory,
@@ -15,16 +26,33 @@ public sealed class SearchFileActionService
         ArgumentNullException.ThrowIfNull(filePaths);
         ArgumentNullException.ThrowIfNull(targetCategory);
 
-        return Task.Run(
+        var startedAt = DateTime.Now;
+        var auditSources =
+            CaptureAuditSources(
+                settings,
+                filePaths);
+
+        var result = await Task.Run(
             () => MoveToCategory(
                 settings,
                 filePaths,
                 targetCategory,
                 cancellationToken),
             cancellationToken);
+
+        await PersistAuditAsync(
+            settings,
+            "CHANGE_CATEGORY",
+            startedAt,
+            result,
+            auditSources,
+            targetCategory,
+            cancellationToken);
+
+        return result;
     }
 
-    public Task<SearchFileActionResult> RenameAsync(
+    public async Task<SearchFileActionResult> RenameAsync(
         AppSettings settings,
         string filePath,
         string proposedName,
@@ -32,16 +60,33 @@ public sealed class SearchFileActionService
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        return Task.Run(
+        var startedAt = DateTime.Now;
+        var auditSources =
+            CaptureAuditSources(
+                settings,
+                [filePath]);
+
+        var result = await Task.Run(
             () => Rename(
                 settings,
                 filePath,
                 proposedName,
                 cancellationToken),
             cancellationToken);
+
+        await PersistAuditAsync(
+            settings,
+            "RENAME",
+            startedAt,
+            result,
+            auditSources,
+            targetCategory: null,
+            cancellationToken);
+
+        return result;
     }
 
-    public Task<SearchFileActionResult> DeleteAsync(
+    public async Task<SearchFileActionResult> DeleteAsync(
         AppSettings settings,
         IReadOnlyList<string> filePaths,
         CancellationToken cancellationToken = default)
@@ -49,12 +94,29 @@ public sealed class SearchFileActionService
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(filePaths);
 
-        return Task.Run(
+        var startedAt = DateTime.Now;
+        var auditSources =
+            CaptureAuditSources(
+                settings,
+                filePaths);
+
+        var result = await Task.Run(
             () => Delete(
                 settings,
                 filePaths,
                 cancellationToken),
             cancellationToken);
+
+        await PersistAuditAsync(
+            settings,
+            "DELETE",
+            startedAt,
+            result,
+            auditSources,
+            targetCategory: null,
+            cancellationToken);
+
+        return result;
     }
 
     private static SearchFileActionResult MoveToCategory(
@@ -326,6 +388,341 @@ public sealed class SearchFileActionService
         return new SearchFileActionResult(results);
     }
 
+    private static async Task PersistAuditAsync(
+        AppSettings settings,
+        string action,
+        DateTime startedAt,
+        SearchFileActionResult result,
+        IReadOnlyList<SearchAuditSourceInfo> auditSources,
+        CategorySettings? targetCategory,
+        CancellationToken cancellationToken)
+    {
+        PortablePaths.EnsureDirectories();
+
+        var destinationRoot =
+            NormalizeDirectoryPath(
+                settings.DestinationFolder);
+
+        var sourcesByPath = auditSources
+            .GroupBy(
+                source => source.FullPath,
+                StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First(),
+                StringComparer.OrdinalIgnoreCase);
+
+        var record = new OrganizationExecutionRecord
+        {
+            Type = "SEARCH",
+            Action = action,
+            StartedAt = startedAt,
+            FinishedAt = DateTime.Now,
+            SourceFolder = destinationRoot,
+            DestinationFolder = destinationRoot,
+            ConflictBehavior =
+                GetAuditBehavior(
+                    settings,
+                    action),
+            Status = result.IssueCount == 0
+                ? OrganizationExecutionStatus.Completed
+                : OrganizationExecutionStatus.CompletedWithIssues
+        };
+
+        foreach (var resultItem in result.Items)
+        {
+            sourcesByPath.TryGetValue(
+                Path.GetFullPath(
+                    resultItem.SourcePath),
+                out var sourceInfo);
+
+            var category =
+                action.Equals(
+                    "CHANGE_CATEGORY",
+                    StringComparison.OrdinalIgnoreCase) &&
+                resultItem.Status ==
+                    SearchFileActionStatus.Completed &&
+                targetCategory is not null
+                    ? new SearchAuditCategory(
+                        targetCategory.Id,
+                        targetCategory.Name,
+                        targetCategory.Order)
+                    : sourceInfo?.Category;
+
+            var status =
+                MapAuditStatus(
+                    action,
+                    resultItem);
+
+            var message =
+                resultItem.Message ??
+                GetSuccessfulAuditMessage(
+                    settings,
+                    action,
+                    resultItem,
+                    sourceInfo);
+
+            record.Items.Add(
+                new OrganizationExecutionItemRecord
+                {
+                    FileName =
+                        sourceInfo?.FileName ??
+                        Path.GetFileName(
+                            resultItem.SourcePath),
+                    OriginalPath =
+                        Path.GetFullPath(
+                            resultItem.SourcePath),
+                    FinalPath =
+                        string.IsNullOrWhiteSpace(
+                            resultItem.FinalPath)
+                            ? null
+                            : Path.GetFullPath(
+                                resultItem.FinalPath),
+                    CategoryId = category?.Id,
+                    CategoryName = category?.Name,
+                    CategoryOrder = category?.Order,
+                    SizeBytes =
+                        sourceInfo?.SizeBytes ?? 0,
+                    ModifiedUtcTicks =
+                        sourceInfo?.ModifiedUtcTicks ?? 0,
+                    Status = status,
+                    Message = message
+                });
+        }
+
+        var baseName =
+            $"BandaNV_{startedAt:dd-MM-yyyy____HH-mm-ss}";
+
+        var logPath = Path.Combine(
+            PortablePaths.LogsDirectory,
+            BuildUniqueFileName(
+                PortablePaths.LogsDirectory,
+                baseName,
+                ".txt"));
+
+        await WriteTextAtomicAsync(
+            logPath,
+            OrganizationExecutionService.FormatHumanLog(
+                record),
+            cancellationToken);
+
+        if (!settings.SaveHistory)
+        {
+            return;
+        }
+
+        var historyPath = Path.Combine(
+            PortablePaths.HistoryDirectory,
+            Path.GetFileNameWithoutExtension(
+                logPath) +
+            ".json");
+
+        await WriteTextAtomicAsync(
+            historyPath,
+            JsonSerializer.Serialize(
+                record,
+                JsonOptions),
+            cancellationToken);
+    }
+
+    private static IReadOnlyList<SearchAuditSourceInfo> CaptureAuditSources(
+        AppSettings settings,
+        IEnumerable<string> paths)
+    {
+        var results =
+            new List<SearchAuditSourceInfo>();
+
+        foreach (var rawPath in paths)
+        {
+            try
+            {
+                var fullPath =
+                    Path.GetFullPath(rawPath);
+                var category =
+                    ResolveCategoryForPath(
+                        settings,
+                        fullPath);
+
+                if (File.Exists(fullPath))
+                {
+                    var info =
+                        new FileInfo(fullPath);
+
+                    results.Add(
+                        new SearchAuditSourceInfo(
+                            fullPath,
+                            info.Name,
+                            info.Length,
+                            info.LastWriteTimeUtc.Ticks,
+                            category));
+                }
+                else
+                {
+                    results.Add(
+                        new SearchAuditSourceInfo(
+                            fullPath,
+                            Path.GetFileName(
+                                fullPath),
+                            0,
+                            0,
+                            category));
+                }
+            }
+            catch
+            {
+                // La acción real volverá a validar la ruta. La captura de
+                // auditoría no debe bloquearla.
+            }
+        }
+
+        return results;
+    }
+
+    private static SearchAuditCategory? ResolveCategoryForPath(
+        AppSettings settings,
+        string filePath)
+    {
+        var destinationRoot =
+            NormalizeDirectoryPath(
+                settings.DestinationFolder);
+        var parent =
+            Path.GetDirectoryName(
+                Path.GetFullPath(filePath));
+
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            return null;
+        }
+
+        foreach (var category in settings.Categories)
+        {
+            var categoryFolder =
+                CategoryService.GetFolderPath(
+                    destinationRoot,
+                    category.Order,
+                    category.Name);
+
+            if (PathsEqual(
+                    parent,
+                    categoryFolder))
+            {
+                return new SearchAuditCategory(
+                    category.Id,
+                    category.Name,
+                    category.Order);
+            }
+        }
+
+        return null;
+    }
+
+    private static OrganizationExecutionItemStatus MapAuditStatus(
+        string action,
+        SearchFileActionItemResult item)
+    {
+        if (item.Status ==
+            SearchFileActionStatus.SkippedConflict)
+        {
+            return OrganizationExecutionItemStatus.SkippedConflict;
+        }
+
+        if (item.Status ==
+            SearchFileActionStatus.Missing)
+        {
+            return OrganizationExecutionItemStatus.SourceMissing;
+        }
+
+        if (item.Status ==
+            SearchFileActionStatus.Error)
+        {
+            return OrganizationExecutionItemStatus.Error;
+        }
+
+        if (action.Equals(
+                "DELETE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return OrganizationExecutionItemStatus.Deleted;
+        }
+
+        if (action.Equals(
+                "RENAME",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return PathsEqual(
+                    item.SourcePath,
+                    item.FinalPath ??
+                    item.SourcePath)
+                ? OrganizationExecutionItemStatus.CompletedAction
+                : OrganizationExecutionItemStatus.Renamed;
+        }
+
+        if (action.Equals(
+                "CHANGE_CATEGORY",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return PathsEqual(
+                    item.SourcePath,
+                    item.FinalPath ??
+                    item.SourcePath)
+                ? OrganizationExecutionItemStatus.CompletedAction
+                : OrganizationExecutionItemStatus.Moved;
+        }
+
+        return OrganizationExecutionItemStatus.CompletedAction;
+    }
+
+    private static string? GetSuccessfulAuditMessage(
+        AppSettings settings,
+        string action,
+        SearchFileActionItemResult item,
+        SearchAuditSourceInfo? sourceInfo)
+    {
+        if (action.Equals(
+                "DELETE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return settings.UseRecycleBin
+                ? "Enviado a la Papelera."
+                : "Eliminado permanentemente.";
+        }
+
+        if (action.Equals(
+                "RENAME",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(
+                item.FinalPath))
+        {
+            var originalName =
+                sourceInfo?.FileName ??
+                Path.GetFileName(
+                    item.SourcePath);
+            var finalName =
+                Path.GetFileName(
+                    item.FinalPath);
+
+            return $"Renombrado de \"{originalName}\" a \"{finalName}\".";
+        }
+
+        return null;
+    }
+
+    private static string GetAuditBehavior(
+        AppSettings settings,
+        string action) =>
+        action.ToUpperInvariant() switch
+        {
+            "CHANGE_CATEGORY" =>
+                settings.ConflictBehavior,
+            "RENAME" =>
+                "No sobrescribir",
+            "DELETE" =>
+                settings.UseRecycleBin
+                    ? "Papelera de reciclaje"
+                    : "Eliminación permanente",
+            _ => string.Empty
+        };
+
     private static string? ResolveTargetPath(
         string behavior,
         string desiredTarget)
@@ -429,6 +826,69 @@ public sealed class SearchFileActionService
         }
     }
 
+    private static async Task WriteTextAtomicAsync(
+        string path,
+        string content,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(
+            Path.GetDirectoryName(path)!);
+
+        var temporaryPath =
+            path + $".tmp_{Guid.NewGuid():N}";
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                temporaryPath,
+                content,
+                new UTF8Encoding(
+                    encoderShouldEmitUTF8Identifier: false),
+                cancellationToken);
+
+            File.Move(
+                temporaryPath,
+                path,
+                overwrite: true);
+        }
+        finally
+        {
+            TryDelete(temporaryPath);
+        }
+    }
+
+    private static string BuildUniqueFileName(
+        string directory,
+        string baseName,
+        string extension)
+    {
+        var candidate =
+            baseName + extension;
+
+        if (!File.Exists(
+                Path.Combine(
+                    directory,
+                    candidate)))
+        {
+            return candidate;
+        }
+
+        var index = 2;
+
+        do
+        {
+            candidate =
+                $"{baseName}__{index}{extension}";
+            index++;
+        }
+        while (File.Exists(
+            Path.Combine(
+                directory,
+                candidate)));
+
+        return candidate;
+    }
+
     private static void EnsureDirectoryExists(string path)
     {
         if (string.IsNullOrWhiteSpace(path) ||
@@ -499,4 +959,16 @@ public sealed class SearchFileActionService
         {
         }
     }
+
+    private sealed record SearchAuditCategory(
+        string Id,
+        string Name,
+        int Order);
+
+    private sealed record SearchAuditSourceInfo(
+        string FullPath,
+        string FileName,
+        long SizeBytes,
+        long ModifiedUtcTicks,
+        SearchAuditCategory? Category);
 }
