@@ -127,6 +127,17 @@ public sealed class SettingsService
 
         settings.PrimaryColor = NormalizeHex(settings.PrimaryColor, "#123A34");
         settings.SecondaryColor = NormalizeHex(settings.SecondaryColor, "#4FE0C6");
+        settings.StartupPage =
+            NormalizeStartupPage(settings.StartupPage);
+        settings.CloseBehavior =
+            NormalizeCloseBehavior(settings.CloseBehavior);
+        settings.Theme =
+            NormalizeTheme(settings.Theme);
+        settings.ConflictBehavior =
+            NormalizeConflictBehavior(settings.ConflictBehavior);
+        settings.UnknownExtensionBehavior =
+            NormalizeUnknownExtensionBehavior(
+                settings.UnknownExtensionBehavior);
         settings.HistoryRetention =
             NormalizeHistoryRetention(settings.HistoryRetention);
 
@@ -181,6 +192,51 @@ public sealed class SettingsService
             ? extension
             : $".{extension}";
     }
+
+    private static string NormalizeStartupPage(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Organizar" => "Organizar",
+            "Buscar" => "Buscar",
+            _ => "Inicio"
+        };
+
+    private static string NormalizeCloseBehavior(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Minimizar a bandeja" => "Minimizar a bandeja",
+            _ => "Cerrar BandaNV"
+        };
+
+    private static string NormalizeTheme(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Claro" => "Claro",
+            "Sistema" => "Sistema",
+            _ => "Oscuro"
+        };
+
+    private static string NormalizeConflictBehavior(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Renombrar automáticamente" => "Renombrar automáticamente",
+            "Omitir archivo" => "Omitir archivo",
+            "Reemplazar" => "Reemplazar",
+            _ => "Preguntar"
+        };
+
+    private static string NormalizeUnknownExtensionBehavior(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Dejar en origen" => "Dejar en origen",
+            "Mover a OTROS" => "Mover a OTROS",
+            _ => "Preguntar en la vista previa"
+        };
 
     private static string NormalizeHistoryRetention(
         string? value) =>
