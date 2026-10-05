@@ -231,10 +231,14 @@ public sealed partial class OrganizePage : Page
                 ? 1
                 : _categories.Max(category => category.Order) + 1;
 
+            var newCategoryId = Guid.NewGuid().ToString("D");
             selectedCategory = new OrganizeCategoryOption(
-                Guid.NewGuid().ToString("D"),
+                newCategoryId,
                 nextOrder,
-                categoryName);
+                categoryName,
+                CategoryColorPalette.Generate(
+                    newCategoryId,
+                    global::BandaNV.App.App.Settings.Current.SecondaryColor));
             _categories.Add(selectedCategory);
             createdNewCategory = true;
         }
@@ -703,7 +707,8 @@ public sealed partial class OrganizePage : Page
             _categories.Add(new OrganizeCategoryOption(
                 category.Id,
                 category.Order,
-                category.Name));
+                category.Name,
+                category.ColorHex));
         }
     }
 
@@ -728,7 +733,8 @@ public sealed partial class OrganizePage : Page
                 category.Id,
                 category.Name,
                 category.Extensions,
-                category.Order))
+                category.Order,
+                category.ColorHex))
             .ToList();
 
         foreach (var category in categories)
@@ -748,7 +754,8 @@ public sealed partial class OrganizePage : Page
                 selectedCategory.Id,
                 selectedCategory.Name,
                 [extension],
-                selectedCategory.Order);
+                selectedCategory.Order,
+                selectedCategory.ColorHex);
 
             categories.Add(target);
         }
@@ -770,7 +777,8 @@ public sealed partial class OrganizePage : Page
                 category.Id,
                 category.Name,
                 category.Extensions,
-                category.Order))
+                category.Order,
+                category.ColorHex))
             .ToList();
 
         if (categories.Any(category =>
@@ -785,7 +793,8 @@ public sealed partial class OrganizePage : Page
             selectedCategory.Id,
             selectedCategory.Name,
             [],
-            selectedCategory.Order));
+            selectedCategory.Order,
+            selectedCategory.ColorHex));
 
         await global::BandaNV.App.App.Categories.SaveAllAsync(categories);
     }
@@ -799,7 +808,8 @@ public sealed partial class OrganizePage : Page
                 category.Id,
                 category.Name,
                 category.Extensions,
-                category.Order))
+                category.Order,
+                category.ColorHex))
             .ToList();
 
         var target = categories.FirstOrDefault(category =>
@@ -1198,16 +1208,22 @@ public sealed class OrganizePreviewFile
 
 public sealed class OrganizeCategoryOption
 {
-    public OrganizeCategoryOption(string id, int order, string name)
+    public OrganizeCategoryOption(
+        string id,
+        int order,
+        string name,
+        string colorHex)
     {
         Id = id;
         Order = order;
         Name = name;
+        ColorHex = colorHex;
     }
 
     public string Id { get; }
     public int Order { get; }
     public string Name { get; }
+    public string ColorHex { get; }
     // El número define el orden y el nombre de carpeta en el explorador,
     // pero no forma parte del nombre visual de la categoría dentro de la app.
     public string DisplayName => Name;
