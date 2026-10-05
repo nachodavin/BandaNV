@@ -64,7 +64,10 @@ public sealed partial class HistoryPage : Page
 
                 var reversibleFileCount =
                     type == "ORGANIZAR"
-                        ? movedItems.Count(IsItemCurrentlyReversible)
+                        ? movedItems.Count(item =>
+                            IsItemCurrentlyReversible(
+                                record,
+                                item))
                         : 0;
 
                 var canUndo =
@@ -175,22 +178,25 @@ public sealed partial class HistoryPage : Page
     }
 
     private static bool IsItemCurrentlyReversible(
+        OrganizationExecutionRecord execution,
         OrganizationExecutionItemRecord item)
     {
-        if (string.IsNullOrWhiteSpace(item.FinalPath))
-        {
-            return false;
-        }
-
         try
         {
-            if (!File.Exists(item.FinalPath) ||
+            var currentPath =
+                CategoryService.ResolveCurrentOrganizedFilePath(
+                    global::BandaNV.App.App.Settings.Current,
+                    execution,
+                    item);
+
+            if (string.IsNullOrWhiteSpace(currentPath) ||
+                !File.Exists(currentPath) ||
                 File.Exists(item.OriginalPath))
             {
                 return false;
             }
 
-            var current = new FileInfo(item.FinalPath);
+            var current = new FileInfo(currentPath);
 
             if (current.Length != item.SizeBytes ||
                 Math.Abs(
@@ -1003,6 +1009,7 @@ public sealed partial class HistoryPage : Page
         {
             var result =
                 await global::BandaNV.App.App.Undo.UndoAsync(
+                    global::BandaNV.App.App.Settings.Current,
                     executionRecord,
                     progress);
 
