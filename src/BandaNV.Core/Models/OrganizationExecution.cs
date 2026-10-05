@@ -64,6 +64,7 @@ public sealed class OrganizationExecutionItemRecord
     public string OriginalPath { get; set; } = string.Empty;
     public string? FinalPath { get; set; }
     public string? ReplacedBackupPath { get; set; }
+    public string? ConflictResolution { get; set; }
 
     public string? CategoryId { get; set; }
     public string? CategoryName { get; set; }
