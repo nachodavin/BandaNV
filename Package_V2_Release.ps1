@@ -50,13 +50,18 @@ try {
     $tag = 'v' + $version
     $packageName = "BandaNV_${tag}.zip"
 
-    if(Test-Path -LiteralPath $dist) {
-        Remove-Item -LiteralPath $dist -Recurse -Force
-    }
-
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
     $work = Join-Path $dist '_work'
+
+    if(Test-Path -LiteralPath $work) {
+        Remove-Item -LiteralPath $work -Recurse -Force
+    }
+
+    $existingPackage = Join-Path $dist $packageName
+    if(Test-Path -LiteralPath $existingPackage -PathType Leaf) {
+        Remove-Item -LiteralPath $existingPackage -Force
+    }
     $appPublish = Join-Path $work 'app-publish'
     $updaterPublish = Join-Path $work 'updater-publish'
     $stage = Join-Path $work 'release'
