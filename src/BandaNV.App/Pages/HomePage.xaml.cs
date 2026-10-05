@@ -3,6 +3,8 @@ using BandaNV.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.Foundation;
 
 namespace BandaNV.App.Pages;
 
@@ -10,6 +12,13 @@ public sealed partial class HomePage : Page
 {
     private static readonly CultureInfo EsAr =
         CultureInfo.GetCultureInfo("es-AR");
+
+    private readonly Dictionary<string, DonutVisual> _donutVisuals =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private IReadOnlyList<HomeCategoryUsageItem> _currentCategoryUsage = [];
+    private int _currentOrganizedFileCount;
+    private long _currentOrganizedSize;
 
     public HomePage()
     {
@@ -31,11 +40,9 @@ public sealed partial class HomePage : Page
             global::BandaNV.App.App.Settings.Current;
 
         UpdateConfigurationState(settings);
-        HomeCategoriesCountText.Text =
-            settings.Categories.Count.ToString(
-                CultureInfo.CurrentCulture);
 
         IReadOnlyList<OrganizationExecutionRecord> records = [];
+        IReadOnlyList<IndexedSearchFile> organizedFiles = [];
 
         try
         {
@@ -44,15 +51,24 @@ public sealed partial class HomePage : Page
         }
         catch
         {
-            // Inicio sigue mostrando la configuración aunque el historial
-            // no pueda leerse temporalmente.
+            // Inicio continúa funcionando aunque un registro puntual
+            // del historial no pueda leerse.
         }
 
-        UpdateHistoryMetrics(records);
-        BuildOrganizationActivity(records);
-        BuildCategoryUsage(records, settings);
-        BuildRecentActivity(records);
+        try
+        {
+            organizedFiles =
+                await global::BandaNV.App.App.SearchIndex.ScanAsync(
+                    settings);
+        }
+        catch
+        {
+            // El estado actual de la biblioteca queda vacío si el destino
+            // no puede escanearse temporalmente.
+        }
 
+        UpdateLastOrganization(records);
+        BuildCurrentLibrary(organizedFiles, settings);
         await UpdatePendingFilesAsync(settings);
     }
 
@@ -109,8 +125,11 @@ public sealed partial class HomePage : Page
         AppSettings settings)
     {
         HomePendingFilesText.Text = "—";
+        HomeUnassignedFilesText.Text = "—";
         HomePendingDetailText.Text =
-            "Analizando carpeta de origen...";
+            "Analizando origen...";
+        HomeUnassignedDetailText.Text =
+            "Analizando origen...";
 
         try
         {
@@ -122,503 +141,610 @@ public sealed partial class HomePage : Page
                 result.Files.Count.ToString(
                     CultureInfo.CurrentCulture);
 
-            if (result.Files.Count == 0)
-            {
-                HomePendingDetailText.Text =
-                    "No hay archivos pendientes";
-                return;
-            }
-
-            var parts = new List<string>();
-
-            if (result.ClassifiedCount > 0)
-            {
-                parts.Add(
-                    $"{result.ClassifiedCount} clasificados");
-            }
-
-            if (result.UnclassifiedCount > 0)
-            {
-                parts.Add(
-                    $"{result.UnclassifiedCount} sin categoría");
-            }
-
-            if (result.SkippedDirectories > 0)
-            {
-                parts.Add(
-                    $"{result.SkippedDirectories} carpetas omitidas");
-            }
+            HomeUnassignedFilesText.Text =
+                result.UnclassifiedCount.ToString(
+                    CultureInfo.CurrentCulture);
 
             HomePendingDetailText.Text =
-                string.Join(" · ", parts);
+                result.Files.Count == 0
+                    ? "No hay archivos pendientes"
+                    : result.ClassifiedCount == 1
+                        ? "1 archivo listo para organizar"
+                        : $"{result.ClassifiedCount} archivos listos para organizar";
+
+            HomeUnassignedDetailText.Text =
+                result.UnclassifiedCount == 0
+                    ? "Todo tiene una categoría asignada"
+                    : result.UnclassifiedCount == 1
+                        ? "1 archivo necesita categoría"
+                        : $"{result.UnclassifiedCount} archivos necesitan categoría";
         }
         catch (DirectoryNotFoundException)
         {
             HomePendingFilesText.Text = "—";
+            HomeUnassignedFilesText.Text = "—";
             HomePendingDetailText.Text =
                 "La carpeta de origen no está disponible";
+            HomeUnassignedDetailText.Text =
+                "No se pudo revisar el origen";
         }
         catch
         {
             HomePendingFilesText.Text = "—";
+            HomeUnassignedFilesText.Text = "—";
             HomePendingDetailText.Text =
+                "No se pudo analizar el origen";
+            HomeUnassignedDetailText.Text =
                 "No se pudo analizar el origen";
         }
     }
 
-    private void UpdateHistoryMetrics(
+    private void UpdateLastOrganization(
         IReadOnlyList<OrganizationExecutionRecord> records)
     {
-        var organizations = records
+        var last = records
             .Where(IsOrganization)
             .OrderByDescending(record => record.StartedAt)
-            .ToList();
+            .FirstOrDefault();
 
-        var movedItems = organizations
-            .SelectMany(record => record.Items)
+        if (last is null)
+        {
+            HomeLastOrganizationHeaderText.Text = "—";
+            HomeLastMovedSizeText.Text = "—";
+            HomeLastMovedSizeDetailText.Text =
+                "Sin organizaciones todavía";
+            return;
+        }
+
+        var movedItems = last.Items
             .Where(item =>
                 item.Status ==
                 OrganizationExecutionItemStatus.Moved)
             .ToList();
 
-        HomeTotalOrganizedText.Text =
-            movedItems.Count.ToString(
-                CultureInfo.CurrentCulture);
-
-        HomeTotalMovedSizeText.Text =
-            FormatBytes(
-                movedItems.Sum(item => item.SizeBytes));
-
-        var last = organizations.FirstOrDefault();
-
-        if (last is null)
-        {
-            HomeLastOrganizationHeaderText.Text = "—";
-            HomeLastExecutionFilesText.Text = "—";
-            HomeLastExecutionDateText.Text = "—";
-            return;
-        }
-
-        var lastMovedCount = last.Items.Count(item =>
-            item.Status ==
-            OrganizationExecutionItemStatus.Moved);
+        var movedSize =
+            movedItems.Sum(item => item.SizeBytes);
 
         HomeLastOrganizationHeaderText.Text =
             last.StartedAt.ToString(
                 "dd/MM · HH:mm:ss",
                 EsAr);
 
-        HomeLastExecutionFilesText.Text =
-            lastMovedCount.ToString(
-                CultureInfo.CurrentCulture);
+        HomeLastMovedSizeText.Text =
+            FormatBytes(movedSize);
 
-        HomeLastExecutionDateText.Text =
+        HomeLastMovedSizeDetailText.Text =
+            $"{movedItems.Count} archivo{(movedItems.Count == 1 ? string.Empty : "s")} · " +
             last.StartedAt.ToString(
                 "dd/MM/yyyy · HH:mm:ss",
                 EsAr);
     }
 
-    private void BuildOrganizationActivity(
-        IReadOnlyList<OrganizationExecutionRecord> records)
-    {
-        HomeActivityPanel.Children.Clear();
-
-        var activity = records
-            .Where(IsOrganization)
-            .OrderByDescending(record => record.StartedAt)
-            .Take(7)
-            .OrderBy(record => record.StartedAt)
-            .Select(record => new
-            {
-                Record = record,
-                Count = record.Items.Count(item =>
-                    item.Status ==
-                    OrganizationExecutionItemStatus.Moved)
-            })
-            .ToList();
-
-        if (activity.Count == 0)
-        {
-            AddEmptyState(
-                HomeActivityPanel,
-                "Sin organizaciones todavía",
-                "La actividad real aparecerá acá después de tu primera ejecución.");
-            return;
-        }
-
-        var maximum =
-            Math.Max(
-                1,
-                activity.Max(item => item.Count));
-
-        foreach (var item in activity)
-        {
-            var grid = new Grid
-            {
-                ColumnSpacing = 12
-            };
-
-            grid.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = new GridLength(92)
-                });
-            grid.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = new GridLength(
-                        1,
-                        GridUnitType.Star)
-                });
-            grid.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = GridLength.Auto
-                });
-
-            var date = new TextBlock
-            {
-                Text = item.Record.StartedAt.ToString(
-                    "dd/MM HH:mm",
-                    EsAr),
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedStrongBrush"],
-                FontSize = 12,
-                VerticalAlignment =
-                    VerticalAlignment.Center
-            };
-
-            var bar = new ProgressBar
-            {
-                Maximum = maximum,
-                Value = item.Count,
-                Height = 5,
-                VerticalAlignment =
-                    VerticalAlignment.Center
-            };
-
-            var count = new TextBlock
-            {
-                Text = item.Count.ToString(
-                    CultureInfo.CurrentCulture),
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaTextBrush"],
-                FontSize = 13,
-                FontWeight =
-                    Microsoft.UI.Text.FontWeights.SemiBold,
-                VerticalAlignment =
-                    VerticalAlignment.Center
-            };
-
-            Grid.SetColumn(date, 0);
-            Grid.SetColumn(bar, 1);
-            Grid.SetColumn(count, 2);
-
-            grid.Children.Add(date);
-            grid.Children.Add(bar);
-            grid.Children.Add(count);
-
-            HomeActivityPanel.Children.Add(grid);
-        }
-    }
-
-    private void BuildCategoryUsage(
-        IReadOnlyList<OrganizationExecutionRecord> records,
+    private void BuildCurrentLibrary(
+        IReadOnlyList<IndexedSearchFile> files,
         AppSettings settings)
     {
-        HomeCategoryUsagePanel.Children.Clear();
+        _currentOrganizedFileCount = files.Count;
+        _currentOrganizedSize =
+            files.Sum(file => file.SizeBytes);
 
-        var currentNames = settings.Categories
+        HomeCurrentOrganizedFilesText.Text =
+            _currentOrganizedFileCount.ToString(
+                CultureInfo.CurrentCulture);
+
+        HomeCurrentTotalSizeText.Text =
+            FormatBytes(_currentOrganizedSize);
+
+        var categoryById = settings.Categories
             .ToDictionary(
                 category => category.Id,
-                category => category.Name,
                 StringComparer.OrdinalIgnoreCase);
 
-        var movedItems = records
-            .Where(IsOrganization)
-            .SelectMany(record => record.Items)
-            .Where(item =>
-                item.Status ==
-                OrganizationExecutionItemStatus.Moved)
-            .ToList();
-
-        var total = movedItems.Count;
-
-        var usage = movedItems
+        _currentCategoryUsage = files
             .GroupBy(
-                item =>
-                    !string.IsNullOrWhiteSpace(item.CategoryId)
-                        ? item.CategoryId!
-                        : $"legacy:{item.CategoryName}",
+                file => file.CategoryId,
                 StringComparer.OrdinalIgnoreCase)
             .Select(group =>
             {
                 var first = group.First();
 
-                var displayName =
-                    !string.IsNullOrWhiteSpace(first.CategoryId) &&
-                    currentNames.TryGetValue(
-                        first.CategoryId,
-                        out var currentName)
-                        ? currentName
-                        : first.CategoryName ?? "Sin categoría";
+                var category =
+                    categoryById.TryGetValue(
+                        group.Key,
+                        out var currentCategory)
+                        ? currentCategory
+                        : null;
 
-                return new
-                {
-                    Name = displayName,
-                    Count = group.Count()
-                };
+                var count = group.Count();
+                var percentage =
+                    files.Count == 0
+                        ? 0
+                        : count * 100.0 / files.Count;
+
+                return new HomeCategoryUsageItem(
+                    group.Key,
+                    category?.Name ?? first.CategoryName,
+                    category?.Order ?? first.CategoryOrder,
+                    count,
+                    group.Sum(file => file.SizeBytes),
+                    percentage);
             })
-            .OrderByDescending(item => item.Count)
+            .OrderBy(item => item.Order)
             .ThenBy(
                 item => item.Name,
                 StringComparer.CurrentCultureIgnoreCase)
-            .Take(3)
             .ToList();
 
-        if (usage.Count == 0)
-        {
-            AddEmptyState(
-                HomeCategoryUsagePanel,
-                "Sin datos todavía",
-                "Las categorías más usadas aparecerán acá.");
-            return;
-        }
+        HomeCategoriesInUseText.Text =
+            $"{_currentCategoryUsage.Count} / {settings.Categories.Count}";
 
-        foreach (var item in usage)
-        {
-            var percentage =
-                total == 0
-                    ? 0
-                    : item.Count * 100.0 / total;
-
-            var container = new StackPanel
-            {
-                Spacing = 5
-            };
-
-            var header = new Grid();
-
-            header.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = new GridLength(
-                        1,
-                        GridUnitType.Star)
-                });
-            header.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = GridLength.Auto
-                });
-
-            var name = new TextBlock
-            {
-                Text = item.Name,
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedStrongBrush"],
-                TextTrimming =
-                    TextTrimming.CharacterEllipsis
-            };
-
-            var value = new TextBlock
-            {
-                Text =
-                    $"{item.Count} · {percentage:0.#}%",
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedBrush"]
-            };
-
-            Grid.SetColumn(name, 0);
-            Grid.SetColumn(value, 1);
-
-            header.Children.Add(name);
-            header.Children.Add(value);
-
-            var bar = new ProgressBar
-            {
-                Minimum = 0,
-                Maximum = 100,
-                Value = percentage,
-                Height = 4
-            };
-
-            container.Children.Add(header);
-            container.Children.Add(bar);
-
-            HomeCategoryUsagePanel.Children.Add(
-                container);
-        }
+        BuildDonut();
     }
 
-    private void BuildRecentActivity(
-        IReadOnlyList<OrganizationExecutionRecord> records)
+    private void BuildDonut()
     {
-        HomeRecentActivityPanel.Children.Clear();
+        HomeDonutCanvas.Children.Clear();
+        HomeDonutLegendPanel.Children.Clear();
+        _donutVisuals.Clear();
 
-        var recent = records
-            .OrderByDescending(record => record.StartedAt)
-            .Take(3)
-            .ToList();
+        ResetDonutCenter();
 
-        if (recent.Count == 0)
+        if (_currentCategoryUsage.Count == 0 ||
+            _currentOrganizedFileCount == 0)
         {
-            AddEmptyState(
-                HomeRecentActivityPanel,
-                "Sin actividad todavía",
-                "Tus últimas ejecuciones aparecerán acá.");
-            return;
-        }
-
-        foreach (var record in recent)
-        {
-            var movedCount = record.Items.Count(item =>
-                item.Status ==
-                OrganizationExecutionItemStatus.Moved);
-
-            var row = new Grid
-            {
-                ColumnSpacing = 10
-            };
-
-            row.ColumnDefinitions.Add(
-                new ColumnDefinition
+            HomeDonutLegendPanel.Children.Add(
+                new TextBlock
                 {
-                    Width = GridLength.Auto
-                });
-            row.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = new GridLength(
-                        1,
-                        GridUnitType.Star)
-                });
-            row.ColumnDefinitions.Add(
-                new ColumnDefinition
-                {
-                    Width = GridLength.Auto
-                });
-
-            var badge = new Border
-            {
-                Padding = new Thickness(
-                    8,
-                    4,
-                    8,
-                    4),
-                CornerRadius =
-                    new CornerRadius(9),
-                Background =
-                    (Brush)Application.Current.Resources[
-                        "BandaNavIconBrush"],
-                VerticalAlignment =
-                    VerticalAlignment.Center,
-                Child = new TextBlock
-                {
-                    Text = IsOrganization(record)
-                        ? "ORG"
-                        : "UNDO",
+                    Text = "Todavía no hay categorías con archivos.",
                     Foreground =
                         (Brush)Application.Current.Resources[
-                            IsOrganization(record)
-                                ? "BandaAccentBrush"
-                                : "BandaMutedStrongBrush"],
-                    FontSize = 11,
-                    FontWeight =
-                        Microsoft.UI.Text.FontWeights.SemiBold
-                }
-            };
+                            "BandaMutedBrush"],
+                    FontSize = 13,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(4, 10, 4, 0)
+                });
 
-            var title = new TextBlock
-            {
-                Text = IsOrganization(record)
-                    ? $"{movedCount} archivos organizados"
-                    : $"{movedCount} archivos restaurados",
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaTextBrush"],
-                FontSize = 13,
-                TextTrimming =
-                    TextTrimming.CharacterEllipsis,
-                VerticalAlignment =
-                    VerticalAlignment.Center
-            };
+            return;
+        }
 
-            var date = new TextBlock
-            {
-                Text = record.StartedAt.ToString(
-                    "dd/MM · HH:mm:ss",
-                    EsAr),
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedBrush"],
-                FontSize = 12,
-                VerticalAlignment =
-                    VerticalAlignment.Center
-            };
+        var startAngle = -90d;
 
-            Grid.SetColumn(badge, 0);
-            Grid.SetColumn(title, 1);
-            Grid.SetColumn(date, 2);
+        foreach (var item in _currentCategoryUsage)
+        {
+            var sweep =
+                360d * item.FileCount /
+                _currentOrganizedFileCount;
 
-            row.Children.Add(badge);
-            row.Children.Add(title);
-            row.Children.Add(date);
+            var gap =
+                _currentCategoryUsage.Count == 1
+                    ? 0.35
+                    : Math.Min(
+                        2.2,
+                        Math.Max(0.45, sweep * 0.08));
 
-            HomeRecentActivityPanel.Children.Add(row);
+            var visibleSweep =
+                Math.Max(0.35, sweep - gap);
+
+            var brush =
+                CreateCategoryBrush(item.Id);
+
+            var segment =
+                CreateDonutSegment(
+                    startAngle + gap / 2,
+                    visibleSweep,
+                    brush);
+
+            segment.Tag = item.Id;
+            segment.PointerEntered +=
+                (_, _) => HighlightDonutCategory(item.Id);
+            segment.PointerExited +=
+                (_, _) => ResetDonutHighlight();
+
+            HomeDonutCanvas.Children.Add(segment);
+
+            var legendRow =
+                CreateLegendRow(item, brush);
+
+            HomeDonutLegendPanel.Children.Add(
+                legendRow);
+
+            _donutVisuals[item.Id] =
+                new DonutVisual(
+                    segment,
+                    legendRow,
+                    item);
+
+            startAngle += sweep;
         }
     }
 
-    private static void AddEmptyState(
-        Panel panel,
-        string title,
-        string subtitle)
+    private Border CreateLegendRow(
+        HomeCategoryUsageItem item,
+        Brush brush)
     {
-        var container = new StackPanel
+        var row = new Border
         {
-            Spacing = 5,
-            HorizontalAlignment =
-                HorizontalAlignment.Center,
+            Tag = item.Id,
+            Padding = new Thickness(10, 7, 10, 7),
+            CornerRadius = new CornerRadius(10),
+            Background =
+                new SolidColorBrush(
+                    Microsoft.UI.Colors.Transparent)
+        };
+
+        var grid = new Grid
+        {
+            ColumnSpacing = 10
+        };
+
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition
+            {
+                Width = GridLength.Auto
+            });
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition
+            {
+                Width = new GridLength(
+                    1,
+                    GridUnitType.Star)
+            });
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition
+            {
+                Width = GridLength.Auto
+            });
+
+        var dot = new Ellipse
+        {
+            Width = 9,
+            Height = 9,
+            Fill = brush,
             VerticalAlignment =
                 VerticalAlignment.Center
         };
 
-        container.Children.Add(
-            new TextBlock
-            {
-                Text = title,
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedStrongBrush"],
-                FontSize = 14,
-                FontWeight =
-                    Microsoft.UI.Text.FontWeights.SemiBold,
-                HorizontalAlignment =
-                    HorizontalAlignment.Center
-            });
+        var name = new TextBlock
+        {
+            Text = item.Name,
+            Foreground =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedStrongBrush"],
+            FontSize = 13,
+            FontWeight =
+                Microsoft.UI.Text.FontWeights.SemiBold,
+            TextTrimming =
+                TextTrimming.CharacterEllipsis,
+            VerticalAlignment =
+                VerticalAlignment.Center
+        };
 
-        container.Children.Add(
-            new TextBlock
-            {
-                Text = subtitle,
-                Foreground =
-                    (Brush)Application.Current.Resources[
-                        "BandaMutedBrush"],
-                FontSize = 13,
-                TextWrapping =
-                    TextWrapping.Wrap,
-                TextAlignment =
-                    TextAlignment.Center,
-                HorizontalAlignment =
-                    HorizontalAlignment.Center
-            });
+        var count = new TextBlock
+        {
+            Text =
+                item.FileCount == 1
+                    ? "1 archivo"
+                    : $"{item.FileCount} archivos",
+            Foreground =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedBrush"],
+            FontSize = 12,
+            VerticalAlignment =
+                VerticalAlignment.Center
+        };
 
-        panel.Children.Add(container);
+        Grid.SetColumn(dot, 0);
+        Grid.SetColumn(name, 1);
+        Grid.SetColumn(count, 2);
+
+        grid.Children.Add(dot);
+        grid.Children.Add(name);
+        grid.Children.Add(count);
+
+        row.Child = grid;
+
+        row.PointerEntered +=
+            (_, _) => HighlightDonutCategory(item.Id);
+        row.PointerExited +=
+            (_, _) => ResetDonutHighlight();
+
+        return row;
     }
+
+    private static Microsoft.UI.Xaml.Shapes.Path CreateDonutSegment(
+        double startAngle,
+        double sweepAngle,
+        Brush brush)
+    {
+        const double center = 160;
+        const double radius = 119;
+
+        var start =
+            PointOnCircle(
+                center,
+                center,
+                radius,
+                startAngle);
+
+        var end =
+            PointOnCircle(
+                center,
+                center,
+                radius,
+                startAngle + sweepAngle);
+
+        var figure = new PathFigure
+        {
+            StartPoint = start,
+            IsClosed = false
+        };
+
+        figure.Segments.Add(
+            new ArcSegment
+            {
+                Point = end,
+                Size = new Size(radius, radius),
+                RotationAngle = 0,
+                IsLargeArc = sweepAngle > 180,
+                SweepDirection =
+                    SweepDirection.Clockwise
+            });
+
+        var geometry = new PathGeometry();
+        geometry.Figures.Add(figure);
+
+        return new Microsoft.UI.Xaml.Shapes.Path
+        {
+            Data = geometry,
+            Stroke = brush,
+            StrokeThickness = 32,
+            Opacity = 1,
+            IsHitTestVisible = true
+        };
+    }
+
+    private static Point PointOnCircle(
+        double centerX,
+        double centerY,
+        double radius,
+        double angleDegrees)
+    {
+        var radians =
+            angleDegrees * Math.PI / 180d;
+
+        return new Point(
+            centerX + radius * Math.Cos(radians),
+            centerY + radius * Math.Sin(radians));
+    }
+
+    private void HighlightDonutCategory(string categoryId)
+    {
+        if (!_donutVisuals.TryGetValue(
+                categoryId,
+                out var active))
+        {
+            return;
+        }
+
+        foreach (var pair in _donutVisuals)
+        {
+            var isActive =
+                pair.Key.Equals(
+                    categoryId,
+                    StringComparison.OrdinalIgnoreCase);
+
+            pair.Value.Segment.Opacity =
+                isActive ? 1 : 0.22;
+
+            pair.Value.Segment.StrokeThickness =
+                isActive ? 39 : 30;
+
+            pair.Value.LegendRow.Opacity =
+                isActive ? 1 : 0.48;
+
+            pair.Value.LegendRow.Background =
+                isActive
+                    ? (Brush)Application.Current.Resources[
+                        "BandaNavIconBrush"]
+                    : new SolidColorBrush(
+                        Microsoft.UI.Colors.Transparent);
+        }
+
+        HomeDonutCenterCategoryText.Text =
+            active.Item.Name.ToUpperInvariant();
+
+        HomeDonutCenterCountText.Text =
+            active.Item.FileCount.ToString(
+                CultureInfo.CurrentCulture);
+
+        HomeDonutCenterFilesLabelText.Text =
+            active.Item.FileCount == 1
+                ? "archivo"
+                : "archivos";
+
+        HomeDonutCenterSizeText.Text =
+            $"Tamaño · {FormatBytes(active.Item.SizeBytes)}";
+
+        HomeDonutCenterUsageText.Text =
+            $"% de uso · {active.Item.Percentage:0.#}%";
+
+        HomeDonutCenterSizeText.Visibility =
+            Visibility.Visible;
+
+        HomeDonutCenterUsageText.Visibility =
+            Visibility.Visible;
+    }
+
+    private void ResetDonutHighlight()
+    {
+        foreach (var visual in _donutVisuals.Values)
+        {
+            visual.Segment.Opacity = 1;
+            visual.Segment.StrokeThickness = 32;
+            visual.LegendRow.Opacity = 1;
+            visual.LegendRow.Background =
+                new SolidColorBrush(
+                    Microsoft.UI.Colors.Transparent);
+        }
+
+        ResetDonutCenter();
+    }
+
+    private void ResetDonutCenter()
+    {
+        HomeDonutCenterCategoryText.Text =
+            "TODAS LAS CATEGORÍAS";
+
+        HomeDonutCenterCountText.Text =
+            _currentOrganizedFileCount.ToString(
+                CultureInfo.CurrentCulture);
+
+        HomeDonutCenterFilesLabelText.Text =
+            "archivos organizados";
+
+        HomeDonutCenterSizeText.Text = string.Empty;
+        HomeDonutCenterUsageText.Text = string.Empty;
+
+        HomeDonutCenterSizeText.Visibility =
+            Visibility.Collapsed;
+        HomeDonutCenterUsageText.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private static SolidColorBrush CreateCategoryBrush(
+        string categoryId)
+    {
+        var accent =
+            (SolidColorBrush)Application.Current.Resources[
+                "BandaAccentBrush"];
+
+        var (baseHue, _, _) =
+            RgbToHsl(accent.Color);
+
+        var hash =
+            StableHash(categoryId);
+
+        var hueOffset =
+            (hash % 191) - 95;
+
+        var hue =
+            (baseHue + hueOffset + 360) % 360;
+
+        var saturation =
+            0.58 + ((hash >> 8) % 13) / 100d;
+
+        var lightness =
+            0.54 + ((hash >> 16) % 10) / 100d;
+
+        return new SolidColorBrush(
+            HslToColor(
+                hue,
+                saturation,
+                lightness));
+    }
+
+    private static uint StableHash(string value)
+    {
+        const uint offset = 2166136261;
+        const uint prime = 16777619;
+
+        var hash = offset;
+
+        foreach (var character in value)
+        {
+            hash ^= character;
+            hash *= prime;
+        }
+
+        return hash;
+    }
+
+    private static (double Hue, double Saturation, double Lightness)
+        RgbToHsl(Windows.UI.Color color)
+    {
+        var r = color.R / 255d;
+        var g = color.G / 255d;
+        var b = color.B / 255d;
+
+        var max = Math.Max(r, Math.Max(g, b));
+        var min = Math.Min(r, Math.Min(g, b));
+        var delta = max - min;
+
+        var lightness = (max + min) / 2d;
+
+        if (delta == 0)
+        {
+            return (0, 0, lightness);
+        }
+
+        var saturation =
+            delta /
+            (1 - Math.Abs(2 * lightness - 1));
+
+        double hue;
+
+        if (max == r)
+        {
+            hue =
+                60 * (((g - b) / delta) % 6);
+        }
+        else if (max == g)
+        {
+            hue =
+                60 * (((b - r) / delta) + 2);
+        }
+        else
+        {
+            hue =
+                60 * (((r - g) / delta) + 4);
+        }
+
+        if (hue < 0)
+        {
+            hue += 360;
+        }
+
+        return (hue, saturation, lightness);
+    }
+
+    private static Windows.UI.Color HslToColor(
+        double hue,
+        double saturation,
+        double lightness)
+    {
+        var chroma =
+            (1 - Math.Abs(2 * lightness - 1)) *
+            saturation;
+
+        var hPrime = hue / 60d;
+        var x =
+            chroma *
+            (1 - Math.Abs(hPrime % 2 - 1));
+
+        var (r1, g1, b1) =
+            hPrime switch
+            {
+                < 1 => (chroma, x, 0d),
+                < 2 => (x, chroma, 0d),
+                < 3 => (0d, chroma, x),
+                < 4 => (0d, x, chroma),
+                < 5 => (x, 0d, chroma),
+                _ => (chroma, 0d, x)
+            };
+
+        var m =
+            lightness - chroma / 2d;
+
+        return Windows.UI.Color.FromArgb(
+            255,
+            ToByte(r1 + m),
+            ToByte(g1 + m),
+            ToByte(b1 + m));
+    }
+
+    private static byte ToByte(double value) =>
+        (byte)Math.Round(
+            Math.Clamp(value, 0, 1) * 255);
 
     private static bool IsOrganization(
         OrganizationExecutionRecord record) =>
@@ -646,4 +772,17 @@ public sealed partial class HomePage : Page
             ? $"{value:0} {units[index]}"
             : $"{value:0.##} {units[index]}";
     }
+
+    private sealed record HomeCategoryUsageItem(
+        string Id,
+        string Name,
+        int Order,
+        int FileCount,
+        long SizeBytes,
+        double Percentage);
+
+    private sealed record DonutVisual(
+        Microsoft.UI.Xaml.Shapes.Path Segment,
+        Border LegendRow,
+        HomeCategoryUsageItem Item);
 }
