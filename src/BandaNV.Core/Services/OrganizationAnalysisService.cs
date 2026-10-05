@@ -263,6 +263,9 @@ public sealed class OrganizationAnalysisService
             new Dictionary<string, CategorySettings>(
                 StringComparer.OrdinalIgnoreCase);
 
+        var folderFiles =
+            new List<OrganizationAnalysisFolderFile>();
+
         foreach (var path in EnumerateFilesSafely(
                      folderPath,
                      includeSubfolders: true,
@@ -290,9 +293,24 @@ public sealed class OrganizationAnalysisService
                     NormalizeExtension(
                         file.Extension);
 
-                if (!extensionMap.TryGetValue(
+                extensionMap.TryGetValue(
+                    extension,
+                    out var category);
+
+                folderFiles.Add(
+                    new OrganizationAnalysisFolderFile(
+                        Path.GetRelativePath(
+                            directory.FullName,
+                            file.FullName),
+                        file.Name,
                         extension,
-                        out var category))
+                        file.Length,
+                        file.LastWriteTime,
+                        category?.Id,
+                        category?.Name,
+                        category?.Order));
+
+                if (category is null)
                 {
                     continue;
                 }
@@ -396,7 +414,13 @@ public sealed class OrganizationAnalysisService
             DistinctCategoryCount:
                 detectedCategories.Count,
             ScanIncomplete:
-                scanIncomplete);
+                scanIncomplete,
+            FolderFiles:
+                folderFiles
+                    .OrderBy(
+                        item => item.RelativePath,
+                        StringComparer.CurrentCultureIgnoreCase)
+                    .ToList());
     }
 
     private static bool HasDestinationConflict(
