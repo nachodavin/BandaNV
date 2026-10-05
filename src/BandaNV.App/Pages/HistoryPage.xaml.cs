@@ -1034,6 +1034,17 @@ public sealed partial class HistoryPage : Page
 
             _pendingUndoExecution = null;
 
+            try
+            {
+                await global::BandaNV.App.App.History.ApplyRetentionAsync(
+                    global::BandaNV.App.App.Settings.Current);
+            }
+            catch
+            {
+                // El Undo ya terminó. La limpieza podrá reintentarse al
+                // próximo inicio sin alterar el resultado de la restauración.
+            }
+
             await LoadHistoryAsync();
 
             HistoryModalTitleText.Text = issues == 0
