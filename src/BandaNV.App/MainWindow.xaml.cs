@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
             _appWindow = AppWindow.GetFromWindowId(windowId);
             _appWindow.Changed += AppWindow_Changed;
             ConfigureTitleBar();
+            ConfigureWindowIcon();
 
             if (_appWindow.Presenter is OverlappedPresenter presenter)
             {
@@ -135,6 +136,33 @@ public sealed partial class MainWindow : Window
         });
     }
 
+
+    private void ConfigureWindowIcon()
+    {
+        if (_appWindow is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var iconPath =
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "assets",
+                    "BandaNV.ico");
+
+            if (File.Exists(iconPath))
+            {
+                _appWindow.SetIcon(
+                    iconPath);
+            }
+        }
+        catch
+        {
+            // El icono embebido del ejecutable sigue disponible como fallback.
+        }
+    }
 
     private void ConfigureTitleBar()
     {
