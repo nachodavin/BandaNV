@@ -158,8 +158,8 @@ public sealed partial class MainWindow : Window
 
     public void ShowQuickUpdate(string latestVersion)
     {
-        QuickUpdateTitle.Text = "Nueva actualización";
-        QuickUpdateSubtitle.Text = $"Última versión: {latestVersion}";
+        QuickUpdateTitle.Text = "Nueva versión";
+        QuickUpdateSubtitle.Text = $"Disponible: {latestVersion}";
         QuickUpdateButton.Visibility = Visibility.Visible;
     }
 
