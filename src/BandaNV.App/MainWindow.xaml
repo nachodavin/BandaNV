@@ -189,7 +189,8 @@
                                         FontSize="17"
                                         FontWeight="SemiBold"
                                         HorizontalAlignment="Center"
-                                        VerticalAlignment="Center" />
+                                        VerticalAlignment="Center"
+                                        Margin="0,-2,0,0" />
                                 </Border>
 
                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
