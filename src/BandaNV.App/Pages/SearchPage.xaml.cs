@@ -81,18 +81,35 @@ public sealed partial class SearchPage : Page
                     global::BandaNV.App.App.Settings.Current,
                     _scanCts.Token);
 
+            var categoryColors =
+                global::BandaNV.App.App.Categories.GetAll()
+                    .ToDictionary(
+                        category => category.Id,
+                        category => category.ColorHex,
+                        StringComparer.OrdinalIgnoreCase);
+
             foreach (var file in indexedFiles)
             {
                 var location =
                     System.IO.Path.GetDirectoryName(file.FullPath) ??
                     global::BandaNV.App.App.Settings.Current.DestinationFolder;
 
+                var colorHex =
+                    categoryColors.TryGetValue(
+                        file.CategoryId,
+                        out var savedColor)
+                        ? savedColor
+                        : CategoryColorPalette.Generate(
+                            file.CategoryId,
+                            global::BandaNV.App.App.Settings.Current.SecondaryColor);
+
                 _allFiles.Add(new SearchFileResult(
                     file.Name,
                     file.CategoryName,
                     file.SizeBytes,
                     file.ModifiedAt,
-                    location));
+                    location,
+                    colorHex));
             }
         }
         catch (OperationCanceledException)
@@ -667,10 +684,8 @@ public sealed partial class SearchPage : Page
 
             if (isSelected)
             {
-                button.Background =
-                    (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
-                button.Foreground =
-                    (Brush)Application.Current.Resources["BandaAccentBrush"];
+                button.Background = category.CategorySoftBrush;
+                button.BorderBrush = category.CategoryBrush;
             }
 
             button.Click += ExtensionFilterOptionButton_Click;
@@ -929,8 +944,8 @@ public sealed partial class SearchPage : Page
         ActiveCategoriesChip.Visibility =
             hasCategoryFilters ? Visibility.Visible : Visibility.Collapsed;
 
-        ActiveCategoriesText.Text =
-            hasCategoryFilters ? string.Join(" · ", selectedInOrder) : string.Empty;
+        BuildActiveCategoryFilterVisuals(
+            selectedInOrder);
 
         var statusParts = new List<string>();
 
@@ -966,6 +981,136 @@ public sealed partial class SearchPage : Page
                 hasAdvancedFilters ? "BandaAccentBrush" : "BandaTextBrush"];
 
         ClearFiltersButton.IsEnabled = hasAnyFilter;
+    }
+
+    private void BuildActiveCategoryFilterVisuals(
+        IReadOnlyList<string> selectedCategoryNames)
+    {
+        ActiveCategoriesVisualPanel.Children.Clear();
+
+        if (selectedCategoryNames.Count == 0)
+        {
+            return;
+        }
+
+        const int visibleLimit = 4;
+
+        foreach (var categoryName in selectedCategoryNames.Take(visibleLimit))
+        {
+            var category = _allCategoryCards.FirstOrDefault(item =>
+                item.Name.Equals(
+                    categoryName,
+                    StringComparison.CurrentCultureIgnoreCase));
+
+            if (category is null)
+            {
+                continue;
+            }
+
+            var item = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6
+            };
+
+            item.Children.Add(
+                new Ellipse
+                {
+                    Width = 8,
+                    Height = 8,
+                    Fill = category.CategoryBrush,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+            item.Children.Add(
+                new TextBlock
+                {
+                    Text = category.Name,
+                    Foreground = category.CategoryBrush,
+                    FontSize = 13,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+
+            ActiveCategoriesVisualPanel.Children.Add(item);
+        }
+
+        if (selectedCategoryNames.Count > visibleLimit)
+        {
+            ActiveCategoriesVisualPanel.Children.Add(
+                new TextBlock
+                {
+                    Text = $"+{selectedCategoryNames.Count - visibleLimit}",
+                    Foreground =
+                        (Brush)Application.Current.Resources[
+                            "BandaMutedStrongBrush"],
+                    FontSize = 13,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+        }
+    }
+
+    private void ApplySearchDetailCategoryVisual(
+        SearchFileResult? file,
+        bool neutral = false)
+    {
+        if (file is null || neutral)
+        {
+            SearchDetailCategoryCard.Background =
+                (Brush)Application.Current.Resources[
+                    "BandaNavIconBrush"];
+            SearchDetailCategoryCard.BorderBrush =
+                (Brush)Application.Current.Resources[
+                    "BandaBorderBrush"];
+            SearchDetailCategoryDot.Fill =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedBrush"];
+            SearchDetailCategoryText.Foreground =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedStrongBrush"];
+            return;
+        }
+
+        SearchDetailCategoryCard.Background =
+            file.CategorySoftBrush;
+        SearchDetailCategoryCard.BorderBrush =
+            file.CategoryBrush;
+        SearchDetailCategoryDot.Fill =
+            file.CategoryBrush;
+        SearchDetailCategoryText.Foreground =
+            file.CategoryBrush;
+    }
+
+    private StackPanel CreateSearchCategoryOptionContent(
+        SearchCategorySummary category)
+    {
+        var content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8
+        };
+
+        content.Children.Add(
+            new Ellipse
+            {
+                Width = 9,
+                Height = 9,
+                Fill = category.CategoryBrush,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+        content.Children.Add(
+            new TextBlock
+            {
+                Text = category.Name,
+                Foreground =
+                    (Brush)Application.Current.Resources[
+                        "BandaTextBrush"],
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+        return content;
     }
 
     private void SearchResultsList_SelectionChanged(
@@ -1077,6 +1222,7 @@ public sealed partial class SearchPage : Page
         SearchDetailTitleText.Text = "Detalle del archivo";
         SearchDetailFileNameText.Text = file.Name;
         SearchDetailCategoryText.Text = file.Category;
+        ApplySearchDetailCategoryVisual(file);
         SearchDetailSizeText.Text = file.SizeText;
         SearchDetailExtensionText.Text = file.ExtensionDisplay;
         SearchDetailModifiedText.Text = file.ModifiedText;
@@ -1122,6 +1268,11 @@ public sealed partial class SearchPage : Page
             categoryCount == 1
                 ? files[0].Category
                 : $"{categoryCount} categorías";
+
+        ApplySearchDetailCategoryVisual(
+            categoryCount == 1 ? files[0] : null,
+            neutral: categoryCount != 1);
+
         SearchDetailSizeText.Text =
             FormatSearchBytes(files.Sum(file => file.SizeBytes));
         SearchDetailExtensionText.Text =
@@ -1156,6 +1307,7 @@ public sealed partial class SearchPage : Page
         SearchDetailTitleText.Text = "Detalle del archivo";
         SearchDetailFileNameText.Text = "Seleccioná uno o varios archivos";
         SearchDetailCategoryText.Text = "—";
+        ApplySearchDetailCategoryVisual(null, neutral: true);
         SearchDetailSizeText.Text = "—";
         SearchDetailExtensionText.Text = "—";
         SearchDetailModifiedText.Text = "—";
@@ -1439,7 +1591,7 @@ public sealed partial class SearchPage : Page
             var button = new Button
             {
                 Tag = category.Name,
-                Content = category.Name,
+                Content = CreateSearchCategoryOptionContent(category),
                 Style =
                     (Style)Application.Current.Resources["BandaPopupOptionButtonStyle"]
             };
@@ -1933,13 +2085,42 @@ public sealed class SearchCategorySummary
     public Visibility SelectedVisibility =>
         IsSelected ? Visibility.Visible : Visibility.Collapsed;
 
+    public Brush CategorySoftBrush =>
+        CreateCategoryBrush(
+            ColorHex,
+            alpha: 0x22);
+
     public Brush CardBackground =>
-        (Brush)Application.Current.Resources[
-            IsSelected ? "BandaAccentFaintBrush" : "BandaCardBrush"];
+        IsSelected
+            ? CategorySoftBrush
+            : (Brush)Application.Current.Resources[
+                "BandaCardBrush"];
 
     public Brush CardBorderBrush =>
-        (Brush)Application.Current.Resources[
-            IsSelected ? "BandaAccentBrush" : "BandaBorderBrush"];
+        IsSelected
+            ? CategoryBrush
+            : (Brush)Application.Current.Resources[
+                "BandaBorderBrush"];
+
+    private static Brush CreateCategoryBrush(
+        string colorHex,
+        byte alpha)
+    {
+        if (!CategoryColorPalette.TryNormalizeHex(
+                colorHex,
+                out var normalized))
+        {
+            return (Brush)Application.Current.Resources[
+                "BandaAccentSoftBrush"];
+        }
+
+        return new SolidColorBrush(
+            Windows.UI.Color.FromArgb(
+                alpha,
+                Convert.ToByte(normalized.Substring(1, 2), 16),
+                Convert.ToByte(normalized.Substring(3, 2), 16),
+                Convert.ToByte(normalized.Substring(5, 2), 16)));
+    }
 }
 
 public sealed class SearchFileResult
@@ -1949,20 +2130,29 @@ public sealed class SearchFileResult
         string category,
         long sizeBytes,
         DateTime modifiedAt,
-        string location)
+        string location,
+        string colorHex)
     {
         Name = name;
         Category = category;
         SizeBytes = sizeBytes;
         ModifiedAt = modifiedAt;
         Location = location;
+        ColorHex = colorHex;
     }
 
     public string Name { get; private set; }
     public string Category { get; private set; }
+    public string ColorHex { get; private set; }
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
     public string Location { get; private set; }
+
+    public Brush CategoryBrush =>
+        CreateCategoryBrush(0xFF);
+
+    public Brush CategorySoftBrush =>
+        CreateCategoryBrush(0x20);
 
     public string FilePath =>
         System.IO.Path.Combine(Location, Name);
@@ -1979,16 +2169,43 @@ public sealed class SearchFileResult
         Name = value;
     }
 
-    public void ChangeCategory(string categoryName)
+    public void ChangeCategory(
+        string categoryName,
+        string? colorHex = null)
     {
         var parent = System.IO.Directory.GetParent(Location)?.FullName;
 
         Category = categoryName;
 
+        if (!string.IsNullOrWhiteSpace(colorHex))
+        {
+            ColorHex = colorHex;
+        }
+
         if (!string.IsNullOrWhiteSpace(parent))
         {
             Location = System.IO.Path.Combine(parent, categoryName);
         }
+    }
+
+    private Brush CreateCategoryBrush(byte alpha)
+    {
+        if (!CategoryColorPalette.TryNormalizeHex(
+                ColorHex,
+                out var normalized))
+        {
+            return (Brush)Application.Current.Resources[
+                alpha == 0xFF
+                    ? "BandaAccentBrush"
+                    : "BandaAccentSoftBrush"];
+        }
+
+        return new SolidColorBrush(
+            Windows.UI.Color.FromArgb(
+                alpha,
+                Convert.ToByte(normalized.Substring(1, 2), 16),
+                Convert.ToByte(normalized.Substring(3, 2), 16),
+                Convert.ToByte(normalized.Substring(5, 2), 16)));
     }
 
     public string ExtensionDisplay =>
