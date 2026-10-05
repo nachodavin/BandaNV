@@ -85,8 +85,7 @@
                                     Foreground="{StaticResource BandaTextBrush}"
                                     FontSize="19"
                                     FontWeight="SemiBold"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTipService.ToolTip="{x:Bind HomeSourceFolderText.Text, Mode=OneWay}" />
+                                    TextTrimming="CharacterEllipsis" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Spacing="6">
