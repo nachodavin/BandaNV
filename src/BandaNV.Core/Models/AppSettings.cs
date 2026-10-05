@@ -2,7 +2,7 @@ namespace BandaNV.Core.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -73,16 +73,19 @@ public sealed class CategorySettings
         string id,
         string name,
         IEnumerable<string> extensions,
-        int order)
+        int order,
+        string colorHex = "")
     {
         Id = id;
         Name = name;
         Extensions = extensions.ToList();
         Order = order;
+        ColorHex = colorHex;
     }
 
     public string Id { get; set; } = Guid.NewGuid().ToString("D");
     public string Name { get; set; } = string.Empty;
     public List<string> Extensions { get; set; } = [];
     public int Order { get; set; }
+    public string ColorHex { get; set; } = string.Empty;
 }
