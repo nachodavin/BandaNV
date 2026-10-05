@@ -289,14 +289,24 @@
                                                         FontWeight="SemiBold"
                                                         VerticalAlignment="Center" />
 
-                                                    <TextBlock
+                                                    <StackPanel
                                                         Grid.Column="2"
-                                                        Text="{x:Bind Name}"
-                                                        Foreground="{StaticResource BandaTextBrush}"
-                                                        FontSize="13"
-                                                        FontWeight="SemiBold"
-                                                        VerticalAlignment="Center"
-                                                        TextTrimming="CharacterEllipsis" />
+                                                        Orientation="Horizontal"
+                                                        Spacing="8"
+                                                        VerticalAlignment="Center">
+                                                        <Ellipse
+                                                            Width="10"
+                                                            Height="10"
+                                                            Fill="{x:Bind ColorBrush}"
+                                                            VerticalAlignment="Center" />
+                                                        <TextBlock
+                                                            Text="{x:Bind Name}"
+                                                            Foreground="{StaticResource BandaTextBrush}"
+                                                            FontSize="13"
+                                                            FontWeight="SemiBold"
+                                                            VerticalAlignment="Center"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
 
                                                     <TextBlock
                                                         Grid.Column="3"
@@ -368,13 +378,23 @@
                                             Foreground="{StaticResource BandaTextBrush}"
                                             FontSize="18"
                                             FontWeight="SemiBold" />
-                                        <TextBlock
-                                            x:Name="CategoryDetailNameText"
-                                            Text="Seleccioná una categoría"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="14"
-                                            FontWeight="SemiBold"
-                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel
+                                            Orientation="Horizontal"
+                                            Spacing="8">
+                                            <Ellipse
+                                                x:Name="CategoryDetailColorDot"
+                                                Width="10"
+                                                Height="10"
+                                                Fill="{StaticResource BandaMutedBrush}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                x:Name="CategoryDetailNameText"
+                                                Text="Seleccioná una categoría"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <Border
@@ -659,6 +679,73 @@
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
                                     BorderBrush="{StaticResource BandaBorderBrush}"
                                     BorderThickness="1" />
+                            </StackPanel>
+
+                            <StackPanel
+                                x:Name="CategoryEditorColorSection"
+                                Spacing="7">
+                                <TextBlock
+                                    Text="COLOR DE CATEGORÍA"
+                                    Style="{StaticResource BandaLabelTextStyle}"
+                                    FontSize="11" />
+
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border
+                                        x:Name="CategoryEditorColorPreview"
+                                        Width="38"
+                                        Height="38"
+                                        CornerRadius="11"
+                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                        BorderThickness="1" />
+
+                                    <TextBlock
+                                        x:Name="CategoryEditorColorHexText"
+                                        Grid.Column="1"
+                                        Text="#4FE0C6"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="14"
+                                        FontWeight="SemiBold"
+                                        VerticalAlignment="Center" />
+
+                                    <Button
+                                        Grid.Column="2"
+                                        Content="Cambiar"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}">
+                                        <Button.Flyout>
+                                            <Flyout
+                                                Placement="BottomEdgeAlignedLeft"
+                                                FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Border
+                                                    Style="{StaticResource BandaPopupCardStyle}"
+                                                    Width="360"
+                                                    Padding="20">
+                                                    <StackPanel Spacing="12">
+                                                        <TextBlock
+                                                            Text="Elegir color"
+                                                            Foreground="{StaticResource BandaTextBrush}"
+                                                            FontSize="17"
+                                                            FontWeight="SemiBold" />
+                                                        <TextBlock
+                                                            Text="Este color identifica la categoría en toda la app."
+                                                            Foreground="{StaticResource BandaMutedBrush}"
+                                                            FontSize="12"
+                                                            TextWrapping="Wrap" />
+                                                        <ColorPicker
+                                                            x:Name="CategoryColorPicker"
+                                                            IsAlphaEnabled="False"
+                                                            ColorChanged="CategoryColorPicker_ColorChanged" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel Spacing="7">
