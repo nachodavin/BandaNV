@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using BandaNV.Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -28,125 +29,115 @@ public sealed partial class HistoryPage : Page
     public HistoryPage()
     {
         InitializeComponent();
-
-        LoadPreviewData();
+        Loaded += HistoryPage_Loaded;
     }
 
-    private void LoadPreviewData()
+    private async void HistoryPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= HistoryPage_Loaded;
+        await LoadHistoryAsync();
+    }
+
+    private async Task LoadHistoryAsync()
     {
         _allPreviewExecutions.Clear();
 
-        _allPreviewExecutions.Add(new HistoryExecutionPreview
+        try
         {
-            DateTimeText = "04/10/2026 · 00:47:18",
-            Type = "ORGANIZAR",
-            OriginShort = "Descargas",
-            Origin = @"C:\Users\Usuario\Downloads",
-            Destination = @"C:\Users\Usuario\Downloads\ORGANIZADO",
-            FileCount = 34,
-            FileCountText = "34",
-            SizeText = "1.8 GB",
-            CanUndo = true,
-            UndoBadgeText = "Reversible",
-            Files = BuildPrimaryPreviewFiles()
-        });
+            var records =
+                await global::BandaNV.App.App.History.LoadAsync();
 
-        _allPreviewExecutions.Add(new HistoryExecutionPreview
-        {
-            DateTimeText = "03/10/2026 · 18:12:42",
-            Type = "ORGANIZAR",
-            OriginShort = "Escritorio",
-            Origin = @"C:\Users\Usuario\Desktop",
-            Destination = @"C:\Users\Usuario\Desktop\ORGANIZADO",
-            FileCount = 12,
-            FileCountText = "12",
-            SizeText = "420 MB",
-            CanUndo = false,
-            UndoBadgeText = "Ya deshecha",
-            Files =
-            [
-                new HistoryFilePreview("brief.pdf", "DOCUMENTS", "3.8 MB"),
-                new HistoryFilePreview("referencia.png", "IMAGES", "7.6 MB"),
-                new HistoryFilePreview("entrega.zip", "RAR", "386 MB"),
-                new HistoryFilePreview("audio.wav", "AUDIO", "22.6 MB")
-            ]
-        });
+            foreach (var record in records)
+            {
+                var movedItems = record.Items
+                    .Where(item =>
+                        item.Status == OrganizationExecutionItemStatus.Moved)
+                    .ToList();
 
-        _allPreviewExecutions.Add(new HistoryExecutionPreview
-        {
-            DateTimeText = "02/10/2026 · 23:08:07",
-            Type = "ORGANIZAR",
-            OriginShort = "Descargas",
-            Origin = @"C:\Users\Usuario\Downloads",
-            Destination = @"C:\Users\Usuario\Downloads\ORGANIZADO",
-            FileCount = 57,
-            FileCountText = "57",
-            SizeText = "3.1 GB",
-            CanUndo = false,
-            UndoBadgeText = "No reversible",
-            Files =
-            [
-                new HistoryFilePreview("captura_01.png", "IMAGES", "5.1 MB"),
-                new HistoryFilePreview("materiales.7z", "RAR", "1.7 GB"),
-                new HistoryFilePreview("clase.mp4", "VIDEOS", "884 MB"),
-                new HistoryFilePreview("fuentes.zip", "RAR", "118 MB"),
-                new HistoryFilePreview("documentacion.pdf", "DOCUMENTS", "11.4 MB")
-            ]
-        });
+                var canUndo =
+                    global::BandaNV.App.App.Settings.Current.UndoEnabled &&
+                    movedItems.Count > 0 &&
+                    movedItems.All(IsItemCurrentlyReversible);
 
-        _allPreviewExecutions.Add(new HistoryExecutionPreview
+                var files = movedItems
+                    .Select(item => new HistoryFilePreview(
+                        item.FileName,
+                        item.CategoryName ?? "Sin categoría",
+                        FormatHistoryBytes(item.SizeBytes)))
+                    .ToList();
+
+                var type = record.Type.Equals(
+                        "UNDO",
+                        StringComparison.OrdinalIgnoreCase)
+                    ? "DESHACER"
+                    : "ORGANIZAR";
+
+                _allPreviewExecutions.Add(new HistoryExecutionPreview
+                {
+                    ExecutionId = record.ExecutionId,
+                    DateTimeText =
+                        record.StartedAt.ToString(
+                            "dd/MM/yyyy · HH:mm:ss",
+                            CultureInfo.GetCultureInfo("es-AR")),
+                    Type = type,
+                    OriginShort = GetFolderDisplayName(record.SourceFolder),
+                    Origin = record.SourceFolder,
+                    Destination = record.DestinationFolder,
+                    FileCount = movedItems.Count,
+                    FileCountText =
+                        movedItems.Count.ToString(CultureInfo.CurrentCulture),
+                    SizeText = FormatHistoryBytes(
+                        movedItems.Sum(item => item.SizeBytes)),
+                    CanUndo = canUndo,
+                    UndoBadgeText = type == "DESHACER"
+                        ? "Registro Undo"
+                        : canUndo
+                            ? "Reversible"
+                            : movedItems.Count == 0
+                                ? "Sin movimientos"
+                                : "No reversible",
+                    Files = files
+                });
+            }
+        }
+        catch
         {
-            DateTimeText = "01/10/2026 · 14:36:55",
-            Type = "DESHACER",
-            OriginShort = "Descargas",
-            Origin = @"C:\Users\Usuario\Downloads\ORGANIZADO",
-            Destination = @"C:\Users\Usuario\Downloads",
-            FileCount = 12,
-            FileCountText = "12",
-            SizeText = "420 MB",
-            CanUndo = false,
-            UndoBadgeText = "Registro Undo",
-            Files =
-            [
-                new HistoryFilePreview("brief.pdf", "DOCUMENTS", "3.8 MB"),
-                new HistoryFilePreview("referencia.png", "IMAGES", "7.6 MB"),
-                new HistoryFilePreview("entrega.zip", "RAR", "386 MB"),
-                new HistoryFilePreview("audio.wav", "AUDIO", "22.6 MB")
-            ]
-        });
+            // Historial queda vacío si no puede leerse; nunca se rellenan mocks.
+        }
 
         RefreshHistoryResults();
     }
 
-    private static IReadOnlyList<HistoryFilePreview> BuildPrimaryPreviewFiles()
+    private static bool IsItemCurrentlyReversible(
+        OrganizationExecutionItemRecord item)
     {
-        var files = new List<HistoryFilePreview>
+        if (string.IsNullOrWhiteSpace(item.FinalPath))
         {
-            new("foto_rolling_01.jpg", "IMAGES", "14.2 MB"),
-            new("TP_final.pdf", "DOCUMENTS", "8.1 MB"),
-            new("pack_autos.rar", "RAR", "1.2 GB"),
-            new("video_final.mp4", "VIDEOS", "542 MB"),
-            new("logo_nako.ai", "DESIGN", "35 MB"),
-            new("referencia_01.png", "IMAGES", "6.4 MB"),
-            new("referencia_02.webp", "IMAGES", "3.8 MB"),
-            new("presupuesto.xlsx", "DOCUMENTS", "182 KB"),
-            new("brief_cliente.docx", "DOCUMENTS", "1.1 MB"),
-            new("tipografia.otf", "FONTS", "624 KB"),
-            new("musica_demo.mp3", "AUDIO", "9.7 MB"),
-            new("captura.gif", "GIF", "4.3 MB"),
-            new("setup_herramienta.exe", "INSTALLERS", "118 MB"),
-            new("recursos.7z", "RAR", "286 MB")
-        };
-
-        for (var index = files.Count + 1; index <= 34; index++)
-        {
-            files.Add(new HistoryFilePreview(
-                $"archivo_{index:00}.png",
-                "IMAGES",
-                $"{2 + (index % 8)}.{index % 10} MB"));
+            return false;
         }
 
-        return files;
+        try
+        {
+            return File.Exists(item.FinalPath) &&
+                   !File.Exists(item.OriginalPath);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string GetFolderDisplayName(string path)
+    {
+        var normalized = path.TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar);
+
+        var name = Path.GetFileName(normalized);
+
+        return string.IsNullOrWhiteSpace(name)
+            ? path
+            : name;
     }
 
     private void HistoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -331,10 +322,10 @@ public sealed partial class HistoryPage : Page
 
     private static void ApplyFileHistoryState(HistoryFilePreview file, bool executionCanUndo)
     {
-        file.CanDelete = executionCanUndo && !file.IsDeleted;
-        file.DeleteVisibility = file.CanDelete
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        // El historial ya usa datos reales. La eliminación individual desde
+        // esta vista se habilitará junto al motor de acciones de Historial.
+        file.CanDelete = false;
+        file.DeleteVisibility = Visibility.Collapsed;
         file.DeletedStatusVisibility = file.IsDeleted
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -852,7 +843,7 @@ public sealed partial class HistoryPage : Page
 
         var detail = deletedCount > 0
             ? $"En esta vista previa, {recoverableCount} archivos siguen siendo recuperables y {deletedCount} quedan fuera del Undo porque fueron eliminados después. El historial conserva igualmente sus registros tachados."
-            : "El botón ya muestra cuándo una ejecución es reversible. La operación real se conectará cuando migremos el motor de logs y Undo.";
+            : "Esta ejecución real sigue siendo reversible. La restauración física se conectará en el próximo bloque de Undo.";
 
         _pendingDeleteFile = null;
         _pendingDeleteExecution = null;
@@ -940,6 +931,7 @@ public enum HistorySortMode
 
 public sealed class HistoryExecutionPreview
 {
+    public string ExecutionId { get; set; } = string.Empty;
     public string DateTimeText { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string OriginShort { get; set; } = string.Empty;
