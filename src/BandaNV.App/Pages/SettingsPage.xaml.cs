@@ -896,7 +896,7 @@ public sealed partial class SettingsPage : Page
 
                 case UpdateCheckStatus.LocalNewer:
                     global::BandaNV.App.App.MainWindowInstance?
-                        .HideQuickUpdate();
+                        .ClearAvailableUpdate();
 
                     if (showNonAvailableResult)
                     {
@@ -907,7 +907,7 @@ public sealed partial class SettingsPage : Page
 
                 case UpdateCheckStatus.FailedSuppressed:
                     global::BandaNV.App.App.MainWindowInstance?
-                        .HideQuickUpdate();
+                        .ClearAvailableUpdate();
 
                     if (showNonAvailableResult)
                     {
