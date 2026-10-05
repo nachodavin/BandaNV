@@ -68,6 +68,7 @@ public sealed class UndoService
             SourceFolder = original.DestinationFolder,
             DestinationFolder = original.SourceFolder,
             ConflictBehavior = "Undo seguro",
+            RelatedExecutionId = original.ExecutionId,
             Items = originalMovedItems
                 .Select(item => new OrganizationExecutionItemRecord
                 {
@@ -420,6 +421,8 @@ public sealed class UndoService
             OrganizationExecutionItemStatus.Moved => "Restaurado",
             OrganizationExecutionItemStatus.ConflictNeedsDecision =>
                 "Conflicto en origen",
+            OrganizationExecutionItemStatus.Interrupted =>
+                "Interrumpido",
             OrganizationExecutionItemStatus.SourceMissing =>
                 "Ya no existe",
             OrganizationExecutionItemStatus.SourceChanged =>
