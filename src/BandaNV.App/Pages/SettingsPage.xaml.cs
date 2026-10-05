@@ -27,6 +27,27 @@ public sealed partial class SettingsPage : Page
         UpdateAppearancePreview();
     }
 
+    public void SyncUpdateStartupNoticeToggle(
+        bool enabled)
+    {
+        var wasReady =
+            _isPageReady;
+
+        _isPageReady =
+            false;
+
+        try
+        {
+            AutoUpdateToggle.IsOn =
+                enabled;
+        }
+        finally
+        {
+            _isPageReady =
+                wasReady;
+        }
+    }
+
     private void SettingsTabButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string tag } ||
@@ -567,6 +588,15 @@ public sealed partial class SettingsPage : Page
             }
 
             return;
+        }
+
+        if (ReferenceEquals(
+                sender,
+                AutoUpdateToggle))
+        {
+            global::BandaNV.App.App.MainWindowInstance?
+                .SyncUpdateStartupNoticeToggle(
+                    AutoUpdateToggle.IsOn);
         }
 
         QueuePersistSettings();
