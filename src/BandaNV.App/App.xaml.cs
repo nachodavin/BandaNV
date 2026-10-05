@@ -11,6 +11,8 @@ public partial class App : Application
     public static CategoryService Categories { get; } = new(Settings);
     public static OrganizationAnalysisService OrganizationAnalysis { get; } = new();
     public static OrganizationExecutionService OrganizationExecution { get; } = new();
+    public static HistoryService History { get; } = new();
+    public static SearchIndexService SearchIndex { get; } = new();
 
     public App()
     {
