@@ -25,6 +25,8 @@ public sealed partial class HistoryPage : Page
 
     private HistoryFilePreview? _pendingDeleteFile;
     private HistoryExecutionPreview? _pendingDeleteExecution;
+    private HistoryExecutionPreview? _pendingUndoExecution;
+    private bool _isUndoRunning;
 
     public HistoryPage()
     {
@@ -54,7 +56,14 @@ public sealed partial class HistoryPage : Page
                         item.Status == OrganizationExecutionItemStatus.Moved)
                     .ToList();
 
+                var type = record.Type.Equals(
+                        "UNDO",
+                        StringComparison.OrdinalIgnoreCase)
+                    ? "DESHACER"
+                    : "ORGANIZAR";
+
                 var canUndo =
+                    type == "ORGANIZAR" &&
                     global::BandaNV.App.App.Settings.Current.UndoEnabled &&
                     movedItems.Count > 0 &&
                     movedItems.All(IsItemCurrentlyReversible);
@@ -66,15 +75,10 @@ public sealed partial class HistoryPage : Page
                         FormatHistoryBytes(item.SizeBytes)))
                     .ToList();
 
-                var type = record.Type.Equals(
-                        "UNDO",
-                        StringComparison.OrdinalIgnoreCase)
-                    ? "DESHACER"
-                    : "ORGANIZAR";
-
                 _allPreviewExecutions.Add(new HistoryExecutionPreview
                 {
                     ExecutionId = record.ExecutionId,
+                    ExecutionRecord = record,
                     DateTimeText =
                         record.StartedAt.ToString(
                             "dd/MM/yyyy · HH:mm:ss",
@@ -114,14 +118,21 @@ public sealed partial class HistoryPage : Page
         HistoryTotalExecutionsText.Text =
             _allPreviewExecutions.Count.ToString(CultureInfo.CurrentCulture);
 
+        var organizationExecutions = _allPreviewExecutions
+            .Where(execution =>
+                execution.Type.Equals(
+                    "ORGANIZAR",
+                    StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
         var totalFiles =
-            _allPreviewExecutions.Sum(execution => execution.FileCount);
+            organizationExecutions.Sum(execution => execution.FileCount);
 
         HistoryTotalFilesText.Text =
             totalFiles.ToString(CultureInfo.CurrentCulture);
 
         var totalBytes =
-            _allPreviewExecutions.Sum(execution =>
+            organizationExecutions.Sum(execution =>
                 ParseSizeBytes(execution.SizeText));
 
         HistoryTotalSizeText.Text =
@@ -165,8 +176,24 @@ public sealed partial class HistoryPage : Page
 
         try
         {
-            return File.Exists(item.FinalPath) &&
-                   !File.Exists(item.OriginalPath);
+            if (!File.Exists(item.FinalPath) ||
+                File.Exists(item.OriginalPath))
+            {
+                return false;
+            }
+
+            var current = new FileInfo(item.FinalPath);
+
+            if (current.Length != item.SizeBytes ||
+                Math.Abs(
+                    current.LastWriteTimeUtc.Ticks -
+                    item.ModifiedUtcTicks) > 20_000_000L)
+            {
+                return false;
+            }
+
+            return string.IsNullOrWhiteSpace(item.ReplacedBackupPath) ||
+                   File.Exists(item.ReplacedBackupPath);
         }
         catch
         {
@@ -877,38 +904,51 @@ public sealed partial class HistoryPage : Page
         var executions = GetSelectedHistoryExecutions();
 
         if (executions.Count != 1 ||
-            !executions[0].CanUndo)
+            !executions[0].CanUndo ||
+            executions[0].ExecutionRecord is null)
         {
             return;
         }
 
         var execution = executions[0];
 
-        var deletedCount = execution.Files.Count(file => file.IsDeleted);
-        var recoverableCount = Math.Max(0, execution.FileCount - deletedCount);
-
-        var detail = deletedCount > 0
-            ? $"En esta vista previa, {recoverableCount} archivos siguen siendo recuperables y {deletedCount} quedan fuera del Undo porque fueron eliminados después. El historial conserva igualmente sus registros tachados."
-            : "Esta ejecución real sigue siendo reversible. La restauración física se conectará en el próximo bloque de Undo.";
-
         _pendingDeleteFile = null;
         _pendingDeleteExecution = null;
+        _pendingUndoExecution = execution;
 
-        HistoryModalTitleText.Text = "Vista previa de Undo";
-        HistoryModalBodyText.Text = detail;
+        HistoryModalTitleText.Text = "Deshacer organización";
+        HistoryModalBodyText.Text =
+            $"BandaNV va a restaurar {execution.FileCount} archivo{(execution.FileCount == 1 ? string.Empty : "s")} " +
+            $"desde \"{execution.DestinationShort}\" hacia su ubicación original. " +
+            "Antes de cada movimiento se vuelve a validar que el archivo siga intacto y que el origen esté libre. " +
+            "Si algo cambió, ese archivo no se toca.";
+
         HistoryModalIconText.Text = "↶";
         HistoryModalIconBorder.Background =
             (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
         HistoryModalIconText.Foreground =
             (Brush)Application.Current.Resources["BandaAccentBrush"];
 
-        HistoryModalSecondaryButton.Content = "Entendido";
-        HistoryModalPrimaryButton.Visibility = Visibility.Collapsed;
+        HistoryModalSecondaryButton.Content = "Cancelar";
+        HistoryModalPrimaryButton.Content = "Deshacer ahora";
+        HistoryModalPrimaryButton.Style =
+            (Style)Application.Current.Resources["BandaPopupPrimaryButtonStyle"];
+        HistoryModalPrimaryButton.IsEnabled = true;
+        HistoryModalPrimaryButton.Visibility = Visibility.Visible;
         HistoryModalOverlay.Visibility = Visibility.Visible;
     }
 
-    private void HistoryModalPrimaryButton_Click(object sender, RoutedEventArgs e)
+    private async void HistoryModalPrimaryButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_pendingUndoExecution is { } undoExecution &&
+            undoExecution.ExecutionRecord is { } executionRecord)
+        {
+            await ExecuteUndoAsync(
+                undoExecution,
+                executionRecord);
+            return;
+        }
+
         if (_pendingDeleteFile is not { } file ||
             _pendingDeleteExecution is not { } execution ||
             file.IsDeleted)
@@ -930,6 +970,74 @@ public sealed partial class HistoryPage : Page
         CloseHistoryModal();
     }
 
+    private async Task ExecuteUndoAsync(
+        HistoryExecutionPreview execution,
+        OrganizationExecutionRecord executionRecord)
+    {
+        _isUndoRunning = true;
+
+        HistoryModalSecondaryButton.IsEnabled = false;
+        HistoryModalPrimaryButton.IsEnabled = false;
+        HistoryModalPrimaryButton.Content = "Deshaciendo...";
+        HistoryModalBodyText.Text =
+            "Validando archivos y restaurando ubicaciones originales...";
+
+        var progress = new Progress<OrganizationExecutionProgress>(state =>
+        {
+            HistoryModalBodyText.Text =
+                $"{state.Message}: {state.FileName}\n" +
+                $"{state.Processed} de {state.Total} archivos procesados.";
+        });
+
+        try
+        {
+            var result =
+                await global::BandaNV.App.App.Undo.UndoAsync(
+                    executionRecord,
+                    progress);
+
+            var restored = result.Record.Items.Count(item =>
+                item.Status == OrganizationExecutionItemStatus.Moved);
+
+            var issues = result.Record.Items.Count - restored;
+
+            _pendingUndoExecution = null;
+
+            await LoadHistoryAsync();
+
+            HistoryModalTitleText.Text = issues == 0
+                ? "Undo completado"
+                : "Undo completado con incidencias";
+
+            HistoryModalBodyText.Text = issues == 0
+                ? $"{restored} archivo{(restored == 1 ? string.Empty : "s")} " +
+                  $"restaurado{(restored == 1 ? string.Empty : "s")} correctamente. " +
+                  "La operación quedó registrada en Historial y en logs."
+                : $"{restored} archivo{(restored == 1 ? string.Empty : "s")} restaurado{(restored == 1 ? string.Empty : "s")} " +
+                  $"y {issues} incidencia{(issues == 1 ? string.Empty : "s")}. " +
+                  "Los archivos que no pasaron las validaciones quedaron intactos y el detalle quedó registrado.";
+
+            HistoryModalSecondaryButton.Content = "Cerrar";
+            HistoryModalSecondaryButton.IsEnabled = true;
+            HistoryModalPrimaryButton.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            HistoryModalTitleText.Text = "No se pudo completar el Undo";
+            HistoryModalBodyText.Text =
+                $"BandaNV detuvo la restauración de forma segura: {ex.Message}";
+            HistoryModalSecondaryButton.Content = "Cerrar";
+            HistoryModalSecondaryButton.IsEnabled = true;
+            HistoryModalPrimaryButton.Visibility = Visibility.Collapsed;
+
+            await LoadHistoryAsync();
+        }
+        finally
+        {
+            _isUndoRunning = false;
+        }
+    }
+
     private void HistoryModalCloseButton_Click(object sender, RoutedEventArgs e)
     {
         CloseHistoryModal();
@@ -944,9 +1052,17 @@ public sealed partial class HistoryPage : Page
 
     private void CloseHistoryModal()
     {
+        if (_isUndoRunning)
+        {
+            return;
+        }
+
         HistoryModalOverlay.Visibility = Visibility.Collapsed;
         _pendingDeleteFile = null;
         _pendingDeleteExecution = null;
+        _pendingUndoExecution = null;
+        HistoryModalSecondaryButton.IsEnabled = true;
+        HistoryModalPrimaryButton.IsEnabled = true;
     }
 
 }
@@ -978,6 +1094,7 @@ public enum HistorySortMode
 public sealed class HistoryExecutionPreview
 {
     public string ExecutionId { get; set; } = string.Empty;
+    public OrganizationExecutionRecord? ExecutionRecord { get; set; }
     public string DateTimeText { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string OriginShort { get; set; } = string.Empty;
