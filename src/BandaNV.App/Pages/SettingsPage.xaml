@@ -890,7 +890,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <TextBlock Text="Guardar historial de ejecuciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Registrar organizaciones y Undo." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            <TextBlock Text="Registrar organizaciones, Undo y acciones realizadas desde Buscar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="SaveHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
