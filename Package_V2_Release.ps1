@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 try {
     [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
