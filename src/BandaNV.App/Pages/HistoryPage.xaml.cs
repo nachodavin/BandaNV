@@ -62,11 +62,15 @@ public sealed partial class HistoryPage : Page
                     ? "DESHACER"
                     : "ORGANIZAR";
 
+                var reversibleFileCount =
+                    type == "ORGANIZAR"
+                        ? movedItems.Count(IsItemCurrentlyReversible)
+                        : 0;
+
                 var canUndo =
                     type == "ORGANIZAR" &&
                     global::BandaNV.App.App.Settings.Current.UndoEnabled &&
-                    movedItems.Count > 0 &&
-                    movedItems.All(IsItemCurrentlyReversible);
+                    reversibleFileCount > 0;
 
                 var files = movedItems
                     .Select(item => new HistoryFilePreview(
@@ -93,13 +97,17 @@ public sealed partial class HistoryPage : Page
                     SizeText = FormatHistoryBytes(
                         movedItems.Sum(item => item.SizeBytes)),
                     CanUndo = canUndo,
+                    ReversibleFileCount = reversibleFileCount,
                     UndoBadgeText = type == "DESHACER"
                         ? "Registro Undo"
-                        : canUndo
+                        : reversibleFileCount == movedItems.Count &&
+                          reversibleFileCount > 0
                             ? "Reversible"
-                            : movedItems.Count == 0
-                                ? "Sin movimientos"
-                                : "No reversible",
+                            : reversibleFileCount > 0
+                                ? $"Parcial · {reversibleFileCount}/{movedItems.Count}"
+                                : movedItems.Count == 0
+                                    ? "Sin movimientos"
+                                    : "No reversible",
                     Files = files
                 });
             }
@@ -918,10 +926,12 @@ public sealed partial class HistoryPage : Page
 
         HistoryModalTitleText.Text = "Deshacer organización";
         HistoryModalBodyText.Text =
-            $"BandaNV va a restaurar {execution.FileCount} archivo{(execution.FileCount == 1 ? string.Empty : "s")} " +
-            $"desde \"{execution.DestinationShort}\" hacia su ubicación original. " +
-            "Antes de cada movimiento se vuelve a validar que el archivo siga intacto y que el origen esté libre. " +
-            "Si algo cambió, ese archivo no se toca.";
+            execution.ReversibleFileCount == execution.FileCount
+                ? $"BandaNV va a intentar restaurar los {execution.FileCount} archivo{(execution.FileCount == 1 ? string.Empty : "s")} " +
+                  $"desde \"{execution.DestinationShort}\" hacia su ubicación original. " +
+                  "Antes de cada movimiento se vuelve a validar que el archivo siga intacto y que el origen esté libre."
+                : $"{execution.ReversibleFileCount} de {execution.FileCount} archivos siguen siendo reversibles en este momento. " +
+                  "BandaNV intentará restaurar la ejecución de forma segura; cualquier archivo modificado, ausente o con conflicto se dejará intacto y quedará registrado como incidencia.";
 
         HistoryModalIconText.Text = "↶";
         HistoryModalIconBorder.Background =
@@ -1118,6 +1128,7 @@ public sealed class HistoryExecutionPreview
     public string FileCountText { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
     public bool CanUndo { get; set; }
+    public int ReversibleFileCount { get; set; }
     public string UndoBadgeText { get; set; } = string.Empty;
     public IReadOnlyList<HistoryFilePreview> Files { get; set; } = [];
 }
