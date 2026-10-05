@@ -342,13 +342,19 @@ public sealed class RecoveryService
                     "El Undo se interrumpió y no se pudo identificar con certeza su ejecución original. BandaNV no modificó archivos durante la recuperación.");
                 stats.InterruptedItems++;
 
-                if (!string.IsNullOrWhiteSpace(item.FinalPath))
+                if (!string.IsNullOrWhiteSpace(item.FinalPath) &&
+                    IsSameOrInside(
+                        item.FinalPath,
+                        undoRecord.DestinationFolder))
                 {
                     stats.TemporaryFilesDeleted +=
                         CleanupTemporaryCopies(item.FinalPath);
                 }
 
-                if (!string.IsNullOrWhiteSpace(item.OriginalPath))
+                if (!string.IsNullOrWhiteSpace(item.OriginalPath) &&
+                    IsSameOrInside(
+                        item.OriginalPath,
+                        undoRecord.SourceFolder))
                 {
                     stats.TemporaryFilesDeleted +=
                         CleanupTemporaryCopies(item.OriginalPath);
@@ -412,9 +418,11 @@ public sealed class RecoveryService
             var organizedPath = Path.GetFullPath(undoItem.OriginalPath);
             var restoredPath = Path.GetFullPath(undoItem.FinalPath);
 
-            var backupPath = originalItem.ReplacedBackupPath;
+            var backupPath = GetSafeRecordedBackupPath(
+                originalItem.ReplacedBackupPath);
             var replacementWasUsed =
-                !string.IsNullOrWhiteSpace(backupPath);
+                !string.IsNullOrWhiteSpace(
+                    originalItem.ReplacedBackupPath);
 
             var organizedExists = File.Exists(organizedPath);
             var restoredExists = File.Exists(restoredPath);
@@ -624,11 +632,12 @@ public sealed class RecoveryService
         OrganizationExecutionItemRecord item,
         string targetPath)
     {
-        if (!string.IsNullOrWhiteSpace(
-                item.ReplacedBackupPath))
+        var recordedBackupPath = GetSafeRecordedBackupPath(
+            item.ReplacedBackupPath);
+
+        if (!string.IsNullOrWhiteSpace(recordedBackupPath))
         {
-            return Path.GetFullPath(
-                item.ReplacedBackupPath);
+            return recordedBackupPath;
         }
 
         var candidate = Path.Combine(
@@ -640,6 +649,31 @@ public sealed class RecoveryService
         return File.Exists(candidate)
             ? candidate
             : null;
+    }
+
+    private static string? GetSafeRecordedBackupPath(
+        string? backupPath)
+    {
+        if (string.IsNullOrWhiteSpace(backupPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var fullPath = Path.GetFullPath(backupPath);
+            var replacedRoot = Path.Combine(
+                PortablePaths.HistoryDirectory,
+                "replaced");
+
+            return IsSameOrInside(fullPath, replacedRoot)
+                ? fullPath
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static bool MatchesExpectedFile(
@@ -971,6 +1005,12 @@ public sealed class RecoveryService
         string candidate,
         string root)
     {
+        if (string.IsNullOrWhiteSpace(candidate) ||
+            string.IsNullOrWhiteSpace(root))
+        {
+            return false;
+        }
+
         var fullCandidate =
             NormalizeDirectoryPath(candidate);
         var fullRoot =
