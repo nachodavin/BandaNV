@@ -1,4 +1,5 @@
 using BandaNV.App.Pages;
+using BandaNV.Core.Models;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,6 +13,9 @@ public sealed partial class MainWindow : Window
     private Button? _selectedNavigationButton;
     private bool _xamlRootChangedHooked;
     private bool _layoutRefreshQueued;
+    private CancellationTokenSource? _updateDownloadCts;
+    private UpdateCheckResult? _availableUpdate;
+    private bool _isUpdateModalBusy;
 
     public MainWindow()
     {
@@ -156,27 +160,444 @@ public sealed partial class MainWindow : Window
 
 
 
-    public void ShowQuickUpdate(string latestVersion)
+    public void SetAvailableUpdate(
+        UpdateCheckResult result,
+        bool showModal)
     {
-        QuickUpdateTitle.Text = "Nueva versión";
-        QuickUpdateSubtitle.Text = $"Disponible: {latestVersion}";
-        QuickUpdateButton.Visibility = Visibility.Visible;
+        _availableUpdate = result;
+
+        QuickUpdateTitle.Text =
+            "Nueva versión";
+        QuickUpdateSubtitle.Text =
+            $"Disponible: {result.AvailableVersion}";
+        QuickUpdateButton.Visibility =
+            Visibility.Visible;
+
+        if (showModal)
+        {
+            ShowAvailableUpdateModal(
+                result);
+        }
+    }
+
+    public void ClearAvailableUpdate()
+    {
+        _availableUpdate = null;
+        QuickUpdateButton.Visibility =
+            Visibility.Collapsed;
+
+        if (!_isUpdateModalBusy)
+        {
+            UpdateModalOverlay.Visibility =
+                Visibility.Collapsed;
+        }
+    }
+
+    public void ShowQuickUpdate(
+        string latestVersion)
+    {
+        QuickUpdateTitle.Text =
+            "Nueva versión";
+        QuickUpdateSubtitle.Text =
+            $"Disponible: {latestVersion}";
+        QuickUpdateButton.Visibility =
+            Visibility.Visible;
     }
 
     public void HideQuickUpdate()
     {
-        QuickUpdateButton.Visibility = Visibility.Collapsed;
+        QuickUpdateButton.Visibility =
+            Visibility.Collapsed;
     }
 
-    private void QuickUpdateButton_Click(object sender, RoutedEventArgs e)
+    private void QuickUpdateButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        NavigateTo("settings");
-        SetSelectedNavigationButton(SettingsButton);
-
-        if (ContentFrame.Content is SettingsPage settingsPage)
+        if (_availableUpdate is { } result)
         {
-            settingsPage.OpenUpdatesSection();
+            ShowAvailableUpdateModal(
+                result);
+            return;
         }
+
+        QuickUpdateButton.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void ShowAvailableUpdateModal(
+        UpdateCheckResult result)
+    {
+        _availableUpdate = result;
+        _isUpdateModalBusy = false;
+
+        _updateDownloadCts?.Cancel();
+        _updateDownloadCts?.Dispose();
+        _updateDownloadCts = null;
+
+        UpdateModalTitleText.Text =
+            "Actualización disponible";
+
+        UpdateModalSubtitleText.Text =
+            result.CanInstall
+                ? "Hay una nueva versión de BandaNV lista para instalar."
+                : string.IsNullOrWhiteSpace(
+                    result.Message)
+                    ? "Hay una nueva versión disponible, pero no puede instalarse automáticamente."
+                    : result.Message;
+
+        UpdateInstalledVersionText.Text =
+            result.InstalledVersion;
+        UpdateAvailableVersionText.Text =
+            result.AvailableVersion;
+        UpdateReleaseNotesText.Text =
+            FormatReleaseNotesForDisplay(
+                result.ReleaseNotes);
+
+        UpdateNotesPanel.Visibility =
+            Visibility.Visible;
+        UpdateProgressPanel.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressBar.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Value = 0;
+        UpdateProgressStateText.Text =
+            "Preparando descarga...";
+
+        UpdateModalPrimaryButton.Content =
+            result.CanInstall
+                ? "Actualizar"
+                : "No disponible";
+        UpdateModalPrimaryButton.Visibility =
+            Visibility.Visible;
+        UpdateModalPrimaryButton.IsEnabled =
+            result.CanInstall;
+
+        UpdateModalSecondaryButton.Content =
+            "Más tarde";
+        UpdateModalSecondaryButton.Visibility =
+            Visibility.Visible;
+        UpdateModalSecondaryButton.IsEnabled =
+            true;
+
+        UpdateModalCloseButton.IsEnabled =
+            true;
+        UpdateModalCloseButton.Opacity = 1;
+
+        UpdateModalOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private async void UpdateModalPrimaryButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_isUpdateModalBusy ||
+            _availableUpdate is not { } result ||
+            !result.CanInstall)
+        {
+            return;
+        }
+
+        await DownloadAndInstallUpdateAsync(
+            result);
+    }
+
+    private void UpdateModalSecondaryButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_isUpdateModalBusy)
+        {
+            _updateDownloadCts?.Cancel();
+            UpdateProgressStateText.Text =
+                "Cancelando descarga...";
+            UpdateModalSecondaryButton.IsEnabled =
+                false;
+            return;
+        }
+
+        CloseUpdateModal();
+    }
+
+    private void UpdateModalCloseButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        CloseUpdateModal();
+    }
+
+    private void UpdateModalBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseUpdateModal();
+    }
+
+    private void CloseUpdateModal()
+    {
+        if (_isUpdateModalBusy)
+        {
+            return;
+        }
+
+        UpdateModalOverlay.Visibility =
+            Visibility.Collapsed;
+
+        _updateDownloadCts?.Cancel();
+        _updateDownloadCts?.Dispose();
+        _updateDownloadCts = null;
+    }
+
+    private void SetUpdateModalBusy(
+        UpdateCheckResult result)
+    {
+        _isUpdateModalBusy = true;
+
+        UpdateModalTitleText.Text =
+            "Preparando actualización";
+        UpdateModalSubtitleText.Text =
+            $"{result.InstalledVersion} → {result.AvailableVersion}";
+
+        UpdateNotesPanel.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressPanel.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Value = 0;
+        UpdateProgressStateText.Text =
+            "Preparando descarga...";
+
+        UpdateModalPrimaryButton.Visibility =
+            Visibility.Collapsed;
+
+        UpdateModalSecondaryButton.Content =
+            "Cancelar";
+        UpdateModalSecondaryButton.IsEnabled =
+            true;
+
+        UpdateModalCloseButton.IsEnabled =
+            false;
+        UpdateModalCloseButton.Opacity = 0.45;
+    }
+
+    private void SetUpdateModalError(
+        string message)
+    {
+        _isUpdateModalBusy = false;
+
+        UpdateModalTitleText.Text =
+            "No se pudo preparar la actualización";
+        UpdateModalSubtitleText.Text =
+            message;
+
+        UpdateNotesPanel.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressPanel.Visibility =
+            Visibility.Visible;
+        UpdateProgressBar.Visibility =
+            Visibility.Collapsed;
+        UpdateProgressStateText.Text =
+            "BandaNV no fue modificado. Podés volver a intentarlo o cerrar este aviso.";
+
+        UpdateModalPrimaryButton.Content =
+            "Reintentar";
+        UpdateModalPrimaryButton.Visibility =
+            Visibility.Visible;
+        UpdateModalPrimaryButton.IsEnabled =
+            true;
+
+        UpdateModalSecondaryButton.Content =
+            "Cerrar";
+        UpdateModalSecondaryButton.IsEnabled =
+            true;
+
+        UpdateModalCloseButton.IsEnabled =
+            true;
+        UpdateModalCloseButton.Opacity = 1;
+    }
+
+    private async Task DownloadAndInstallUpdateAsync(
+        UpdateCheckResult result)
+    {
+        _updateDownloadCts?.Cancel();
+        _updateDownloadCts?.Dispose();
+
+        var cancellation =
+            new CancellationTokenSource();
+
+        _updateDownloadCts =
+            cancellation;
+
+        SetUpdateModalBusy(
+            result);
+
+        var progress =
+            new Progress<UpdateDownloadProgress>(
+                state =>
+                {
+                    UpdateProgressBar.Value =
+                        state.Percentage;
+
+                    UpdateProgressStateText.Text =
+                        state.TotalBytes.HasValue
+                            ? $"Descargando paquete... {state.Percentage}%"
+                            : $"Descargando paquete... {FormatUpdateBytes(state.BytesReceived)}";
+                });
+
+        PreparedUpdate? prepared =
+            null;
+
+        try
+        {
+            prepared =
+                await App.Updates.PrepareAsync(
+                    result,
+                    progress,
+                    cancellation.Token);
+
+            cancellation.Token.ThrowIfCancellationRequested();
+
+            UpdateProgressStateText.Text =
+                "Paquete verificado. Preparando reinicio...";
+            UpdateProgressBar.Value =
+                100;
+            UpdateModalSecondaryButton.IsEnabled =
+                false;
+
+            App.Updates.LaunchPreparedUpdate(
+                prepared);
+
+            await Task.Delay(
+                200);
+
+            Environment.Exit(
+                0);
+        }
+        catch (OperationCanceledException)
+        {
+            App.Updates.TryDeleteWorkspace(
+                prepared);
+
+            _isUpdateModalBusy =
+                false;
+            CloseUpdateModal();
+        }
+        catch (Exception ex)
+        {
+            App.Updates.TryDeleteWorkspace(
+                prepared);
+
+            SetUpdateModalError(
+                ex.Message);
+        }
+        finally
+        {
+            if (ReferenceEquals(
+                    _updateDownloadCts,
+                    cancellation))
+            {
+                _updateDownloadCts =
+                    null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private static string FormatReleaseNotesForDisplay(
+        string releaseNotes)
+    {
+        if (string.IsNullOrWhiteSpace(
+                releaseNotes))
+        {
+            return "La Release no incluye notas adicionales.";
+        }
+
+        var lines =
+            releaseNotes
+                .Replace(
+                    "\r\n",
+                    "\n",
+                    StringComparison.Ordinal)
+                .Split(
+                    '\n');
+
+        var formatted =
+            new List<string>(
+                lines.Length);
+
+        foreach (var rawLine in lines)
+        {
+            var line =
+                rawLine.Trim();
+
+            while (line.StartsWith(
+                       '#'))
+            {
+                line =
+                    line[1..]
+                        .TrimStart();
+            }
+
+            if (line.StartsWith(
+                    "- ",
+                    StringComparison.Ordinal))
+            {
+                line =
+                    "• " +
+                    line[2..];
+            }
+
+            line =
+                line.Replace(
+                        "**",
+                        string.Empty,
+                        StringComparison.Ordinal)
+                    .Replace(
+                        "`",
+                        string.Empty,
+                        StringComparison.Ordinal);
+
+            formatted.Add(
+                line);
+        }
+
+        return string.Join(
+                Environment.NewLine,
+                formatted)
+            .Trim();
+    }
+
+    private static string FormatUpdateBytes(
+        long bytes)
+    {
+        string[] units =
+        [
+            "B",
+            "KB",
+            "MB",
+            "GB"
+        ];
+
+        var value =
+            (double)Math.Max(
+                0,
+                bytes);
+        var index = 0;
+
+        while (value >= 1024 &&
+               index <
+               units.Length - 1)
+        {
+            value /= 1024;
+            index++;
+        }
+
+        return index == 0
+            ? $"{value:0} {units[index]}"
+            : $"{value:0.##} {units[index]}";
     }
 
     private void NavigationButton_Click(object sender, RoutedEventArgs e)
