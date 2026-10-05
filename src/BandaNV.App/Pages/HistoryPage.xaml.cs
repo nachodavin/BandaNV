@@ -113,7 +113,9 @@ public sealed partial class HistoryPage : Page
                             out var colorHex)
                             ? colorHex
                             : string.Empty,
-                        GetHistoryItemStatusText(item.Status),
+                        GetHistoryItemStatusText(
+                            record,
+                            item.Status),
                         IsHistoryItemIssue(item.Status)))
                     .ToList();
 
@@ -291,18 +293,34 @@ public sealed partial class HistoryPage : Page
             !string.IsNullOrWhiteSpace(
                 item.FinalPath))
         {
-            return Path.GetFileName(
-                item.FinalPath);
+            return
+                $"{item.FileName} → {Path.GetFileName(item.FinalPath)}";
         }
 
         return item.FileName;
     }
 
     private static string GetHistoryItemStatusText(
-        OrganizationExecutionItemStatus status) =>
-        status switch
+        OrganizationExecutionRecord record,
+        OrganizationExecutionItemStatus status)
+    {
+        if (status ==
+                OrganizationExecutionItemStatus.Moved &&
+            record.Type.Equals(
+                "UNDO",
+                StringComparison.OrdinalIgnoreCase))
         {
-            OrganizationExecutionItemStatus.Moved => "Movido",
+            return "Restaurado";
+        }
+
+        return status switch
+        {
+            OrganizationExecutionItemStatus.Moved =>
+                record.Type.Equals(
+                    "ORGANIZE",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "Organizado"
+                    : "Movido",
             OrganizationExecutionItemStatus.Renamed => "Renombrado",
             OrganizationExecutionItemStatus.Deleted => "Eliminado",
             OrganizationExecutionItemStatus.CompletedAction => "Sin cambios",
@@ -314,6 +332,7 @@ public sealed partial class HistoryPage : Page
             OrganizationExecutionItemStatus.Error => "Error",
             _ => string.Empty
         };
+    }
 
     private static bool IsHistoryItemIssue(
         OrganizationExecutionItemStatus status) =>
