@@ -24,8 +24,6 @@ public sealed partial class HistoryPage : Page
     private HistoryUndoFilter _pendingUndoFilter = HistoryUndoFilter.All;
     private string? _pendingOriginFilter;
 
-    private HistoryFilePreview? _pendingDeleteFile;
-    private HistoryExecutionPreview? _pendingDeleteExecution;
     private HistoryExecutionPreview? _pendingUndoExecution;
     private bool _isUndoRunning;
 
@@ -460,7 +458,6 @@ public sealed partial class HistoryPage : Page
         SelectedFiles.Clear();
         foreach (var file in execution.Files)
         {
-            ApplyFileHistoryState(file, execution.CanUndo);
             SelectedFiles.Add(file);
         }
     }
@@ -516,18 +513,6 @@ public sealed partial class HistoryPage : Page
         {
             foreach (var file in execution.Files)
             {
-                // En selección múltiple los archivos son informativos;
-                // las acciones individuales permanecen desactivadas.
-                file.CanDelete = false;
-                file.DeleteVisibility = Visibility.Collapsed;
-                file.DeletedStatusVisibility =
-                    file.IsDeleted ? Visibility.Visible : Visibility.Collapsed;
-                file.NormalNameVisibility =
-                    file.IsDeleted ? Visibility.Collapsed : Visibility.Visible;
-                file.DeletedNameVisibility =
-                    file.IsDeleted ? Visibility.Visible : Visibility.Collapsed;
-                file.RowOpacity = file.IsDeleted ? 0.58 : 1.0;
-
                 SelectedFiles.Add(file);
             }
         }
@@ -548,24 +533,6 @@ public sealed partial class HistoryPage : Page
         return unitIndex == 0
             ? $"{value:0} {units[unitIndex]}"
             : $"{value:0.##} {units[unitIndex]}";
-    }
-
-    private static void ApplyFileHistoryState(HistoryFilePreview file, bool executionCanUndo)
-    {
-        // El historial ya usa datos reales. La eliminación individual desde
-        // esta vista se habilitará junto al motor de acciones de Historial.
-        file.CanDelete = false;
-        file.DeleteVisibility = Visibility.Collapsed;
-        file.DeletedStatusVisibility = file.IsDeleted
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        file.NormalNameVisibility = file.IsDeleted
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-        file.DeletedNameVisibility = file.IsDeleted
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        file.RowOpacity = file.IsDeleted ? 0.58 : 1.0;
     }
 
     private void HistorySearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -1039,46 +1006,6 @@ public sealed partial class HistoryPage : Page
         return value * multiplier;
     }
 
-    private void DeleteFilePreviewButton_Click(object sender, RoutedEventArgs e)
-    {
-        var executions = GetSelectedHistoryExecutions();
-
-        if (sender is not Button { Tag: string fileName } ||
-            executions.Count != 1 ||
-            !executions[0].CanUndo)
-        {
-            return;
-        }
-
-        var execution = executions[0];
-
-        var file = execution.Files.FirstOrDefault(candidate =>
-            string.Equals(candidate.Name, fileName, StringComparison.Ordinal));
-
-        if (file is null || file.IsDeleted)
-        {
-            return;
-        }
-
-        _pendingDeleteFile = file;
-        _pendingDeleteExecution = execution;
-
-        HistoryModalTitleText.Text = "Eliminar archivo";
-        HistoryModalBodyText.Text =
-            $"La eliminación individual desde Historial todavía no está habilitada para \"{file.Name}\".";
-
-        HistoryModalIconText.Text = "!";
-        HistoryModalIconBorder.Background =
-            (Brush)Application.Current.Resources["BandaDangerSoftBrush"];
-        HistoryModalIconText.Foreground =
-            (Brush)Application.Current.Resources["BandaDangerBrush"];
-
-        HistoryModalSecondaryButton.Content = "Cancelar";
-        HistoryModalPrimaryButton.Content = "Eliminar";
-        HistoryModalPrimaryButton.Visibility = Visibility.Visible;
-        HistoryModalOverlay.Visibility = Visibility.Visible;
-    }
-
     private void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
     {
         var executions = GetSelectedHistoryExecutions();
@@ -1092,8 +1019,6 @@ public sealed partial class HistoryPage : Page
 
         var execution = executions[0];
 
-        _pendingDeleteFile = null;
-        _pendingDeleteExecution = null;
         _pendingUndoExecution = execution;
 
         HistoryModalTitleText.Text = "Deshacer organización";
@@ -1129,24 +1054,6 @@ public sealed partial class HistoryPage : Page
                 undoExecution,
                 executionRecord);
             return;
-        }
-
-        if (_pendingDeleteFile is not { } file ||
-            _pendingDeleteExecution is not { } execution ||
-            file.IsDeleted)
-        {
-            CloseHistoryModal();
-            return;
-        }
-
-        file.IsDeleted = true;
-        ApplyFileHistoryState(file, execution.CanUndo);
-
-        var index = SelectedFiles.IndexOf(file);
-        if (index >= 0)
-        {
-            SelectedFiles.RemoveAt(index);
-            SelectedFiles.Insert(index, file);
         }
 
         CloseHistoryModal();
@@ -1252,8 +1159,6 @@ public sealed partial class HistoryPage : Page
         }
 
         HistoryModalOverlay.Visibility = Visibility.Collapsed;
-        _pendingDeleteFile = null;
-        _pendingDeleteExecution = null;
         _pendingUndoExecution = null;
         HistoryModalSecondaryButton.IsEnabled = true;
         HistoryModalPrimaryButton.IsEnabled = true;
@@ -1381,11 +1286,4 @@ public sealed class HistoryFilePreview
                     Convert.ToByte(normalized.Substring(5, 2), 16)));
         }
     }
-    public bool IsDeleted { get; set; }
-    public bool CanDelete { get; set; }
-    public double RowOpacity { get; set; } = 1.0;
-    public Visibility DeleteVisibility { get; set; } = Visibility.Collapsed;
-    public Visibility DeletedStatusVisibility { get; set; } = Visibility.Collapsed;
-    public Visibility NormalNameVisibility { get; set; } = Visibility.Visible;
-    public Visibility DeletedNameVisibility { get; set; } = Visibility.Collapsed;
 }
