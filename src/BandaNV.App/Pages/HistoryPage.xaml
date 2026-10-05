@@ -542,10 +542,19 @@
                                                                     Visibility="{x:Bind DeletedNameVisibility}" />
                                                             </Grid>
 
-                                                            <TextBlock
-                                                                Text="{x:Bind Category}"
-                                                                Foreground="{StaticResource BandaAccentBrush}"
-                                                                FontSize="13" />
+                                                            <StackPanel
+                                                                Orientation="Horizontal"
+                                                                Spacing="7">
+                                                                <Ellipse
+                                                                    Width="8"
+                                                                    Height="8"
+                                                                    Fill="{x:Bind CategoryBrush}"
+                                                                    VerticalAlignment="Center" />
+                                                                <TextBlock
+                                                                    Text="{x:Bind Category}"
+                                                                    Foreground="{x:Bind CategoryBrush}"
+                                                                    FontSize="13" />
+                                                            </StackPanel>
                                                         </StackPanel>
 
                                                         <TextBlock
