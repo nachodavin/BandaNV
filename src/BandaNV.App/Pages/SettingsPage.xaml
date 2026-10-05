@@ -595,17 +595,6 @@
                                         </Button>
                                     </Grid>
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="3">
-                                            <TextBlock Text="Animaciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Transiciones y movimientos sutiles." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
-                                        </StackPanel>
-                                        <ToggleSwitch x:Name="AnimationsToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
-                                    </Grid>
                                 </StackPanel>
                             </Border>
 
@@ -804,7 +793,7 @@
                                         BorderBrush="{StaticResource BandaBorderBrush}"
                                         BorderThickness="1">
                                         <TextBlock
-                                            Text="Recomendado: mantener “Preguntar” mientras terminamos de cerrar el flujo real del motor de organización."
+                                            Text="Preguntar permite resolver extensiones nuevas antes de mover; Dejar en origen no las toca; Mover a OTROS las agrupa automáticamente."
                                             Foreground="{StaticResource BandaMutedStrongBrush}"
                                             FontSize="12"
                                             TextWrapping="Wrap" />
