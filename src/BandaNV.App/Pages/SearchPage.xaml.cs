@@ -684,8 +684,10 @@ public sealed partial class SearchPage : Page
 
             if (isSelected)
             {
-                button.Background = category.CategorySoftBrush;
-                button.BorderBrush = category.CategoryBrush;
+                button.Background =
+                    (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+                button.Foreground =
+                    (Brush)Application.Current.Resources["BandaAccentBrush"];
             }
 
             button.Click += ExtensionFilterOptionButton_Click;
