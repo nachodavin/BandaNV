@@ -27,6 +27,15 @@ public sealed partial class SettingsPage : Page
         UpdateAppearancePreview();
     }
 
+    public void OpenUpdatesSection()
+    {
+        SetSettingsSection(
+            SettingsSection.About);
+
+        _ = CheckForUpdatesAndOfferAsync(
+            showNonAvailableResult: false);
+    }
+
     private void SettingsTabButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string tag } ||
@@ -823,16 +832,374 @@ public sealed partial class SettingsPage : Page
             "Restablecer");
     }
 
-    private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e)
+    private async void CheckUpdatesButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        ShowSettingsFeedback(
-            "Búsqueda de actualizaciones preparada. El servicio de actualización de v2.0 todavía no está conectado.");
+        await CheckForUpdatesAndOfferAsync(
+            showNonAvailableResult: true);
     }
 
-    private void ReleaseNotesButton_Click(object sender, RoutedEventArgs e)
+    private void ReleaseNotesButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        ShowSettingsFeedback(
-            "Las notas de versión se conectarán cuando definamos el flujo final de actualizaciones.");
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        AppVersionInfo.GitHubReleasesUrl,
+                    UseShellExecute = true
+                });
+        }
+        catch (Exception ex)
+        {
+            ShowSettingsFeedback(
+                $"No se pudieron abrir las notas de versión: {ex.Message}");
+        }
+    }
+
+    private async Task CheckForUpdatesAndOfferAsync(
+        bool showNonAvailableResult)
+    {
+        CheckUpdatesButton.IsEnabled = false;
+        var previousContent =
+            CheckUpdatesButton.Content;
+
+        CheckUpdatesButton.Content =
+            "Buscando...";
+
+        try
+        {
+            var result =
+                await global::BandaNV.App.App.Updates.CheckAsync();
+
+            switch (result.Status)
+            {
+                case UpdateCheckStatus.Available:
+                    global::BandaNV.App.App.MainWindowInstance?
+                        .ShowQuickUpdate(
+                            result.AvailableVersion);
+
+                    if (!result.CanInstall)
+                    {
+                        ShowSettingsFeedback(
+                            string.IsNullOrWhiteSpace(
+                                result.Message)
+                                ? "Hay una actualización, pero su paquete no es instalable automáticamente."
+                                : result.Message);
+                        return;
+                    }
+
+                    await ShowAvailableUpdateDialogAsync(
+                        result);
+                    break;
+
+                case UpdateCheckStatus.Current:
+                    global::BandaNV.App.App.MainWindowInstance?
+                        .HideQuickUpdate();
+
+                    if (showNonAvailableResult)
+                    {
+                        ShowSettingsFeedback(
+                            $"Estás usando la última versión disponible ({result.InstalledVersion}).");
+                    }
+                    break;
+
+                case UpdateCheckStatus.LocalNewer:
+                    global::BandaNV.App.App.MainWindowInstance?
+                        .HideQuickUpdate();
+
+                    if (showNonAvailableResult)
+                    {
+                        ShowSettingsFeedback(
+                            $"Esta build ({result.InstalledVersion}) es más nueva que la última Release publicada ({result.AvailableVersion}).");
+                    }
+                    break;
+
+                case UpdateCheckStatus.FailedSuppressed:
+                    global::BandaNV.App.App.MainWindowInstance?
+                        .HideQuickUpdate();
+
+                    if (showNonAvailableResult)
+                    {
+                        ShowSettingsFeedback(
+                            $"La versión {result.AvailableVersion} fue omitida porque una instalación anterior no pudo completarse. BandaNV volverá a ofrecer una Release posterior.");
+                    }
+                    break;
+
+                default:
+                    if (showNonAvailableResult ||
+                        result.Status ==
+                            UpdateCheckStatus.Error)
+                    {
+                        ShowSettingsFeedback(
+                            string.IsNullOrWhiteSpace(
+                                result.Message)
+                                ? "No se pudo comprobar si hay actualizaciones."
+                                : result.Message);
+                    }
+                    break;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            if (showNonAvailableResult)
+            {
+                ShowSettingsFeedback(
+                    "Búsqueda de actualizaciones cancelada.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowSettingsFeedback(
+                $"No se pudo comprobar si hay actualizaciones: {ex.Message}");
+        }
+        finally
+        {
+            CheckUpdatesButton.Content =
+                previousContent ??
+                "Buscar actualizaciones";
+            CheckUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ShowAvailableUpdateDialogAsync(
+        UpdateCheckResult result)
+    {
+        if (XamlRoot is null)
+        {
+            ShowSettingsFeedback(
+                $"Nueva versión disponible: {result.AvailableVersion}.");
+            return;
+        }
+
+        var notes =
+            string.IsNullOrWhiteSpace(
+                result.ReleaseNotes)
+                ? "La Release no incluye notas adicionales."
+                : result.ReleaseNotes.Trim();
+
+        if (notes.Length > 700)
+        {
+            notes =
+                notes[..700].TrimEnd() +
+                "…";
+        }
+
+        var content =
+            new StackPanel
+            {
+                Spacing = 10
+            };
+
+        content.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    $"Instalada: {result.InstalledVersion}\nDisponible: {result.AvailableVersion}",
+                Foreground =
+                    (Brush)Application.Current.Resources[
+                        "BandaTextBrush"],
+                FontSize = 14,
+                TextWrapping =
+                    TextWrapping.Wrap
+            });
+
+        content.Children.Add(
+            new TextBlock
+            {
+                Text = notes,
+                Foreground =
+                    (Brush)Application.Current.Resources[
+                        "BandaMutedStrongBrush"],
+                FontSize = 13,
+                TextWrapping =
+                    TextWrapping.Wrap,
+                MaxHeight = 220
+            });
+
+        var dialog =
+            new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Actualización disponible",
+                Content = content,
+                PrimaryButtonText = "Actualizar",
+                CloseButtonText = "Más tarde",
+                DefaultButton =
+                    ContentDialogButton.Primary
+            };
+
+        var choice =
+            await dialog.ShowAsync();
+
+        if (choice !=
+            ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        await DownloadAndInstallUpdateAsync(
+            result);
+    }
+
+    private async Task DownloadAndInstallUpdateAsync(
+        UpdateCheckResult result)
+    {
+        if (XamlRoot is null)
+        {
+            return;
+        }
+
+        using var cancellation =
+            new CancellationTokenSource();
+
+        var progressBar =
+            new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = 0,
+                Width = 420
+            };
+
+        var stateText =
+            new TextBlock
+            {
+                Text = "Preparando descarga...",
+                Foreground =
+                    (Brush)Application.Current.Resources[
+                        "BandaMutedStrongBrush"],
+                FontSize = 13,
+                TextWrapping =
+                    TextWrapping.Wrap
+            };
+
+        var content =
+            new StackPanel
+            {
+                Spacing = 12
+            };
+
+        content.Children.Add(
+            stateText);
+        content.Children.Add(
+            progressBar);
+
+        var progressDialog =
+            new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title =
+                    $"Descargando {result.AvailableVersion}",
+                Content = content,
+                CloseButtonText = "Cancelar"
+            };
+
+        progressDialog.Closed +=
+            (_, _) =>
+                cancellation.Cancel();
+
+        var progress =
+            new Progress<UpdateDownloadProgress>(
+                state =>
+                {
+                    progressBar.Value =
+                        state.Percentage;
+
+                    stateText.Text =
+                        state.TotalBytes.HasValue
+                            ? $"Descargando y verificando paquete... {state.Percentage}%"
+                            : $"Descargando paquete... {FormatUpdateBytes(state.BytesReceived)}";
+                });
+
+        _ = progressDialog.ShowAsync();
+
+        PreparedUpdate? prepared =
+            null;
+
+        try
+        {
+            prepared =
+                await global::BandaNV.App.App.Updates.PrepareAsync(
+                    result,
+                    progress,
+                    cancellation.Token);
+
+            if (cancellation.IsCancellationRequested)
+            {
+                global::BandaNV.App.App.Updates.TryDeleteWorkspace(
+                    prepared);
+                return;
+            }
+
+            stateText.Text =
+                "Paquete verificado. Preparando reinicio...";
+            progressBar.Value = 100;
+            progressDialog.Hide();
+
+            global::BandaNV.App.App.Updates.LaunchPreparedUpdate(
+                prepared);
+
+            ShowSettingsFeedback(
+                "Actualización preparada. BandaNV se reiniciará para instalarla.");
+
+            await Task.Delay(
+                200);
+
+            Environment.Exit(
+                0);
+        }
+        catch (OperationCanceledException)
+        {
+            progressDialog.Hide();
+
+            ShowSettingsFeedback(
+                "Descarga de actualización cancelada.");
+        }
+        catch (Exception ex)
+        {
+            progressDialog.Hide();
+
+            global::BandaNV.App.App.Updates.TryDeleteWorkspace(
+                prepared);
+
+            ShowSettingsFeedback(
+                $"No se pudo preparar la actualización: {ex.Message}");
+        }
+    }
+
+    private static string FormatUpdateBytes(
+        long bytes)
+    {
+        string[] units =
+        [
+            "B",
+            "KB",
+            "MB",
+            "GB"
+        ];
+
+        var value =
+            (double)Math.Max(
+                0,
+                bytes);
+        var index = 0;
+
+        while (value >= 1024 &&
+               index <
+               units.Length - 1)
+        {
+            value /= 1024;
+            index++;
+        }
+
+        return index == 0
+            ? $"{value:0} {units[index]}"
+            : $"{value:0.##} {units[index]}";
     }
 
     private void OpenSettingsConfirmation(
