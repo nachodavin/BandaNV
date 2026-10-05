@@ -2,6 +2,7 @@
 BandaNV.exe
 build/
 dist/
+dist-v2/
 
 # Runtime
 config/
