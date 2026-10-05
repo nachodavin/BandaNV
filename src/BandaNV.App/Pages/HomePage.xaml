@@ -264,7 +264,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock
-                                        Text="TAMAÑO MOVIDO"
+                                        Text="TOTAL EJECUCIONES"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                     <Border
@@ -274,7 +274,7 @@
                                         CornerRadius="11"
                                         Background="{StaticResource BandaNavIconBrush}">
                                         <SymbolIcon
-                                            Symbol="Save"
+                                            Symbol="Clock"
                                             Foreground="{StaticResource BandaSecondaryAccentBrush}"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center" />
@@ -282,18 +282,18 @@
                                 </Grid>
 
                                 <TextBlock
-                                    x:Name="HomeLastMovedSizeText"
+                                    x:Name="HomeTotalExecutionsText"
                                     Grid.Row="1"
-                                    Text="—"
+                                    Text="0"
                                     Foreground="{StaticResource BandaTextBrush}"
                                     FontSize="42"
                                     FontWeight="SemiBold"
                                     VerticalAlignment="Center" />
 
                                 <TextBlock
-                                    x:Name="HomeLastMovedSizeDetailText"
+                                    x:Name="HomeTotalExecutionsDetailText"
                                     Grid.Row="2"
-                                    Text="Sin organizaciones todavía"
+                                    Text="acciones de organizar registradas"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="14" />
                             </Grid>
