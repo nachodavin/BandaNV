@@ -2,7 +2,7 @@ namespace BandaNV.Core.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -21,6 +21,7 @@ public sealed class AppSettings
 
     public bool PreviewBeforeOrganize { get; set; } = true;
     public bool IncludeSubfolders { get; set; }
+    public bool OrganizeFoldersAsUnits { get; set; }
     public bool CreateFolders { get; set; } = true;
     public bool DeleteEmptyFolders { get; set; }
 
