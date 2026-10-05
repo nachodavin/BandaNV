@@ -405,15 +405,29 @@ public sealed partial class HistoryPage : Page
 
     private void ShowExecutionDetails(HistoryExecutionPreview execution)
     {
-        DetailTitleText.Text = "Detalle de ejecución";
-        DetailFilesSectionTitleText.Text = "ARCHIVOS DE LA EJECUCIÓN";
+        var isSearchAction =
+            execution.Type.StartsWith(
+                "BUSCAR",
+                StringComparison.OrdinalIgnoreCase);
+
+        DetailTitleText.Text =
+            isSearchAction
+                ? "Detalle de acción"
+                : "Detalle de ejecución";
+        DetailFilesSectionTitleText.Text =
+            isSearchAction
+                ? "ARCHIVOS DE LA ACCIÓN"
+                : "ARCHIVOS DE LA EJECUCIÓN";
         DetailDateText.Text = $"{execution.DateTimeText} · {execution.Type}";
         DetailFileCountText.Text = execution.FileCountText;
         DetailSizeText.Text = execution.SizeText;
         DetailOriginText.Text = execution.Origin;
         DetailDestinationText.Text = execution.Destination;
         UndoStatusText.Text = execution.UndoBadgeText;
-        UndoPreviewButton.Content = "Deshacer ejecución";
+        UndoPreviewButton.Content =
+            isSearchAction
+                ? "Acción sin Undo"
+                : "Deshacer ejecución";
         UndoPreviewButton.IsEnabled = execution.CanUndo;
 
         var activeBackground = (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
