@@ -57,7 +57,7 @@
                             FontSize="30"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Text="reglas activas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                        <TextBlock Grid.Row="2" Text="Reglas activas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                     </Grid>
                 </Border>
 
@@ -77,7 +77,7 @@
                             FontSize="30"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Text="clasificadas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                        <TextBlock Grid.Row="2" Text="Clasificadas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                     </Grid>
                 </Border>
 
@@ -97,7 +97,7 @@
                             FontSize="30"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Text="en estas categorías" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                        <TextBlock Grid.Row="2" Text="En estas categorías" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                     </Grid>
                 </Border>
 
@@ -124,7 +124,7 @@
                             FontSize="30"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center" />
-                        <TextBlock Grid.Row="2" Text="extensiones detectadas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                        <TextBlock Grid.Row="2" Text="Extensiones detectadas" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                     </Grid>
                 </Border>
             </Grid>
@@ -165,7 +165,7 @@
                             FontWeight="SemiBold" />
                         <TextBlock
                             x:Name="CategoryResultCountLabel"
-                            Text="categorías"
+                            Text="Categorías"
                             Style="{StaticResource BandaMutedTextStyle}" />
                     </StackPanel>
                 </Border>
