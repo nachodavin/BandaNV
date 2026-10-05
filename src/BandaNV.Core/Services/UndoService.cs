@@ -295,6 +295,8 @@ public sealed class UndoService
         }
         catch (Exception ex)
         {
+            var rollbackFailed = false;
+
             if (restoredOrganizedFile &&
                 File.Exists(originalItem.OriginalPath) &&
                 !File.Exists(organizedPath))
@@ -309,17 +311,14 @@ public sealed class UndoService
                 }
                 catch
                 {
-                    undoItem.Message =
-                        $"{ex.Message} Además, no se pudo revertir automáticamente el movimiento parcial.";
+                    rollbackFailed = true;
                 }
             }
 
             undoItem.Status = OrganizationExecutionItemStatus.Error;
-
-            if (string.IsNullOrWhiteSpace(undoItem.Message))
-            {
-                undoItem.Message = ex.Message;
-            }
+            undoItem.Message = rollbackFailed
+                ? $"{ex.Message} Además, no se pudo revertir automáticamente el movimiento parcial."
+                : $"{ex.Message} El archivo se dejó en el estado más seguro disponible.";
         }
     }
 
