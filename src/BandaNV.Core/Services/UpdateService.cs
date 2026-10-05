@@ -27,6 +27,13 @@ public sealed class UpdateService
         {
             ClearFailedUpdateStateIfObsolete();
 
+            using var requestTimeout =
+                CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken);
+
+            requestTimeout.CancelAfter(
+                TimeSpan.FromSeconds(10));
+
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
                 $"{AppVersionInfo.GitHubApiBase}/releases/latest");
@@ -35,19 +42,19 @@ public sealed class UpdateService
                 await HttpClient.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken);
+                    requestTimeout.Token);
 
             response.EnsureSuccessStatusCode();
 
             await using var stream =
                 await response.Content.ReadAsStreamAsync(
-                    cancellationToken);
+                    requestTimeout.Token);
 
             var release =
                 await JsonSerializer.DeserializeAsync<GitHubReleaseDto>(
                     stream,
                     JsonOptions,
-                    cancellationToken);
+                    requestTimeout.Token);
 
             if (release is null ||
                 release.Draft ||
@@ -135,6 +142,12 @@ public sealed class UpdateService
                 asset?.BrowserDownloadUrl ?? string.Empty,
                 asset?.Digest ?? string.Empty,
                 message);
+        }
+        catch (OperationCanceledException)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            return Error(
+                "GitHub tardó demasiado en responder. Volvé a intentar en unos segundos.");
         }
         catch (OperationCanceledException)
         {
@@ -225,7 +238,10 @@ public sealed class UpdateService
 
             ExtractPackageSafely(
                 packagePath,
-                extractDirectory);
+                extractDirectory,
+                cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var stagedApplicationDirectory =
                 Path.Combine(
@@ -443,7 +459,7 @@ public sealed class UpdateService
             new HttpClient
             {
                 Timeout =
-                    TimeSpan.FromSeconds(15)
+                    TimeSpan.FromMinutes(10)
             };
 
         client.DefaultRequestHeaders.UserAgent.ParseAdd(
@@ -611,7 +627,8 @@ public sealed class UpdateService
 
     private static void ExtractPackageSafely(
         string packagePath,
-        string extractDirectory)
+        string extractDirectory,
+        CancellationToken cancellationToken)
     {
         var extractRoot =
             Path.GetFullPath(
@@ -627,6 +644,8 @@ public sealed class UpdateService
 
         foreach (var entry in archive.Entries)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var destinationPath =
                 Path.GetFullPath(
                     Path.Combine(
