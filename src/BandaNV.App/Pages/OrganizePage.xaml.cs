@@ -931,24 +931,19 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 ? "Sin configurar"
                 : settings.SourceFolder;
 
-        var requiresPreviewForUnknown =
-            settings.UnknownExtensionBehavior.Equals(
-                "Preguntar en la vista previa",
-                StringComparison.OrdinalIgnoreCase);
-
-        var willShowPreview =
-            settings.PreviewBeforeOrganize ||
-            requiresPreviewForUnknown;
-
         AnalyzeButton.Content =
-            willShowPreview
+            settings.PreviewBeforeOrganize
                 ? "Analizar archivos"
                 : "Organizar archivos";
 
         InitialAnalysisDescriptionText.Text =
-            willShowPreview
+            settings.PreviewBeforeOrganize
                 ? $"Origen: {source}\nBandaNV analizará los archivos y calculará sus destinos sin modificar el disco."
-                : $"Origen: {source}\nBandaNV analizará y organizará directamente los archivos según la configuración actual.";
+                : settings.UnknownExtensionBehavior.Equals(
+                    "Preguntar en la vista previa",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? $"Origen: {source}\nBandaNV analizará primero. Si encuentra extensiones sin categoría, abrirá la vista previa; si no, organizará directamente."
+                    : $"Origen: {source}\nBandaNV analizará y organizará directamente los archivos según la configuración actual.";
     }
 
     private static async Task PersistRememberedAssignmentAsync(
