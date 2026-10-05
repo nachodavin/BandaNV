@@ -264,7 +264,7 @@
                 Style="{StaticResource BandaSectionTitleStyle}"
                 FontSize="32" />
             <TextBlock
-                Text="Analizá los archivos pendientes, resolvé excepciones y confirmá cada destino antes de moverlos."
+                Text="Analizá archivos y carpetas pendientes, resolvé excepciones y confirmá cada destino antes de moverlos."
                 Style="{StaticResource BandaMutedTextStyle}"
                 FontSize="14" />
         </StackPanel>
@@ -405,7 +405,7 @@
 
                 <Border Style="{StaticResource BandaCardStyle}" Padding="18" MinHeight="108">
                     <StackPanel Spacing="5">
-                        <TextBlock Text="ARCHIVOS DETECTADOS" Style="{StaticResource BandaLabelTextStyle}" />
+                        <TextBlock Text="ELEMENTOS DETECTADOS" Style="{StaticResource BandaLabelTextStyle}" />
                         <TextBlock
                             x:Name="FilesMetricText"
                             Text="0"
@@ -438,7 +438,7 @@
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="28"
                             FontWeight="SemiBold" />
-                        <TextBlock Text="Entre todos los archivos" Style="{StaticResource BandaMutedTextStyle}" />
+                        <TextBlock Text="Entre todos los elementos" Style="{StaticResource BandaMutedTextStyle}" />
                     </StackPanel>
                 </Border>
 
@@ -595,7 +595,7 @@
                                     FontSize="17"
                                     FontWeight="SemiBold" />
                                 <TextBlock
-                                    Text="Revisá qué va a pasar con cada archivo antes de confirmar."
+                                    Text="Revisá qué va a pasar con cada elemento antes de confirmar."
                                     Style="{StaticResource BandaMutedTextStyle}" />
                             </StackPanel>
 
@@ -625,7 +625,7 @@
                                     <ColumnDefinition Width="1.25*" />
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="ARCHIVO" Style="{StaticResource BandaLabelTextStyle}" />
+                                <TextBlock Text="ELEMENTO" Style="{StaticResource BandaLabelTextStyle}" />
                                 <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaLabelTextStyle}" />
                                 <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaLabelTextStyle}" />
                                 <TextBlock Grid.Column="3" Text="FECHA DE MODIFICACIÓN" Style="{StaticResource BandaLabelTextStyle}" />
