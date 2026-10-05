@@ -803,23 +803,22 @@ public sealed class UpdateService
             NormalizeManifestPath(
                 relativePath);
 
-        if (normalized.Equals(
-                "..",
-                StringComparison.Ordinal) ||
-            normalized.StartsWith(
-                "../",
-                StringComparison.Ordinal))
+        var segments =
+            normalized.Split(
+                '/',
+                StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Any(segment =>
+                segment.Equals(
+                    "..",
+                    StringComparison.Ordinal)))
         {
             throw new InvalidDataException(
                 "El manifest contiene una ruta fuera de la aplicación.");
         }
 
         var firstSegment =
-            normalized.Split(
-                '/',
-                2,
-                StringSplitOptions.RemoveEmptyEntries)
-                .FirstOrDefault() ??
+            segments.FirstOrDefault() ??
             string.Empty;
 
         if (firstSegment.Equals(
