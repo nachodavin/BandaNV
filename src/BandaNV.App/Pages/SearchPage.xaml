@@ -80,7 +80,7 @@
 
                         <TextBlock
                             Grid.Row="3"
-                            Text="archivos"
+                            Text="Archivos"
                             Style="{StaticResource BandaMutedTextStyle}"
                             FontSize="13"
                             Margin="0,2,0,0" />
@@ -298,7 +298,7 @@
                         Foreground="{StaticResource BandaTextBrush}"
                         FontWeight="SemiBold" />
                     <TextBlock
-                        Text="archivos"
+                        Text="Archivos"
                         Style="{StaticResource BandaMutedTextStyle}" />
                 </StackPanel>
             </Border>
