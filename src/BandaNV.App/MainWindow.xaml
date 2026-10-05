@@ -443,12 +443,15 @@
                         <StackPanel
                             Grid.Column="0"
                             Orientation="Horizontal"
-                            Spacing="10"
+                            Spacing="7"
                             VerticalAlignment="Center">
 
                             <ToggleSwitch
                                 x:Name="UpdateStartupNoticeToggle"
                                 IsOn="True"
+                                OnContent=""
+                                OffContent=""
+                                MinWidth="0"
                                 Toggled="UpdateStartupNoticeToggle_Toggled"
                                 VerticalAlignment="Center" />
 
