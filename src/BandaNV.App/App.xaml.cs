@@ -5,7 +5,7 @@ namespace BandaNV.App;
 
 public partial class App : Application
 {
-    public static Window? MainWindowInstance { get; private set; }
+    public static MainWindow? MainWindowInstance { get; private set; }
 
     public static SettingsService Settings { get; } = new();
     public static CategoryService Categories { get; } = new(Settings);
