@@ -405,7 +405,7 @@
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="28"
                             FontWeight="SemiBold" />
-                        <TextBlock Text="pendientes de revisión" Style="{StaticResource BandaMutedTextStyle}" />
+                        <TextBlock Text="Pendientes de revisión" Style="{StaticResource BandaMutedTextStyle}" />
                     </StackPanel>
                 </Border>
 
@@ -418,7 +418,7 @@
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="28"
                             FontWeight="SemiBold" />
-                        <TextBlock Text="con archivos asignados" Style="{StaticResource BandaMutedTextStyle}" />
+                        <TextBlock Text="Con archivos asignados" Style="{StaticResource BandaMutedTextStyle}" />
                     </StackPanel>
                 </Border>
 
@@ -431,7 +431,7 @@
                             Foreground="{StaticResource BandaTextBrush}"
                             FontSize="28"
                             FontWeight="SemiBold" />
-                        <TextBlock Text="entre todos los archivos" Style="{StaticResource BandaMutedTextStyle}" />
+                        <TextBlock Text="Entre todos los archivos" Style="{StaticResource BandaMutedTextStyle}" />
                     </StackPanel>
                 </Border>
 
@@ -459,7 +459,7 @@
                             FontWeight="SemiBold" />
                         <TextBlock
                             x:Name="UnclassifiedMetricSubtitle"
-                            Text="no se moverán sin asignación"
+                            Text="No se moverán sin asignación"
                             Foreground="{StaticResource OrganizeWarningBrush}"
                             FontSize="13" />
                     </StackPanel>
