@@ -685,6 +685,17 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             ProgressStatePanel.Visibility = Visibility.Collapsed;
             CompletionStatePanel.Visibility = Visibility.Visible;
 
+            try
+            {
+                await global::BandaNV.App.App.History.ApplyRetentionAsync(
+                    global::BandaNV.App.App.Settings.Current);
+            }
+            catch
+            {
+                // La organización ya terminó correctamente. Un fallo de
+                // mantenimiento no debe convertirla en error.
+            }
+
             var moved = result.Record.Items.Count(item =>
                 item.Status == OrganizationExecutionItemStatus.Moved);
 
