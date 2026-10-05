@@ -7,7 +7,7 @@ using System.Globalization;
 
 namespace BandaNV.App.Pages;
 
-public sealed partial class OrganizePage : Page
+public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 {
     private readonly List<OrganizePreviewFile> _files = new();
     private readonly List<OrganizeCategoryOption> _categories = new();
@@ -19,6 +19,7 @@ public sealed partial class OrganizePage : Page
     private CancellationTokenSource? _executionCts;
     private OrganizationAnalysisResult? _lastAnalysis;
     private bool _isRefreshingPreview;
+    private TaskCompletionSource<OrganizationConflictResolution>? _conflictResolutionTcs;
 
     private string? _activeAssignmentExtension;
     private List<OrganizePreviewFile> _activeAssignmentFiles = new();
@@ -520,6 +521,102 @@ public sealed partial class OrganizePage : Page
         flyout.ShowAt(selectorButton);
     }
 
+    public Task<OrganizationConflictResolution> ResolveAsync(
+        OrganizationConflictInfo conflict,
+        CancellationToken cancellationToken = default)
+    {
+        var completion =
+            new TaskCompletionSource<OrganizationConflictResolution>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var registration = cancellationToken.Register(() =>
+        {
+            completion.TrySetCanceled(cancellationToken);
+
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (ReferenceEquals(_conflictResolutionTcs, completion))
+                {
+                    _conflictResolutionTcs = null;
+                    ConflictOverlay.Visibility = Visibility.Collapsed;
+                }
+            });
+        });
+
+        _ = completion.Task.ContinueWith(
+            _ => registration.Dispose(),
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+
+        if (!DispatcherQueue.TryEnqueue(() =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    completion.TrySetCanceled(cancellationToken);
+                    return;
+                }
+
+                _conflictResolutionTcs = completion;
+
+                ConflictFileNameText.Text = conflict.FileName;
+                ConflictSourcePathText.Text = conflict.SourcePath;
+                ConflictSourceMetaText.Text =
+                    $"{FormatBytes(conflict.SourceSizeBytes)} · Modificado {conflict.SourceModifiedAt:dd/MM/yyyy HH:mm:ss}";
+
+                ConflictDestinationPathText.Text = conflict.DestinationPath;
+                ConflictDestinationMetaText.Text =
+                    $"{FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}";
+
+                ConflictApplyAllCheckBox.IsChecked = false;
+                ConflictOverlay.Visibility = Visibility.Visible;
+            }))
+        {
+            registration.Dispose();
+            completion.TrySetResult(
+                new OrganizationConflictResolution(
+                    OrganizationConflictAction.Skip,
+                    ApplyToRemaining: false));
+        }
+
+        return completion.Task;
+    }
+
+    private void ConflictRenameButton_Click(object sender, RoutedEventArgs e) =>
+        CompleteConflictResolution(OrganizationConflictAction.Rename);
+
+    private void ConflictReplaceButton_Click(object sender, RoutedEventArgs e) =>
+        CompleteConflictResolution(OrganizationConflictAction.Replace);
+
+    private void ConflictSkipButton_Click(object sender, RoutedEventArgs e) =>
+        CompleteConflictResolution(OrganizationConflictAction.Skip);
+
+    private void CloseConflictOverlayButton_Click(object sender, RoutedEventArgs e) =>
+        CompleteConflictResolution(OrganizationConflictAction.Skip);
+
+    private void ConflictBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e) =>
+        CompleteConflictResolution(OrganizationConflictAction.Skip);
+
+    private void CompleteConflictResolution(OrganizationConflictAction action)
+    {
+        var completion = _conflictResolutionTcs;
+        if (completion is null)
+        {
+            ConflictOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        _conflictResolutionTcs = null;
+        ConflictOverlay.Visibility = Visibility.Collapsed;
+
+        completion.TrySetResult(
+            new OrganizationConflictResolution(
+                action,
+                ConflictApplyAllCheckBox.IsChecked == true));
+    }
+
     private async void OrganizeButton_Click(object sender, RoutedEventArgs e)
     {
         var movableFiles = _files
@@ -575,7 +672,8 @@ public sealed partial class OrganizePage : Page
                     global::BandaNV.App.App.Settings.Current,
                     requestItems,
                     progress,
-                    _executionCts.Token);
+                    _executionCts.Token,
+                    this);
 
             ProgressStatePanel.Visibility = Visibility.Collapsed;
             CompletionStatePanel.Visibility = Visibility.Visible;
@@ -609,7 +707,7 @@ public sealed partial class OrganizePage : Page
             if (conflicts > 0)
             {
                 parts.Add(
-                    $"{conflicts} conflicto{(conflicts == 1 ? string.Empty : "s")} quedó{(conflicts == 1 ? string.Empty : "aron")} pendiente{(conflicts == 1 ? string.Empty : "s")}.");
+                    $"{conflicts} archivo{(conflicts == 1 ? string.Empty : "s")} no se movió{(conflicts == 1 ? string.Empty : "eron")} por conflicto de nombre.");
             }
 
             if (errors > 0)
@@ -699,7 +797,10 @@ public sealed partial class OrganizePage : Page
                     categoryOptions: _categories,
                     categoryId: file.CategoryId,
                     categoryOrder: file.CategoryOrder,
-                    categoryName: file.CategoryName));
+                    categoryName: file.CategoryName,
+                    destinationRoot: result.DestinationFolder,
+                    conflictBehavior: global::BandaNV.App.App.Settings.Current.ConflictBehavior,
+                    hasDestinationConflict: file.HasDestinationConflict));
             }
 
             ApplyRememberedAssignments();
@@ -904,6 +1005,7 @@ public sealed partial class OrganizePage : Page
     {
         var classifiedFiles = _files.Where(file => file.IsClassified).ToList();
         var unclassifiedFiles = _files.Where(file => !file.IsClassified).ToList();
+        var pendingConflicts = classifiedFiles.Count(file => file.HasPendingConflict);
 
         var unassignedExtensions = unclassifiedFiles
             .GroupBy(file => file.Extension, StringComparer.OrdinalIgnoreCase)
@@ -1011,7 +1113,10 @@ public sealed partial class OrganizePage : Page
             SummaryUnclassifiedCountText.Foreground = warningBrush;
             FooterStatusText.Foreground = mutedBrush;
             FooterStatusText.Text =
-                $"{unclassifiedFiles.Count} archivos quedarán sin mover si no resolvés sus extensiones.";
+                $"{unclassifiedFiles.Count} archivos quedarán sin mover si no resolvés sus extensiones." +
+                (pendingConflicts > 0
+                    ? $" Además, {pendingConflicts} conflicto{(pendingConflicts == 1 ? string.Empty : "s")} de nombre se resolverá{(pendingConflicts == 1 ? string.Empty : "n")} al organizar."
+                    : string.Empty);
         }
         else
         {
@@ -1022,9 +1127,19 @@ public sealed partial class OrganizePage : Page
             UnclassifiedMetricSubtitle.Text = "Todos tienen destino";
 
             SummaryUnclassifiedCountText.Foreground = accentBrush;
-            FooterStatusText.Foreground = accentBrush;
-            FooterStatusText.Text =
-                "Todos los archivos tienen destino. Ya podés ejecutar esta organización.";
+
+            if (pendingConflicts > 0)
+            {
+                FooterStatusText.Foreground = warningBrush;
+                FooterStatusText.Text =
+                    $"{pendingConflicts} conflicto{(pendingConflicts == 1 ? string.Empty : "s")} de nombre se resolverá{(pendingConflicts == 1 ? string.Empty : "n")} cuando organices.";
+            }
+            else
+            {
+                FooterStatusText.Foreground = accentBrush;
+                FooterStatusText.Text =
+                    "Todos los archivos tienen destino. Ya podés ejecutar esta organización.";
+            }
         }
 
         UnassignedCard.Visibility = Visibility.Visible;
@@ -1154,7 +1269,10 @@ public sealed class OrganizePreviewFile
         IReadOnlyList<OrganizeCategoryOption> categoryOptions,
         string? categoryId,
         int? categoryOrder,
-        string? categoryName)
+        string? categoryName,
+        string destinationRoot,
+        string conflictBehavior,
+        bool hasDestinationConflict)
     {
         ItemId = Guid.NewGuid().ToString("N");
         FullPath = fullPath;
@@ -1168,11 +1286,17 @@ public sealed class OrganizePreviewFile
         CategoryId = categoryId;
         CategoryOrder = categoryOrder;
         CategoryName = categoryName;
+        _destinationRoot = destinationRoot;
+        _conflictBehavior = conflictBehavior;
+        HasPendingConflict = hasDestinationConflict;
         AssignmentSource =
             categoryOrder.HasValue && !string.IsNullOrWhiteSpace(categoryName)
                 ? OrganizeAssignmentSource.InitialCategory
                 : OrganizeAssignmentSource.Unclassified;
     }
+
+    private readonly string _destinationRoot;
+    private readonly string _conflictBehavior;
 
     public string ItemId { get; }
     public string FullPath { get; }
@@ -1188,6 +1312,15 @@ public sealed class OrganizePreviewFile
     public int? CategoryOrder { get; private set; }
     public string? CategoryName { get; private set; }
     public OrganizeAssignmentSource AssignmentSource { get; private set; }
+    public bool HasPendingConflict { get; private set; }
+
+    public Visibility ConflictVisibility =>
+        HasPendingConflict ? Visibility.Visible : Visibility.Collapsed;
+
+    public string ConflictDisplay =>
+        HasPendingConflict
+            ? "Conflicto de nombre · se preguntará al organizar"
+            : string.Empty;
 
     public bool IsClassified =>
         CategoryOrder.HasValue &&
@@ -1224,6 +1357,7 @@ public sealed class OrganizePreviewFile
         CategoryOrder = category.Order;
         CategoryName = category.Name;
         AssignmentSource = source;
+        RefreshConflictState();
     }
 
     public void ClearAssignment()
@@ -1232,6 +1366,42 @@ public sealed class OrganizePreviewFile
         CategoryOrder = null;
         CategoryName = null;
         AssignmentSource = OrganizeAssignmentSource.Unclassified;
+        HasPendingConflict = false;
+    }
+
+    private void RefreshConflictState()
+    {
+        if (!_conflictBehavior.Equals(
+                "Preguntar",
+                StringComparison.OrdinalIgnoreCase) ||
+            !CategoryOrder.HasValue ||
+            string.IsNullOrWhiteSpace(CategoryName))
+        {
+            HasPendingConflict = false;
+            return;
+        }
+
+        var destinationFolder = CategoryService.GetFolderPath(
+            _destinationRoot,
+            CategoryOrder.Value,
+            CategoryName);
+
+        var destinationPath = Path.Combine(
+            destinationFolder,
+            FileName);
+
+        try
+        {
+            HasPendingConflict =
+                !Path.GetFullPath(destinationPath).Equals(
+                    Path.GetFullPath(FullPath),
+                    StringComparison.OrdinalIgnoreCase) &&
+                File.Exists(destinationPath);
+        }
+        catch
+        {
+            HasPendingConflict = File.Exists(destinationPath);
+        }
     }
 
     private static string FormatBytes(long bytes)
