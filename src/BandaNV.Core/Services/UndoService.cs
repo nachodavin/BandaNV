@@ -16,14 +16,17 @@ public sealed class UndoService
     };
 
     public Task<OrganizationExecutionResult> UndoAsync(
+        AppSettings settings,
         OrganizationExecutionRecord original,
         IProgress<OrganizationExecutionProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(original);
 
         return Task.Run(
             () => UndoCoreAsync(
+                settings,
                 original,
                 progress,
                 cancellationToken),
@@ -31,6 +34,7 @@ public sealed class UndoService
     }
 
     private static async Task<OrganizationExecutionResult> UndoCoreAsync(
+        AppSettings settings,
         OrganizationExecutionRecord original,
         IProgress<OrganizationExecutionProgress>? progress,
         CancellationToken cancellationToken)
@@ -117,6 +121,7 @@ public sealed class UndoService
                 var originalItem = originalMovedItems[index];
 
                 await UndoItemAsync(
+                    settings,
                     original,
                     originalItem,
                     undoRecord,
@@ -173,6 +178,7 @@ public sealed class UndoService
     }
 
     private static async Task UndoItemAsync(
+        AppSettings settings,
         OrganizationExecutionRecord original,
         OrganizationExecutionItemRecord originalItem,
         OrganizationExecutionRecord undoRecord,
@@ -181,7 +187,11 @@ public sealed class UndoService
         string logPath,
         CancellationToken cancellationToken)
     {
-        var organizedPath = originalItem.FinalPath;
+        var organizedPath =
+            CategoryService.ResolveCurrentOrganizedFilePath(
+                settings,
+                original,
+                originalItem);
 
         if (string.IsNullOrWhiteSpace(organizedPath))
         {
@@ -190,6 +200,8 @@ public sealed class UndoService
                 "El historial original no contiene una ruta final válida.";
             return;
         }
+
+        undoItem.OriginalPath = organizedPath;
 
         if (!IsSameOrInside(
                 organizedPath,
