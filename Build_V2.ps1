@@ -11,7 +11,7 @@ $updaterProject = Join-Path $root 'src\BandaNV.Updater\BandaNV.Updater.csproj'
 
 try {
     Write-Host ''
-    Write-Host 'BandaNV v2.0 - Build de desarrollo' -ForegroundColor Cyan
+    Write-Host 'BandaNV v2.0.1 - Build de desarrollo' -ForegroundColor Cyan
     Write-Host ''
 
     if(-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
@@ -28,7 +28,7 @@ try {
     )
     if($running.Count -gt 0) {
         $ids = ($running | ForEach-Object { $_.Id }) -join ', '
-        throw "BandaNV v2.0 está abierto (PID: $ids). Cerralo antes de compilar para que Windows pueda reemplazar sus binarios."
+        throw "BandaNV v2.0.1 está abierto (PID: $ids). Cerralo antes de compilar para que Windows pueda reemplazar sus binarios."
     }
 
     if(-not (Test-Path -LiteralPath $updaterProject -PathType Leaf)) {
@@ -57,11 +57,11 @@ try {
     }
 
     Write-Host ''
-    Write-Host 'LISTO: BandaNV v2.0 compiló correctamente.' -ForegroundColor Green
+    Write-Host 'LISTO: BandaNV v2.0.1 compiló correctamente.' -ForegroundColor Green
 }
 catch {
     Write-Host ''
-    Write-Host 'ERROR: no se pudo compilar BandaNV v2.0.' -ForegroundColor Red
+    Write-Host 'ERROR: no se pudo compilar BandaNV v2.0.1.' -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }
