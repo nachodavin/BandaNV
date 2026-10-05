@@ -53,6 +53,14 @@ internal static class Program
                 ReadManifest(
                     options.StagedDirectory);
 
+            if (!manifest.Version.Equals(
+                    options.ExpectedVersion,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    "La versión del manifest no coincide con la actualización esperada.");
+            }
+
             BackupCurrentInstallation(
                 options.AppDirectory,
                 options.BackupDirectory);
