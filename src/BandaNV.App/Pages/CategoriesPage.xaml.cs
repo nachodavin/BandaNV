@@ -149,9 +149,14 @@ public sealed partial class CategoriesPage : Page
         _allCategories.Clear();
         _allCategories.AddRange(reordered);
         NormalizeCategoryOrder();
-        RefreshDerivedCategoryData();
-        await PersistCategoriesAsync();
 
+        if (!await PersistCategoriesAsync())
+        {
+            ReloadCategoriesAfterSyncFailure();
+            return;
+        }
+
+        RefreshDerivedCategoryData();
         RefreshCategoryList(_selectedCategory);
         UpdateCategoryMetrics();
     }
@@ -684,8 +689,15 @@ public sealed partial class CategoriesPage : Page
         }
 
         NormalizeCategoryOrder();
+
+        if (!await PersistCategoriesAsync())
+        {
+            ReloadCategoriesAfterSyncFailure();
+            CloseCategoryEditor();
+            return;
+        }
+
         RefreshDerivedCategoryData();
-        await PersistCategoriesAsync();
 
         CloseCategoryEditor();
         RefreshCategoryList(savedCategory);
@@ -753,8 +765,15 @@ public sealed partial class CategoriesPage : Page
         _selectedCategory = null;
 
         NormalizeCategoryOrder();
+
+        if (!await PersistCategoriesAsync())
+        {
+            ReloadCategoriesAfterSyncFailure();
+            CloseDeleteCategoryOverlay();
+            return;
+        }
+
         RefreshDerivedCategoryData();
-        await PersistCategoriesAsync();
 
         CloseDeleteCategoryOverlay();
         RefreshCategoryList();
@@ -791,26 +810,87 @@ public sealed partial class CategoriesPage : Page
         }
     }
 
-    private async Task PersistCategoriesAsync()
+    private async Task<bool> PersistCategoriesAsync()
     {
+        var previousCategories =
+            global::BandaNV.App.App.Categories.GetAll();
+
+        var nextCategories = _allCategories
+            .OrderBy(category => category.Order)
+            .Select(category => category.ToSettings())
+            .ToList();
+
         try
         {
+            var sync =
+                await global::BandaNV.App.App.CategoryFolders.SynchronizeAsync(
+                    global::BandaNV.App.App.Settings.Current,
+                    previousCategories,
+                    nextCategories);
+
+            if (!sync.Success)
+            {
+                CategoryDetailStatusText.Text =
+                    sync.ErrorMessage ??
+                    "No se pudieron sincronizar las carpetas físicas.";
+                CategoryDetailStatusText.Foreground =
+                    (Brush)Application.Current.Resources["BandaDangerBrush"];
+                CategoryDetailStatusText.Visibility = Visibility.Visible;
+                return false;
+            }
+
             await global::BandaNV.App.App.Categories.SaveAllAsync(
-                _allCategories
-                    .OrderBy(category => category.Order)
-                    .Select(category => category.ToSettings()));
+                nextCategories);
 
             CategoryDetailStatusText.Foreground =
                 (Brush)Application.Current.Resources["BandaMutedBrush"];
+
+            if (sync.PreservedDeletedFolders > 0)
+            {
+                CategoryDetailStatusText.Text =
+                    sync.PreservedDeletedFolders == 1
+                        ? "La categoría se eliminó, pero su carpeta con archivos se conservó intacta."
+                        : $"{sync.PreservedDeletedFolders} carpetas eliminadas lógicamente se conservaron porque contienen archivos.";
+                CategoryDetailStatusText.Visibility = Visibility.Visible;
+            }
+            else if (sync.Deferred)
+            {
+                CategoryDetailStatusText.Text =
+                    "Configuración guardada. La sincronización física queda pendiente hasta que exista la carpeta destino.";
+                CategoryDetailStatusText.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                CategoryDetailStatusText.Text =
+                    "Configuración y carpetas físicas sincronizadas.";
+                CategoryDetailStatusText.Visibility = Visibility.Visible;
+            }
+
+            return true;
         }
-        catch
+        catch (Exception ex)
         {
             CategoryDetailStatusText.Text =
-                "No se pudo guardar la configuración portable de categorías.";
+                $"No se pudo completar la sincronización: {ex.Message}";
             CategoryDetailStatusText.Foreground =
                 (Brush)Application.Current.Resources["BandaDangerBrush"];
             CategoryDetailStatusText.Visibility = Visibility.Visible;
+            return false;
         }
+    }
+
+    private void ReloadCategoriesAfterSyncFailure()
+    {
+        LoadPersistentCategories();
+        RefreshCategoryList();
+        UpdateCategoryMetrics();
+        ClearCategoryDetails();
+
+        CategoryDetailStatusText.Text =
+            "No se aplicaron los cambios. La configuración anterior se mantuvo.";
+        CategoryDetailStatusText.Foreground =
+            (Brush)Application.Current.Resources["BandaDangerBrush"];
+        CategoryDetailStatusText.Visibility = Visibility.Visible;
     }
 }
 
