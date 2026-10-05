@@ -19,7 +19,8 @@ public sealed class OrganizationExecutionService
         AppSettings settings,
         IReadOnlyList<OrganizationExecutionRequestItem> requestedItems,
         IProgress<OrganizationExecutionProgress>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IOrganizationConflictResolver? conflictResolver = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(requestedItems);
@@ -29,7 +30,8 @@ public sealed class OrganizationExecutionService
                 settings,
                 requestedItems,
                 progress,
-                cancellationToken),
+                cancellationToken,
+                conflictResolver),
             cancellationToken);
     }
 
@@ -37,7 +39,8 @@ public sealed class OrganizationExecutionService
         AppSettings settings,
         IReadOnlyList<OrganizationExecutionRequestItem> requestedItems,
         IProgress<OrganizationExecutionProgress>? progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IOrganizationConflictResolver? conflictResolver)
     {
         PortablePaths.EnsureDirectories();
 
@@ -131,6 +134,7 @@ public sealed class OrganizationExecutionService
 
         var total = record.Items.Count;
         var processed = 0;
+        var conflictState = new ConflictResolutionState();
 
         try
         {
@@ -157,6 +161,8 @@ public sealed class OrganizationExecutionService
                     item,
                     historyPath,
                     logPath,
+                    conflictResolver,
+                    conflictState,
                     cancellationToken);
 
                 await PersistRecordAsync(
@@ -233,6 +239,8 @@ public sealed class OrganizationExecutionService
         OrganizationExecutionItemRecord item,
         string historyPath,
         string? logPath,
+        IOrganizationConflictResolver? conflictResolver,
+        ConflictResolutionState conflictState,
         CancellationToken cancellationToken)
     {
         if (!IsSameOrInside(item.OriginalPath, settings.SourceFolder))
@@ -300,10 +308,16 @@ public sealed class OrganizationExecutionService
             categoryFolder,
             item.FileName);
 
-        var target = ResolveTargetPath(
+        var targetResolution = await ResolveTargetPathAsync(
             settings.ConflictBehavior,
             desiredTarget,
-            item);
+            sourceInfo,
+            item,
+            conflictResolver,
+            conflictState,
+            cancellationToken);
+
+        var target = targetResolution.Target;
 
         if (target is null)
         {
@@ -329,9 +343,7 @@ public sealed class OrganizationExecutionService
         try
         {
             if (File.Exists(target) &&
-                settings.ConflictBehavior.Equals(
-                    "Reemplazar",
-                    StringComparison.OrdinalIgnoreCase))
+                targetResolution.Action == OrganizationConflictAction.Replace)
             {
                 replacedBackupPath = BackupReplacedFile(
                     target,
@@ -377,45 +389,139 @@ public sealed class OrganizationExecutionService
         }
     }
 
-    private static string? ResolveTargetPath(
+    private static async Task<TargetResolution> ResolveTargetPathAsync(
         string behavior,
         string desiredTarget,
-        OrganizationExecutionItemRecord item)
+        FileInfo sourceInfo,
+        OrganizationExecutionItemRecord item,
+        IOrganizationConflictResolver? conflictResolver,
+        ConflictResolutionState conflictState,
+        CancellationToken cancellationToken)
     {
         if (!File.Exists(desiredTarget))
         {
-            return desiredTarget;
+            return new TargetResolution(desiredTarget, null);
         }
 
         if (behavior.Equals(
                 "Renombrar automáticamente",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return GetUniqueDestination(desiredTarget);
+            item.ConflictResolution = "Renombrar automáticamente";
+            return new TargetResolution(
+                GetUniqueDestination(desiredTarget),
+                OrganizationConflictAction.Rename);
         }
 
         if (behavior.Equals(
                 "Omitir archivo",
                 StringComparison.OrdinalIgnoreCase))
         {
+            item.ConflictResolution = "Omitir archivo";
             item.Status = OrganizationExecutionItemStatus.SkippedConflict;
             item.Message =
                 "Ya existe un archivo con el mismo nombre en el destino.";
-            return null;
+            return new TargetResolution(
+                null,
+                OrganizationConflictAction.Skip);
         }
 
         if (behavior.Equals(
                 "Reemplazar",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return desiredTarget;
+            item.ConflictResolution = "Reemplazar";
+            return new TargetResolution(
+                desiredTarget,
+                OrganizationConflictAction.Replace);
         }
 
-        item.Status = OrganizationExecutionItemStatus.ConflictNeedsDecision;
-        item.Message =
-            "Ya existe un archivo con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
-        return null;
+        if (conflictResolver is null)
+        {
+            item.Status = OrganizationExecutionItemStatus.ConflictNeedsDecision;
+            item.Message =
+                "Ya existe un archivo con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
+            return new TargetResolution(null, null);
+        }
+
+        OrganizationConflictResolution resolution;
+
+        if (conflictState.ApplyToRemaining is { } rememberedAction)
+        {
+            resolution = new OrganizationConflictResolution(
+                rememberedAction,
+                ApplyToRemaining: true);
+        }
+        else
+        {
+            OrganizationConflictInfo conflict;
+
+            try
+            {
+                var destinationInfo = new FileInfo(desiredTarget);
+
+                conflict = new OrganizationConflictInfo(
+                    item.FileName,
+                    item.OriginalPath,
+                    desiredTarget,
+                    sourceInfo.Length,
+                    destinationInfo.Length,
+                    sourceInfo.LastWriteTime,
+                    destinationInfo.LastWriteTime);
+            }
+            catch (FileNotFoundException)
+            {
+                return new TargetResolution(desiredTarget, null);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return new TargetResolution(desiredTarget, null);
+            }
+
+            resolution = await conflictResolver.ResolveAsync(
+                conflict,
+                cancellationToken);
+
+            if (resolution.ApplyToRemaining)
+            {
+                conflictState.ApplyToRemaining = resolution.Action;
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        switch (resolution.Action)
+        {
+            case OrganizationConflictAction.Rename:
+                item.ConflictResolution = "Renombrar automáticamente";
+                return new TargetResolution(
+                    GetUniqueDestination(desiredTarget),
+                    OrganizationConflictAction.Rename);
+
+            case OrganizationConflictAction.Replace:
+                item.ConflictResolution = "Reemplazar";
+                return new TargetResolution(
+                    desiredTarget,
+                    OrganizationConflictAction.Replace);
+
+            default:
+                item.ConflictResolution = "Omitir archivo";
+                item.Status = OrganizationExecutionItemStatus.SkippedConflict;
+                item.Message = "Omitido por decisión del usuario.";
+                return new TargetResolution(
+                    null,
+                    OrganizationConflictAction.Skip);
+        }
     }
+
+    private sealed class ConflictResolutionState
+    {
+        public OrganizationConflictAction? ApplyToRemaining { get; set; }
+    }
+
+    private sealed record TargetResolution(
+        string? Target,
+        OrganizationConflictAction? Action);
 
     private static string GetUniqueDestination(string desiredTarget)
     {
@@ -663,6 +769,12 @@ public sealed class OrganizationExecutionService
             {
                 builder.AppendLine(
                     $"         -> {item.CategoryOrder} - {item.CategoryName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.ConflictResolution))
+            {
+                builder.AppendLine(
+                    $"         Resolución de conflicto: {item.ConflictResolution}");
             }
 
             if (!string.IsNullOrWhiteSpace(item.Message))
