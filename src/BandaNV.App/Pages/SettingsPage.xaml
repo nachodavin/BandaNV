@@ -1235,6 +1235,7 @@
                         </Grid.ColumnDefinitions>
 
                         <Button
+                            x:Name="SettingsConfirmSecondaryButton"
                             Grid.Column="1"
                             Content="Cancelar"
                             Click="CloseSettingsConfirmButton_Click"
