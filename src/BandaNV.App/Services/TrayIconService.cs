@@ -228,7 +228,11 @@ public sealed class TrayIconService : IDisposable
             hIcon =
                 _iconHandle,
             szTip =
-                "BandaNV"
+                "BandaNV",
+            szInfo =
+                string.Empty,
+            szInfoTitle =
+                string.Empty
         };
 
     private void ThrowIfDisposed()
