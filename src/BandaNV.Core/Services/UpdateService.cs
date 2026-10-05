@@ -1021,8 +1021,12 @@ public sealed class UpdateService
 
             var firstSegment =
                 relative.Split(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar)
+                    new[]
+                    {
+                        Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar
+                    },
+                    StringSplitOptions.RemoveEmptyEntries)
                     .FirstOrDefault();
 
             return !string.IsNullOrWhiteSpace(
