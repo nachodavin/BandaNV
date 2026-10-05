@@ -635,8 +635,6 @@ public sealed partial class SettingsPage : Page
             Theme = ThemeValueText.Text,
             PrimaryColor = PrimaryColorHexText.Text,
             SecondaryColor = SecondaryColorHexText.Text,
-            Animations =
-                global::BandaNV.App.App.Settings.Current.Animations,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
@@ -1216,8 +1214,6 @@ internal sealed class SettingsBackupModel
     // Compatibilidad con backups creados durante la primera maqueta
     // que solo tenían un color de acento.
     public string AccentColor { get; set; } = string.Empty;
-
-    public bool Animations { get; set; } = true;
 
     public bool PreviewBeforeOrganize { get; set; } = true;
     public bool IncludeSubfolders { get; set; }
