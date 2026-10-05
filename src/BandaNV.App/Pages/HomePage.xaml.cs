@@ -429,8 +429,8 @@ public sealed partial class HomePage : Page
 
         HomeTotalExecutionsDetailText.Text =
             organizations.Count == 1
-                ? "acción de organizar registrada"
-                : "acciones de organizar registradas";
+                ? "Acción de organizar registrada"
+                : "Acciones de organizar registradas";
 
         var last = organizations.FirstOrDefault();
 
