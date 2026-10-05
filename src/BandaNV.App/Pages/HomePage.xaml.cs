@@ -449,10 +449,9 @@ public sealed partial class HomePage : Page
             FormatBytes(movedSize);
 
         HomeLastMovedSizeDetailText.Text =
-            $"{movedItems.Count} archivo{(movedItems.Count == 1 ? string.Empty : "s")} · " +
-            last.StartedAt.ToString(
-                "dd/MM/yyyy · HH:mm:ss",
-                EsAr);
+            movedItems.Count == 1
+                ? "1 archivo"
+                : $"{movedItems.Count} archivos";
     }
 
     private void BuildCurrentLibrary(
