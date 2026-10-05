@@ -196,6 +196,11 @@ public sealed class UpdateService
                 tempBase,
                 $"update-{token}");
 
+        var runnerDirectory =
+            Path.Combine(
+                tempBase,
+                $"runner-{token}");
+
         var packagePath =
             Path.Combine(
                 workspaceRoot,
@@ -224,6 +229,8 @@ public sealed class UpdateService
                 extractDirectory);
             Directory.CreateDirectory(
                 backupDirectory);
+            Directory.CreateDirectory(
+                runnerDirectory);
 
             await DownloadAsync(
                 release.AssetUrl,
@@ -259,7 +266,7 @@ public sealed class UpdateService
 
             var updaterPath =
                 Path.Combine(
-                    workspaceRoot,
+                    runnerDirectory,
                     "NVupdate.exe");
 
             File.Copy(
@@ -280,6 +287,8 @@ public sealed class UpdateService
         {
             TryDeleteWorkspace(
                 workspaceRoot);
+            TryDeleteRunnerDirectory(
+                runnerDirectory);
             throw;
         }
     }
@@ -451,6 +460,71 @@ public sealed class UpdateService
 
         TryDeleteWorkspace(
             prepared.WorkspaceRoot);
+
+        var runnerDirectory =
+            Path.GetDirectoryName(
+                prepared.UpdaterPath);
+
+        if (!string.IsNullOrWhiteSpace(
+                runnerDirectory))
+        {
+            TryDeleteRunnerDirectory(
+                runnerDirectory);
+        }
+    }
+
+    public async Task CleanupStaleRunnerDirectoriesAsync()
+    {
+        try
+        {
+            await Task.Delay(
+                TimeSpan.FromSeconds(4));
+
+            var tempBase =
+                Path.Combine(
+                    Path.GetTempPath(),
+                    "BandaNV");
+
+            if (!Directory.Exists(
+                    tempBase))
+            {
+                return;
+            }
+
+            foreach (var directory in
+                     Directory.EnumerateDirectories(
+                         tempBase,
+                         "runner-*",
+                         SearchOption.TopDirectoryOnly))
+            {
+                TryDeleteRunnerDirectory(
+                    directory);
+            }
+
+            foreach (var directory in
+                     Directory.EnumerateDirectories(
+                         tempBase,
+                         "update-*",
+                         SearchOption.TopDirectoryOnly))
+            {
+                try
+                {
+                    if (Directory.GetLastWriteTimeUtc(
+                            directory) <
+                        DateTime.UtcNow.AddDays(-1))
+                    {
+                        TryDeleteWorkspace(
+                            directory);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     private static HttpClient CreateHttpClient()
@@ -1055,6 +1129,52 @@ public sealed class UpdateService
         catch
         {
             return false;
+        }
+    }
+
+    private static void TryDeleteRunnerDirectory(
+        string runnerDirectory)
+    {
+        try
+        {
+            var fullPath =
+                Path.GetFullPath(
+                    runnerDirectory);
+
+            var tempBase =
+                Path.GetFullPath(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "BandaNV"))
+                    .TrimEnd(
+                        Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar) +
+                Path.DirectorySeparatorChar;
+
+            if (!fullPath.StartsWith(
+                    tempBase,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !Path.GetFileName(
+                        fullPath.TrimEnd(
+                            Path.DirectorySeparatorChar,
+                            Path.AltDirectorySeparatorChar))
+                    .StartsWith(
+                        "runner-",
+                        StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (Directory.Exists(
+                    fullPath))
+            {
+                Directory.Delete(
+                    fullPath,
+                    recursive: true);
+            }
+        }
+        catch
+        {
         }
     }
 
