@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using BandaNV.Core.Infrastructure;
 using BandaNV.Core.Models;
 
@@ -1077,19 +1078,37 @@ public sealed class UpdateService
 
     private sealed class GitHubReleaseDto
     {
+        [JsonPropertyName("tag_name")]
         public string TagName { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
+
+        [JsonPropertyName("body")]
         public string? Body { get; set; }
+
+        [JsonPropertyName("html_url")]
         public string? HtmlUrl { get; set; }
+
+        [JsonPropertyName("draft")]
         public bool Draft { get; set; }
+
+        [JsonPropertyName("prerelease")]
         public bool Prerelease { get; set; }
+
+        [JsonPropertyName("assets")]
         public List<GitHubAssetDto> Assets { get; set; } = [];
     }
 
     private sealed class GitHubAssetDto
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("browser_download_url")]
         public string? BrowserDownloadUrl { get; set; }
+
+        [JsonPropertyName("digest")]
         public string? Digest { get; set; }
     }
 
