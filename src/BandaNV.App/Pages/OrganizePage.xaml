@@ -743,8 +743,8 @@
                 ColumnSpacing="14"
                 MinHeight="300">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.2*" />
-                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1.55*" />
+                    <ColumnDefinition Width="0.95*" />
                 </Grid.ColumnDefinitions>
 
                 <Border
@@ -796,9 +796,9 @@
                             BorderThickness="0,1,0,1">
                             <Grid Padding="14,10" ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2.25*" />
-                                    <ColumnDefinition Width="1.45*" />
-                                    <ColumnDefinition Width="0.75*" />
+                                    <ColumnDefinition Width="2.1*" />
+                                    <ColumnDefinition Width="1.05*" />
+                                    <ColumnDefinition Width="0.8*" />
                                     <ColumnDefinition Width="1.25*" />
                                 </Grid.ColumnDefinitions>
 
@@ -815,6 +815,7 @@
                             ItemTemplate="{StaticResource PreviewFileTemplate}"
                             SelectionMode="Extended"
                             IsMultiSelectCheckBoxEnabled="False"
+                            KeyboardAcceleratorPlacementMode="Hidden"
                             SelectionChanged="PreviewFilesList_SelectionChanged"
                             HorizontalContentAlignment="Stretch"
                             Background="Transparent"
