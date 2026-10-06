@@ -725,7 +725,7 @@
                                 Spacing="14">
 
                                 <StackPanel Spacing="5">
-                                    <TextBlock Text="EXTENSIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                    <TextBlock Text="TIPO / EXTENSIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
                                     <TextBlock
                                         x:Name="SearchDetailExtensionText"
                                         Text="—"
