@@ -1718,9 +1718,12 @@ public sealed class OrganizePreviewFile
                 return string.Empty;
             }
 
+            var fileCountText =
+                $"{ContainedFileCount} archivo{(ContainedFileCount == 1 ? string.Empty : "s")}";
+
             if (ScanIncomplete)
             {
-                return "Análisis parcial · requiere revisión manual";
+                return $"{fileCountText} · análisis parcial";
             }
 
             var unknownCount =
@@ -1732,20 +1735,20 @@ public sealed class OrganizePreviewFile
             if (DistinctCategoryCount > 1 &&
                 unknownCount > 0)
             {
-                return $"{DistinctCategoryCount} categorías · {unknownCount} sin reconocer";
+                return $"{fileCountText} · {DistinctCategoryCount} categorías · {unknownCount} sin reconocer";
             }
 
             if (DistinctCategoryCount > 1)
             {
-                return $"{DistinctCategoryCount} categorías detectadas";
+                return $"{fileCountText} · {DistinctCategoryCount} categorías detectadas";
             }
 
             if (unknownCount > 0)
             {
-                return $"{unknownCount} archivo{(unknownCount == 1 ? string.Empty : "s")} sin reconocer";
+                return $"{fileCountText} · {unknownCount} sin reconocer";
             }
 
-            return "Requiere asignación manual";
+            return $"{fileCountText} · requiere asignación manual";
         }
     }
 
