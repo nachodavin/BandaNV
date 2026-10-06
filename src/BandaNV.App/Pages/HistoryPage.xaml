@@ -14,6 +14,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -213,9 +214,59 @@
             </Button>
         </Grid>
 
+        <!-- Undo técnico disponible fuera del historial guardado -->
+        <Border
+            x:Name="TechnicalUndoPanel"
+            Grid.Row="3"
+            Visibility="Collapsed"
+            Padding="16"
+            CornerRadius="14"
+            Background="{StaticResource BandaAccentCardBrush}"
+            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+            BorderThickness="1">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Spacing="3">
+                    <TextBlock
+                        Text="DESHACER DISPONIBLE"
+                        Foreground="{StaticResource BandaAccentBrush}"
+                        FontSize="11"
+                        FontWeight="SemiBold" />
+                    <TextBlock
+                        x:Name="TechnicalUndoText"
+                        Text="Hay una acción reversible disponible."
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="14"
+                        FontWeight="SemiBold" />
+                    <TextBlock
+                        Text="Se conserva como registro técnico de seguridad y no forma parte del historial guardado."
+                        Style="{StaticResource BandaMutedTextStyle}"
+                        FontSize="12"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Button
+                    x:Name="TechnicalUndoButton"
+                    Grid.Column="1"
+                    Content="Deshacer última acción"
+                    Click="TechnicalUndoButton_Click"
+                    Padding="16,10"
+                    CornerRadius="12"
+                    VerticalAlignment="Center"
+                    Background="{StaticResource BandaAccentBrush}"
+                    Foreground="{StaticResource BandaActionForegroundBrush}"
+                    BorderThickness="0"
+                    FontWeight="SemiBold" />
+            </Grid>
+        </Border>
+
         <!-- Historial + detalle integrado -->
         <Border
-            Grid.Row="3"
+            Grid.Row="4"
             Style="{StaticResource BandaCardStyle}"
             Padding="0"
             MinHeight="390">
