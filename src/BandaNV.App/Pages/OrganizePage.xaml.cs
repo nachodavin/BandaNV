@@ -39,12 +39,388 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private OrganizeManageMode _organizeManageMode = OrganizeManageMode.None;
     private OrganizeCategoryOption? _pendingOrganizeCategory;
 
+    private readonly object _sourceWatcherGate = new();
+    private FileSystemWatcher? _sourceWatcher;
+    private CancellationTokenSource? _sourceWatcherDebounceCts;
+    private string _watchedSourceRoot = string.Empty;
+    private bool _watcherIncludesSubdirectories;
+    private int _sourceWatcherSuppressionCount;
+    private bool _isLiveSourceRefreshRunning;
+    private bool _liveSourceRefreshPending;
+    private readonly Dictionary<string, string> _pendingExternalRenames =
+        new(StringComparer.OrdinalIgnoreCase);
+
     public OrganizePage()
     {
         InitializeComponent();
+        Unloaded += OrganizePage_Unloaded;
         LoadCategoryOptions();
         UpdateInitialStateText();
         ShowInitialState();
+    }
+
+    private void OrganizePage_Unloaded(
+        object sender,
+        RoutedEventArgs e)
+    {
+        StopSourceWatcher();
+    }
+
+    private bool IsSourceWatcherSuppressed =>
+        Volatile.Read(
+            ref _sourceWatcherSuppressionCount) > 0;
+
+    private void BeginSourceWatcherSuppression() =>
+        Interlocked.Increment(
+            ref _sourceWatcherSuppressionCount);
+
+    private void EndSourceWatcherSuppression()
+    {
+        var value =
+            Interlocked.Decrement(
+                ref _sourceWatcherSuppressionCount);
+
+        if (value < 0)
+        {
+            Interlocked.Exchange(
+                ref _sourceWatcherSuppressionCount,
+                0);
+        }
+    }
+
+    private void StartSourceWatcher()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        string sourceRoot;
+
+        try
+        {
+            sourceRoot =
+                Path.GetFullPath(
+                    settings.SourceFolder);
+        }
+        catch
+        {
+            StopSourceWatcher();
+            return;
+        }
+
+        if (!Directory.Exists(
+                sourceRoot))
+        {
+            StopSourceWatcher();
+            return;
+        }
+
+        var includeSubdirectories =
+            settings.OrganizeFoldersAsUnits;
+
+        lock (_sourceWatcherGate)
+        {
+            if (_sourceWatcher is not null &&
+                _watchedSourceRoot.Equals(
+                    sourceRoot,
+                    StringComparison.OrdinalIgnoreCase) &&
+                _watcherIncludesSubdirectories ==
+                    includeSubdirectories)
+            {
+                _sourceWatcher.EnableRaisingEvents =
+                    true;
+                return;
+            }
+        }
+
+        StopSourceWatcher();
+
+        try
+        {
+            var watcher =
+                new FileSystemWatcher(
+                    sourceRoot)
+                {
+                    Filter =
+                        "*",
+                    IncludeSubdirectories =
+                        includeSubdirectories,
+                    NotifyFilter =
+                        NotifyFilters.FileName |
+                        NotifyFilters.DirectoryName |
+                        NotifyFilters.LastWrite |
+                        NotifyFilters.Size |
+                        NotifyFilters.CreationTime,
+                    InternalBufferSize =
+                        32 * 1024
+                };
+
+            watcher.Changed +=
+                SourceWatcher_Changed;
+            watcher.Created +=
+                SourceWatcher_Changed;
+            watcher.Deleted +=
+                SourceWatcher_Changed;
+            watcher.Renamed +=
+                SourceWatcher_Renamed;
+            watcher.Error +=
+                SourceWatcher_Error;
+
+            lock (_sourceWatcherGate)
+            {
+                _sourceWatcher =
+                    watcher;
+                _watchedSourceRoot =
+                    sourceRoot;
+                _watcherIncludesSubdirectories =
+                    includeSubdirectories;
+                _pendingExternalRenames.Clear();
+                watcher.EnableRaisingEvents =
+                    true;
+            }
+        }
+        catch
+        {
+            StopSourceWatcher();
+        }
+    }
+
+    private void StopSourceWatcher()
+    {
+        FileSystemWatcher? watcher;
+        CancellationTokenSource? debounce;
+
+        lock (_sourceWatcherGate)
+        {
+            watcher =
+                _sourceWatcher;
+            _sourceWatcher =
+                null;
+
+            debounce =
+                _sourceWatcherDebounceCts;
+            _sourceWatcherDebounceCts =
+                null;
+
+            _watchedSourceRoot =
+                string.Empty;
+            _watcherIncludesSubdirectories =
+                false;
+            _pendingExternalRenames.Clear();
+            _liveSourceRefreshPending =
+                false;
+        }
+
+        try
+        {
+            debounce?.Cancel();
+        }
+        catch
+        {
+        }
+
+        debounce?.Dispose();
+
+        if (watcher is null)
+        {
+            return;
+        }
+
+        try
+        {
+            watcher.EnableRaisingEvents =
+                false;
+
+            watcher.Changed -=
+                SourceWatcher_Changed;
+            watcher.Created -=
+                SourceWatcher_Changed;
+            watcher.Deleted -=
+                SourceWatcher_Changed;
+            watcher.Renamed -=
+                SourceWatcher_Renamed;
+            watcher.Error -=
+                SourceWatcher_Error;
+
+            watcher.Dispose();
+        }
+        catch
+        {
+        }
+    }
+
+    private void SourceWatcher_Changed(
+        object sender,
+        FileSystemEventArgs e)
+    {
+        if (IsSourceWatcherSuppressed ||
+            ShouldIgnoreSourceWatcherPath(
+                e.FullPath))
+        {
+            return;
+        }
+
+        ScheduleLiveSourceRefresh();
+    }
+
+    private void SourceWatcher_Renamed(
+        object sender,
+        RenamedEventArgs e)
+    {
+        if (IsSourceWatcherSuppressed)
+        {
+            return;
+        }
+
+        var oldRelevant =
+            !ShouldIgnoreSourceWatcherPath(
+                e.OldFullPath);
+
+        var newRelevant =
+            !ShouldIgnoreSourceWatcherPath(
+                e.FullPath);
+
+        if (!oldRelevant &&
+            !newRelevant)
+        {
+            return;
+        }
+
+        if (oldRelevant &&
+            newRelevant)
+        {
+            lock (_sourceWatcherGate)
+            {
+                _pendingExternalRenames[
+                    Path.GetFullPath(
+                        e.OldFullPath)] =
+                    Path.GetFullPath(
+                        e.FullPath);
+            }
+        }
+
+        ScheduleLiveSourceRefresh();
+    }
+
+    private void SourceWatcher_Error(
+        object sender,
+        ErrorEventArgs e)
+    {
+        if (IsSourceWatcherSuppressed)
+        {
+            return;
+        }
+
+        ScheduleLiveSourceRefresh();
+    }
+
+    private bool ShouldIgnoreSourceWatcherPath(
+        string path)
+    {
+        try
+        {
+            var fullPath =
+                Path.GetFullPath(
+                    path);
+
+            var destination =
+                Path.GetFullPath(
+                    global::BandaNV.App.App.Settings.Current
+                        .DestinationFolder);
+
+            return IsSameOrInsidePath(
+                fullPath,
+                destination);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsSameOrInsidePath(
+        string candidate,
+        string root)
+    {
+        var normalizedCandidate =
+            Path.GetFullPath(
+                    candidate)
+                .TrimEnd(
+                    Path.DirectorySeparatorChar,
+                    Path.AltDirectorySeparatorChar);
+
+        var normalizedRoot =
+            Path.GetFullPath(
+                    root)
+                .TrimEnd(
+                    Path.DirectorySeparatorChar,
+                    Path.AltDirectorySeparatorChar);
+
+        return normalizedCandidate.Equals(
+                   normalizedRoot,
+                   StringComparison.OrdinalIgnoreCase) ||
+               normalizedCandidate.StartsWith(
+                   normalizedRoot +
+                   Path.DirectorySeparatorChar,
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ScheduleLiveSourceRefresh()
+    {
+        CancellationTokenSource debounce;
+
+        lock (_sourceWatcherGate)
+        {
+            if (_sourceWatcher is null)
+            {
+                return;
+            }
+
+            try
+            {
+                _sourceWatcherDebounceCts?.Cancel();
+            }
+            catch
+            {
+            }
+
+            _sourceWatcherDebounceCts?.Dispose();
+
+            debounce =
+                new CancellationTokenSource();
+
+            _sourceWatcherDebounceCts =
+                debounce;
+        }
+
+        _ =
+            DebounceLiveSourceRefreshAsync(
+                debounce);
+    }
+
+    private async Task DebounceLiveSourceRefreshAsync(
+        CancellationTokenSource debounce)
+    {
+        try
+        {
+            await Task.Delay(
+                750,
+                debounce.Token);
+
+            if (debounce.IsCancellationRequested ||
+                IsSourceWatcherSuppressed)
+            {
+                return;
+            }
+
+            DispatcherQueue.TryEnqueue(
+                async () =>
+                {
+                    await HandleLiveSourceRefreshAsync();
+                });
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private async void AnalyzeButton_Click(object sender, RoutedEventArgs e)
