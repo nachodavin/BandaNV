@@ -14,7 +14,10 @@ public sealed record OrganizationConflictInfo(
     long SourceSizeBytes,
     long DestinationSizeBytes,
     DateTime SourceModifiedAt,
-    DateTime DestinationModifiedAt);
+    DateTime DestinationModifiedAt,
+    bool IsDirectory = false,
+    int SourceItemCount = 1,
+    int DestinationItemCount = 1);
 
 public sealed record OrganizationConflictResolution(
     OrganizationConflictAction Action,
