@@ -484,23 +484,8 @@ public sealed partial class SettingsPage : Page
                     AutoUpdateToggle.IsOn);
         }
 
-        if (ReferenceEquals(
-                sender,
-                SaveHistoryToggle))
-        {
-            UpdateSearchHistoryToggleVisibility();
-        }
-
         QueuePersistSettings();
         ShowSettingsFeedback("Preferencia actualizada.");
-    }
-
-    private void UpdateSearchHistoryToggleVisibility()
-    {
-        SaveSearchHistoryRow.Visibility =
-            SaveHistoryToggle.IsOn
-                ? Visibility.Visible
-                : Visibility.Collapsed;
     }
 
     private void OpenLogsFolderButton_Click(object sender, RoutedEventArgs e)
@@ -766,7 +751,6 @@ public sealed partial class SettingsPage : Page
             .SyncUpdateStartupNoticeToggle(
                 AutoUpdateToggle.IsOn);
 
-        UpdateSearchHistoryToggleVisibility();
         UpdateAppearancePreview();
         SetSettingsSection(_currentSection);
     }
@@ -1038,7 +1022,6 @@ public sealed partial class SettingsPage : Page
             .SyncUpdateStartupNoticeToggle(
                 enabled: true);
 
-        UpdateSearchHistoryToggleVisibility();
         UpdateAppearancePreview();
         QueuePersistSettings();
     }
@@ -1069,7 +1052,6 @@ public sealed partial class SettingsPage : Page
 
         SaveHistoryToggle.IsOn = settings.SaveHistory;
         SaveSearchHistoryToggle.IsOn = settings.SaveSearchHistory;
-        UpdateSearchHistoryToggleVisibility();
         HistoryRetentionValueText.Text = settings.HistoryRetention;
 
         var defaultPrimary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
