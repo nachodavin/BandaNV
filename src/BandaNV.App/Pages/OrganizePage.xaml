@@ -1440,7 +1440,7 @@
                         Foreground="{StaticResource BandaMutedStrongBrush}"
                         FontSize="13" />
                     <TextBlock
-                        Text="BandaNV registra cada movimiento en el historial portable antes y después de tocar el archivo, para mantener trazabilidad y preparar un Undo seguro."
+                        Text="BandaNV registra cada movimiento de forma segura antes y después de tocar el elemento. Si puede deshacerse, conserva la información técnica necesaria para Undo."
                         Foreground="{StaticResource BandaMutedBrush}"
                         FontSize="12"
                         TextWrapping="Wrap"
