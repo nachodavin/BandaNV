@@ -2,6 +2,7 @@ using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using System.Globalization;
 using System.Diagnostics;
@@ -1987,7 +1988,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RefreshPreview();
     }
 
-    private async Task AnalyzeFilesAsync()
+    private async Task AnalyzeFilesAsync(
+        bool forcePreview = false,
+        string? preferredSelectionPath = null)
     {
         _analysisCts?.Cancel();
         _analysisCts?.Dispose();
@@ -2071,11 +2074,19 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 _files.Any(file =>
                     file.IsDirectory);
 
-            if (settings.PreviewBeforeOrganize ||
+            if (forcePreview ||
+                settings.PreviewBeforeOrganize ||
                 requiresPreviewForUnknown ||
                 hasFolderItems)
             {
                 ShowPreviewState();
+
+                if (!string.IsNullOrWhiteSpace(
+                        preferredSelectionPath))
+                {
+                    SelectPreviewItemByPath(
+                        preferredSelectionPath);
+                }
 
                 if (result.SkippedDirectories > 0)
                 {
@@ -2122,6 +2133,41 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             AnalyzeButton.IsEnabled = true;
             UpdateInitialStateText();
         }
+    }
+
+    private void SelectPreviewItemByPath(
+        string path)
+    {
+        var target =
+            PreviewFilesList.Items
+                .OfType<OrganizePreviewFile>()
+                .FirstOrDefault(item =>
+                    item.FullPath.Equals(
+                        path,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (target is null)
+        {
+            return;
+        }
+
+        _isRefreshingPreview =
+            true;
+
+        try
+        {
+            PreviewFilesList.SelectedItems.Clear();
+            PreviewFilesList.SelectedItems.Add(
+                target);
+        }
+        finally
+        {
+            _isRefreshingPreview =
+                false;
+        }
+
+        ShowOrganizeDetail(
+            target);
     }
 
     private void LoadCategoryOptions()
@@ -2469,9 +2515,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             assignment.UpdateActiveFileCount(activeCount);
         }
 
-        var selectedItemId =
-            (PreviewFilesList.SelectedItem as OrganizePreviewFile)?
-                .ItemId;
+        var selectedItemIds =
+            PreviewFilesList.SelectedItems
+                .OfType<OrganizePreviewFile>()
+                .Select(item =>
+                    item.ItemId)
+                .ToHashSet(
+                    StringComparer.Ordinal);
 
         var orderedPreviewFiles =
             _files
@@ -2487,24 +2537,29 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             null;
         PreviewFilesList.ItemsSource =
             orderedPreviewFiles;
+        PreviewFilesList.SelectedItems.Clear();
 
-        var restoredSelection =
-            string.IsNullOrWhiteSpace(
-                selectedItemId)
-                ? null
-                : orderedPreviewFiles.FirstOrDefault(item =>
-                    item.ItemId.Equals(
-                        selectedItemId,
-                        StringComparison.Ordinal));
-
-        PreviewFilesList.SelectedItem =
-            restoredSelection;
+        foreach (var item in orderedPreviewFiles.Where(item =>
+                     selectedItemIds.Contains(
+                         item.ItemId)))
+        {
+            PreviewFilesList.SelectedItems.Add(
+                item);
+        }
 
         _isRefreshingPreview = false;
 
-        if (restoredSelection is not null)
+        var restoredSelection =
+            GetSelectedOrganizeFiles();
+
+        if (restoredSelection.Count == 1)
         {
             ShowOrganizeDetail(
+                restoredSelection[0]);
+        }
+        else if (restoredSelection.Count > 1)
+        {
+            ShowMultipleOrganizeDetails(
                 restoredSelection);
         }
         else
@@ -2751,6 +2806,14 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             ? $"{value:0} {units[unitIndex]}"
             : $"{value:0.##} {units[unitIndex]}";
     }
+}
+
+public enum OrganizeManageMode
+{
+    None,
+    ChangeCategory,
+    Rename,
+    Delete
 }
 
 public enum OrganizeAssignmentSource
@@ -3028,6 +3091,39 @@ public sealed class OrganizePreviewFile
         IsClassified
             ? CategoryName ?? string.Empty
             : "Sin asignar";
+
+    public Brush CategoryBrush
+    {
+        get
+        {
+            var category =
+                SelectedCategory;
+
+            if (category is null ||
+                !CategoryColorPalette.TryNormalizeHex(
+                    category.ColorHex,
+                    out var normalized))
+            {
+                return (Brush)Application.Current.Resources[
+                    IsClassified
+                        ? "BandaAccentBrush"
+                        : "BandaMutedBrush"];
+            }
+
+            return new SolidColorBrush(
+                Windows.UI.Color.FromArgb(
+                    255,
+                    Convert.ToByte(
+                        normalized.Substring(1, 2),
+                        16),
+                    Convert.ToByte(
+                        normalized.Substring(3, 2),
+                        16),
+                    Convert.ToByte(
+                        normalized.Substring(5, 2),
+                        16)));
+        }
+    }
 
     public string SizeDisplay => FormatBytes(SizeBytes);
 
