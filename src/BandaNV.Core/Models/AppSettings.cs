@@ -20,7 +20,6 @@ public sealed class AppSettings
     public string SecondaryColor { get; set; } = "#4FE0C6";
 
     public bool PreviewBeforeOrganize { get; set; } = true;
-    public bool IncludeSubfolders { get; set; }
     public bool OrganizeFoldersAsUnits { get; set; }
     public bool CreateFolders { get; set; } = true;
     public bool DeleteEmptyFolders { get; set; }
