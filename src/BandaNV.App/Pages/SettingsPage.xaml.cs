@@ -412,38 +412,6 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
-        if (ReferenceEquals(sender, UndoToggle))
-        {
-            _saveDebounceCts?.Cancel();
-            _saveDebounceCts?.Dispose();
-            _saveDebounceCts = null;
-
-            try
-            {
-                var snapshot =
-                    CapturePersistentSettings();
-
-                await global::BandaNV.App.App.Settings.SaveAsync(
-                    snapshot);
-
-                var result =
-                    await global::BandaNV.App.App.History.ApplyRetentionAsync(
-                        global::BandaNV.App.App.Settings.Current);
-
-                ShowSettingsFeedback(
-                    result.DeletedBackupDirectories > 0
-                        ? $"Preferencia actualizada. Se liberaron {result.DeletedBackupDirectories} carpetas de backup que ya no eran necesarias."
-                        : "Preferencia actualizada.");
-            }
-            catch (Exception ex)
-            {
-                ShowSettingsFeedback(
-                    $"No se pudo completar el mantenimiento del historial: {ex.Message}");
-            }
-
-            return;
-        }
-
         if (ReferenceEquals(
                 sender,
                 StartWithWindowsToggle))
@@ -641,7 +609,6 @@ public sealed partial class SettingsPage : Page
             DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
-            Undo = UndoToggle.IsOn,
             RecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructive = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
@@ -677,7 +644,6 @@ public sealed partial class SettingsPage : Page
         DeleteEmptyFoldersToggle.IsOn = backup.DeleteEmptyFolders;
         ConflictBehaviorValueText.Text = backup.ConflictBehavior;
         UnknownExtensionBehaviorValueText.Text = backup.UnknownExtensionBehavior;
-        UndoToggle.IsOn = backup.Undo;
         RecycleBinToggle.IsOn = backup.RecycleBin;
         ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
         SaveHistoryToggle.IsOn = backup.SaveHistory;
@@ -996,7 +962,6 @@ public sealed partial class SettingsPage : Page
         ConflictBehaviorValueText.Text = "Preguntar";
         UnknownExtensionBehaviorValueText.Text = "Preguntar en la vista previa";
 
-        UndoToggle.IsOn = true;
         RecycleBinToggle.IsOn = true;
         ConfirmDestructiveToggle.IsOn = true;
 
@@ -1045,7 +1010,6 @@ public sealed partial class SettingsPage : Page
         ConflictBehaviorValueText.Text = settings.ConflictBehavior;
         UnknownExtensionBehaviorValueText.Text = settings.UnknownExtensionBehavior;
 
-        UndoToggle.IsOn = settings.UndoEnabled;
         RecycleBinToggle.IsOn = settings.UseRecycleBin;
         ConfirmDestructiveToggle.IsOn = settings.ConfirmDestructiveActions;
 
@@ -1096,7 +1060,6 @@ public sealed partial class SettingsPage : Page
             DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
-            UndoEnabled = UndoToggle.IsOn,
             UseRecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructiveActions = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
@@ -1231,7 +1194,6 @@ internal sealed class SettingsBackupModel
     public string ConflictBehavior { get; set; } = "Preguntar";
     public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
 
-    public bool Undo { get; set; } = true;
     public bool RecycleBin { get; set; } = true;
     public bool ConfirmDestructive { get; set; } = true;
 
