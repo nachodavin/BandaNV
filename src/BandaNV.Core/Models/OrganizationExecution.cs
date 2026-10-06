@@ -42,6 +42,7 @@ public sealed class OrganizationExecutionRecord
     public string Format { get; set; } = "BandaNV.Execution.v3";
     public string ExecutionId { get; set; } = Guid.NewGuid().ToString("N");
     public string Type { get; set; } = "ORGANIZE";
+    public bool ShowInHistory { get; set; } = true;
     public string? Action { get; set; }
     public OrganizationExecutionStatus Status { get; set; } =
         OrganizationExecutionStatus.Running;
