@@ -896,7 +896,8 @@
                                         <ToggleSwitch x:Name="SaveHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
-                                    <Grid>
+                                    <Grid
+                                        x:Name="SaveSearchHistoryRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
