@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -604,6 +603,30 @@ public sealed class RecoveryService
             }
             else if (backupExists)
             {
+                if (organizedExists &&
+                    OrganizationEntrySafety.MatchesReplacement(
+                        organizedPath,
+                        originalItem))
+                {
+                    undoItem.Status =
+                        OrganizationExecutionItemStatus.Moved;
+
+                    undoItem.Message =
+                        "Recuperado al iniciar: el elemento nuevo ya había vuelto al origen y el elemento reemplazado ya estaba repuesto. Se conservó una copia protegida adicional por seguridad.";
+
+                    stats.ReconciledMoves++;
+
+                    stats.TemporaryFilesDeleted +=
+                        OrganizationEntrySafety.CleanupTemporaryEntries(
+                            restoredPath);
+
+                    stats.TemporaryFilesDeleted +=
+                        OrganizationEntrySafety.CleanupTemporaryEntries(
+                            organizedPath);
+
+                    continue;
+                }
+
                 if (organizedExists)
                 {
                     if (!OrganizationEntrySafety.MatchesExpected(
