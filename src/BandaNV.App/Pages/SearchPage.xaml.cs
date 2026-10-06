@@ -1493,14 +1493,14 @@ public sealed partial class SearchPage : Page
         {
             return new SearchGroupDescriptor(
                 "Hoy",
-                0);
+                7);
         }
 
         if (date >= today.AddDays(-1))
         {
             return new SearchGroupDescriptor(
                 "Ayer",
-                1);
+                6);
         }
 
         var weekStart =
@@ -1511,7 +1511,7 @@ public sealed partial class SearchPage : Page
         {
             return new SearchGroupDescriptor(
                 "A principios de esta semana",
-                2);
+                5);
         }
 
         var lastWeekStart =
@@ -1521,7 +1521,7 @@ public sealed partial class SearchPage : Page
         {
             return new SearchGroupDescriptor(
                 "La semana pasada",
-                3);
+                4);
         }
 
         var monthStart =
@@ -1534,7 +1534,7 @@ public sealed partial class SearchPage : Page
         {
             return new SearchGroupDescriptor(
                 "A principios de este mes",
-                4);
+                3);
         }
 
         var lastMonthStart =
@@ -1544,7 +1544,7 @@ public sealed partial class SearchPage : Page
         {
             return new SearchGroupDescriptor(
                 "El mes pasado",
-                5);
+                2);
         }
 
         var yearStart =
@@ -1557,12 +1557,12 @@ public sealed partial class SearchPage : Page
         {
             return new SearchGroupDescriptor(
                 "A principios de este año",
-                6);
+                1);
         }
 
         return new SearchGroupDescriptor(
             "Hace mucho tiempo",
-            7);
+            0);
     }
 
     private static DateTime GetStartOfWeek(
@@ -2937,6 +2937,7 @@ public sealed partial class SearchPage : Page
         var remaining = normalized.Count - visibleExtensions;
         return remaining > 0 ? $"{text} +{remaining}" : text;
     }
+
     private sealed record SearchGroupDescriptor(
         string Label,
         int Order);
