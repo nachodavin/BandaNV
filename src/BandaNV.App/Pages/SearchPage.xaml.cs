@@ -69,6 +69,7 @@ public sealed partial class SearchPage : Page
         SearchResultsList.ItemsSource = _searchResultsViewSource.View;
 
         UpdateSortAndGroupSelectorText();
+        UpdateSortAndGroupOptionHighlights();
         InitializeSpecificDateWheels();
 
         Loaded += SearchPage_Loaded;
@@ -650,6 +651,7 @@ public sealed partial class SearchPage : Page
         };
 
         UpdateSortAndGroupSelectorText();
+        UpdateSortAndGroupOptionHighlights();
         SortFlyout.Hide();
         RefreshSearchResults();
     }
@@ -668,6 +670,7 @@ public sealed partial class SearchPage : Page
                 : SearchSortDirection.Descending;
 
         UpdateSortAndGroupSelectorText();
+        UpdateSortAndGroupOptionHighlights();
         SortFlyout.Hide();
         RefreshSearchResults();
     }
@@ -690,6 +693,7 @@ public sealed partial class SearchPage : Page
         };
 
         UpdateSortAndGroupSelectorText();
+        UpdateSortAndGroupOptionHighlights();
         GroupFlyout.Hide();
         RefreshSearchResults();
     }
@@ -817,6 +821,68 @@ public sealed partial class SearchPage : Page
             _groupField == SearchGroupField.None
                 ? "Ninguno"
                 : GetGroupFieldDisplayName(_groupField);
+    }
+
+    private void UpdateSortAndGroupOptionHighlights()
+    {
+        SetPopupOptionSelected(
+            SortNameOptionButton,
+            _sortField == SearchSortField.Name);
+        SetPopupOptionSelected(
+            SortDateOptionButton,
+            _sortField == SearchSortField.DateModified);
+        SetPopupOptionSelected(
+            SortSizeOptionButton,
+            _sortField == SearchSortField.Size);
+        SetPopupOptionSelected(
+            SortCategoryOptionButton,
+            _sortField == SearchSortField.Category);
+        SetPopupOptionSelected(
+            SortExtensionOptionButton,
+            _sortField == SearchSortField.Extension);
+
+        SetPopupOptionSelected(
+            SortAscendingOptionButton,
+            _sortDirection == SearchSortDirection.Ascending);
+        SetPopupOptionSelected(
+            SortDescendingOptionButton,
+            _sortDirection == SearchSortDirection.Descending);
+
+        SetPopupOptionSelected(
+            GroupNoneOptionButton,
+            _groupField == SearchGroupField.None);
+        SetPopupOptionSelected(
+            GroupNameOptionButton,
+            _groupField == SearchGroupField.Name);
+        SetPopupOptionSelected(
+            GroupDateOptionButton,
+            _groupField == SearchGroupField.DateModified);
+        SetPopupOptionSelected(
+            GroupSizeOptionButton,
+            _groupField == SearchGroupField.Size);
+        SetPopupOptionSelected(
+            GroupCategoryOptionButton,
+            _groupField == SearchGroupField.Category);
+        SetPopupOptionSelected(
+            GroupExtensionOptionButton,
+            _groupField == SearchGroupField.Extension);
+    }
+
+    private static void SetPopupOptionSelected(
+        Button button,
+        bool isSelected)
+    {
+        button.Background =
+            (Brush)Application.Current.Resources[
+                isSelected
+                    ? "BandaAccentSoftBrush"
+                    : "BandaTransparentBrush"];
+
+        button.Foreground =
+            (Brush)Application.Current.Resources[
+                isSelected
+                    ? "BandaAccentBrush"
+                    : "BandaTextBrush"];
     }
 
     private static string GetSortFieldDisplayName(SearchSortField field) =>
