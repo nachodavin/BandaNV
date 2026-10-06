@@ -13,6 +13,7 @@ public partial class App : Application
     public static CategoryFolderSyncService CategoryFolders { get; } = new();
     public static OrganizationAnalysisService OrganizationAnalysis { get; } = new();
     public static OrganizationExecutionService OrganizationExecution { get; } = new();
+    public static OrganizationSourceActionService OrganizationSourceActions { get; } = new();
     public static HistoryService History { get; } = new();
     public static SearchIndexService SearchIndex { get; } = new();
     public static SearchFileActionService SearchActions { get; } = new();
