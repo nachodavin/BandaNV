@@ -1264,6 +1264,8 @@
                                         Content="Abrir ubicación"
                                         Click="OrganizeOpenLocationButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
                                         IsEnabled="False" />
                                     <Button
                                         x:Name="OrganizeCopyPathButton"
@@ -1271,6 +1273,8 @@
                                         Content="Copiar ruta"
                                         Click="OrganizeCopyPathButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
                                         IsEnabled="False" />
                                 </Grid>
 
@@ -1284,6 +1288,8 @@
                                         Content="Cambiar categoría"
                                         Click="OrganizeChangeCategoryButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
                                         IsEnabled="False" />
                                     <Button
                                         x:Name="OrganizeRenameButton"
@@ -1291,6 +1297,8 @@
                                         Content="Renombrar"
                                         Click="OrganizeRenameButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
                                         IsEnabled="False" />
                                 </Grid>
 
