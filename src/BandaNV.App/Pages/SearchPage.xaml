@@ -313,6 +313,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <TextBox
@@ -363,21 +364,27 @@
             <Button
                 x:Name="SortSelectorButton"
                 Grid.Column="3"
-                Width="205"
-                MinHeight="44"
+                Width="215"
+                MinHeight="52"
                 Style="{StaticResource BandaSelectorButtonStyle}">
                 <Grid ColumnSpacing="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock
-                        x:Name="SortValueText"
-                        Text="Fecha · más reciente"
-                        Foreground="{StaticResource BandaTextBrush}"
-                        FontSize="13"
-                        TextTrimming="CharacterEllipsis"
-                        VerticalAlignment="Center" />
+                    <StackPanel Spacing="1" VerticalAlignment="Center">
+                        <TextBlock
+                            Text="ORDENAR POR"
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="10"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="SortValueText"
+                            Text="Fecha de modificación · Desc."
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="13"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
                     <TextBlock
                         Grid.Column="1"
                         Text="⌄"
@@ -405,14 +412,84 @@
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="11"
                                     FontWeight="SemiBold" />
-                                <Button Tag="Newest" Content="Fecha · más reciente" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Oldest" Content="Fecha · más antigua" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="NameAscending" Content="Nombre · A–Z" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="NameDescending" Content="Nombre · Z–A" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="SizeDescending" Content="Tamaño · mayor primero" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="SizeAscending" Content="Tamaño · menor primero" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Category" Content="Categoría" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Extension" Content="Extensión" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Name" Content="Nombre" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="DateModified" Content="Fecha de modificación" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Size" Content="Tamaño" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Category" Content="Categoría" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Extension" Content="Extensión" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+
+                                <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="8,6" />
+
+                                <Button Tag="Ascending" Content="Ascendente" Click="SortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Descending" Content="Descendente" Click="SortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+
+            <Button
+                x:Name="GroupSelectorButton"
+                Grid.Column="4"
+                Width="205"
+                MinHeight="52"
+                Style="{StaticResource BandaSelectorButtonStyle}">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="1" VerticalAlignment="Center">
+                        <TextBlock
+                            Text="AGRUPAR POR"
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="10"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="GroupValueText"
+                            Text="Ninguno"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="13"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="⌄"
+                        Foreground="{StaticResource BandaAccentBrush}"
+                        FontSize="14"
+                        VerticalAlignment="Center" />
+                </Grid>
+
+                <Button.Flyout>
+                    <Flyout
+                        x:Name="GroupFlyout"
+                        Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                        <Border
+                            Width="245"
+                            Padding="8"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaPopupSurfaceBrush}"
+                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    Text="AGRUPAR POR"
+                                    Margin="10,6,10,4"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <Button Tag="None" Content="(Ninguno)" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Name" Content="Nombre" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="DateModified" Content="Fecha de modificación" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Size" Content="Tamaño" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Category" Content="Categoría" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Extension" Content="Extensión" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+
+                                <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="8,6" />
+
+                                <Button Tag="Ascending" Content="Ascendente" Click="GroupDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Descending" Content="Descendente" Click="GroupDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
                         </Border>
                     </Flyout>
@@ -540,7 +617,6 @@
                             <Grid Grid.Row="1" MinHeight="330">
                                 <ListView
                                     x:Name="SearchResultsList"
-                                    ItemsSource="{x:Bind VisibleSearchResults, Mode=OneWay}"
                                     ItemTemplate="{StaticResource SearchResultTemplate}"
                                     SelectionMode="Extended"
                                     IsMultiSelectCheckBoxEnabled="False"
@@ -556,6 +632,34 @@
                                             Modifiers="Control"
                                             Invoked="SearchSelectAllAccelerator_Invoked" />
                                     </ListView.KeyboardAccelerators>
+
+                                    <ListView.GroupStyle>
+                                        <GroupStyle>
+                                            <GroupStyle.HeaderTemplate>
+                                                <DataTemplate x:DataType="local:SearchResultGroup">
+                                                    <Grid
+                                                        Padding="12,12,12,7"
+                                                        ColumnSpacing="10">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock
+                                                            Text="{x:Bind HeaderText}"
+                                                            Foreground="{StaticResource BandaTextBrush}"
+                                                            FontSize="13"
+                                                            FontWeight="SemiBold"
+                                                            VerticalAlignment="Center" />
+                                                        <Rectangle
+                                                            Grid.Column="1"
+                                                            Height="1"
+                                                            Fill="{StaticResource BandaBorderBrush}"
+                                                            VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </GroupStyle.HeaderTemplate>
+                                        </GroupStyle>
+                                    </ListView.GroupStyle>
 
                                     <ListView.Resources>
                                         <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
