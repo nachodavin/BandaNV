@@ -1379,7 +1379,7 @@
                                         <ColumnDefinition Width="0.7*" />
                                     </Grid.ColumnDefinitions>
 
-                                    <TextBlock Text="ARCHIVO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Text="ELEMENTO" Style="{StaticResource BandaLabelTextStyle}" />
                                     <TextBlock Grid.Column="1" Text="EXTENSIÓN" Style="{StaticResource BandaLabelTextStyle}" />
                                     <TextBlock Grid.Column="2" Text="CATEGORÍA DETECTADA" Style="{StaticResource BandaLabelTextStyle}" />
                                     <TextBlock Grid.Column="3" Text="TAMAÑO" Style="{StaticResource BandaLabelTextStyle}" HorizontalAlignment="Right" />
