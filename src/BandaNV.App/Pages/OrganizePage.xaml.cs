@@ -1383,9 +1383,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 return;
             }
 
-            foreach (var file in _managedOrganizeFiles)
+            foreach (var managedFile in _managedOrganizeFiles)
             {
-                file.AssignTo(
+                managedFile.AssignTo(
                     _pendingOrganizeCategory,
                     OrganizeAssignmentSource.IndividualOverride);
             }
