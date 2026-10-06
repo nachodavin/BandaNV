@@ -1670,7 +1670,10 @@ public sealed class OrganizePreviewFile
                         item.Extension,
                         item.SizeBytes,
                         item.ModifiedAt,
-                        item.CategoryName))
+                        item.CategoryName,
+                        item.IsDirectory,
+                        item.ContainedFileCount,
+                        item.DistinctCategoryCount))
                 .ToList();
         AssignmentSource =
             categoryOrder.HasValue && !string.IsNullOrWhiteSpace(categoryName)
@@ -1788,12 +1791,23 @@ public sealed class OrganizePreviewFile
     {
         get
         {
+            var nestedFolderCount =
+                FolderContents.Count(item => item.IsDirectory);
+
             var parts =
                 new List<string>
                 {
-                    $"{ContainedFileCount} archivo{(ContainedFileCount == 1 ? string.Empty : "s")}",
-                    $"{RecognizedFileCount} reconocido{(RecognizedFileCount == 1 ? string.Empty : "s")}"
+                    $"{ContainedFileCount} archivo{(ContainedFileCount == 1 ? string.Empty : "s")}"
                 };
+
+            if (nestedFolderCount > 0)
+            {
+                parts.Add(
+                    $"{nestedFolderCount} subcarpeta{(nestedFolderCount == 1 ? string.Empty : "s")}");
+            }
+
+            parts.Add(
+                $"{RecognizedFileCount} reconocido{(RecognizedFileCount == 1 ? string.Empty : "s")}");
 
             if (DistinctCategoryCount > 0)
             {
@@ -1963,7 +1977,10 @@ public sealed class FolderContentPreviewItem
         string extension,
         long sizeBytes,
         DateTime modifiedAt,
-        string? categoryName)
+        string? categoryName,
+        bool isDirectory,
+        int containedFileCount,
+        int distinctCategoryCount)
     {
         RelativePath =
             relativePath;
@@ -1982,6 +1999,15 @@ public sealed class FolderContentPreviewItem
 
         CategoryName =
             categoryName;
+
+        IsDirectory =
+            isDirectory;
+
+        ContainedFileCount =
+            containedFileCount;
+
+        DistinctCategoryCount =
+            distinctCategoryCount;
     }
 
     public string RelativePath { get; }
@@ -1990,15 +2016,43 @@ public sealed class FolderContentPreviewItem
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
     public string? CategoryName { get; }
+    public bool IsDirectory { get; }
+    public int ContainedFileCount { get; }
+    public int DistinctCategoryCount { get; }
 
     public string ExtensionDisplay =>
-        Extension.ToUpperInvariant();
+        IsDirectory
+            ? "CARPETA"
+            : Extension.ToUpperInvariant();
 
-    public string CategoryDisplay =>
-        string.IsNullOrWhiteSpace(
-            CategoryName)
-            ? "Sin categoría"
-            : CategoryName;
+    public string CategoryDisplay
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(
+                    CategoryName))
+            {
+                return CategoryName;
+            }
+
+            if (!IsDirectory)
+            {
+                return "Sin categoría";
+            }
+
+            if (ContainedFileCount == 0)
+            {
+                return "Vacía";
+            }
+
+            if (DistinctCategoryCount > 1)
+            {
+                return "Varias categorías";
+            }
+
+            return "Sin categoría";
+        }
+    }
 
     public string SizeDisplay =>
         FormatBytes(
