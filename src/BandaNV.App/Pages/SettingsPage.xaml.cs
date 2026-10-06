@@ -484,23 +484,8 @@ public sealed partial class SettingsPage : Page
                     AutoUpdateToggle.IsOn);
         }
 
-        if (ReferenceEquals(
-                sender,
-                OrganizeFoldersToggle))
-        {
-            UpdateIncludeSubfoldersToggleVisibility();
-        }
-
         QueuePersistSettings();
         ShowSettingsFeedback("Preferencia actualizada.");
-    }
-
-    private void UpdateIncludeSubfoldersToggleVisibility()
-    {
-        IncludeSubfoldersRow.Visibility =
-            OrganizeFoldersToggle.IsOn
-                ? Visibility.Visible
-                : Visibility.Collapsed;
     }
 
     private void OpenLogsFolderButton_Click(object sender, RoutedEventArgs e)
@@ -651,7 +636,6 @@ public sealed partial class SettingsPage : Page
             PrimaryColor = PrimaryColorHexText.Text,
             SecondaryColor = SecondaryColorHexText.Text,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
-            IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
             OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
             DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
@@ -687,9 +671,7 @@ public sealed partial class SettingsPage : Page
         StartWithWindowsToggle.IsOn = backup.StartWithWindows;
         AutoUpdateToggle.IsOn = backup.AutoUpdate;
         PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
-        IncludeSubfoldersToggle.IsOn = backup.IncludeSubfolders;
         OrganizeFoldersToggle.IsOn = backup.OrganizeFoldersAsUnits;
-        UpdateIncludeSubfoldersToggleVisibility();
         CreateFoldersToggle.IsOn = backup.CreateFolders;
         DeleteEmptyFoldersToggle.IsOn = backup.DeleteEmptyFolders;
         ConflictBehaviorValueText.Text = backup.ConflictBehavior;
@@ -1005,9 +987,7 @@ public sealed partial class SettingsPage : Page
         SecondaryColorPicker.Color = secondary;
         SecondaryColorHexText.Text = ToHex(secondary);
         PreviewBeforeOrganizeToggle.IsOn = true;
-        IncludeSubfoldersToggle.IsOn = false;
         OrganizeFoldersToggle.IsOn = false;
-        UpdateIncludeSubfoldersToggleVisibility();
         CreateFoldersToggle.IsOn = true;
         DeleteEmptyFoldersToggle.IsOn = false;
 
@@ -1055,9 +1035,7 @@ public sealed partial class SettingsPage : Page
 
         ThemeValueText.Text = settings.Theme;
         PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
-        IncludeSubfoldersToggle.IsOn = settings.IncludeSubfolders;
         OrganizeFoldersToggle.IsOn = settings.OrganizeFoldersAsUnits;
-        UpdateIncludeSubfoldersToggleVisibility();
         CreateFoldersToggle.IsOn = settings.CreateFolders;
         DeleteEmptyFoldersToggle.IsOn = settings.DeleteEmptyFolders;
 
@@ -1109,7 +1087,6 @@ public sealed partial class SettingsPage : Page
             PrimaryColor = PrimaryColorHexText.Text,
             SecondaryColor = SecondaryColorHexText.Text,
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
-            IncludeSubfolders = IncludeSubfoldersToggle.IsOn,
             OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
             DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
@@ -1242,7 +1219,6 @@ internal sealed class SettingsBackupModel
     public string AccentColor { get; set; } = string.Empty;
 
     public bool PreviewBeforeOrganize { get; set; } = true;
-    public bool IncludeSubfolders { get; set; }
     public bool OrganizeFoldersAsUnits { get; set; }
     public bool CreateFolders { get; set; } = true;
     public bool DeleteEmptyFolders { get; set; }
