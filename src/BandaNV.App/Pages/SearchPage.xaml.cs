@@ -670,7 +670,10 @@ public sealed partial class SearchPage : Page
                     file.IsDirectory
                         ? file.FolderContents.Select(item =>
                             item.ExtensionDisplay.ToLowerInvariant())
-                        : [file.ExtensionDisplay.ToLowerInvariant()])
+                        : new[]
+                        {
+                            file.ExtensionDisplay.ToLowerInvariant()
+                        })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(
                     extension => extension,
@@ -2485,13 +2488,17 @@ public sealed class SearchFileResult
 
         if (!IsDirectory)
         {
-            return extensions.Contains(
-                ExtensionDisplay);
+            return extensions.Any(extension =>
+                extension.Equals(
+                    ExtensionDisplay,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         return FolderContents.Any(item =>
-            extensions.Contains(
-                item.ExtensionDisplay));
+            extensions.Any(extension =>
+                extension.Equals(
+                    item.ExtensionDisplay,
+                    StringComparison.OrdinalIgnoreCase)));
     }
 
     private Brush CreateCategoryBrush(
