@@ -412,6 +412,7 @@
                                 <Button Tag="SizeDescending" Content="Tamaño · mayor primero" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="SizeAscending" Content="Tamaño · menor primero" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="Category" Content="Categoría" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="Extension" Content="Extensión" Click="SortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
                         </Border>
                     </Flyout>
