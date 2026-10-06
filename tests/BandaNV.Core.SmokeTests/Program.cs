@@ -75,6 +75,14 @@ internal static class Program
             LateConflictIsResolvedAtExecutionAsync);
 
         await RunAsync(
+            "Reemplazar pide decisión cuando Confirmar acciones está activo",
+            ReplaceRequiresDecisionWhenConfirmationEnabledAsync);
+
+        await RunAsync(
+            "Reemplazar es automático cuando Confirmar acciones está desactivado",
+            ReplaceIsAutomaticWhenConfirmationDisabledAsync);
+
+        await RunAsync(
             "Reanálisis detecta un archivo agregado externamente",
             ReanalysisDetectsExternalCreateAsync);
 
@@ -1020,6 +1028,135 @@ internal static class Program
             "El archivo debería usar un nombre alternativo.");
     }
 
+    private static async Task ReplaceRequiresDecisionWhenConfirmationEnabledAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "confirmar.txt");
+
+        WriteFile(
+            sourcePath,
+            "nuevo");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "confirmar.txt");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            desiredTarget,
+            "existente");
+
+        var resolver =
+            new CapturingConflictResolver(
+                OrganizationConflictAction.Skip);
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Reemplazar",
+                resolver,
+                confirmDestructiveActions:
+                    true);
+
+        Equal(
+            1,
+            resolver.CallCount,
+            "Con confirmaciones activas, Reemplazar debería pedir una decisión.");
+
+        Equal(
+            OrganizationExecutionItemStatus.SkippedConflict,
+            result.Record.Items.Single().Status,
+            "Elegir omitir en la confirmación debería conservar ambos elementos.");
+
+        True(
+            File.Exists(
+                sourcePath),
+            "El origen debería seguir existiendo al omitir.");
+
+        Equal(
+            "existente",
+            File.ReadAllText(
+                desiredTarget),
+            "El destino existente debería permanecer intacto.");
+    }
+
+    private static async Task ReplaceIsAutomaticWhenConfirmationDisabledAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "automatico.txt");
+
+        WriteFile(
+            sourcePath,
+            "nuevo");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "automatico.txt");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            desiredTarget,
+            "existente");
+
+        var resolver =
+            new CapturingConflictResolver(
+                OrganizationConflictAction.Skip);
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Reemplazar",
+                resolver,
+                confirmDestructiveActions:
+                    false);
+
+        Equal(
+            0,
+            resolver.CallCount,
+            "Con confirmaciones desactivadas, Reemplazar no debería abrir una decisión.");
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            result.Record.Items.Single().Status,
+            "El elemento debería reemplazarse automáticamente.");
+
+        Equal(
+            "nuevo",
+            File.ReadAllText(
+                desiredTarget),
+            "El destino debería contener el elemento nuevo.");
+    }
+
     private static async Task ReanalysisDetectsExternalCreateAsync()
     {
         using var workspace =
@@ -1174,7 +1311,8 @@ internal static class Program
         TestWorkspace workspace,
         OrganizationAnalysisFile item,
         string conflictBehavior,
-        IOrganizationConflictResolver? resolver = null)
+        IOrganizationConflictResolver? resolver = null,
+        bool confirmDestructiveActions = false)
     {
         var settings =
             CreateSettings(
@@ -1186,6 +1324,9 @@ internal static class Program
 
         settings.UndoEnabled =
             false;
+
+        settings.ConfirmDestructiveActions =
+            confirmDestructiveActions;
 
         return await new OrganizationExecutionService()
             .ExecuteAsync(
