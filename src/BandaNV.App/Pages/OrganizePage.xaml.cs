@@ -470,12 +470,31 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         KeyboardAccelerator sender,
         Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (PreviewFilesList.Items.Count == 0)
+        foreach (var file in PreviewFilesList.Items
+                     .OfType<OrganizePreviewFile>())
         {
-            return;
+            if (!PreviewFilesList.SelectedItems.Contains(
+                    file))
+            {
+                PreviewFilesList.SelectedItems.Add(
+                    file);
+            }
         }
 
-        PreviewFilesList.SelectAll();
+        var selected =
+            GetSelectedOrganizeFiles();
+
+        if (selected.Count == 1)
+        {
+            ShowOrganizeDetail(
+                selected[0]);
+        }
+        else if (selected.Count > 1)
+        {
+            ShowMultipleOrganizeDetails(
+                selected);
+        }
+
         args.Handled =
             true;
     }
@@ -1590,7 +1609,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     {
         await AnalyzeFilesAsync(
             forcePreview: true,
-            preferredSelectionPath);
+            preferredSelectionPath:
+                preferredSelectionPath);
     }
 
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
