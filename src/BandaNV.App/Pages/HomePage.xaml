@@ -7,6 +7,13 @@
     <Page.Resources>
         <SolidColorBrush x:Key="HomeWarningBrush" Color="#F2B85B" />
         <SolidColorBrush x:Key="HomeWarningSoftBrush" Color="#24F2B85B" />
+
+        <Style x:Key="HomeMetricIconBadgeStyle" TargetType="Border">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Background" Value="{StaticResource BandaNavIconBrush}" />
+        </Style>
     </Page.Resources>
 
     <Grid x:Name="PageRoot">
@@ -161,10 +168,7 @@
                                         FontSize="13" />
                                     <Border
                                         Grid.Column="1"
-                                        Width="34"
-                                        Height="34"
-                                        CornerRadius="11"
-                                        Background="{StaticResource BandaAccentSoftBrush}">
+                                        Style="{StaticResource HomeMetricIconBadgeStyle}">
                                         <SymbolIcon
                                             Symbol="Folder"
                                             Foreground="{StaticResource BandaAccentBrush}"
@@ -215,10 +219,7 @@
                                     <Border
                                         x:Name="HomeUnassignedIconBorder"
                                         Grid.Column="1"
-                                        Width="34"
-                                        Height="34"
-                                        CornerRadius="11"
-                                        Background="{StaticResource BandaNavIconBrush}">
+                                        Style="{StaticResource HomeMetricIconBadgeStyle}">
                                         <TextBlock
                                             x:Name="HomeUnassignedIconText"
                                             Text="?"
@@ -269,10 +270,7 @@
                                         FontSize="13" />
                                     <Border
                                         Grid.Column="1"
-                                        Width="34"
-                                        Height="34"
-                                        CornerRadius="11"
-                                        Background="{StaticResource BandaNavIconBrush}">
+                                        Style="{StaticResource HomeMetricIconBadgeStyle}">
                                         <SymbolIcon
                                             Symbol="Clock"
                                             Foreground="{StaticResource BandaSecondaryAccentBrush}"
@@ -318,36 +316,17 @@
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
 
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Spacing="4">
-                                        <TextBlock
-                                            Text="Uso por categoría"
-                                            Foreground="{StaticResource BandaTextBrush}"
-                                            FontSize="20"
-                                            FontWeight="SemiBold" />
-                                        <TextBlock
-                                            Text="Distribución actual según la cantidad de archivos organizados."
-                                            Style="{StaticResource BandaMutedTextStyle}"
-                                            FontSize="14" />
-                                    </StackPanel>
-
-                                    <Border
-                                        Grid.Column="1"
-                                        Padding="10,5"
-                                        CornerRadius="14"
-                                        Background="{StaticResource BandaNavIconBrush}"
-                                        VerticalAlignment="Top">
-                                        <TextBlock
-                                            Text="Estado actual"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="13" />
-                                    </Border>
-                                </Grid>
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        Text="Uso por categoría"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="20"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Distribución actual según la cantidad de archivos organizados."
+                                        Style="{StaticResource BandaMutedTextStyle}"
+                                        FontSize="14" />
+                                </StackPanel>
 
                                 <Grid
                                     Grid.Row="1"
@@ -456,88 +435,67 @@
                             <Border
                                 Grid.Row="0"
                                 Style="{StaticResource BandaMetricCardStyle}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                                <StackPanel Spacing="8">
                                     <TextBlock
                                         Text="TAMAÑO TOTAL"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                     <TextBlock
                                         x:Name="HomeCurrentTotalSizeText"
-                                        Grid.Row="1"
                                         Text="0 B"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="40"
                                         FontWeight="SemiBold"
-                                        VerticalAlignment="Center" />
+                                        Margin="0,20,0,0" />
                                     <TextBlock
-                                        Grid.Row="2"
-                                        Text="Almacenados actualmente"
+                                        Text="Espacio ocupado actualmente"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
-                                </Grid>
+                                </StackPanel>
                             </Border>
 
                             <Border
                                 Grid.Row="1"
                                 Style="{StaticResource BandaMetricCardStyle}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                                <StackPanel Spacing="8">
                                     <TextBlock
-                                        Text="ARCHIVOS ORGANIZADOS TOTALES"
+                                        Text="ARCHIVOS ORGANIZADOS"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                     <TextBlock
                                         x:Name="HomeCurrentOrganizedFilesText"
-                                        Grid.Row="1"
                                         Text="0"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="40"
                                         FontWeight="SemiBold"
-                                        VerticalAlignment="Center" />
+                                        Margin="0,20,0,0" />
                                     <TextBlock
-                                        Grid.Row="2"
                                         Text="Archivos actualmente organizados"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
-                                </Grid>
+                                </StackPanel>
                             </Border>
 
                             <Border
                                 Grid.Row="2"
                                 Style="{StaticResource BandaMetricCardStyle}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                                <StackPanel Spacing="8">
                                     <TextBlock
                                         Text="CATEGORÍAS EN USO"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                     <TextBlock
                                         x:Name="HomeCategoriesInUseText"
-                                        Grid.Row="1"
                                         Text="0 / 0"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="40"
                                         FontWeight="SemiBold"
-                                        VerticalAlignment="Center" />
+                                        Margin="0,20,0,0" />
                                     <TextBlock
-                                        Grid.Row="2"
                                         Text="Categorías con archivos"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
-                                </Grid>
+                                </StackPanel>
                             </Border>
                         </Grid>
                     </Grid>
