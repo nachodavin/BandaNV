@@ -184,8 +184,7 @@ public sealed class OrganizationExecutionService
                     GetProgressMessage(item)));
             }
 
-            if (settings.DeleteEmptyFolders &&
-                settings.IncludeSubfolders)
+            if (settings.DeleteEmptyFolders)
             {
                 record.EmptyDirectoriesDeleted =
                     DeleteEmptySourceDirectories(
