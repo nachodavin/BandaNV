@@ -2588,6 +2588,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             CaptureManualAssignments(
                 renames);
 
+        var preservedExtensionAssignments =
+            CaptureTemporaryExtensionAssignments();
+
         try
         {
             if (OrganizeManageOverlay.Visibility ==
@@ -2606,7 +2609,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 forcePreview:
                     true,
                 preservedAssignments:
-                    preservedAssignments);
+                    preservedAssignments,
+                preservedExtensionAssignments:
+                    preservedExtensionAssignments);
 
             if (PreviewStatePanel.Visibility !=
                 Visibility.Visible)
@@ -3047,6 +3052,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         var preservedAssignments =
             CaptureManualAssignments();
 
+        var preservedExtensionAssignments =
+            CaptureTemporaryExtensionAssignments();
+
         if (!string.IsNullOrWhiteSpace(
                 renamedFromPath) &&
             !string.IsNullOrWhiteSpace(
@@ -3065,7 +3073,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             preferredSelectionPath:
                 preferredSelectionPath,
             preservedAssignments:
-                preservedAssignments);
+                preservedAssignments,
+            preservedExtensionAssignments:
+                preservedExtensionAssignments);
 
         if (_folderDetailRoot is null ||
             preferredFolderRelativePath is null)
@@ -3498,7 +3508,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private async Task AnalyzeFilesAsync(
         bool forcePreview = false,
         string? preferredSelectionPath = null,
-        IReadOnlyDictionary<string, string>? preservedAssignments = null)
+        IReadOnlyDictionary<string, string>? preservedAssignments = null,
+        IReadOnlyList<PreservedExtensionAssignment>? preservedExtensionAssignments = null)
     {
         _analysisCts?.Cancel();
         _analysisCts?.Dispose();
@@ -3552,6 +3563,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             }
 
             ApplyRememberedAssignments();
+            ApplyPreservedExtensionAssignments(
+                preservedExtensionAssignments);
             ApplyUnknownExtensionBehavior();
             ApplyPreservedAssignments(
                 preservedAssignments);
@@ -3678,6 +3691,75 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         ShowOrganizeDetail(
             target);
+    }
+
+    private List<PreservedExtensionAssignment> CaptureTemporaryExtensionAssignments() =>
+        _resolvedAssignments
+            .Where(assignment =>
+                !assignment.WasRemembered)
+            .Select(assignment =>
+                new PreservedExtensionAssignment(
+                    assignment.Extension,
+                    assignment.CategoryOrder,
+                    assignment.CategoryName))
+            .ToList();
+
+    private void ApplyPreservedExtensionAssignments(
+        IReadOnlyList<PreservedExtensionAssignment>? assignments)
+    {
+        if (assignments is null ||
+            assignments.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var assignment in assignments)
+        {
+            var category =
+                _categories.FirstOrDefault(item =>
+                    item.Order ==
+                        assignment.CategoryOrder &&
+                    item.Name.Equals(
+                        assignment.CategoryName,
+                        StringComparison.CurrentCultureIgnoreCase));
+
+            if (category is null)
+            {
+                continue;
+            }
+
+            var affectedFiles =
+                _files
+                    .Where(file =>
+                        !file.IsDirectory &&
+                        !file.IsClassified &&
+                        file.Extension.Equals(
+                            assignment.Extension,
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            if (affectedFiles.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var file in affectedFiles)
+            {
+                file.AssignTo(
+                    category,
+                    OrganizeAssignmentSource.ExtensionRule);
+            }
+
+            _resolvedAssignments.Add(
+                new ResolvedExtensionAssignment(
+                    assignment.Extension,
+                    affectedFiles.Count,
+                    category,
+                    wasRemembered:
+                        false,
+                    persistenceText:
+                        "Asignación aplicada solo a esta organización"));
+        }
     }
 
     private void ApplyPreservedAssignments(
@@ -4353,6 +4435,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             ? $"{value:0} {units[unitIndex]}"
             : $"{value:0.##} {units[unitIndex]}";
     }
+
+    private sealed record PreservedExtensionAssignment(
+        string Extension,
+        int CategoryOrder,
+        string CategoryName);
 
     private sealed record OrganizeFolderDetailState(
         string RootPath,
