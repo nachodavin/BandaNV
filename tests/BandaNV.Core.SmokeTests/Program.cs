@@ -46,6 +46,34 @@ internal static class Program
             "Mover una carpeta conserva toda su estructura interna",
             MoveFolderPreservesTreeAsync);
 
+        await RunAsync(
+            "Archivo contra archivo se renombra automáticamente sin pisar destino",
+            FileFileAutoRenameConflictAsync);
+
+        await RunAsync(
+            "Carpeta contra carpeta se renombra automáticamente como unidad",
+            FolderFolderAutoRenameConflictAsync);
+
+        await RunAsync(
+            "Archivo puede reemplazar de forma segura una carpeta homónima",
+            FileReplacesFolderConflictAsync);
+
+        await RunAsync(
+            "Carpeta puede reemplazar de forma segura un archivo homónimo",
+            FolderReplacesFileConflictAsync);
+
+        await RunAsync(
+            "Omitir elemento conserva origen y destino",
+            SkipConflictKeepsBothSidesAsync);
+
+        await RunAsync(
+            "Preguntar sin resolución no mueve el elemento",
+            AskConflictWithoutResolverStopsAsync);
+
+        await RunAsync(
+            "Conflicto creado después del análisis se detecta al ejecutar",
+            LateConflictIsResolvedAtExecutionAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -477,8 +505,574 @@ internal static class Program
         return Task.CompletedTask;
     }
 
-    private static async Task<OrganizationAnalysisResult> AnalyzeAsync(
-        TestWorkspace workspace)
+    private static async Task FileFileAutoRenameConflictAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "duplicado.txt");
+
+        WriteFile(
+            sourcePath,
+            "nuevo");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "duplicado.txt");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            desiredTarget,
+            "existente");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Renombrar automáticamente");
+
+        var moved =
+            result.Record.Items.Single();
+
+        var renamedTarget =
+            Path.Combine(
+                Path.GetDirectoryName(
+                    desiredTarget)!,
+                "duplicado (2).txt");
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            moved.Status,
+            "El archivo debería moverse con nombre alternativo.");
+
+        Equal(
+            renamedTarget,
+            moved.FinalPath,
+            "El destino final debería usar el sufijo (2).");
+
+        Equal(
+            "existente",
+            File.ReadAllText(
+                desiredTarget),
+            "El archivo existente no debería modificarse.");
+
+        Equal(
+            "nuevo",
+            File.ReadAllText(
+                renamedTarget),
+            "El archivo nuevo debería quedar en la ruta renombrada.");
+
+        True(
+            !File.Exists(
+                sourcePath),
+            "El archivo de origen debería haberse movido.");
+    }
+
+    private static async Task FolderFolderAutoRenameConflictAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourceFolder =
+            Path.Combine(
+                workspace.Source,
+                "Fotos");
+
+        WriteFile(
+            Path.Combine(
+                sourceFolder,
+                "foto.jpg"),
+            "nueva");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFolder(
+                analysis,
+                "Fotos");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            Path.Combine(
+                desiredTarget,
+                "existente.jpg"),
+            "existente");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Renombrar automáticamente");
+
+        var moved =
+            result.Record.Items.Single();
+
+        var renamedTarget =
+            Path.Combine(
+                Path.GetDirectoryName(
+                    desiredTarget)!,
+                "Fotos (2)");
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            moved.Status,
+            "La carpeta debería moverse con nombre alternativo.");
+
+        Equal(
+            renamedTarget,
+            moved.FinalPath,
+            "La carpeta debería usar el sufijo (2).");
+
+        True(
+            File.Exists(
+                Path.Combine(
+                    desiredTarget,
+                    "existente.jpg")),
+            "La carpeta existente debería quedar intacta.");
+
+        True(
+            File.Exists(
+                Path.Combine(
+                    renamedTarget,
+                    "foto.jpg")),
+            "La carpeta nueva debería conservar su contenido.");
+
+        True(
+            !Directory.Exists(
+                sourceFolder),
+            "La carpeta madre debería haberse movido completa.");
+    }
+
+    private static async Task FileReplacesFolderConflictAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "choque.txt");
+
+        WriteFile(
+            sourcePath,
+            "archivo nuevo");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "choque.txt");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        Directory.CreateDirectory(
+            desiredTarget);
+
+        WriteFile(
+            Path.Combine(
+                desiredTarget,
+                "viejo.txt"),
+            "carpeta vieja");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Reemplazar");
+
+        var moved =
+            result.Record.Items.Single();
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            moved.Status,
+            "El archivo debería reemplazar a la carpeta existente.");
+
+        True(
+            File.Exists(
+                desiredTarget),
+            "El destino final debería ser un archivo.");
+
+        True(
+            !Directory.Exists(
+                desiredTarget),
+            "La carpeta homónima debería dejar de existir.");
+
+        Equal(
+            "archivo nuevo",
+            File.ReadAllText(
+                desiredTarget),
+            "El destino debería contener el archivo nuevo.");
+
+        Equal(
+            OrganizationAnalysisItemKind.Folder,
+            moved.ReplacedKind,
+            "El registro debería recordar que se reemplazó una carpeta.");
+    }
+
+    private static async Task FolderReplacesFileConflictAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourceFolder =
+            Path.Combine(
+                workspace.Source,
+                "Album");
+
+        WriteFile(
+            Path.Combine(
+                sourceFolder,
+                "foto.jpg"),
+            "imagen");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFolder(
+                analysis,
+                "Album");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            desiredTarget,
+            "archivo viejo");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Reemplazar");
+
+        var moved =
+            result.Record.Items.Single();
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            moved.Status,
+            "La carpeta debería reemplazar al archivo existente.");
+
+        True(
+            Directory.Exists(
+                desiredTarget),
+            "El destino final debería ser una carpeta.");
+
+        True(
+            !File.Exists(
+                desiredTarget),
+            "El archivo homónimo debería dejar de existir.");
+
+        True(
+            File.Exists(
+                Path.Combine(
+                    desiredTarget,
+                    "foto.jpg")),
+            "La carpeta reemplazante debería conservar su contenido.");
+
+        Equal(
+            OrganizationAnalysisItemKind.File,
+            moved.ReplacedKind,
+            "El registro debería recordar que se reemplazó un archivo.");
+    }
+
+    private static async Task SkipConflictKeepsBothSidesAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "omitir.txt");
+
+        WriteFile(
+            sourcePath,
+            "origen");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "omitir.txt");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            desiredTarget,
+            "destino");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Omitir elemento");
+
+        var skipped =
+            result.Record.Items.Single();
+
+        Equal(
+            OrganizationExecutionItemStatus.SkippedConflict,
+            skipped.Status,
+            "El conflicto debería quedar omitido.");
+
+        True(
+            File.Exists(
+                sourcePath),
+            "El archivo de origen debería permanecer.");
+
+        Equal(
+            "destino",
+            File.ReadAllText(
+                desiredTarget),
+            "El elemento existente en destino debería permanecer intacto.");
+    }
+
+    private static async Task AskConflictWithoutResolverStopsAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "preguntar.txt");
+
+        WriteFile(
+            sourcePath,
+            "origen");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "preguntar.txt");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        WriteFile(
+            desiredTarget,
+            "destino");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Preguntar");
+
+        var pending =
+            result.Record.Items.Single();
+
+        Equal(
+            OrganizationExecutionItemStatus.ConflictNeedsDecision,
+            pending.Status,
+            "Sin resolver el popup, el motor no debería mover nada.");
+
+        True(
+            File.Exists(
+                sourcePath),
+            "El archivo de origen debería permanecer.");
+
+        Equal(
+            "destino",
+            File.ReadAllText(
+                desiredTarget),
+            "El destino debería permanecer intacto.");
+    }
+
+    private static async Task LateConflictIsResolvedAtExecutionAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "tardio.txt");
+
+        WriteFile(
+            sourcePath,
+            "origen");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "tardio.txt");
+
+        True(
+            !item.HasDestinationConflict,
+            "Durante el análisis todavía no debería existir conflicto.");
+
+        var desiredTarget =
+            GetDesiredTarget(
+                workspace,
+                item);
+
+        Directory.CreateDirectory(
+            desiredTarget);
+
+        var resolver =
+            new CapturingConflictResolver(
+                OrganizationConflictAction.Rename);
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Preguntar",
+                resolver);
+
+        var moved =
+            result.Record.Items.Single();
+
+        Equal(
+            1,
+            resolver.CallCount,
+            "El resolver debería invocarse al detectar el conflicto tardío.");
+
+        True(
+            resolver.LastConflict is not null,
+            "El resolver debería recibir información del conflicto.");
+
+        Equal(
+            false,
+            resolver.LastConflict!.IsDirectory,
+            "El origen debería identificarse como archivo.");
+
+        Equal(
+            true,
+            resolver.LastConflict.DestinationIsDirectory,
+            "El destino existente debería identificarse como carpeta.");
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            moved.Status,
+            "El archivo debería moverse después de resolver el conflicto.");
+
+        True(
+            Directory.Exists(
+                desiredTarget),
+            "La carpeta que apareció después del análisis debería quedar intacta.");
+
+        True(
+            File.Exists(
+                Path.Combine(
+                    Path.GetDirectoryName(
+                        desiredTarget)!,
+                    "tardio (2).txt")),
+            "El archivo debería usar un nombre alternativo.");
+    }
+
+    private static async Task<OrganizationExecutionResult> ExecuteSingleAsync(
+        TestWorkspace workspace,
+        OrganizationAnalysisFile item,
+        string conflictBehavior,
+        IOrganizationConflictResolver? resolver = null)
+    {
+        var settings =
+            CreateSettings(
+                workspace,
+                conflictBehavior);
+
+        settings.SaveHistory =
+            false;
+
+        settings.UndoEnabled =
+            false;
+
+        return await new OrganizationExecutionService()
+            .ExecuteAsync(
+                settings,
+                [
+                    ToExecutionRequest(
+                        item)
+                ],
+                conflictResolver:
+                    resolver);
+    }
+
+    private static OrganizationExecutionRequestItem ToExecutionRequest(
+        OrganizationAnalysisFile item) =>
+        new(
+            item.FullPath,
+            item.FileName,
+            item.SizeBytes,
+            item.ModifiedUtcTicks,
+            item.CategoryId,
+            item.CategoryName,
+            item.CategoryOrder,
+            item.Kind,
+            item.ContainedFileCount,
+            item.ContentFingerprint);
+
+    private static string GetDesiredTarget(
+        TestWorkspace workspace,
+        OrganizationAnalysisFile item)
+    {
+        if (!item.CategoryOrder.HasValue ||
+            string.IsNullOrWhiteSpace(
+                item.CategoryName))
+        {
+            throw new InvalidOperationException(
+                "El elemento de prueba debería estar clasificado.");
+        }
+
+        return Path.Combine(
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                item.CategoryOrder.Value,
+                item.CategoryName),
+            item.FileName);
+    }
+
+    private static AppSettings CreateSettings(
+        TestWorkspace workspace,
+        string conflictBehavior)
     {
         var settings =
             AppSettings.CreateDefault();
@@ -496,7 +1090,18 @@ internal static class Program
             true;
 
         settings.ConflictBehavior =
-            "Preguntar";
+            conflictBehavior;
+
+        return settings;
+    }
+
+    private static async Task<OrganizationAnalysisResult> AnalyzeAsync(
+        TestWorkspace workspace)
+    {
+        var settings =
+            CreateSettings(
+                workspace,
+                "Preguntar");
 
         return await new OrganizationAnalysisService()
             .AnalyzeAsync(
@@ -520,6 +1125,27 @@ internal static class Program
             1,
             matches.Count,
             $"Se esperaba exactamente una carpeta llamada \"{name}\".");
+
+        return matches[0];
+    }
+
+    private static OrganizationAnalysisFile SingleFile(
+        OrganizationAnalysisResult result,
+        string name)
+    {
+        var matches =
+            result.Files
+                .Where(item =>
+                    !item.IsDirectory &&
+                    item.FileName.Equals(
+                        name,
+                        StringComparison.CurrentCultureIgnoreCase))
+                .ToList();
+
+        Equal(
+            1,
+            matches.Count,
+            $"Se esperaba exactamente un archivo llamado \"{name}\".");
 
         return matches[0];
     }
@@ -559,6 +1185,31 @@ internal static class Program
         {
             throw new InvalidOperationException(
                 $"{message} Esperado: {expected}; actual: {actual}.");
+        }
+    }
+
+    private sealed class CapturingConflictResolver(
+        OrganizationConflictAction action) :
+        IOrganizationConflictResolver
+    {
+        public int CallCount { get; private set; }
+        public OrganizationConflictInfo? LastConflict { get; private set; }
+
+        public Task<OrganizationConflictResolution> ResolveAsync(
+            OrganizationConflictInfo conflict,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            CallCount++;
+            LastConflict =
+                conflict;
+
+            return Task.FromResult(
+                new OrganizationConflictResolution(
+                    action,
+                    ApplyToRemaining:
+                        false));
         }
     }
 
