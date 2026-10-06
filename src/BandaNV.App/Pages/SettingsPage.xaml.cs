@@ -646,6 +646,7 @@ public sealed partial class SettingsPage : Page
             RecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructive = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
+            SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
             HistoryRetention = HistoryRetentionValueText.Text,
             Categories = global::BandaNV.App.App.Settings.Current.Categories
                 .Select(category => new CategorySettings(
@@ -681,6 +682,7 @@ public sealed partial class SettingsPage : Page
         RecycleBinToggle.IsOn = backup.RecycleBin;
         ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
         SaveHistoryToggle.IsOn = backup.SaveHistory;
+        SaveSearchHistoryToggle.IsOn = backup.SaveSearchHistory;
         HistoryRetentionValueText.Text = backup.HistoryRetention;
 
         if (backup.Categories.Count > 0)
@@ -1000,6 +1002,7 @@ public sealed partial class SettingsPage : Page
         ConfirmDestructiveToggle.IsOn = true;
 
         SaveHistoryToggle.IsOn = true;
+        SaveSearchHistoryToggle.IsOn = true;
         HistoryRetentionValueText.Text = "Siempre";
 
         _isPageReady = true;
@@ -1048,6 +1051,7 @@ public sealed partial class SettingsPage : Page
         ConfirmDestructiveToggle.IsOn = settings.ConfirmDestructiveActions;
 
         SaveHistoryToggle.IsOn = settings.SaveHistory;
+        SaveSearchHistoryToggle.IsOn = settings.SaveSearchHistory;
         HistoryRetentionValueText.Text = settings.HistoryRetention;
 
         var defaultPrimary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
@@ -1097,6 +1101,7 @@ public sealed partial class SettingsPage : Page
             UseRecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructiveActions = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
+            SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
             HistoryRetention = HistoryRetentionValueText.Text,
             Categories = global::BandaNV.App.App.Settings.Current.Categories
                 .Select(category => new CategorySettings(
@@ -1232,6 +1237,7 @@ internal sealed class SettingsBackupModel
     public bool ConfirmDestructive { get; set; } = true;
 
     public bool SaveHistory { get; set; } = true;
+    public bool SaveSearchHistory { get; set; } = true;
     public string HistoryRetention { get; set; } = "Siempre";
 
     public List<CategorySettings> Categories { get; set; } = [];
