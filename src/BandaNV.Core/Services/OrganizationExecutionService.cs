@@ -1058,12 +1058,10 @@ public sealed class OrganizationExecutionService
                 if (!EntryExists(backupPath) ||
                     TryDeleteAndConfirm(backupPath))
                 {
+                    // La copia protegida deja de existir cuando Undo está
+                    // desactivado, pero la metadata del elemento reemplazado
+                    // sigue formando parte del registro histórico/auditoría.
                     item.ReplacedBackupPath = null;
-                    item.ReplacedSizeBytes = null;
-                    item.ReplacedModifiedUtcTicks = null;
-                    item.ReplacedKind = null;
-                    item.ReplacedContainedFileCount = null;
-                    item.ReplacedContentFingerprint = null;
                 }
             }
             catch
