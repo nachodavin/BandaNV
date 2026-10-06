@@ -31,6 +31,8 @@ public sealed partial class SearchPage : Page
     private SearchFileResult? _selectedSearchFile;
     private SearchFileResult? _selectedSearchFolder;
     private bool _syncingFolderContentSelection;
+    private string _searchFolderCurrentRelativePath = string.Empty;
+    private readonly Stack<string> _searchFolderHistory = new();
     private readonly List<SearchFileResult> _managedSearchFiles = new();
     private SearchManageMode _searchManageMode = SearchManageMode.None;
     private string? _pendingSearchCategoryName;
@@ -3163,6 +3165,8 @@ public sealed class SearchFolderContentItem
         string extension,
         long sizeBytes,
         DateTime modifiedAt,
+        bool isDirectory,
+        int containedFileCount,
         SearchFileResult actionTarget)
     {
         RelativePath =
@@ -3180,6 +3184,12 @@ public sealed class SearchFolderContentItem
         ModifiedAt =
             modifiedAt;
 
+        IsDirectory =
+            isDirectory;
+
+        ContainedFileCount =
+            containedFileCount;
+
         ActionTarget =
             actionTarget;
     }
@@ -3189,10 +3199,14 @@ public sealed class SearchFolderContentItem
     public string Extension { get; }
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
+    public bool IsDirectory { get; }
+    public int ContainedFileCount { get; }
     public SearchFileResult ActionTarget { get; }
 
     public string ExtensionDisplay =>
-        Extension.ToUpperInvariant();
+        IsDirectory
+            ? "CARPETA"
+            : Extension.ToUpperInvariant();
 
     public string SizeText =>
         SearchFileResult.FormatBytes(
@@ -3269,7 +3283,11 @@ public sealed class SearchFileResult
                             item.SizeBytes,
                             item.ModifiedAt,
                             childLocation,
-                            colorHex);
+                            colorHex,
+                            isDirectory:
+                                item.IsDirectory,
+                            containedFileCount:
+                                item.ContainedFileCount);
 
                     return new SearchFolderContentItem(
                         item.RelativePath,
@@ -3277,6 +3295,8 @@ public sealed class SearchFileResult
                         item.Extension,
                         item.SizeBytes,
                         item.ModifiedAt,
+                        item.IsDirectory,
+                        item.ContainedFileCount,
                         actionTarget);
                 })
                 .ToList();
