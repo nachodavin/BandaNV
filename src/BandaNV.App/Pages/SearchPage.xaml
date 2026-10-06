@@ -412,16 +412,16 @@
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="11"
                                     FontWeight="SemiBold" />
-                                <Button Tag="Name" Content="Nombre" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="DateModified" Content="Fecha de modificación" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Size" Content="Tamaño" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Category" Content="Categoría" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Extension" Content="Extensión" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortNameOptionButton" Tag="Name" Content="Nombre" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortDateOptionButton" Tag="DateModified" Content="Fecha de modificación" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortSizeOptionButton" Tag="Size" Content="Tamaño" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortCategoryOptionButton" Tag="Category" Content="Categoría" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortExtensionOptionButton" Tag="Extension" Content="Extensión" Click="SortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
 
                                 <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="8,6" />
 
-                                <Button Tag="Ascending" Content="Ascendente" Click="SortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Descending" Content="Descendente" Click="SortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortAscendingOptionButton" Tag="Ascending" Content="Ascendente" Click="SortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="SortDescendingOptionButton" Tag="Descending" Content="Descendente" Click="SortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
                         </Border>
                     </Flyout>
@@ -479,12 +479,12 @@
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="11"
                                     FontWeight="SemiBold" />
-                                <Button Tag="None" Content="(Ninguno)" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Name" Content="Nombre" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="DateModified" Content="Fecha de modificación" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Size" Content="Tamaño" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Category" Content="Categoría" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Extension" Content="Extensión" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="GroupNoneOptionButton" Tag="None" Content="(Ninguno)" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="GroupNameOptionButton" Tag="Name" Content="Nombre" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="GroupDateOptionButton" Tag="DateModified" Content="Fecha de modificación" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="GroupSizeOptionButton" Tag="Size" Content="Tamaño" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="GroupCategoryOptionButton" Tag="Category" Content="Categoría" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button x:Name="GroupExtensionOptionButton" Tag="Extension" Content="Extensión" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
 
                             </StackPanel>
                         </Border>
