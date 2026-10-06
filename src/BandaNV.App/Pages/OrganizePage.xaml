@@ -794,7 +794,10 @@
                             Background="{StaticResource BandaCardAltBrush}"
                             BorderBrush="{StaticResource BandaBorderBrush}"
                             BorderThickness="0,1,0,1">
-                            <Grid Padding="14,10" ColumnSpacing="16">
+                            <Grid
+                                Height="48"
+                                Padding="16,0"
+                                ColumnSpacing="14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="2.1*" />
                                     <ColumnDefinition Width="1.05*" />
@@ -802,10 +805,10 @@
                                     <ColumnDefinition Width="1.25*" />
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="ELEMENTO" Style="{StaticResource BandaLabelTextStyle}" />
-                                <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaLabelTextStyle}" />
-                                <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaLabelTextStyle}" />
-                                <TextBlock Grid.Column="3" Text="FECHA DE MODIFICACIÓN" Style="{StaticResource BandaLabelTextStyle}" />
+                                <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
 
