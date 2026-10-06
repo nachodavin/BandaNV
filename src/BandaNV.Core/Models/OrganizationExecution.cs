@@ -88,6 +88,10 @@ public sealed class OrganizationExecutionItemRecord
     public string? ConflictResolution { get; set; }
     public long? ReplacedSizeBytes { get; set; }
     public long? ReplacedModifiedUtcTicks { get; set; }
+    public OrganizationAnalysisItemKind? ReplacedKind { get; set; }
+    public int? ReplacedContainedFileCount { get; set; }
+    public string? ReplacedContentFingerprint { get; set; }
+    public string? RelatedItemUndoId { get; set; }
 
     public string? CategoryId { get; set; }
     public string? CategoryName { get; set; }
