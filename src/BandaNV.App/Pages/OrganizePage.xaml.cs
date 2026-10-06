@@ -505,27 +505,30 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDetailPanel.Visibility =
             Visibility.Visible;
 
+        OrganizeDetailTitleText.Text =
+            item.IsDirectory
+                ? "Detalle de la carpeta"
+                : "Detalle del archivo";
+
         OrganizeDetailFileNameText.Text =
             item.FileName;
-
-        OrganizeDetailSummaryText.Text =
-            item.IsDirectory
-                ? item.FolderDetailSummary
-                : item.HasPendingConflict
-                    ? item.ConflictDisplay
-                    : "Archivo individual";
 
         OrganizeDetailCategoryText.Text =
             item.IsClassified
                 ? item.CategoryName ?? "—"
                 : "Sin asignar";
 
+        ApplyOrganizeDetailCategoryVisual(
+            item);
+
         OrganizeDetailSizeText.Text =
             item.SizeDisplay;
 
         OrganizeDetailTypeText.Text =
             item.IsDirectory
-                ? "CARPETA"
+                ? item.ContainedFileCount == 1
+                    ? "CARPETA · 1 archivo"
+                    : $"CARPETA · {item.ContainedFileCount} archivos"
                 : item.ExtensionDisplay;
 
         OrganizeDetailModifiedText.Text =
@@ -553,6 +556,75 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             Visibility.Visible;
 
         RefreshFolderDetailView();
+    }
+
+    private void ApplyOrganizeDetailCategoryVisual(
+        OrganizePreviewFile item)
+    {
+        var category =
+            item.SelectedCategory;
+
+        if (category is null ||
+            !item.IsClassified)
+        {
+            OrganizeDetailCategoryCard.Background =
+                (Brush)Application.Current.Resources[
+                    "BandaNavIconBrush"];
+            OrganizeDetailCategoryCard.BorderBrush =
+                (Brush)Application.Current.Resources[
+                    "BandaBorderBrush"];
+            OrganizeDetailCategoryDot.Fill =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedBrush"];
+            OrganizeDetailCategoryText.Foreground =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedStrongBrush"];
+            return;
+        }
+
+        var categoryBrush =
+            CreateOrganizeCategoryBrush(
+                category.ColorHex,
+                alpha: 0xFF);
+
+        OrganizeDetailCategoryCard.Background =
+            CreateOrganizeCategoryBrush(
+                category.ColorHex,
+                alpha: 0x22);
+        OrganizeDetailCategoryCard.BorderBrush =
+            categoryBrush;
+        OrganizeDetailCategoryDot.Fill =
+            categoryBrush;
+        OrganizeDetailCategoryText.Foreground =
+            categoryBrush;
+    }
+
+    private static Brush CreateOrganizeCategoryBrush(
+        string colorHex,
+        byte alpha)
+    {
+        if (!CategoryColorPalette.TryNormalizeHex(
+                colorHex,
+                out var normalized))
+        {
+            return (Brush)Application.Current.Resources[
+                alpha == 0xFF
+                    ? "BandaAccentBrush"
+                    : "BandaAccentSoftBrush"];
+        }
+
+        return new SolidColorBrush(
+            Windows.UI.Color.FromArgb(
+                alpha,
+                Convert.ToByte(
+                    normalized.Substring(1, 2),
+                    16),
+                Convert.ToByte(
+                    normalized.Substring(3, 2),
+                    16),
+                Convert.ToByte(
+                    normalized.Substring(5, 2),
+                    16)));
     }
 
     private void FolderDetailFilesList_ItemClick(
@@ -601,15 +673,15 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         FolderDetailPathText.Text =
             string.IsNullOrWhiteSpace(
                 currentPath)
-                ? "Raíz"
-                : currentPath;
+                ? "· Raíz"
+                : $"· {currentPath}";
 
         FolderDetailBackButton.Visibility =
             _folderDetailHistory.Count > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-        FolderDetailFilesList.ItemsSource =
+        var visibleItems =
             _folderDetailRoot.FolderContents
                 .Where(item =>
                     GetParentRelativePath(
@@ -622,6 +694,26 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     item => item.FileName,
                     StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
+
+        var visibleFolderCount =
+            visibleItems.Count(item =>
+                item.IsDirectory);
+
+        var visibleFileCount =
+            visibleItems.Count -
+            visibleFolderCount;
+
+        OrganizeFolderContentsTitleText.Text =
+            visibleFolderCount == 0
+                ? visibleFileCount == 1
+                    ? "CONTENIDO · 1 ARCHIVO"
+                    : $"CONTENIDO · {visibleFileCount} ARCHIVOS"
+                : visibleItems.Count == 1
+                    ? "CONTENIDO · 1 ELEMENTO"
+                    : $"CONTENIDO · {visibleItems.Count} ELEMENTOS";
+
+        FolderDetailFilesList.ItemsSource =
+            visibleItems;
     }
 
     private void ResetFolderDetailNavigation()
@@ -634,8 +726,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         FolderDetailFilesList.ItemsSource =
             null;
+        OrganizeFolderContentsTitleText.Text =
+            "CONTENIDO";
         FolderDetailPathText.Text =
-            "Raíz";
+            string.Empty;
         FolderDetailBackButton.Visibility =
             Visibility.Collapsed;
     }
@@ -2263,6 +2357,13 @@ public sealed class FolderContentPreviewItem
     public string SizeDisplay =>
         FormatBytes(
             SizeBytes);
+
+    public string ModifiedDisplay =>
+        ModifiedAt == DateTime.MinValue
+            ? "—"
+            : ModifiedAt.ToString(
+                "dd/MM/yyyy HH:mm:ss",
+                CultureInfo.CurrentCulture);
 
     private static string FormatBytes(
         long bytes)
