@@ -22,6 +22,8 @@ public sealed partial class SearchPage : Page
     public ObservableCollection<SearchFileResult> VisibleSearchResults { get; } = new();
 
     private SearchFileResult? _selectedSearchFile;
+    private SearchFileResult? _selectedSearchFolder;
+    private bool _syncingFolderContentSelection;
     private readonly List<SearchFileResult> _managedSearchFiles = new();
     private SearchManageMode _searchManageMode = SearchManageMode.None;
     private string? _pendingSearchCategoryName;
@@ -1209,40 +1211,95 @@ public sealed partial class SearchPage : Page
         return null;
     }
 
-    private List<SearchFileResult> GetSelectedSearchFiles() =>
+    private List<SearchFileResult> GetSelectedMainSearchFiles() =>
         SearchResultsList.SelectedItems
             .OfType<SearchFileResult>()
             .ToList();
 
+    private List<SearchFileResult> GetSelectedFolderContentFiles() =>
+        SearchFolderContentList.SelectedItems
+            .OfType<SearchFolderContentItem>()
+            .Select(item =>
+                item.ActionTarget)
+            .ToList();
+
+    private List<SearchFileResult> GetSelectedSearchFiles()
+    {
+        if (SearchFolderContentsPanel.Visibility ==
+                Visibility.Visible)
+        {
+            var nested =
+                GetSelectedFolderContentFiles();
+
+            if (nested.Count > 0)
+            {
+                return nested;
+            }
+        }
+
+        return GetSelectedMainSearchFiles();
+    }
+
     private void UpdateSearchSelectionDetails()
     {
-        var selectedFiles = GetSelectedSearchFiles();
+        ResetFolderContentSelection(
+            hidePanel: true);
+
+        var selectedFiles =
+            GetSelectedMainSearchFiles();
 
         if (selectedFiles.Count == 0)
         {
-            _selectedSearchFile = null;
+            _selectedSearchFile =
+                null;
+
             ClearSearchFileDetails();
             return;
         }
 
         if (selectedFiles.Count == 1)
         {
-            _selectedSearchFile = selectedFiles[0];
-            ShowSearchFileDetails(selectedFiles[0]);
+            _selectedSearchFile =
+                selectedFiles[0];
+
+            ShowSearchFileDetails(
+                selectedFiles[0]);
+
             return;
         }
 
-        _selectedSearchFile = null;
-        ShowMultipleSearchFileDetails(selectedFiles);
+        _selectedSearchFile =
+            null;
+
+        ShowMultipleSearchFileDetails(
+            selectedFiles);
     }
 
     private void ShowSearchFileDetails(
-        SearchFileResult file)
+        SearchFileResult file,
+        bool preserveFolderContext = false)
     {
+        if (!preserveFolderContext)
+        {
+            if (file.IsDirectory)
+            {
+                ShowFolderContentsInPanel(
+                    file);
+            }
+            else
+            {
+                ResetFolderContentSelection(
+                    hidePanel: true);
+            }
+        }
+
         SearchDetailTitleText.Text =
-            file.IsDirectory
-                ? "Detalle de la carpeta"
-                : "Detalle del archivo";
+            preserveFolderContext &&
+            _selectedSearchFolder is not null
+                ? "Detalle del archivo"
+                : file.IsDirectory
+                    ? "Detalle de la carpeta"
+                    : "Detalle del archivo";
 
         SearchDetailFileNameText.Text =
             file.Name;
@@ -1301,88 +1358,367 @@ public sealed partial class SearchPage : Page
             Visibility.Collapsed;
     }
 
-    private void ShowMultipleSearchFileDetails(IReadOnlyList<SearchFileResult> files)
+    private void ShowMultipleSearchFileDetails(
+        IReadOnlyList<SearchFileResult> files,
+        bool preserveFolderContext = false)
     {
-        var categoryCount = files
-            .Select(file => file.Category)
-            .Distinct(StringComparer.CurrentCultureIgnoreCase)
-            .Count();
+        if (!preserveFolderContext)
+        {
+            ResetFolderContentSelection(
+                hidePanel: true);
+        }
 
-        var extensionCount = files
-            .Select(file => file.ExtensionDisplay)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Count();
+        var categoryCount =
+            files
+                .Select(file =>
+                    file.Category)
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .Count();
 
-        var locations = files
-            .Select(file => file.Location)
-            .Distinct(StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+        var extensionCount =
+            files
+                .Select(file =>
+                    file.ExtensionDisplay)
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .Count();
 
-        SearchDetailTitleText.Text = "Selección múltiple";
+        var locations =
+            files
+                .Select(file =>
+                    file.Location)
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        SearchDetailTitleText.Text =
+            preserveFolderContext
+                ? "Selección dentro de la carpeta"
+                : "Selección múltiple";
+
         SearchDetailFileNameText.Text =
             $"{files.Count} elementos seleccionados";
+
         SearchDetailCategoryText.Text =
             categoryCount == 1
                 ? files[0].Category
                 : $"{categoryCount} categorías";
 
         ApplySearchDetailCategoryVisual(
-            categoryCount == 1 ? files[0] : null,
-            neutral: categoryCount != 1);
+            categoryCount == 1
+                ? files[0]
+                : null,
+            neutral:
+                categoryCount != 1);
 
         SearchDetailSizeText.Text =
-            FormatSearchBytes(files.Sum(file => file.SizeBytes));
+            FormatSearchBytes(
+                files.Sum(file =>
+                    file.SizeBytes));
+
         SearchDetailExtensionText.Text =
             extensionCount == 1
                 ? files[0].ExtensionDisplay
                 : $"{extensionCount} extensiones";
-        SearchDetailModifiedText.Text = "Varias fechas";
+
+        SearchDetailModifiedText.Text =
+            "Varias fechas";
+
         SearchDetailLocationText.Text =
             locations.Count == 1
                 ? locations[0]
                 : $"{locations.Count} ubicaciones";
 
-        SearchOpenFileButton.Content = "Abrir elemento";
-        SearchCopyPathButton.Content = "Copiar rutas";
-        SearchChangeCategoryButton.Content = "Cambiar categoría";
-        SearchDeleteButton.Content = $"Eliminar {files.Count} elementos";
+        SearchOpenFileButton.Content =
+            "Abrir elemento";
 
-        SearchOpenFileButton.IsEnabled = false;
-        SearchOpenLocationButton.IsEnabled = false;
-        SearchCopyPathButton.IsEnabled = true;
-        SearchChangeCategoryButton.IsEnabled = true;
-        SearchRenameButton.IsEnabled = false;
-        SearchDeleteButton.IsEnabled = true;
+        SearchCopyPathButton.Content =
+            "Copiar rutas";
+
+        SearchChangeCategoryButton.Content =
+            "Cambiar categoría";
+
+        SearchDeleteButton.Content =
+            $"Eliminar {files.Count} elementos";
+
+        SearchOpenFileButton.IsEnabled =
+            false;
+        SearchOpenLocationButton.IsEnabled =
+            false;
+        SearchCopyPathButton.IsEnabled =
+            true;
+        SearchChangeCategoryButton.IsEnabled =
+            true;
+        SearchRenameButton.IsEnabled =
+            false;
+        SearchDeleteButton.IsEnabled =
+            true;
 
         SearchDetailActionStatusText.Text =
             "Abrir elemento, abrir ubicación y renombrar requieren una selección individual.";
-        SearchDetailActionStatusText.Visibility = Visibility.Visible;
+
+        SearchDetailActionStatusText.Visibility =
+            Visibility.Visible;
+    }
+
+    private void ShowFolderContentsInPanel(
+        SearchFileResult folder)
+    {
+        _selectedSearchFolder =
+            folder;
+
+        _syncingFolderContentSelection =
+            true;
+
+        try
+        {
+            SearchFolderContentList.SelectedItems.Clear();
+            SearchFolderContentList.ItemsSource =
+                folder.FolderContents;
+        }
+        finally
+        {
+            _syncingFolderContentSelection =
+                false;
+        }
+
+        SearchFolderContentsTitleText.Text =
+            folder.ContainedFileCount == 1
+                ? "CONTENIDO · 1 ARCHIVO"
+                : $"CONTENIDO · {folder.ContainedFileCount} ARCHIVOS";
+
+        SearchFolderContentsSelectionText.Text =
+            "Seleccioná para gestionar";
+
+        SearchFolderContentsPanel.Visibility =
+            Visibility.Visible;
+    }
+
+    private void ResetFolderContentSelection(
+        bool hidePanel)
+    {
+        _syncingFolderContentSelection =
+            true;
+
+        try
+        {
+            SearchFolderContentList.SelectedItems.Clear();
+
+            if (hidePanel)
+            {
+                SearchFolderContentList.ItemsSource =
+                    null;
+            }
+        }
+        finally
+        {
+            _syncingFolderContentSelection =
+                false;
+        }
+
+        if (hidePanel)
+        {
+            _selectedSearchFolder =
+                null;
+
+            SearchFolderContentsPanel.Visibility =
+                Visibility.Collapsed;
+
+            SearchFolderContentsSelectionText.Text =
+                "Seleccioná para gestionar";
+        }
+    }
+
+    private void SearchFolderContentList_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (_syncingFolderContentSelection ||
+            _selectedSearchFolder is null)
+        {
+            return;
+        }
+
+        var selectedFiles =
+            GetSelectedFolderContentFiles();
+
+        SearchFolderContentsSelectionText.Text =
+            selectedFiles.Count switch
+            {
+                0 =>
+                    "Seleccioná para gestionar",
+                1 =>
+                    "1 seleccionado",
+                _ =>
+                    $"{selectedFiles.Count} seleccionados"
+            };
+
+        if (selectedFiles.Count == 0)
+        {
+            _selectedSearchFile =
+                _selectedSearchFolder;
+
+            ShowSearchFileDetails(
+                _selectedSearchFolder,
+                preserveFolderContext:
+                    true);
+
+            return;
+        }
+
+        if (selectedFiles.Count == 1)
+        {
+            _selectedSearchFile =
+                selectedFiles[0];
+
+            ShowSearchFileDetails(
+                selectedFiles[0],
+                preserveFolderContext:
+                    true);
+
+            return;
+        }
+
+        _selectedSearchFile =
+            null;
+
+        ShowMultipleSearchFileDetails(
+            selectedFiles,
+            preserveFolderContext:
+                true);
+    }
+
+    private void SearchFolderContentList_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        var current =
+            e.OriginalSource as DependencyObject;
+
+        while (current is not null &&
+               current != SearchFolderContentList)
+        {
+            if (current is ListViewItem)
+            {
+                return;
+            }
+
+            current =
+                VisualTreeHelper.GetParent(
+                    current);
+        }
+
+        SearchFolderContentList.SelectedItems.Clear();
+    }
+
+    private void SearchFolderContentList_DoubleTapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    {
+        var item =
+            GetFolderContentItemFromEventSource(
+                e.OriginalSource);
+
+        if (item is null)
+        {
+            return;
+        }
+
+        OpenSearchFile(
+            item.ActionTarget);
+
+        e.Handled =
+            true;
+    }
+
+    private SearchFolderContentItem? GetFolderContentItemFromEventSource(
+        object? source)
+    {
+        var current =
+            source as DependencyObject;
+
+        while (current is not null &&
+               current != SearchFolderContentList)
+        {
+            if (current is FrameworkElement
+                {
+                    DataContext:
+                        SearchFolderContentItem item
+                })
+            {
+                return item;
+            }
+
+            current =
+                VisualTreeHelper.GetParent(
+                    current);
+        }
+
+        return null;
     }
 
     private void ClearSearchFileDetails()
     {
-        SearchDetailTitleText.Text = "Detalle del elemento";
-        SearchDetailFileNameText.Text = "Seleccioná uno o varios elementos";
-        SearchDetailCategoryText.Text = "—";
-        ApplySearchDetailCategoryVisual(null, neutral: true);
-        SearchDetailSizeText.Text = "—";
-        SearchDetailExtensionText.Text = "—";
-        SearchDetailModifiedText.Text = "—";
-        SearchDetailLocationText.Text = "—";
-        SearchDetailActionStatusText.Text = string.Empty;
-        SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
+        ResetFolderContentSelection(
+            hidePanel: true);
 
-        SearchOpenFileButton.Content = "Abrir archivo";
-        SearchCopyPathButton.Content = "Copiar ruta";
-        SearchChangeCategoryButton.Content = "Cambiar categoría";
-        SearchDeleteButton.Content = "Eliminar archivo";
+        SearchDetailTitleText.Text =
+            "Detalle del elemento";
 
-        SearchOpenFileButton.IsEnabled = false;
-        SearchOpenLocationButton.IsEnabled = false;
-        SearchCopyPathButton.IsEnabled = false;
-        SearchChangeCategoryButton.IsEnabled = false;
-        SearchRenameButton.IsEnabled = false;
-        SearchDeleteButton.IsEnabled = false;
+        SearchDetailFileNameText.Text =
+            "Seleccioná uno o varios elementos";
+
+        SearchDetailCategoryText.Text =
+            "—";
+
+        ApplySearchDetailCategoryVisual(
+            null,
+            neutral:
+                true);
+
+        SearchDetailSizeText.Text =
+            "—";
+
+        SearchDetailExtensionText.Text =
+            "—";
+
+        SearchDetailModifiedText.Text =
+            "—";
+
+        SearchDetailLocationText.Text =
+            "—";
+
+        SearchDetailActionStatusText.Text =
+            string.Empty;
+
+        SearchDetailActionStatusText.Visibility =
+            Visibility.Collapsed;
+
+        SearchOpenFileButton.Content =
+            "Abrir archivo";
+
+        SearchCopyPathButton.Content =
+            "Copiar ruta";
+
+        SearchChangeCategoryButton.Content =
+            "Cambiar categoría";
+
+        SearchDeleteButton.Content =
+            "Eliminar archivo";
+
+        SearchOpenFileButton.IsEnabled =
+            false;
+        SearchOpenLocationButton.IsEnabled =
+            false;
+        SearchCopyPathButton.IsEnabled =
+            false;
+        SearchChangeCategoryButton.IsEnabled =
+            false;
+        SearchRenameButton.IsEnabled =
+            false;
+        SearchDeleteButton.IsEnabled =
+            false;
     }
 
     private void SearchOpenFileButton_Click(object sender, RoutedEventArgs e)
@@ -1433,67 +1769,6 @@ public sealed partial class SearchPage : Page
                     ? "No se pudo abrir la carpeta."
                     : "No se pudo abrir el archivo.");
         }
-    }
-
-    private void SearchFolderContentButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement
-            {
-                DataContext: SearchFileResult file
-            } ||
-            !file.IsDirectory)
-        {
-            return;
-        }
-
-        ShowSearchFolderContents(
-            file);
-    }
-
-    private void ShowSearchFolderContents(
-        SearchFileResult folder)
-    {
-        SearchFolderContentTitleText.Text =
-            folder.Name;
-
-        SearchFolderContentSummaryText.Text =
-            folder.ContainedFileCount == 1
-                ? $"1 archivo · {folder.SizeText}"
-                : $"{folder.ContainedFileCount} archivos · {folder.SizeText}";
-
-        SearchFolderContentPathText.Text =
-            folder.FilePath;
-
-        SearchFolderContentList.ItemsSource =
-            folder.FolderContents;
-
-        SearchFolderContentOverlay.Visibility =
-            Visibility.Visible;
-    }
-
-    private void CloseSearchFolderContentButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        CloseSearchFolderContents();
-    }
-
-    private void SearchFolderContentBackdrop_Tapped(
-        object sender,
-        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
-    {
-        CloseSearchFolderContents();
-    }
-
-    private void CloseSearchFolderContents()
-    {
-        SearchFolderContentOverlay.Visibility =
-            Visibility.Collapsed;
-
-        SearchFolderContentList.ItemsSource =
-            null;
     }
 
     private void SearchOpenLocationButton_Click(object sender, RoutedEventArgs e)
