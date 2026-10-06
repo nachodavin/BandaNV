@@ -471,7 +471,7 @@ public sealed class OrganizationSourceActionService
                 record),
             cancellationToken);
 
-        if (!settings.SaveHistory)
+        if (!settings.SaveOrganizeHistory)
         {
             return;
         }
