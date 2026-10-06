@@ -1766,6 +1766,16 @@ public sealed partial class SearchPage : Page
             {
                 return nested;
             }
+
+            if (_selectedSearchFolder is not null &&
+                !string.IsNullOrWhiteSpace(
+                    _searchFolderCurrentRelativePath))
+            {
+                return
+                [
+                    GetCurrentSearchFolderTarget()
+                ];
+            }
         }
 
         return GetSelectedMainSearchFiles();
@@ -2155,11 +2165,14 @@ public sealed partial class SearchPage : Page
 
         if (selectedFiles.Count == 0)
         {
-            _selectedSearchFile =
+            var currentFolder =
                 GetCurrentSearchFolderTarget();
 
+            _selectedSearchFile =
+                currentFolder;
+
             ShowSearchFileDetails(
-                _selectedSearchFile,
+                currentFolder,
                 preserveFolderContext:
                     true);
 
@@ -2270,11 +2283,14 @@ public sealed partial class SearchPage : Page
 
         RefreshSearchFolderContentView();
 
-        _selectedSearchFile =
+        var currentFolder =
             GetCurrentSearchFolderTarget();
 
+        _selectedSearchFile =
+            currentFolder;
+
         ShowSearchFileDetails(
-            _selectedSearchFile,
+            currentFolder,
             preserveFolderContext:
                 true);
     }
