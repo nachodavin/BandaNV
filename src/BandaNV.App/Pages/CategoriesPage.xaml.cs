@@ -405,7 +405,7 @@ public sealed partial class CategoriesPage : Page
             _sourceWatcher = new FileSystemWatcher(sourcePath)
             {
                 IncludeSubdirectories =
-                    global::BandaNV.App.App.Settings.Current.IncludeSubfolders,
+                    global::BandaNV.App.App.Settings.Current.OrganizeFoldersAsUnits,
                 NotifyFilter =
                     NotifyFilters.FileName |
                     NotifyFilters.DirectoryName |
