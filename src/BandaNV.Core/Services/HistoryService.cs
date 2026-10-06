@@ -336,7 +336,9 @@ public sealed class HistoryService
                     StringComparer.OrdinalIgnoreCase);
 
             foreach (var entry in entries.Where(entry =>
-                         IsProtected(entry.Record)))
+                         IsProtected(entry.Record) ||
+                         IsTechnicalUndoRecord(
+                             entry.Record)))
             {
                 protectedHistoryPaths.Add(
                     Path.GetFullPath(
@@ -538,6 +540,16 @@ public sealed class HistoryService
         record.Items.Any(item =>
             item.Status ==
             OrganizationExecutionItemStatus.Moving);
+
+    private static bool IsTechnicalUndoRecord(
+        OrganizationExecutionRecord record) =>
+        !record.ShowInHistory &&
+        UndoService.SupportsUndo(
+            record) &&
+        record.Items.Any(item =>
+            UndoService.IsUndoCandidate(
+                record,
+                item));
 
     private static string GetMatchingLogPath(
         string historyPath) =>
