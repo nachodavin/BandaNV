@@ -711,7 +711,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <TextBlock Text="Incluir subcarpetas al analizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Si una carpeta no puede organizarse como una sola unidad, buscar también carpetas organizables dentro de ella." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="Usar también los archivos de sus subcarpetas para clasificar la carpeta completa como una sola unidad." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="IncludeSubfoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
