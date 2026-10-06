@@ -32,11 +32,14 @@ public sealed record OrganizationExecutionRequestItem(
     long ModifiedUtcTicks,
     string? CategoryId,
     string? CategoryName,
-    int? CategoryOrder);
+    int? CategoryOrder,
+    OrganizationAnalysisItemKind Kind = OrganizationAnalysisItemKind.File,
+    int ContainedFileCount = 1,
+    string? ContentFingerprint = null);
 
 public sealed class OrganizationExecutionRecord
 {
-    public string Format { get; set; } = "BandaNV.Execution.v2";
+    public string Format { get; set; } = "BandaNV.Execution.v3";
     public string ExecutionId { get; set; } = Guid.NewGuid().ToString("N");
     public string Type { get; set; } = "ORGANIZE";
     public string? Action { get; set; }
@@ -92,6 +95,13 @@ public sealed class OrganizationExecutionItemRecord
 
     public long SizeBytes { get; set; }
     public long ModifiedUtcTicks { get; set; }
+    public OrganizationAnalysisItemKind Kind { get; set; } =
+        OrganizationAnalysisItemKind.File;
+    public int ContainedFileCount { get; set; } = 1;
+    public string? ContentFingerprint { get; set; }
+
+    public bool IsDirectory =>
+        Kind == OrganizationAnalysisItemKind.Folder;
 
     public OrganizationExecutionItemStatus Status { get; set; } =
         OrganizationExecutionItemStatus.Planned;
