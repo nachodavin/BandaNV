@@ -838,29 +838,367 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     16)));
     }
 
-    private void FolderDetailFilesList_ItemClick(
+    private void FolderDetailFilesList_SelectionChanged(
         object sender,
-        ItemClickEventArgs e)
+        SelectionChangedEventArgs e)
     {
-        if (e.ClickedItem is not FolderContentPreviewItem { IsDirectory: true } folder)
+        if (_syncingFolderDetailSelection ||
+            _folderDetailRoot is null)
         {
             return;
         }
 
-        _folderDetailHistory.Push(
-            _folderDetailCurrentRelativePath);
+        var selectedItems =
+            GetSelectedFolderContentItems();
 
-        _folderDetailCurrentRelativePath =
-            folder.RelativePath;
+        FolderDetailSelectionText.Text =
+            selectedItems.Count switch
+            {
+                0 =>
+                    "Seleccioná para gestionar",
+                1 =>
+                    "1 seleccionado",
+                _ =>
+                    $"{selectedItems.Count} seleccionados"
+            };
 
-        RefreshFolderDetailView();
+        if (selectedItems.Count == 0)
+        {
+            ShowOrganizeDetail(
+                _folderDetailRoot,
+                preserveFolderContext: true);
+            return;
+        }
+
+        if (selectedItems.Count == 1)
+        {
+            ShowFolderContentItemDetails(
+                selectedItems[0]);
+            return;
+        }
+
+        ShowMultipleFolderContentDetails(
+            selectedItems);
+    }
+
+    private void FolderDetailFilesList_Tapped(
+        object sender,
+        TappedRoutedEventArgs e)
+    {
+        var current =
+            e.OriginalSource as DependencyObject;
+
+        while (current is not null &&
+               current != FolderDetailFilesList)
+        {
+            if (current is ListViewItem)
+            {
+                return;
+            }
+
+            current =
+                VisualTreeHelper.GetParent(
+                    current);
+        }
+
+        FolderDetailFilesList.SelectedItems.Clear();
+    }
+
+    private void FolderDetailFilesList_DoubleTapped(
+        object sender,
+        DoubleTappedRoutedEventArgs e)
+    {
+        var item =
+            GetFolderContentItemFromEventSource(
+                e.OriginalSource);
+
+        if (item is null ||
+            _folderDetailRoot is null)
+        {
+            return;
+        }
+
+        if (item.IsDirectory)
+        {
+            _folderDetailHistory.Push(
+                _folderDetailCurrentRelativePath);
+
+            _folderDetailCurrentRelativePath =
+                item.RelativePath;
+
+            RefreshFolderDetailView();
+
+            ShowOrganizeDetail(
+                _folderDetailRoot,
+                preserveFolderContext: true);
+
+            e.Handled =
+                true;
+            return;
+        }
+
+        var fullPath =
+            GetFolderContentFullPath(
+                item);
+
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        fullPath,
+                    UseShellExecute =
+                        true
+                });
+
+            ShowOrganizeActionStatus(
+                "Archivo abierto.");
+        }
+        catch
+        {
+            ShowOrganizeActionStatus(
+                "No se pudo abrir el archivo.",
+                isError: true);
+        }
+
+        e.Handled =
+            true;
+    }
+
+    private void FolderDetailSelectAllAccelerator_Invoked(
+        KeyboardAccelerator sender,
+        KeyboardAcceleratorInvokedEventArgs args)
+    {
+        foreach (var item in FolderDetailFilesList.Items
+                     .OfType<FolderContentPreviewItem>())
+        {
+            if (!FolderDetailFilesList.SelectedItems.Contains(
+                    item))
+            {
+                FolderDetailFilesList.SelectedItems.Add(
+                    item);
+            }
+        }
+
+        args.Handled =
+            true;
+    }
+
+    private List<FolderContentPreviewItem> GetSelectedFolderContentItems() =>
+        FolderDetailFilesList.SelectedItems
+            .OfType<FolderContentPreviewItem>()
+            .ToList();
+
+    private FolderContentPreviewItem? GetFolderContentItemFromEventSource(
+        object? source)
+    {
+        var current =
+            source as DependencyObject;
+
+        while (current is not null &&
+               current != FolderDetailFilesList)
+        {
+            if (current is FrameworkElement
+                {
+                    DataContext:
+                        FolderContentPreviewItem item
+                })
+            {
+                return item;
+            }
+
+            current =
+                VisualTreeHelper.GetParent(
+                    current);
+        }
+
+        return null;
+    }
+
+    private void ShowFolderContentItemDetails(
+        FolderContentPreviewItem item)
+    {
+        if (_folderDetailRoot is null)
+        {
+            return;
+        }
+
+        OrganizeSummaryPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeDetailPanel.Visibility =
+            Visibility.Visible;
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Visible;
+
+        OrganizeDetailTitleText.Text =
+            item.IsDirectory
+                ? "Detalle de la carpeta"
+                : "Detalle del archivo";
+
+        OrganizeDetailFileNameText.Text =
+            item.FileName;
+
+        OrganizeDetailCategoryText.Text =
+            item.CategoryDisplay;
+
+        ApplyOrganizeDetailCategoryVisual(
+            item.CategoryName);
+
+        OrganizeDetailSizeText.Text =
+            item.SizeDisplay;
+
+        OrganizeDetailTypeText.Text =
+            item.IsDirectory
+                ? item.ContainedFileCount == 1
+                    ? "CARPETA · 1 archivo"
+                    : $"CARPETA · {item.ContainedFileCount} archivos"
+                : item.ExtensionDisplay;
+
+        OrganizeDetailModifiedText.Text =
+            item.ModifiedDisplay;
+
+        OrganizeDetailLocationText.Text =
+            GetFolderContentFullPath(
+                item);
+
+        OrganizeDetailActionStatusText.Text =
+            string.Empty;
+        OrganizeDetailActionStatusText.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeOpenButton.Content =
+            item.IsDirectory
+                ? "Abrir carpeta"
+                : "Abrir archivo";
+
+        OrganizeDeleteButton.Content =
+            item.IsDirectory
+                ? "Eliminar carpeta"
+                : "Eliminar archivo";
+
+        OrganizeOpenButton.IsEnabled =
+            true;
+        OrganizeOpenLocationButton.IsEnabled =
+            true;
+        OrganizeCopyPathButton.IsEnabled =
+            true;
+        OrganizeChangeCategoryButton.IsEnabled =
+            _folderDetailRoot.CanAssignFolder;
+        OrganizeRenameButton.IsEnabled =
+            true;
+        OrganizeDeleteButton.IsEnabled =
+            true;
+    }
+
+    private void ShowMultipleFolderContentDetails(
+        IReadOnlyList<FolderContentPreviewItem> items)
+    {
+        if (_folderDetailRoot is null)
+        {
+            return;
+        }
+
+        OrganizeSummaryPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeDetailPanel.Visibility =
+            Visibility.Visible;
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Visible;
+
+        var categories =
+            items
+                .Select(item =>
+                    item.CategoryDisplay)
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        var types =
+            items
+                .Select(item =>
+                    item.IsDirectory
+                        ? "CARPETA"
+                        : item.ExtensionDisplay)
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        var locations =
+            items
+                .Select(item =>
+                    Path.GetDirectoryName(
+                        GetFolderContentFullPath(
+                            item)) ??
+                    GetFolderContentFullPath(
+                        item))
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        OrganizeDetailTitleText.Text =
+            "Selección múltiple";
+        OrganizeDetailFileNameText.Text =
+            $"{items.Count} elementos seleccionados";
+
+        OrganizeDetailCategoryText.Text =
+            categories.Count == 1
+                ? categories[0]
+                : $"{categories.Count} categorías";
+
+        ApplyOrganizeDetailCategoryVisual(
+            categories.Count == 1
+                ? categories[0]
+                : null);
+
+        OrganizeDetailSizeText.Text =
+            FormatBytes(
+                items.Sum(item =>
+                    item.SizeBytes));
+
+        OrganizeDetailTypeText.Text =
+            types.Count == 1
+                ? types[0]
+                : $"{types.Count} tipos";
+
+        OrganizeDetailModifiedText.Text =
+            "Varias fechas";
+
+        OrganizeDetailLocationText.Text =
+            locations.Count == 1
+                ? locations[0]
+                : $"{locations.Count} ubicaciones";
+
+        OrganizeDetailActionStatusText.Text =
+            string.Empty;
+        OrganizeDetailActionStatusText.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeOpenButton.Content =
+            "Abrir elemento";
+        OrganizeDeleteButton.Content =
+            $"Eliminar {items.Count} elementos";
+
+        OrganizeOpenButton.IsEnabled =
+            false;
+        OrganizeOpenLocationButton.IsEnabled =
+            false;
+        OrganizeCopyPathButton.IsEnabled =
+            true;
+        OrganizeChangeCategoryButton.IsEnabled =
+            _folderDetailRoot.CanAssignFolder;
+        OrganizeRenameButton.IsEnabled =
+            false;
+        OrganizeDeleteButton.IsEnabled =
+            true;
     }
 
     private void FolderDetailBackButton_Click(
         object sender,
         RoutedEventArgs e)
     {
-        if (_folderDetailHistory.Count == 0)
+        if (_folderDetailHistory.Count == 0 ||
+            _folderDetailRoot is null)
         {
             return;
         }
@@ -869,6 +1207,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             _folderDetailHistory.Pop();
 
         RefreshFolderDetailView();
+
+        ShowOrganizeDetail(
+            _folderDetailRoot,
+            preserveFolderContext: true);
     }
 
     private void RefreshFolderDetailView()
@@ -923,26 +1265,126 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     ? "CONTENIDO · 1 ELEMENTO"
                     : $"CONTENIDO · {visibleItems.Count} ELEMENTOS";
 
-        FolderDetailFilesList.ItemsSource =
-            visibleItems;
+        _syncingFolderDetailSelection =
+            true;
+
+        try
+        {
+            FolderDetailFilesList.SelectedItems.Clear();
+            FolderDetailFilesList.ItemsSource =
+                visibleItems;
+        }
+        finally
+        {
+            _syncingFolderDetailSelection =
+                false;
+        }
+
+        FolderDetailSelectionText.Text =
+            "Seleccioná para gestionar";
     }
 
     private void ResetFolderDetailNavigation()
     {
+        _syncingFolderDetailSelection =
+            true;
+
+        try
+        {
+            FolderDetailFilesList.SelectedItems.Clear();
+            FolderDetailFilesList.ItemsSource =
+                null;
+        }
+        finally
+        {
+            _syncingFolderDetailSelection =
+                false;
+        }
+
         _folderDetailRoot =
             null;
         _folderDetailCurrentRelativePath =
             string.Empty;
         _folderDetailHistory.Clear();
 
-        FolderDetailFilesList.ItemsSource =
-            null;
         OrganizeFolderContentsTitleText.Text =
             "CONTENIDO";
         FolderDetailPathText.Text =
             string.Empty;
+        FolderDetailSelectionText.Text =
+            "Seleccioná para gestionar";
         FolderDetailBackButton.Visibility =
             Visibility.Collapsed;
+    }
+
+    private string GetFolderContentFullPath(
+        FolderContentPreviewItem item)
+    {
+        if (_folderDetailRoot is null)
+        {
+            return item.RelativePath;
+        }
+
+        return Path.GetFullPath(
+            Path.Combine(
+                _folderDetailRoot.FullPath,
+                item.RelativePath));
+    }
+
+    private List<OrganizeActionTarget> GetActiveOrganizeActionTargets()
+    {
+        var nestedItems =
+            GetSelectedFolderContentItems();
+
+        if (nestedItems.Count > 0 &&
+            _folderDetailRoot is not null)
+        {
+            return nestedItems
+                .Select(item =>
+                    new OrganizeActionTarget(
+                        GetFolderContentFullPath(
+                            item),
+                        item.FileName,
+                        item.IsDirectory,
+                        item.SizeBytes,
+                        item.ModifiedAt,
+                        item.CategoryName,
+                        item.ExtensionDisplay,
+                        _folderDetailRoot,
+                        IsRootItem: false))
+                .ToList();
+        }
+
+        return GetSelectedOrganizeFiles()
+            .Select(file =>
+                new OrganizeActionTarget(
+                    file.FullPath,
+                    file.FileName,
+                    file.IsDirectory,
+                    file.SizeBytes,
+                    file.ModifiedAt,
+                    file.CategoryName,
+                    file.ExtensionDisplay,
+                    file,
+                    IsRootItem: true))
+            .ToList();
+    }
+
+    private List<OrganizePreviewFile> GetCategoryAssignmentFiles()
+    {
+        var nestedItems =
+            GetSelectedFolderContentItems();
+
+        if (nestedItems.Count > 0 &&
+            _folderDetailRoot is not null)
+        {
+            return
+            [
+                _folderDetailRoot
+            ];
+        }
+
+        return GetSelectedOrganizeFiles();
     }
 
     private static string GetParentRelativePath(
