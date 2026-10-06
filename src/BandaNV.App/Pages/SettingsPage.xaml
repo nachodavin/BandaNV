@@ -833,18 +833,6 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Permitir Undo" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Conservar información para revertir organizaciones." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
-                                        </StackPanel>
-                                        <ToggleSwitch x:Name="UndoToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
-                                    </Grid>
-
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="3">
                                             <TextBlock Text="Usar Papelera al eliminar elementos" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Evitar eliminación permanente siempre que sea posible." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
@@ -879,7 +867,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <TextBlock Text="Guardar historial de ejecuciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Registra las organizaciones y acciones de Deshacer en Historial." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="Guarda las organizaciones visibles en Historial. La información técnica necesaria para Deshacer se conserva aparte cuando corresponde." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="SaveHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
