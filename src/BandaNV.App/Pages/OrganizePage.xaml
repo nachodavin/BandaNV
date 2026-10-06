@@ -1145,8 +1145,9 @@
                                             </StackPanel>
 
                                             <TextBlock
+                                                x:Name="FolderDetailSelectionText"
                                                 Grid.Column="2"
-                                                Text="Seleccioná para explorar"
+                                                Text="Seleccioná para gestionar"
                                                 Foreground="{StaticResource BandaMutedBrush}"
                                                 FontSize="10"
                                                 VerticalAlignment="Center" />
@@ -1197,9 +1198,12 @@
                                             x:Name="FolderDetailFilesList"
                                             Grid.Row="2"
                                             ItemTemplate="{StaticResource OrganizeSideFolderContentTemplate}"
-                                            SelectionMode="None"
-                                            IsItemClickEnabled="True"
-                                            ItemClick="FolderDetailFilesList_ItemClick"
+                                            SelectionMode="Extended"
+                                            IsMultiSelectCheckBoxEnabled="False"
+                                            KeyboardAcceleratorPlacementMode="Hidden"
+                                            SelectionChanged="FolderDetailFilesList_SelectionChanged"
+                                            Tapped="FolderDetailFilesList_Tapped"
+                                            DoubleTapped="FolderDetailFilesList_DoubleTapped"
                                             HorizontalContentAlignment="Stretch"
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -1209,7 +1213,10 @@
                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                             <ListView.Resources>
+                                                <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
+                                                <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
                                                 <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
+                                                <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
                                             </ListView.Resources>
 
                                             <ListView.ItemContainerStyle>
@@ -1221,6 +1228,13 @@
                                                     <Setter Property="MinHeight" Value="44" />
                                                 </Style>
                                             </ListView.ItemContainerStyle>
+
+                                            <ListView.KeyboardAccelerators>
+                                                <KeyboardAccelerator
+                                                    Key="A"
+                                                    Modifiers="Control"
+                                                    Invoked="FolderDetailSelectAllAccelerator_Invoked" />
+                                            </ListView.KeyboardAccelerators>
                                         </ListView>
                                     </Grid>
                                 </Border>
