@@ -169,6 +169,15 @@ public sealed class RecoveryService
                 continue;
             }
 
+            if (item.IsDirectory)
+            {
+                MarkInterrupted(
+                    item,
+                    "La aplicación se cerró durante el movimiento de una carpeta. La recuperación automática conservó todas las copias encontradas sin modificarlas.");
+                stats.InterruptedItems++;
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(item.FinalPath) ||
                 !IsSameOrInside(item.OriginalPath, record.SourceFolder) ||
                 !IsSameOrInside(item.FinalPath, record.DestinationFolder))
