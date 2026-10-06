@@ -399,7 +399,7 @@
                         Placement="BottomEdgeAlignedLeft"
                         FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                         <Border
-                            Width="245"
+                            Width="215"
                             Padding="8"
                             CornerRadius="16"
                             Background="{StaticResource BandaPopupSurfaceBrush}"
@@ -466,7 +466,7 @@
                         Placement="BottomEdgeAlignedLeft"
                         FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                         <Border
-                            Width="245"
+                            Width="205"
                             Padding="8"
                             CornerRadius="16"
                             Background="{StaticResource BandaPopupSurfaceBrush}"
