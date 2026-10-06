@@ -62,7 +62,7 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Text="ARCHIVOS ORGANIZADOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                    <TextBlock Text="ELEMENTOS ORGANIZADOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                     <TextBlock x:Name="HistoryTotalFilesText" Grid.Row="1" Text="0" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <TextBlock Grid.Row="2" Text="Movimientos históricos" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
@@ -117,7 +117,7 @@
             <TextBox
                 x:Name="HistorySearchBox"
                 Grid.Column="0"
-                PlaceholderText="Buscar por fecha, archivo, categoría, origen o destino..."
+                PlaceholderText="Buscar por fecha, elemento, categoría, origen o destino..."
                 TextChanged="HistorySearchBox_TextChanged"
                 FontSize="14"
                 Padding="14,10"
@@ -202,8 +202,8 @@
                                     FontWeight="SemiBold" />
                                 <Button Tag="Newest" Content="Fecha · más reciente" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="Oldest" Content="Fecha · más antigua" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="FilesDescending" Content="Archivos · mayor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="FilesAscending" Content="Archivos · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="FilesDescending" Content="Elementos · mayor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                <Button Tag="FilesAscending" Content="Elementos · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="SizeDescending" Content="Tamaño · mayor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="SizeAscending" Content="Tamaño · menor primero" Click="HistorySortOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
@@ -316,7 +316,7 @@
                                 <TextBlock Grid.Column="1" Text="TIPO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="2" Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="3" Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="4" Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="4" Text="ELEMENTOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="5" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                             </Grid>
 
@@ -449,7 +449,7 @@
 
                                     <Border Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
                                         <StackPanel Spacing="4">
-                                            <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                                            <TextBlock Text="ELEMENTOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                             <TextBlock x:Name="DetailFileCountText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="21" FontWeight="SemiBold" />
                                         </StackPanel>
                                     </Border>
@@ -495,7 +495,7 @@
 
                                 <TextBlock
                                     x:Name="DetailFilesSectionTitleText"
-                                    Text="ARCHIVOS DE LA EJECUCIÓN"
+                                    Text="ELEMENTOS DE LA EJECUCIÓN"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="13"
                                     Margin="0,0,0,10" />
@@ -528,6 +528,11 @@
                                                                 Foreground="{StaticResource BandaTextBrush}"
                                                                 FontSize="14"
                                                                 TextTrimming="CharacterEllipsis" />
+
+                                                            <TextBlock
+                                                                Text="{x:Bind TypeText}"
+                                                                Foreground="{StaticResource BandaMutedBrush}"
+                                                                FontSize="11" />
 
                                                             <StackPanel
                                                                 Orientation="Horizontal"
