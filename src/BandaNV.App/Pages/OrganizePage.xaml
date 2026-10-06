@@ -513,7 +513,19 @@
                             Background="{StaticResource BandaAccentBrush}"
                             Foreground="{StaticResource BandaActionForegroundBrush}"
                             BorderThickness="0"
-                            FontWeight="SemiBold" />
+                            FontWeight="SemiBold">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
 
                         <TextBlock
                             x:Name="AnalysisStatusText"
@@ -1400,7 +1412,19 @@
                         Background="{StaticResource BandaAccentBrush}"
                         Foreground="{StaticResource BandaActionForegroundBrush}"
                         BorderThickness="0"
-                        FontWeight="SemiBold" />
+                        FontWeight="SemiBold">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
                 </Grid>
             </Border>
         </Grid>
@@ -1505,7 +1529,19 @@
                             Background="{StaticResource BandaAccentBrush}"
                             Foreground="{StaticResource BandaActionForegroundBrush}"
                             BorderThickness="0"
-                            FontWeight="SemiBold" />
+                            FontWeight="SemiBold">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
                         <Button
                             Content="Revisar otra vez"
                             Click="AnalyzeAgainButton_Click"
@@ -1710,7 +1746,19 @@
                             Grid.Column="2"
                             Content="Guardar asignación"
                             Click="SaveAssignmentOverlayButton_Click"
-                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
@@ -1914,7 +1962,19 @@
                             Grid.Column="2"
                             Content="Guardar"
                             Click="OrganizeManagePrimaryButton_Click"
-                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
 
                         <Button
                             x:Name="OrganizeManageDangerButton"
@@ -2095,7 +2155,19 @@
                             Grid.Column="3"
                             Content="Reemplazar"
                             Click="ConflictReplaceButton_Click"
-                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
