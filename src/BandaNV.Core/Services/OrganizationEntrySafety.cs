@@ -163,6 +163,14 @@ public static class OrganizationEntrySafety
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                var relativeDirectoryPath =
+                    Path.GetRelativePath(
+                        normalizedRoot,
+                        directory);
+
+                fingerprintParts.Add(
+                    $"DIR\0{relativeDirectoryPath}");
+
                 var attributes =
                     File.GetAttributes(
                         directory);
