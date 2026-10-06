@@ -224,7 +224,8 @@ public sealed class SettingsService
         value?.Trim() switch
         {
             "Renombrar automáticamente" => "Renombrar automáticamente",
-            "Omitir archivo" => "Omitir archivo",
+            "Omitir archivo" => "Omitir elemento",
+            "Omitir elemento" => "Omitir elemento",
             "Reemplazar" => "Reemplazar",
             _ => "Preguntar"
         };
