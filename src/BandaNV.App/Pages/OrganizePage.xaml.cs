@@ -2094,7 +2094,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             FocusState.Programmatic);
     }
 
-    private void OrganizeDeleteButton_Click(
+    private async void OrganizeDeleteButton_Click(
         object sender,
         RoutedEventArgs e)
     {
@@ -2160,12 +2160,21 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeManageDangerButton.Content =
             settings.UseRecycleBin
                 ? "Enviar a Papelera"
-                : "Eliminar";
+                : targets.Count == 1
+                    ? "Eliminar"
+                    : $"Eliminar {targets.Count} elementos";
         OrganizeManageDangerButton.Visibility =
             Visibility.Visible;
 
         OrganizeManageValidationText.Visibility =
             Visibility.Collapsed;
+
+        if (!settings.ConfirmDestructiveActions)
+        {
+            await ExecuteDeleteManagedOrganizeTargetsAsync();
+            return;
+        }
+
         OrganizeManageOverlay.Visibility =
             Visibility.Visible;
     }
@@ -2320,7 +2329,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             }
 
             ShowOrganizeActionStatus(
-                "Categoría prevista actualizada. El archivo todavía no fue movido.");
+                "Categoría prevista actualizada. La organización todavía no se ejecutó.");
             return;
         }
 
@@ -2420,9 +2429,15 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 OrganizeManageMode.Delete ||
             _managedOrganizeTargets.Count == 0)
         {
+            CloseOrganizeManageOverlay();
             return;
         }
 
+        await ExecuteDeleteManagedOrganizeTargetsAsync();
+    }
+
+    private async Task ExecuteDeleteManagedOrganizeTargetsAsync()
+    {
         StopSourceWatcher();
         BeginSourceWatcherSuppression();
 
@@ -2466,6 +2481,14 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     "No se pudo eliminar ningún elemento.";
                 OrganizeManageValidationText.Visibility =
                     Visibility.Visible;
+
+                if (OrganizeManageOverlay.Visibility !=
+                    Visibility.Visible)
+                {
+                    OrganizeManageOverlay.Visibility =
+                        Visibility.Visible;
+                }
+
                 return;
             }
 
@@ -2485,7 +2508,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             ShowOrganizeActionStatus(
                 hadErrors
-                    ? $"{completed} elemento(s) eliminado(s). Algunos no pudieron modificarse."
+                    ? $"{completed} elemento{(completed == 1 ? string.Empty : "s")} eliminado{(completed == 1 ? string.Empty : "s")}. Algunos no pudieron modificarse."
                     : completed == 1
                         ? "Elemento eliminado. El análisis se actualizó automáticamente."
                         : $"{completed} elementos eliminados. El análisis se actualizó automáticamente.",
@@ -2495,9 +2518,16 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         catch (Exception ex)
         {
             OrganizeManageValidationText.Text =
-                ex.Message;
+                $"No se pudo eliminar: {ex.Message}";
             OrganizeManageValidationText.Visibility =
                 Visibility.Visible;
+
+            if (OrganizeManageOverlay.Visibility !=
+                Visibility.Visible)
+            {
+                OrganizeManageOverlay.Visibility =
+                    Visibility.Visible;
+            }
         }
         finally
         {
@@ -3560,7 +3590,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         AnalysisStatusText.Visibility = Visibility.Visible;
         AnalysisStatusText.Foreground = GetBrush("BandaMutedStrongBrush");
         AnalysisStatusText.Text =
-            "Leyendo la carpeta de origen en modo seguro. No se moverá ni creará ningún archivo.";
+            "Leyendo la carpeta de origen en modo seguro. No se moverá ni creará ningún elemento.";
 
         try
         {
@@ -3613,7 +3643,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 ShowInitialState();
                 AnalysisStatusText.Foreground = GetBrush("BandaAccentBrush");
                 AnalysisStatusText.Text =
-                    "No se encontraron archivos pendientes en la carpeta de origen.";
+                    "No se encontraron elementos pendientes en la carpeta de origen.";
                 return;
             }
 
@@ -3668,7 +3698,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 AnalysisStatusText.Foreground =
                     GetBrush("BandaMutedStrongBrush");
                 AnalysisStatusText.Text =
-                    "No hay archivos clasificables para organizar. Los archivos sin categoría permanecen en origen.";
+                    "No hay elementos clasificables para organizar. Los elementos sin categoría permanecen en origen.";
                 return;
             }
 
