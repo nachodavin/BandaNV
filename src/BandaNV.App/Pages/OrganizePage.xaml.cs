@@ -2316,6 +2316,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 ? null
                 : _folderDetailCurrentRelativePath;
 
+        BeginSourceWatcherSuppression();
+
         try
         {
             OrganizeManagePrimaryButton.IsEnabled =
@@ -2376,6 +2378,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         {
             OrganizeManagePrimaryButton.IsEnabled =
                 true;
+            EndSourceWatcherSuppression();
         }
     }
 
@@ -2389,6 +2392,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         {
             return;
         }
+
+        BeginSourceWatcherSuppression();
 
         try
         {
@@ -2467,6 +2472,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         {
             OrganizeManageDangerButton.IsEnabled =
                 true;
+            EndSourceWatcherSuppression();
         }
     }
 
@@ -3039,19 +3045,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         string? preferredFolderRelativePath = null)
     {
         var preservedAssignments =
-            _files
-                .Where(file =>
-                    file.AssignmentSource ==
-                        OrganizeAssignmentSource.IndividualOverride &&
-                    file.IsClassified &&
-                    !string.IsNullOrWhiteSpace(
-                        file.CategoryId))
-                .ToDictionary(
-                    file =>
-                        file.FullPath,
-                    file =>
-                        file.CategoryId!,
-                    StringComparer.OrdinalIgnoreCase);
+            CaptureManualAssignments();
 
         if (!string.IsNullOrWhiteSpace(
                 renamedFromPath) &&
@@ -3340,6 +3334,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
+        StopSourceWatcher();
+
         _executionCts?.Cancel();
         _executionCts?.Dispose();
         _executionCts = new CancellationTokenSource();
@@ -3450,26 +3446,29 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         }
         catch (OperationCanceledException)
         {
-            ProgressStatePanel.Visibility = Visibility.Collapsed;
-            PreviewStatePanel.Visibility = Visibility.Visible;
+            await ReanalyzePreviewAfterSourceActionAsync(
+                preferredSelectionPath:
+                    null);
 
             FooterStatusText.Foreground = GetBrush("BandaMutedStrongBrush");
             FooterStatusText.Text =
-                "La organización fue cancelada. Los movimientos ya completados quedaron registrados.";
+                "La organización fue cancelada. Los movimientos ya completados quedaron registrados y el análisis se actualizó.";
         }
         catch (Exception ex)
         {
-            ProgressStatePanel.Visibility = Visibility.Collapsed;
-            PreviewStatePanel.Visibility = Visibility.Visible;
+            await ReanalyzePreviewAfterSourceActionAsync(
+                preferredSelectionPath:
+                    null);
 
             FooterStatusText.Foreground = GetBrush("BandaDangerBrush");
             FooterStatusText.Text =
-                $"No se pudo completar la organización: {ex.Message}";
+                $"No se pudo completar la organización: {ex.Message}. El análisis se actualizó con el estado actual del origen.";
         }
     }
 
     private void ShowInitialState()
     {
+        StopSourceWatcher();
         UpdateInitialStateText();
 
         if (PreviewFilesList is not null)
@@ -3493,6 +3492,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         ProgressStatePanel.Visibility = Visibility.Collapsed;
         CompletionStatePanel.Visibility = Visibility.Collapsed;
         RefreshPreview();
+        StartSourceWatcher();
     }
 
     private async Task AnalyzeFilesAsync(
