@@ -126,8 +126,14 @@ public sealed class SearchIndexService
                     directory.FullName,
                     cancellationToken);
 
+            var fileContents =
+                contents
+                    .Where(item =>
+                        !item.IsDirectory)
+                    .ToList();
+
             var totalSize =
-                contents.Sum(item =>
+                fileContents.Sum(item =>
                     item.SizeBytes);
 
             var modifiedAt =
@@ -145,7 +151,7 @@ public sealed class SearchIndexService
                 totalSize,
                 modifiedAt,
                 OrganizationAnalysisItemKind.Folder,
-                contents.Count,
+                fileContents.Count,
                 contents);
         }
         catch (OperationCanceledException)
@@ -164,6 +170,9 @@ public sealed class SearchIndexService
     {
         var results =
             new List<IndexedSearchChild>();
+
+        var discoveredDirectories =
+            new List<string>();
 
         var pending =
             new Stack<string>();
@@ -252,6 +261,9 @@ public sealed class SearchIndexService
                         continue;
                     }
 
+                    discoveredDirectories.Add(
+                        directoryPath);
+
                     pending.Push(
                         directoryPath);
                 }
@@ -261,8 +273,71 @@ public sealed class SearchIndexService
             }
         }
 
+        var fileItems =
+            results
+                .Where(item =>
+                    !item.IsDirectory)
+                .ToList();
+
+        foreach (var directoryPath in discoveredDirectories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                var directory =
+                    new DirectoryInfo(
+                        directoryPath);
+
+                var relativePath =
+                    Path.GetRelativePath(
+                        root,
+                        directory.FullName);
+
+                var prefix =
+                    relativePath +
+                    Path.DirectorySeparatorChar;
+
+                var descendantFiles =
+                    fileItems
+                        .Where(item =>
+                            item.RelativePath.StartsWith(
+                                prefix,
+                                StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                var totalSize =
+                    descendantFiles.Sum(item =>
+                        item.SizeBytes);
+
+                var modifiedAt =
+                    descendantFiles.Count > 0
+                        ? descendantFiles.Max(item =>
+                            item.ModifiedAt)
+                        : directory.LastWriteTime;
+
+                results.Add(
+                    new IndexedSearchChild(
+                        relativePath,
+                        directory.Name,
+                        string.Empty,
+                        totalSize,
+                        modifiedAt,
+                        IsDirectory: true,
+                        ContainedFileCount:
+                            descendantFiles.Count));
+            }
+            catch
+            {
+            }
+        }
+
         return results
-            .OrderBy(
+            .OrderBy(item =>
+                item.IsDirectory
+                    ? 0
+                    : 1)
+            .ThenBy(
                 item => item.RelativePath,
                 StringComparer.CurrentCultureIgnoreCase)
             .ToList();
