@@ -728,7 +728,9 @@
                                                 <StackPanel Spacing="2">
                                                     <TextBlock Text="TIPO DE EJECUCIÓN" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
                                                     <Button Tag="All" Content="Todos los tipos" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                    <Button Tag="Organize" Content="Organizar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Organize" Content="Organizar · Todo" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="OrganizeRename" Content="Organizar · Renombrar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="OrganizeDelete" Content="Organizar · Eliminar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="Search" Content="Buscar · Todas las acciones" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="SearchCategory" Content="Buscar · Cambiar categoría" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                     <Button Tag="SearchRename" Content="Buscar · Renombrar" Click="HistoryTypeOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
