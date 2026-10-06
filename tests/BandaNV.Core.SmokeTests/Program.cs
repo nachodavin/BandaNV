@@ -83,6 +83,14 @@ internal static class Program
             ReplaceIsAutomaticWhenConfirmationDisabledAsync);
 
         await RunAsync(
+            "Historial desactivado conserva Undo técnico sin mostrarlo",
+            HiddenHistoryKeepsTechnicalUndoAsync);
+
+        await RunAsync(
+            "Historial activado mantiene la ejecución visible",
+            VisibleHistoryRemainsVisibleAsync);
+
+        await RunAsync(
             "Reanálisis detecta un archivo agregado externamente",
             ReanalysisDetectsExternalCreateAsync);
 
@@ -1157,6 +1165,143 @@ internal static class Program
             "El destino debería contener el elemento nuevo.");
     }
 
+    private static async Task HiddenHistoryKeepsTechnicalUndoAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        WriteFile(
+            Path.Combine(
+                workspace.Source,
+                "oculto.txt"),
+            "contenido");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "oculto.txt");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Preguntar",
+                saveHistory:
+                    false);
+
+        try
+        {
+            Equal(
+                false,
+                result.Record.ShowInHistory,
+                "La ejecución técnica no debería marcarse como historial visible.");
+
+            True(
+                !string.IsNullOrWhiteSpace(
+                    result.HistoryPath) &&
+                File.Exists(
+                    result.HistoryPath),
+                "El registro técnico debería conservarse para Undo.");
+
+            var history =
+                new HistoryService();
+
+            var visible =
+                await history.LoadAsync();
+
+            True(
+                visible.All(record =>
+                    !record.ExecutionId.Equals(
+                        result.Record.ExecutionId,
+                        StringComparison.OrdinalIgnoreCase)),
+                "El registro técnico no debería aparecer en el historial visible.");
+
+            var technical =
+                await history.LoadTechnicalUndoRecordsAsync();
+
+            True(
+                technical.Any(record =>
+                    record.ExecutionId.Equals(
+                        result.Record.ExecutionId,
+                        StringComparison.OrdinalIgnoreCase)),
+                "El registro oculto debería estar disponible para Undo técnico.");
+        }
+        finally
+        {
+            DeleteExecutionArtifacts(
+                result);
+        }
+    }
+
+    private static async Task VisibleHistoryRemainsVisibleAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        WriteFile(
+            Path.Combine(
+                workspace.Source,
+                "visible.txt"),
+            "contenido");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "visible.txt");
+
+        var result =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Preguntar",
+                saveHistory:
+                    true);
+
+        try
+        {
+            Equal(
+                true,
+                result.Record.ShowInHistory,
+                "La ejecución debería marcarse como historial visible.");
+
+            var history =
+                new HistoryService();
+
+            var visible =
+                await history.LoadAsync();
+
+            True(
+                visible.Any(record =>
+                    record.ExecutionId.Equals(
+                        result.Record.ExecutionId,
+                        StringComparison.OrdinalIgnoreCase)),
+                "La ejecución debería aparecer en el historial visible.");
+
+            var technical =
+                await history.LoadTechnicalUndoRecordsAsync();
+
+            True(
+                technical.All(record =>
+                    !record.ExecutionId.Equals(
+                        result.Record.ExecutionId,
+                        StringComparison.OrdinalIgnoreCase)),
+                "Una ejecución visible no debería duplicarse como Undo técnico.");
+        }
+        finally
+        {
+            DeleteExecutionArtifacts(
+                result);
+        }
+    }
+
     private static async Task ReanalysisDetectsExternalCreateAsync()
     {
         using var workspace =
@@ -1312,7 +1457,8 @@ internal static class Program
         OrganizationAnalysisFile item,
         string conflictBehavior,
         IOrganizationConflictResolver? resolver = null,
-        bool confirmDestructiveActions = false)
+        bool confirmDestructiveActions = false,
+        bool saveHistory = false)
     {
         var settings =
             CreateSettings(
@@ -1320,10 +1466,7 @@ internal static class Program
                 conflictBehavior);
 
         settings.SaveHistory =
-            false;
-
-        settings.UndoEnabled =
-            false;
+            saveHistory;
 
         settings.ConfirmDestructiveActions =
             confirmDestructiveActions;
@@ -1337,6 +1480,34 @@ internal static class Program
                 ],
                 conflictResolver:
                     resolver);
+    }
+
+    private static void DeleteExecutionArtifacts(
+        OrganizationExecutionResult result)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(
+                    result.HistoryPath) &&
+                File.Exists(
+                    result.HistoryPath))
+            {
+                File.Delete(
+                    result.HistoryPath);
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                    result.LogPath) &&
+                File.Exists(
+                    result.LogPath))
+            {
+                File.Delete(
+                    result.LogPath);
+            }
+        }
+        catch
+        {
+        }
     }
 
     private static OrganizationExecutionRequestItem ToExecutionRequest(
