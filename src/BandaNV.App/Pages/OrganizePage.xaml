@@ -1337,18 +1337,35 @@
                         Background="{StaticResource BandaCardBrush}"
                         BorderBrush="{StaticResource BandaBorderBrush}"
                         BorderThickness="1">
-                        <StackPanel Spacing="4">
-                            <TextBlock
-                                Text="RUTA"
-                                Style="{StaticResource BandaLabelTextStyle}"
-                                FontSize="10" />
-                            <TextBlock
-                                x:Name="FolderDetailPathText"
-                                Text=""
-                                Foreground="{StaticResource BandaMutedStrongBrush}"
-                                FontSize="12"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button
+                                x:Name="FolderDetailBackButton"
+                                Content="Atrás"
+                                Click="FolderDetailBackButton_Click"
+                                Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed" />
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="4">
+                                <TextBlock
+                                    Text="RUTA"
+                                    Style="{StaticResource BandaLabelTextStyle}"
+                                    FontSize="10" />
+                                <TextBlock
+                                    x:Name="FolderDetailPathText"
+                                    Text=""
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
                     <Border
@@ -1391,7 +1408,8 @@
                                 Grid.Row="1"
                                 ItemTemplate="{StaticResource FolderContentTemplate}"
                                 SelectionMode="None"
-                                IsItemClickEnabled="False"
+                                IsItemClickEnabled="True"
+                                ItemClick="FolderDetailFilesList_ItemClick"
                                 HorizontalContentAlignment="Stretch"
                                 Background="Transparent"
                                 BorderThickness="0"
