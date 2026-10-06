@@ -1817,9 +1817,12 @@ public sealed class OrganizationExecutionService
         builder.AppendLine(
             $"Tipo: {GetExecutionTypeDisplayName(record)}");
 
-        if (record.Type.Equals(
-                "SEARCH",
-                StringComparison.OrdinalIgnoreCase) &&
+        if ((record.Type.Equals(
+                 "SEARCH",
+                 StringComparison.OrdinalIgnoreCase) ||
+             record.Type.Equals(
+                 "ORGANIZE_ACTION",
+                 StringComparison.OrdinalIgnoreCase)) &&
             !string.IsNullOrWhiteSpace(record.Action))
         {
             builder.AppendLine(
@@ -1950,6 +1953,13 @@ public sealed class OrganizationExecutionService
                 StringComparison.OrdinalIgnoreCase))
         {
             return "BUSCAR";
+        }
+
+        if (record.Type.Equals(
+                "ORGANIZE_ACTION",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "ORGANIZAR · ACCIÓN";
         }
 
         return "ORGANIZAR";
