@@ -32,6 +32,7 @@ public sealed class AppSettings
     public bool ConfirmDestructiveActions { get; set; } = true;
 
     public bool SaveHistory { get; set; } = true;
+    public bool SaveOrganizeHistory { get; set; } = true;
     public bool SaveSearchHistory { get; set; } = true;
     public string HistoryRetention { get; set; } = "Siempre";
 
