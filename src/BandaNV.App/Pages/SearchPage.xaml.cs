@@ -2594,7 +2594,8 @@ public sealed class SearchFolderContentItem
         string name,
         string extension,
         long sizeBytes,
-        DateTime modifiedAt)
+        DateTime modifiedAt,
+        SearchFileResult actionTarget)
     {
         RelativePath =
             relativePath;
@@ -2610,6 +2611,9 @@ public sealed class SearchFolderContentItem
 
         ModifiedAt =
             modifiedAt;
+
+        ActionTarget =
+            actionTarget;
     }
 
     public string RelativePath { get; }
@@ -2617,6 +2621,7 @@ public sealed class SearchFolderContentItem
     public string Extension { get; }
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
+    public SearchFileResult ActionTarget { get; }
 
     public string ExtensionDisplay =>
         Extension.ToUpperInvariant();
@@ -2669,15 +2674,43 @@ public sealed class SearchFileResult
         ContainedFileCount =
             containedFileCount;
 
+        var folderPath =
+            System.IO.Path.Combine(
+                location,
+                name);
+
         FolderContents =
             (contents ?? [])
                 .Select(item =>
-                    new SearchFolderContentItem(
+                {
+                    var fullPath =
+                        System.IO.Path.GetFullPath(
+                            System.IO.Path.Combine(
+                                folderPath,
+                                item.RelativePath));
+
+                    var childLocation =
+                        System.IO.Path.GetDirectoryName(
+                            fullPath) ??
+                        folderPath;
+
+                    var actionTarget =
+                        new SearchFileResult(
+                            item.Name,
+                            category,
+                            item.SizeBytes,
+                            item.ModifiedAt,
+                            childLocation,
+                            colorHex);
+
+                    return new SearchFolderContentItem(
                         item.RelativePath,
                         item.Name,
                         item.Extension,
                         item.SizeBytes,
-                        item.ModifiedAt))
+                        item.ModifiedAt,
+                        actionTarget);
+                })
                 .ToList();
 
         ContentSearchText =
@@ -2712,11 +2745,6 @@ public sealed class SearchFileResult
         System.IO.Path.Combine(
             Location,
             Name);
-
-    public Visibility FolderContentVisibility =>
-        IsDirectory
-            ? Visibility.Visible
-            : Visibility.Collapsed;
 
     public void Rename(
         string proposedName)
