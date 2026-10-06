@@ -144,6 +144,8 @@ public sealed class UndoService
             new OrganizationExecutionRecord
             {
                 Type = "UNDO",
+                ShowInHistory =
+                    original.ShowInHistory,
                 StartedAt = now,
                 SourceFolder =
                     original.DestinationFolder,
