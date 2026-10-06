@@ -748,7 +748,7 @@
                                     </StackPanel>
 
                                     <StackPanel Spacing="7">
-                                        <TextBlock Text="SI YA EXISTE UN ARCHIVO CON EL MISMO NOMBRE" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
+                                        <TextBlock Text="SI YA EXISTE UN ELEMENTO CON EL MISMO NOMBRE" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
                                         <Button Style="{StaticResource BandaSelectorButtonStyle}">
                                             <Grid ColumnSpacing="8">
                                                 <Grid.ColumnDefinitions>
@@ -764,7 +764,7 @@
                                                         <StackPanel Spacing="2">
                                                             <Button Tag="Preguntar" Content="Preguntar" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                             <Button Tag="Renombrar automáticamente" Content="Renombrar automáticamente" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                            <Button Tag="Omitir archivo" Content="Omitir archivo" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button Tag="Omitir elemento" Content="Omitir elemento" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                             <Button Tag="Reemplazar" Content="Reemplazar" Click="ConflictBehaviorOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                                         </StackPanel>
                                                     </Border>
