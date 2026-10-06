@@ -430,6 +430,25 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RefreshPreview();
     }
 
+    private void PreviewFilesList_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (_isRefreshingPreview)
+        {
+            return;
+        }
+
+        if (PreviewFilesList.SelectedItem is OrganizePreviewFile item)
+        {
+            ShowOrganizeDetail(
+                item);
+            return;
+        }
+
+        ShowOrganizeSummary();
+    }
+
     private void FolderDetailButton_Click(
         object sender,
         RoutedEventArgs e)
@@ -451,16 +470,89 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
-        _folderDetailRoot =
+        PreviewFilesList.SelectedItem =
             folder;
+
+        ShowOrganizeDetail(
+            folder);
+    }
+
+    private void ClearOrganizeDetailButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        PreviewFilesList.SelectedItem =
+            null;
+
+        ShowOrganizeSummary();
+    }
+
+    private void ShowOrganizeSummary()
+    {
+        OrganizeDetailPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeSummaryPanel.Visibility =
+            Visibility.Visible;
+
+        ResetFolderDetailNavigation();
+    }
+
+    private void ShowOrganizeDetail(
+        OrganizePreviewFile item)
+    {
+        OrganizeSummaryPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeDetailPanel.Visibility =
+            Visibility.Visible;
+
+        OrganizeDetailFileNameText.Text =
+            item.FileName;
+
+        OrganizeDetailSummaryText.Text =
+            item.IsDirectory
+                ? item.FolderDetailSummary
+                : item.HasPendingConflict
+                    ? item.ConflictDisplay
+                    : "Archivo individual";
+
+        OrganizeDetailCategoryText.Text =
+            item.IsClassified
+                ? item.CategoryName ?? "—"
+                : "Sin asignar";
+
+        OrganizeDetailSizeText.Text =
+            item.SizeDisplay;
+
+        OrganizeDetailTypeText.Text =
+            item.IsDirectory
+                ? "CARPETA"
+                : item.ExtensionDisplay;
+
+        OrganizeDetailModifiedText.Text =
+            item.ModifiedDisplay;
+
+        OrganizeDetailLocationText.Text =
+            item.FullPath;
+
+        if (!item.IsDirectory)
+        {
+            OrganizeFolderContentsPanel.Visibility =
+                Visibility.Collapsed;
+
+            ResetFolderDetailNavigation();
+            return;
+        }
+
+        _folderDetailRoot =
+            item;
         _folderDetailCurrentRelativePath =
             string.Empty;
         _folderDetailHistory.Clear();
 
-        RefreshFolderDetailView();
-
-        FolderDetailOverlay.Visibility =
+        OrganizeFolderContentsPanel.Visibility =
             Visibility.Visible;
+
+        RefreshFolderDetailView();
     }
 
     private void FolderDetailFilesList_ItemClick(
@@ -506,33 +598,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         var currentPath =
             _folderDetailCurrentRelativePath;
 
-        var currentFolder =
-            string.IsNullOrWhiteSpace(currentPath)
-                ? null
-                : _folderDetailRoot.FolderContents
-                    .FirstOrDefault(item =>
-                        item.IsDirectory &&
-                        item.RelativePath.Equals(
-                            currentPath,
-                            StringComparison.OrdinalIgnoreCase));
-
-        FolderDetailTitleText.Text =
-            currentFolder?.FileName ??
-            _folderDetailRoot.FileName;
-
-        FolderDetailSummaryText.Text =
-            currentFolder is null
-                ? _folderDetailRoot.FolderDetailSummary
-                : BuildNestedFolderSummary(
-                    currentFolder,
-                    _folderDetailRoot.FolderContents);
-
         FolderDetailPathText.Text =
-            string.IsNullOrWhiteSpace(currentPath)
-                ? _folderDetailRoot.FullPath
-                : Path.Combine(
-                    _folderDetailRoot.FullPath,
-                    currentPath);
+            string.IsNullOrWhiteSpace(
+                currentPath)
+                ? "Raíz"
+                : currentPath;
 
         FolderDetailBackButton.Visibility =
             _folderDetailHistory.Count > 0
@@ -554,37 +624,20 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 .ToList();
     }
 
-    private static string BuildNestedFolderSummary(
-        FolderContentPreviewItem folder,
-        IReadOnlyList<FolderContentPreviewItem> allItems)
+    private void ResetFolderDetailNavigation()
     {
-        var directSubfolderCount =
-            allItems.Count(item =>
-                item.IsDirectory &&
-                GetParentRelativePath(
-                    item.RelativePath)
-                    .Equals(
-                        folder.RelativePath,
-                        StringComparison.OrdinalIgnoreCase));
+        _folderDetailRoot =
+            null;
+        _folderDetailCurrentRelativePath =
+            string.Empty;
+        _folderDetailHistory.Clear();
 
-        var parts =
-            new List<string>
-            {
-                $"{folder.ContainedFileCount} archivo{(folder.ContainedFileCount == 1 ? string.Empty : "s")}"
-            };
-
-        if (directSubfolderCount > 0)
-        {
-            parts.Add(
-                $"{directSubfolderCount} subcarpeta{(directSubfolderCount == 1 ? string.Empty : "s")}");
-        }
-
-        parts.Add(
-            folder.CategoryDisplay);
-
-        return string.Join(
-            " · ",
-            parts);
+        FolderDetailFilesList.ItemsSource =
+            null;
+        FolderDetailPathText.Text =
+            "Raíz";
+        FolderDetailBackButton.Visibility =
+            Visibility.Collapsed;
     }
 
     private static string GetParentRelativePath(
@@ -597,37 +650,6 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         return string.IsNullOrWhiteSpace(parent)
             ? string.Empty
             : parent;
-    }
-
-    private void CloseFolderDetailButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        CloseFolderDetail();
-    }
-
-    private void FolderDetailBackdrop_Tapped(
-        object sender,
-        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
-    {
-        CloseFolderDetail();
-    }
-
-    private void CloseFolderDetail()
-    {
-        FolderDetailOverlay.Visibility =
-            Visibility.Collapsed;
-
-        FolderDetailFilesList.ItemsSource =
-            null;
-
-        _folderDetailRoot =
-            null;
-        _folderDetailCurrentRelativePath =
-            string.Empty;
-        _folderDetailHistory.Clear();
-        FolderDetailBackButton.Visibility =
-            Visibility.Collapsed;
     }
 
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
@@ -1001,6 +1023,15 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private void ShowInitialState()
     {
         UpdateInitialStateText();
+
+        if (PreviewFilesList is not null)
+        {
+            PreviewFilesList.SelectedItem =
+                null;
+        }
+
+        ShowOrganizeSummary();
+
         InitialStatePanel.Visibility = Visibility.Visible;
         PreviewStatePanel.Visibility = Visibility.Collapsed;
         ProgressStatePanel.Visibility = Visibility.Collapsed;
@@ -1498,17 +1529,48 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             assignment.UpdateActiveFileCount(activeCount);
         }
 
+        var selectedItemId =
+            (PreviewFilesList.SelectedItem as OrganizePreviewFile)?
+                .ItemId;
+
+        var orderedPreviewFiles =
+            _files
+                .OrderBy(file => file.IsClassified ? 0 : 1)
+                .ThenBy(file => file.IsDirectory ? 0 : 1)
+                .ThenBy(file => file.CategoryOrder ?? int.MaxValue)
+                .ThenBy(file => file.FileName, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
         _isRefreshingPreview = true;
 
-        PreviewFilesList.ItemsSource = null;
-        PreviewFilesList.ItemsSource = _files
-            .OrderBy(file => file.IsClassified ? 0 : 1)
-            .ThenBy(file => file.IsDirectory ? 0 : 1)
-            .ThenBy(file => file.CategoryOrder ?? int.MaxValue)
-            .ThenBy(file => file.FileName, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+        PreviewFilesList.ItemsSource =
+            null;
+        PreviewFilesList.ItemsSource =
+            orderedPreviewFiles;
+
+        var restoredSelection =
+            string.IsNullOrWhiteSpace(
+                selectedItemId)
+                ? null
+                : orderedPreviewFiles.FirstOrDefault(item =>
+                    item.ItemId.Equals(
+                        selectedItemId,
+                        StringComparison.Ordinal));
+
+        PreviewFilesList.SelectedItem =
+            restoredSelection;
 
         _isRefreshingPreview = false;
+
+        if (restoredSelection is not null)
+        {
+            ShowOrganizeDetail(
+                restoredSelection);
+        }
+        else
+        {
+            ShowOrganizeSummary();
+        }
 
         UnassignedExtensionsList.ItemsSource = null;
         UnassignedExtensionsList.ItemsSource = unassignedExtensions;
