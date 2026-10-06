@@ -1155,18 +1155,42 @@ public sealed partial class HistoryPage : Page
 
     private void UndoPreviewButton_Click(object sender, RoutedEventArgs e)
     {
-        var executions = GetSelectedHistoryExecutions();
+        var executions =
+            GetSelectedHistoryExecutions();
 
-        if (executions.Count != 1 ||
-            !executions[0].CanUndo ||
-            executions[0].ExecutionRecord is null)
+        if (executions.Count != 1)
         {
             return;
         }
 
-        var execution = executions[0];
+        OpenUndoConfirmation(
+            executions[0]);
+    }
 
-        _pendingUndoExecution = execution;
+    private void TechnicalUndoButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_technicalUndoExecution is null)
+        {
+            return;
+        }
+
+        OpenUndoConfirmation(
+            _technicalUndoExecution);
+    }
+
+    private void OpenUndoConfirmation(
+        HistoryExecutionPreview execution)
+    {
+        if (!execution.CanUndo ||
+            execution.ExecutionRecord is null)
+        {
+            return;
+        }
+
+        _pendingUndoExecution =
+            execution;
 
         var isAction =
             execution.Type.StartsWith(
@@ -1182,25 +1206,35 @@ public sealed partial class HistoryPage : Page
                 : "Deshacer organización";
 
         HistoryModalBodyText.Text =
-            execution.ReversibleFileCount == execution.FileCount
+            execution.ReversibleFileCount ==
+                execution.FileCount
                 ? $"BandaNV va a intentar restaurar los {execution.FileCount} elemento{(execution.FileCount == 1 ? string.Empty : "s")} a su nombre o ubicación anterior. " +
                   "Antes de cada cambio se vuelve a validar que el elemento siga intacto y que la ubicación original esté libre."
                 : $"{execution.ReversibleFileCount} de {execution.FileCount} elementos siguen siendo reversibles en este momento. " +
                   "BandaNV intentará restaurarlos de forma segura; cualquier elemento modificado, ausente o con conflicto se dejará intacto y quedará registrado como incidencia.";
 
-        HistoryModalIconText.Text = "↶";
+        HistoryModalIconText.Text =
+            "↶";
         HistoryModalIconBorder.Background =
-            (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
+            (Brush)Application.Current.Resources[
+                "BandaAccentSoftBrush"];
         HistoryModalIconText.Foreground =
-            (Brush)Application.Current.Resources["BandaAccentBrush"];
+            (Brush)Application.Current.Resources[
+                "BandaAccentBrush"];
 
-        HistoryModalSecondaryButton.Content = "Cancelar";
-        HistoryModalPrimaryButton.Content = "Deshacer ahora";
+        HistoryModalSecondaryButton.Content =
+            "Cancelar";
+        HistoryModalPrimaryButton.Content =
+            "Deshacer ahora";
         HistoryModalPrimaryButton.Style =
-            (Style)Application.Current.Resources["BandaPopupPrimaryButtonStyle"];
-        HistoryModalPrimaryButton.IsEnabled = true;
-        HistoryModalPrimaryButton.Visibility = Visibility.Visible;
-        HistoryModalOverlay.Visibility = Visibility.Visible;
+            (Style)Application.Current.Resources[
+                "BandaPopupPrimaryButtonStyle"];
+        HistoryModalPrimaryButton.IsEnabled =
+            true;
+        HistoryModalPrimaryButton.Visibility =
+            Visibility.Visible;
+        HistoryModalOverlay.Visibility =
+            Visibility.Visible;
     }
 
     private async void HistoryModalPrimaryButton_Click(object sender, RoutedEventArgs e)
@@ -1268,13 +1302,16 @@ public sealed partial class HistoryPage : Page
                 ? "Undo completado"
                 : "Undo completado con incidencias";
 
-            HistoryModalBodyText.Text = issues == 0
-                ? $"{restored} elemento{(restored == 1 ? string.Empty : "s")} " +
-                  $"restaurado{(restored == 1 ? string.Empty : "s")} correctamente. " +
-                  "La operación quedó registrada en Historial y en logs."
-                : $"{restored} elemento{(restored == 1 ? string.Empty : "s")} restaurado{(restored == 1 ? string.Empty : "s")} " +
-                  $"y {issues} incidencia{(issues == 1 ? string.Empty : "s")}. " +
-                  "Los elementos que no pasaron las validaciones quedaron intactos y el detalle quedó registrado.";
+            HistoryModalBodyText.Text =
+                issues == 0
+                    ? $"{restored} elemento{(restored == 1 ? string.Empty : "s")} " +
+                      $"restaurado{(restored == 1 ? string.Empty : "s")} correctamente. " +
+                      (executionRecord.ShowInHistory
+                          ? "La operación quedó registrada en Historial y en logs."
+                          : "La operación quedó registrada técnicamente para seguridad y en logs, sin agregarse al historial visible.")
+                    : $"{restored} elemento{(restored == 1 ? string.Empty : "s")} restaurado{(restored == 1 ? string.Empty : "s")} " +
+                      $"y {issues} incidencia{(issues == 1 ? string.Empty : "s")}. " +
+                      "Los elementos que no pasaron las validaciones quedaron intactos y el detalle quedó registrado.";
 
             HistoryModalSecondaryButton.Content = "Cerrar";
             HistoryModalSecondaryButton.IsEnabled = true;
