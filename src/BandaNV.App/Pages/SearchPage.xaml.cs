@@ -634,6 +634,7 @@ public sealed partial class SearchPage : Page
             "SizeDescending" => SearchSortMode.SizeDescending,
             "SizeAscending" => SearchSortMode.SizeAscending,
             "Category" => SearchSortMode.Category,
+            "Extension" => SearchSortMode.Extension,
             _ => SearchSortMode.Newest
         };
 
@@ -765,6 +766,7 @@ public sealed partial class SearchPage : Page
             SearchSortMode.SizeDescending => "Tamaño · mayor primero",
             SearchSortMode.SizeAscending => "Tamaño · menor primero",
             SearchSortMode.Category => "Categoría",
+            SearchSortMode.Extension => "Extensión",
             _ => "Fecha · más reciente"
         };
 
@@ -906,6 +908,16 @@ public sealed partial class SearchPage : Page
                     categoryOrder.TryGetValue(file.Category, out var order)
                         ? order
                         : int.MaxValue)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList(),
+
+            SearchSortMode.Extension => query
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenBy(file =>
+                    file.IsDirectory
+                        ? string.Empty
+                        : System.IO.Path.GetExtension(file.Name),
+                    StringComparer.CurrentCultureIgnoreCase)
                 .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
 
@@ -2500,7 +2512,8 @@ public enum SearchSortMode
     NameDescending,
     SizeDescending,
     SizeAscending,
-    Category
+    Category,
+    Extension
 }
 
 public sealed class SearchCategorySummary
