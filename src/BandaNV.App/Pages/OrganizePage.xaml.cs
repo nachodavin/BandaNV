@@ -3469,6 +3469,17 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             ? $"{value:0} {units[unitIndex]}"
             : $"{value:0.##} {units[unitIndex]}";
     }
+
+    private sealed record OrganizeActionTarget(
+        string FullPath,
+        string FileName,
+        bool IsDirectory,
+        long SizeBytes,
+        DateTime ModifiedAt,
+        string? CategoryName,
+        string ExtensionDisplay,
+        OrganizePreviewFile RootPreviewFile,
+        bool IsRootItem);
 }
 
 public enum OrganizeManageMode
