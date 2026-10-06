@@ -712,7 +712,12 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 file.ModifiedUtcTicks,
                 file.CategoryId,
                 file.CategoryName,
-                file.CategoryOrder))
+                file.CategoryOrder,
+                file.IsDirectory
+                    ? OrganizationAnalysisItemKind.Folder
+                    : OrganizationAnalysisItemKind.File,
+                file.ContainedFileCount,
+                file.ContentFingerprint))
             .ToList();
 
         InitialStatePanel.Visibility = Visibility.Collapsed;
@@ -721,7 +726,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         ProgressStatePanel.Visibility = Visibility.Visible;
 
         OrganizationProgressBar.Value = 0;
-        ProgressCountText.Text = $"0 de {requestItems.Count} archivos";
+        ProgressCountText.Text = $"0 de {requestItems.Count} elementos";
         ProgressStatusText.Text = "Preparando organización segura...";
 
         var progress = new Progress<OrganizationExecutionProgress>(state =>
@@ -732,7 +737,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             OrganizationProgressBar.Value = percentage;
             ProgressCountText.Text =
-                $"{state.Processed} de {state.Total} archivos";
+                $"{state.Processed} de {state.Total} elementos";
             ProgressStatusText.Text =
                 $"{state.Message}: {state.FileName}";
         });
@@ -778,7 +783,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             var parts = new List<string>
             {
-                $"{moved} archivo{(moved == 1 ? string.Empty : "s")} organizado{(moved == 1 ? string.Empty : "s")} correctamente."
+                $"{moved} elemento{(moved == 1 ? string.Empty : "s")} organizado{(moved == 1 ? string.Empty : "s")} correctamente."
             };
 
             if (unclassified > 0)
@@ -790,13 +795,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             if (conflicts > 0)
             {
                 parts.Add(
-                    $"{conflicts} archivo{(conflicts == 1 ? string.Empty : "s")} no se movió{(conflicts == 1 ? string.Empty : "eron")} por conflicto de nombre.");
+                    $"{conflicts} elemento{(conflicts == 1 ? string.Empty : "s")} no se movió{(conflicts == 1 ? string.Empty : "eron")} por conflicto.");
             }
 
             if (errors > 0)
             {
                 parts.Add(
-                    $"{errors} archivo{(errors == 1 ? string.Empty : "s")} no pudo{(errors == 1 ? string.Empty : "ieron")} moverse de forma segura.");
+                    $"{errors} elemento{(errors == 1 ? string.Empty : "s")} no pudo{(errors == 1 ? string.Empty : "ieron")} moverse de forma segura.");
             }
 
             CompletionText.Text = string.Join(" ", parts);
@@ -890,7 +895,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     recognizedFileCount: file.RecognizedFileCount,
                     distinctCategoryCount: file.DistinctCategoryCount,
                     scanIncomplete: file.ScanIncomplete,
-                    folderFiles: file.FolderContents));
+                    folderFiles: file.FolderContents,
+                    contentFingerprint: file.ContentFingerprint));
             }
 
             ApplyRememberedAssignments();
@@ -1612,7 +1618,8 @@ public sealed class OrganizePreviewFile
         int recognizedFileCount = 0,
         int distinctCategoryCount = 0,
         bool scanIncomplete = false,
-        IReadOnlyList<OrganizationAnalysisFolderFile>? folderFiles = null)
+        IReadOnlyList<OrganizationAnalysisFolderFile>? folderFiles = null,
+        string? contentFingerprint = null)
     {
         ItemId = Guid.NewGuid().ToString("N");
         FullPath = fullPath;
@@ -1634,6 +1641,7 @@ public sealed class OrganizePreviewFile
         RecognizedFileCount = recognizedFileCount;
         DistinctCategoryCount = distinctCategoryCount;
         ScanIncomplete = scanIncomplete;
+        ContentFingerprint = contentFingerprint;
         FolderContents =
             (folderFiles ?? [])
                 .Select(item =>
@@ -1668,6 +1676,7 @@ public sealed class OrganizePreviewFile
     public int RecognizedFileCount { get; }
     public int DistinctCategoryCount { get; }
     public bool ScanIncomplete { get; }
+    public string? ContentFingerprint { get; }
     public IReadOnlyList<FolderContentPreviewItem> FolderContents { get; }
 
     public string? CategoryId { get; private set; }
