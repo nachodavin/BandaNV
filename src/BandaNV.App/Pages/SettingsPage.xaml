@@ -879,9 +879,22 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <TextBlock Text="Guardar historial de ejecuciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Registra las organizaciones, las acciones realizadas desde Organizar y las acciones de Deshacer en Historial." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="Registra las organizaciones y acciones de Deshacer en Historial." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="SaveHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid
+                                        x:Name="SaveOrganizeHistoryRow">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Guardar acciones de Organizar en el historial" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Registra los renombres y eliminaciones realizados desde Organizar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="SaveOrganizeHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid
