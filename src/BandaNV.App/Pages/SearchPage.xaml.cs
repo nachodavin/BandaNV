@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Windows.ApplicationModel.DataTransfer;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using System.Globalization;
@@ -20,6 +21,12 @@ public sealed partial class SearchPage : Page
     private readonly List<SearchFileResult> _allFiles = new();
 
     public ObservableCollection<SearchFileResult> VisibleSearchResults { get; } = new();
+    public ObservableCollection<SearchResultGroup> GroupedSearchResults { get; } = new();
+
+    private readonly CollectionViewSource _searchResultsViewSource = new()
+    {
+        ItemsPath = new PropertyPath(nameof(SearchResultGroup.Items))
+    };
 
     private SearchFileResult? _selectedSearchFile;
     private SearchFileResult? _selectedSearchFolder;
@@ -37,7 +44,10 @@ public sealed partial class SearchPage : Page
     private SearchSizeFilter _sizeFilter = SearchSizeFilter.All;
     private readonly HashSet<string> _extensionFilters =
         new(StringComparer.OrdinalIgnoreCase);
-    private SearchSortMode _sortMode = SearchSortMode.Newest;
+    private SearchSortField _sortField = SearchSortField.DateModified;
+    private SearchSortDirection _sortDirection = SearchSortDirection.Descending;
+    private SearchGroupField _groupField = SearchGroupField.None;
+    private SearchSortDirection _groupDirection = SearchSortDirection.Ascending;
 
     private SearchDateFilter _pendingDateFilter = SearchDateFilter.All;
     private DateTime? _pendingSpecificDateFilter;
@@ -55,6 +65,11 @@ public sealed partial class SearchPage : Page
     public SearchPage()
     {
         InitializeComponent();
+
+        _searchResultsViewSource.Source = VisibleSearchResults;
+        SearchResultsList.ItemsSource = _searchResultsViewSource.View;
+
+        UpdateSortAndGroupSelectorText();
         InitializeSpecificDateWheels();
 
         Loaded += SearchPage_Loaded;
@@ -619,27 +634,82 @@ public sealed partial class SearchPage : Page
         BuildExtensionFilterOptions();
     }
 
-    private void SortOptionButton_Click(object sender, RoutedEventArgs e)
+    private void SortFieldOptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string sortKey })
         {
             return;
         }
 
-        _sortMode = sortKey switch
+        _sortField = sortKey switch
         {
-            "Oldest" => SearchSortMode.Oldest,
-            "NameAscending" => SearchSortMode.NameAscending,
-            "NameDescending" => SearchSortMode.NameDescending,
-            "SizeDescending" => SearchSortMode.SizeDescending,
-            "SizeAscending" => SearchSortMode.SizeAscending,
-            "Category" => SearchSortMode.Category,
-            "Extension" => SearchSortMode.Extension,
-            _ => SearchSortMode.Newest
+            "Name" => SearchSortField.Name,
+            "Size" => SearchSortField.Size,
+            "Category" => SearchSortField.Category,
+            "Extension" => SearchSortField.Extension,
+            _ => SearchSortField.DateModified
         };
 
-        SortValueText.Text = GetSortDisplayName(_sortMode);
+        UpdateSortAndGroupSelectorText();
         SortFlyout.Hide();
+        RefreshSearchResults();
+    }
+
+    private void SortDirectionOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string directionKey })
+        {
+            return;
+        }
+
+        _sortDirection = directionKey.Equals(
+            "Ascending",
+            StringComparison.OrdinalIgnoreCase)
+                ? SearchSortDirection.Ascending
+                : SearchSortDirection.Descending;
+
+        UpdateSortAndGroupSelectorText();
+        SortFlyout.Hide();
+        RefreshSearchResults();
+    }
+
+    private void GroupFieldOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string groupKey })
+        {
+            return;
+        }
+
+        _groupField = groupKey switch
+        {
+            "Name" => SearchGroupField.Name,
+            "DateModified" => SearchGroupField.DateModified,
+            "Size" => SearchGroupField.Size,
+            "Category" => SearchGroupField.Category,
+            "Extension" => SearchGroupField.Extension,
+            _ => SearchGroupField.None
+        };
+
+        UpdateSortAndGroupSelectorText();
+        GroupFlyout.Hide();
+        RefreshSearchResults();
+    }
+
+    private void GroupDirectionOptionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string directionKey })
+        {
+            return;
+        }
+
+        _groupDirection = directionKey.Equals(
+            "Descending",
+            StringComparison.OrdinalIgnoreCase)
+                ? SearchSortDirection.Descending
+                : SearchSortDirection.Ascending;
+
+        UpdateSortAndGroupSelectorText();
+        GroupFlyout.Hide();
         RefreshSearchResults();
     }
 
@@ -757,18 +827,43 @@ public sealed partial class SearchPage : Page
             : $"{ordered.Count} extensiones seleccionadas";
     }
 
-    private static string GetSortDisplayName(SearchSortMode sortMode) =>
-        sortMode switch
+    private void UpdateSortAndGroupSelectorText()
+    {
+        SortValueText.Text =
+            $"{GetSortFieldDisplayName(_sortField)} · {GetDirectionShortDisplayName(_sortDirection)}";
+
+        GroupValueText.Text =
+            _groupField == SearchGroupField.None
+                ? "Ninguno"
+                : $"{GetGroupFieldDisplayName(_groupField)} · {GetDirectionShortDisplayName(_groupDirection)}";
+    }
+
+    private static string GetSortFieldDisplayName(SearchSortField field) =>
+        field switch
         {
-            SearchSortMode.Oldest => "Fecha · más antigua",
-            SearchSortMode.NameAscending => "Nombre · A–Z",
-            SearchSortMode.NameDescending => "Nombre · Z–A",
-            SearchSortMode.SizeDescending => "Tamaño · mayor primero",
-            SearchSortMode.SizeAscending => "Tamaño · menor primero",
-            SearchSortMode.Category => "Categoría",
-            SearchSortMode.Extension => "Extensión",
-            _ => "Fecha · más reciente"
+            SearchSortField.Name => "Nombre",
+            SearchSortField.Size => "Tamaño",
+            SearchSortField.Category => "Categoría",
+            SearchSortField.Extension => "Extensión",
+            _ => "Fecha de modificación"
         };
+
+    private static string GetGroupFieldDisplayName(SearchGroupField field) =>
+        field switch
+        {
+            SearchGroupField.Name => "Nombre",
+            SearchGroupField.DateModified => "Fecha de modificación",
+            SearchGroupField.Size => "Tamaño",
+            SearchGroupField.Category => "Categoría",
+            SearchGroupField.Extension => "Extensión",
+            _ => "Ninguno"
+        };
+
+    private static string GetDirectionShortDisplayName(
+        SearchSortDirection direction) =>
+        direction == SearchSortDirection.Ascending
+            ? "Asc."
+            : "Desc.";
 
     private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
@@ -872,61 +967,9 @@ public sealed partial class SearchPage : Page
             category => category.Order,
             StringComparer.CurrentCultureIgnoreCase);
 
-        var results = _sortMode switch
-        {
-            SearchSortMode.Oldest => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenBy(file => file.ModifiedAt)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            SearchSortMode.NameAscending => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            SearchSortMode.NameDescending => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenByDescending(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            SearchSortMode.SizeDescending => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenByDescending(file => file.SizeBytes)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            SearchSortMode.SizeAscending => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenBy(file => file.SizeBytes)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            SearchSortMode.Category => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenBy(file =>
-                    categoryOrder.TryGetValue(file.Category, out var order)
-                        ? order
-                        : int.MaxValue)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            SearchSortMode.Extension => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenBy(file =>
-                    file.IsDirectory
-                        ? string.Empty
-                        : System.IO.Path.GetExtension(file.Name),
-                    StringComparer.CurrentCultureIgnoreCase)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-
-            _ => query
-                .OrderByDescending(file => file.IsDirectory)
-                .ThenByDescending(file => file.ModifiedAt)
-                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToList()
-        };
+        var results = SortSearchResults(
+            query,
+            categoryOrder);
 
         var previouslySelected = SearchResultsList.SelectedItems
             .OfType<SearchFileResult>()
@@ -937,6 +980,10 @@ public sealed partial class SearchPage : Page
         {
             VisibleSearchResults.Add(result);
         }
+
+        ApplySearchResultsView(
+            results,
+            categoryOrder);
 
         SearchResultCountText.Text = results.Count.ToString(CultureInfo.CurrentCulture);
         SearchResultsFooterText.Text =
@@ -1193,6 +1240,422 @@ public sealed partial class SearchPage : Page
         OpenSearchFile(file);
         e.Handled = true;
     }
+
+    private List<SearchFileResult> SortSearchResults(
+        IEnumerable<SearchFileResult> query,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        IOrderedEnumerable<SearchFileResult> ordered =
+            _sortField switch
+            {
+                SearchSortField.Name =>
+                    _sortDirection == SearchSortDirection.Ascending
+                        ? query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                        : query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenByDescending(file => file.Name, StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Size =>
+                    _sortDirection == SearchSortDirection.Ascending
+                        ? query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenBy(file => file.SizeBytes)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                        : query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenByDescending(file => file.SizeBytes)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Category =>
+                    _sortDirection == SearchSortDirection.Ascending
+                        ? query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenBy(file =>
+                                categoryOrder.TryGetValue(file.Category, out var order)
+                                    ? order
+                                    : int.MaxValue)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                        : query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenByDescending(file =>
+                                categoryOrder.TryGetValue(file.Category, out var order)
+                                    ? order
+                                    : int.MinValue)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Extension =>
+                    _sortDirection == SearchSortDirection.Ascending
+                        ? query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenBy(
+                                file => GetSortableExtension(file),
+                                StringComparer.CurrentCultureIgnoreCase)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                        : query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenByDescending(
+                                file => GetSortableExtension(file),
+                                StringComparer.CurrentCultureIgnoreCase)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase),
+
+                _ =>
+                    _sortDirection == SearchSortDirection.Ascending
+                        ? query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenBy(file => file.ModifiedAt)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                        : query
+                            .OrderByDescending(file => file.IsDirectory)
+                            .ThenByDescending(file => file.ModifiedAt)
+                            .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+            };
+
+        return ordered.ToList();
+    }
+
+    private void ApplySearchResultsView(
+        IReadOnlyList<SearchFileResult> results,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        _searchResultsViewSource.Source =
+            null;
+
+        if (_groupField == SearchGroupField.None)
+        {
+            GroupedSearchResults.Clear();
+            _searchResultsViewSource.IsSourceGrouped =
+                false;
+            _searchResultsViewSource.Source =
+                VisibleSearchResults;
+        }
+        else
+        {
+            BuildSearchResultGroups(
+                results,
+                categoryOrder);
+
+            _searchResultsViewSource.IsSourceGrouped =
+                true;
+            _searchResultsViewSource.Source =
+                GroupedSearchResults;
+        }
+
+        SearchResultsList.ItemsSource =
+            _searchResultsViewSource.View;
+    }
+
+    private void BuildSearchResultGroups(
+        IReadOnlyList<SearchFileResult> results,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        GroupedSearchResults.Clear();
+
+        var now =
+            DateTime.Now;
+
+        var groups =
+            results.GroupBy(file =>
+                GetSearchGroupDescriptor(
+                    file,
+                    now,
+                    categoryOrder));
+
+        var orderedGroups =
+            _groupDirection == SearchSortDirection.Ascending
+                ? groups
+                    .OrderBy(group => group.Key.Order)
+                    .ThenBy(
+                        group => group.Key.Label,
+                        StringComparer.CurrentCultureIgnoreCase)
+                : groups
+                    .OrderByDescending(group => group.Key.Order)
+                    .ThenByDescending(
+                        group => group.Key.Label,
+                        StringComparer.CurrentCultureIgnoreCase);
+
+        foreach (var group in orderedGroups)
+        {
+            GroupedSearchResults.Add(
+                new SearchResultGroup(
+                    group.Key.Label,
+                    group.ToList()));
+        }
+    }
+
+    private SearchGroupDescriptor GetSearchGroupDescriptor(
+        SearchFileResult file,
+        DateTime now,
+        IReadOnlyDictionary<string, int> categoryOrder) =>
+        _groupField switch
+        {
+            SearchGroupField.Name =>
+                GetNameGroupDescriptor(
+                    file.Name),
+
+            SearchGroupField.DateModified =>
+                GetDateGroupDescriptor(
+                    file.ModifiedAt,
+                    now),
+
+            SearchGroupField.Size =>
+                GetSizeGroupDescriptor(
+                    file),
+
+            SearchGroupField.Category =>
+                new SearchGroupDescriptor(
+                    file.Category,
+                    categoryOrder.TryGetValue(file.Category, out var order)
+                        ? order
+                        : int.MaxValue),
+
+            SearchGroupField.Extension =>
+                file.IsDirectory
+                    ? new SearchGroupDescriptor(
+                        "Carpeta de archivos",
+                        0)
+                    : new SearchGroupDescriptor(
+                        string.IsNullOrWhiteSpace(
+                            System.IO.Path.GetExtension(file.Name))
+                            ? "Sin extensión"
+                            : System.IO.Path.GetExtension(file.Name).ToUpperInvariant(),
+                        1),
+
+            _ =>
+                new SearchGroupDescriptor(
+                    "Elementos",
+                    0)
+        };
+
+    private static SearchGroupDescriptor GetNameGroupDescriptor(
+        string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return new SearchGroupDescriptor(
+                "Otros",
+                4);
+        }
+
+        var normalized =
+            name.Trim()
+                .Normalize(
+                    System.Text.NormalizationForm.FormD);
+
+        var first =
+            char.ToUpperInvariant(
+                normalized[0]);
+
+        if (char.IsDigit(first))
+        {
+            return new SearchGroupDescriptor(
+                "0–9",
+                0);
+        }
+
+        if (first is >= 'A' and <= 'H')
+        {
+            return new SearchGroupDescriptor(
+                "A–H",
+                1);
+        }
+
+        if (first is >= 'I' and <= 'P')
+        {
+            return new SearchGroupDescriptor(
+                "I–P",
+                2);
+        }
+
+        if (first is >= 'Q' and <= 'Z')
+        {
+            return new SearchGroupDescriptor(
+                "Q–Z",
+                3);
+        }
+
+        return new SearchGroupDescriptor(
+            "Otros",
+            4);
+    }
+
+    private static SearchGroupDescriptor GetDateGroupDescriptor(
+        DateTime modifiedAt,
+        DateTime now)
+    {
+        var date =
+            modifiedAt.Date;
+        var today =
+            now.Date;
+
+        if (date >= today)
+        {
+            return new SearchGroupDescriptor(
+                "Hoy",
+                0);
+        }
+
+        if (date >= today.AddDays(-1))
+        {
+            return new SearchGroupDescriptor(
+                "Ayer",
+                1);
+        }
+
+        var weekStart =
+            GetStartOfWeek(
+                today);
+
+        if (date >= weekStart)
+        {
+            return new SearchGroupDescriptor(
+                "A principios de esta semana",
+                2);
+        }
+
+        var lastWeekStart =
+            weekStart.AddDays(-7);
+
+        if (date >= lastWeekStart)
+        {
+            return new SearchGroupDescriptor(
+                "La semana pasada",
+                3);
+        }
+
+        var monthStart =
+            new DateTime(
+                today.Year,
+                today.Month,
+                1);
+
+        if (date >= monthStart)
+        {
+            return new SearchGroupDescriptor(
+                "A principios de este mes",
+                4);
+        }
+
+        var lastMonthStart =
+            monthStart.AddMonths(-1);
+
+        if (date >= lastMonthStart)
+        {
+            return new SearchGroupDescriptor(
+                "El mes pasado",
+                5);
+        }
+
+        var yearStart =
+            new DateTime(
+                today.Year,
+                1,
+                1);
+
+        if (date >= yearStart)
+        {
+            return new SearchGroupDescriptor(
+                "A principios de este año",
+                6);
+        }
+
+        return new SearchGroupDescriptor(
+            "Hace mucho tiempo",
+            7);
+    }
+
+    private static DateTime GetStartOfWeek(
+        DateTime date)
+    {
+        var firstDayOfWeek =
+            CultureInfo.CurrentCulture
+                .DateTimeFormat
+                .FirstDayOfWeek;
+
+        var difference =
+            (7 +
+             ((int)date.DayOfWeek -
+              (int)firstDayOfWeek)) %
+            7;
+
+        return date.AddDays(
+            -difference);
+    }
+
+    private static SearchGroupDescriptor GetSizeGroupDescriptor(
+        SearchFileResult file)
+    {
+        if (file.IsDirectory)
+        {
+            return new SearchGroupDescriptor(
+                "Sin especificar",
+                0);
+        }
+
+        var size =
+            file.SizeBytes;
+
+        if (size == 0)
+        {
+            return new SearchGroupDescriptor(
+                "Vacío",
+                1);
+        }
+
+        const long kilobyte =
+            1024L;
+        const long megabyte =
+            1024L * kilobyte;
+        const long gigabyte =
+            1024L * megabyte;
+
+        if (size < 16 * kilobyte)
+        {
+            return new SearchGroupDescriptor(
+                "Muy pequeño",
+                2);
+        }
+
+        if (size < megabyte)
+        {
+            return new SearchGroupDescriptor(
+                "Pequeño",
+                3);
+        }
+
+        if (size < 128 * megabyte)
+        {
+            return new SearchGroupDescriptor(
+                "Mediano",
+                4);
+        }
+
+        if (size < gigabyte)
+        {
+            return new SearchGroupDescriptor(
+                "Grande",
+                5);
+        }
+
+        if (size < 4 * gigabyte)
+        {
+            return new SearchGroupDescriptor(
+                "Muy grande",
+                6);
+        }
+
+        return new SearchGroupDescriptor(
+            "Gigantesco",
+            7);
+    }
+
+    private static string GetSortableExtension(
+        SearchFileResult file) =>
+        file.IsDirectory
+            ? string.Empty
+            : System.IO.Path.GetExtension(
+                file.Name);
 
     private void SearchSelectAllAccelerator_Invoked(
         Microsoft.UI.Xaml.Input.KeyboardAccelerator sender,
@@ -2474,6 +2937,10 @@ public sealed partial class SearchPage : Page
         var remaining = normalized.Count - visibleExtensions;
         return remaining > 0 ? $"{text} +{remaining}" : text;
     }
+    private sealed record SearchGroupDescriptor(
+        string Label,
+        int Order);
+
 }
 
 public enum SearchManageMode
@@ -2504,16 +2971,50 @@ public enum SearchSizeFilter
     Over20Gb
 }
 
-public enum SearchSortMode
+public enum SearchSortField
 {
-    Newest,
-    Oldest,
-    NameAscending,
-    NameDescending,
-    SizeDescending,
-    SizeAscending,
+    Name,
+    DateModified,
+    Size,
     Category,
     Extension
+}
+
+public enum SearchSortDirection
+{
+    Ascending,
+    Descending
+}
+
+public enum SearchGroupField
+{
+    None,
+    Name,
+    DateModified,
+    Size,
+    Category,
+    Extension
+}
+
+public sealed class SearchResultGroup
+{
+    public SearchResultGroup(
+        string name,
+        IReadOnlyList<SearchFileResult> items)
+    {
+        Name =
+            name;
+
+        Items =
+            new ObservableCollection<SearchFileResult>(
+                items);
+    }
+
+    public string Name { get; }
+    public ObservableCollection<SearchFileResult> Items { get; }
+
+    public string HeaderText =>
+        $"{Name} ({Items.Count})";
 }
 
 public sealed class SearchCategorySummary
