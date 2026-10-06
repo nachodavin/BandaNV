@@ -873,10 +873,9 @@ public sealed partial class SearchPage : Page
         bool isSelected)
     {
         button.Background =
-            (Brush)Application.Current.Resources[
-                isSelected
-                    ? "BandaAccentSoftBrush"
-                    : "BandaTransparentBrush"];
+            isSelected
+                ? (Brush)Application.Current.Resources["BandaAccentSoftBrush"]
+                : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
         button.Foreground =
             (Brush)Application.Current.Resources[
