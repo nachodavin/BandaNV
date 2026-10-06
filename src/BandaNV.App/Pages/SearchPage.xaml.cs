@@ -103,13 +103,17 @@ public sealed partial class SearchPage : Page
                             file.CategoryId,
                             global::BandaNV.App.App.Settings.Current.SecondaryColor);
 
-                _allFiles.Add(new SearchFileResult(
-                    file.Name,
-                    file.CategoryName,
-                    file.SizeBytes,
-                    file.ModifiedAt,
-                    location,
-                    colorHex));
+                _allFiles.Add(
+                    new SearchFileResult(
+                        file.Name,
+                        file.CategoryName,
+                        file.SizeBytes,
+                        file.ModifiedAt,
+                        location,
+                        colorHex,
+                        file.IsDirectory,
+                        file.ContainedFileCount,
+                        file.FolderContents));
             }
         }
         catch (OperationCanceledException)
@@ -790,13 +794,15 @@ public sealed partial class SearchPage : Page
                 file.Name.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
                 file.ExtensionDisplay.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
                 file.Category.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
-                file.Location.Contains(searchText, StringComparison.CurrentCultureIgnoreCase));
+                file.Location.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                file.ContentSearchText.Contains(searchText, StringComparison.CurrentCultureIgnoreCase));
         }
 
         if (_extensionFilters.Count > 0)
         {
             query = query.Where(file =>
-                _extensionFilters.Contains(file.ExtensionDisplay));
+                file.MatchesExtensionFilters(
+                    _extensionFilters));
         }
 
         var now = DateTime.Now;
@@ -904,7 +910,9 @@ public sealed partial class SearchPage : Page
 
         SearchResultCountText.Text = results.Count.ToString(CultureInfo.CurrentCulture);
         SearchResultsFooterText.Text =
-            results.Count == 1 ? "1 resultado" : $"{results.Count} resultados";
+            results.Count == 1
+                ? "1 elemento"
+                : $"{results.Count} elementos";
 
         SearchResultsList.Visibility =
             results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -921,11 +929,11 @@ public sealed partial class SearchPage : Page
 
         if (results.Count == 0)
         {
-            EmptyStateTitle.Text = "No hay archivos que coincidan";
+            EmptyStateTitle.Text = "No hay elementos que coincidan";
             EmptyStateDescription.Text =
                 _selectedCategoryNames.Count > 0 || !string.IsNullOrWhiteSpace(searchText)
                     ? "Probá cambiando las categorías seleccionadas o el texto de búsqueda."
-                    : "Todavía no hay archivos para mostrar.";
+                    : "Todavía no hay elementos para mostrar.";
         }
 
         var selectedInOrder = _allCategoryCards
@@ -1219,31 +1227,69 @@ public sealed partial class SearchPage : Page
         ShowMultipleSearchFileDetails(selectedFiles);
     }
 
-    private void ShowSearchFileDetails(SearchFileResult file)
+    private void ShowSearchFileDetails(
+        SearchFileResult file)
     {
-        SearchDetailTitleText.Text = "Detalle del archivo";
-        SearchDetailFileNameText.Text = file.Name;
-        SearchDetailCategoryText.Text = file.Category;
-        ApplySearchDetailCategoryVisual(file);
-        SearchDetailSizeText.Text = file.SizeText;
-        SearchDetailExtensionText.Text = file.ExtensionDisplay;
-        SearchDetailModifiedText.Text = file.ModifiedText;
-        SearchDetailLocationText.Text = file.Location;
+        SearchDetailTitleText.Text =
+            file.IsDirectory
+                ? "Detalle de la carpeta"
+                : "Detalle del archivo";
 
-        SearchOpenFileButton.Content = "Abrir archivo";
-        SearchCopyPathButton.Content = "Copiar ruta";
-        SearchChangeCategoryButton.Content = "Cambiar categoría";
-        SearchDeleteButton.Content = "Eliminar archivo";
+        SearchDetailFileNameText.Text =
+            file.Name;
 
-        SearchOpenFileButton.IsEnabled = true;
-        SearchOpenLocationButton.IsEnabled = true;
-        SearchCopyPathButton.IsEnabled = true;
-        SearchChangeCategoryButton.IsEnabled = true;
-        SearchRenameButton.IsEnabled = true;
-        SearchDeleteButton.IsEnabled = true;
+        SearchDetailCategoryText.Text =
+            file.Category;
 
-        SearchDetailActionStatusText.Text = string.Empty;
-        SearchDetailActionStatusText.Visibility = Visibility.Collapsed;
+        ApplySearchDetailCategoryVisual(
+            file);
+
+        SearchDetailSizeText.Text =
+            file.SizeText;
+
+        SearchDetailExtensionText.Text =
+            file.ExtensionDisplay;
+
+        SearchDetailModifiedText.Text =
+            file.ModifiedText;
+
+        SearchDetailLocationText.Text =
+            file.Location;
+
+        SearchOpenFileButton.Content =
+            file.IsDirectory
+                ? "Abrir carpeta"
+                : "Abrir archivo";
+
+        SearchCopyPathButton.Content =
+            "Copiar ruta";
+
+        SearchChangeCategoryButton.Content =
+            "Cambiar categoría";
+
+        SearchDeleteButton.Content =
+            file.IsDirectory
+                ? "Eliminar carpeta"
+                : "Eliminar archivo";
+
+        SearchOpenFileButton.IsEnabled =
+            true;
+        SearchOpenLocationButton.IsEnabled =
+            true;
+        SearchCopyPathButton.IsEnabled =
+            true;
+        SearchChangeCategoryButton.IsEnabled =
+            true;
+        SearchRenameButton.IsEnabled =
+            true;
+        SearchDeleteButton.IsEnabled =
+            true;
+
+        SearchDetailActionStatusText.Text =
+            string.Empty;
+
+        SearchDetailActionStatusText.Visibility =
+            Visibility.Collapsed;
     }
 
     private void ShowMultipleSearchFileDetails(IReadOnlyList<SearchFileResult> files)
@@ -1265,7 +1311,7 @@ public sealed partial class SearchPage : Page
 
         SearchDetailTitleText.Text = "Selección múltiple";
         SearchDetailFileNameText.Text =
-            $"{files.Count} archivos seleccionados";
+            $"{files.Count} elementos seleccionados";
         SearchDetailCategoryText.Text =
             categoryCount == 1
                 ? files[0].Category
@@ -1287,10 +1333,10 @@ public sealed partial class SearchPage : Page
                 ? locations[0]
                 : $"{locations.Count} ubicaciones";
 
-        SearchOpenFileButton.Content = "Abrir archivo";
+        SearchOpenFileButton.Content = "Abrir elemento";
         SearchCopyPathButton.Content = "Copiar rutas";
         SearchChangeCategoryButton.Content = "Cambiar categoría";
-        SearchDeleteButton.Content = $"Eliminar {files.Count} archivos";
+        SearchDeleteButton.Content = $"Eliminar {files.Count} elementos";
 
         SearchOpenFileButton.IsEnabled = false;
         SearchOpenLocationButton.IsEnabled = false;
@@ -1300,14 +1346,14 @@ public sealed partial class SearchPage : Page
         SearchDeleteButton.IsEnabled = true;
 
         SearchDetailActionStatusText.Text =
-            "Abrir archivo, abrir ubicación y renombrar requieren una selección individual.";
+            "Abrir elemento, abrir ubicación y renombrar requieren una selección individual.";
         SearchDetailActionStatusText.Visibility = Visibility.Visible;
     }
 
     private void ClearSearchFileDetails()
     {
-        SearchDetailTitleText.Text = "Detalle del archivo";
-        SearchDetailFileNameText.Text = "Seleccioná uno o varios archivos";
+        SearchDetailTitleText.Text = "Detalle del elemento";
+        SearchDetailFileNameText.Text = "Seleccioná uno o varios elementos";
         SearchDetailCategoryText.Text = "—";
         ApplySearchDetailCategoryVisual(null, neutral: true);
         SearchDetailSizeText.Text = "—";
@@ -1340,31 +1386,105 @@ public sealed partial class SearchPage : Page
         OpenSearchFile(file);
     }
 
-    private void OpenSearchFile(SearchFileResult file)
+    private void OpenSearchFile(
+        SearchFileResult file)
     {
-        var filePath = file.FilePath;
+        var path =
+            file.FilePath;
 
-        if (!System.IO.File.Exists(filePath))
+        if (!OrganizationEntrySafety.Exists(
+                path))
         {
             ShowSearchDetailStatus(
-                "El archivo ya no existe en la ubicación registrada. Volvé a entrar a Buscar para refrescar los resultados.");
+                "El elemento ya no existe en la ubicación registrada. Volvé a entrar a Buscar para refrescar los resultados.");
+
             return;
         }
 
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = filePath,
-                UseShellExecute = true
-            });
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        path,
+                    UseShellExecute =
+                        true
+                });
 
-            ShowSearchDetailStatus("Archivo abierto.");
+            ShowSearchDetailStatus(
+                file.IsDirectory
+                    ? "Carpeta abierta."
+                    : "Archivo abierto.");
         }
         catch
         {
-            ShowSearchDetailStatus("No se pudo abrir el archivo.");
+            ShowSearchDetailStatus(
+                file.IsDirectory
+                    ? "No se pudo abrir la carpeta."
+                    : "No se pudo abrir el archivo.");
         }
+    }
+
+    private void SearchFolderContentButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement
+            {
+                DataContext: SearchFileResult file
+            } ||
+            !file.IsDirectory)
+        {
+            return;
+        }
+
+        ShowSearchFolderContents(
+            file);
+    }
+
+    private void ShowSearchFolderContents(
+        SearchFileResult folder)
+    {
+        SearchFolderContentTitleText.Text =
+            folder.Name;
+
+        SearchFolderContentSummaryText.Text =
+            folder.ContainedFileCount == 1
+                ? $"1 archivo · {folder.SizeText}"
+                : $"{folder.ContainedFileCount} archivos · {folder.SizeText}";
+
+        SearchFolderContentPathText.Text =
+            folder.FilePath;
+
+        SearchFolderContentList.ItemsSource =
+            folder.FolderContents;
+
+        SearchFolderContentOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private void CloseSearchFolderContentButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        CloseSearchFolderContents();
+    }
+
+    private void SearchFolderContentBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseSearchFolderContents();
+    }
+
+    private void CloseSearchFolderContents()
+    {
+        SearchFolderContentOverlay.Visibility =
+            Visibility.Collapsed;
+
+        SearchFolderContentList.ItemsSource =
+            null;
     }
 
     private void SearchOpenLocationButton_Click(object sender, RoutedEventArgs e)
@@ -1443,7 +1563,7 @@ public sealed partial class SearchPage : Page
         SearchManageSubtitleText.Text =
             files.Count == 1
                 ? files[0].Name
-                : $"{files.Count} archivos seleccionados";
+                : $"{files.Count} elementos seleccionados";
         SearchManageIconText.Text = "↻";
         SearchManageIconBorder.Background =
             (Brush)Application.Current.Resources["BandaAccentSoftBrush"];
@@ -1473,7 +1593,7 @@ public sealed partial class SearchPage : Page
         SearchManagePrimaryButton.Content =
             files.Count == 1
                 ? "Cambiar categoría"
-                : $"Cambiar {files.Count} archivos";
+                : $"Cambiar {files.Count} elementos";
         SearchManagePrimaryButton.Visibility = Visibility.Visible;
         SearchManageDangerButton.Visibility = Visibility.Collapsed;
 
@@ -1498,7 +1618,10 @@ public sealed partial class SearchPage : Page
         _searchManageMode = SearchManageMode.Rename;
         _pendingSearchCategoryName = null;
 
-        SearchManageTitleText.Text = "Renombrar archivo";
+        SearchManageTitleText.Text =
+            file.IsDirectory
+                ? "Renombrar carpeta"
+                : "Renombrar archivo";
         SearchManageSubtitleText.Text = file.Name;
         SearchManageIconText.Text = "✎";
         SearchManageIconBorder.Background =
@@ -1537,11 +1660,15 @@ public sealed partial class SearchPage : Page
         _pendingSearchCategoryName = null;
 
         SearchManageTitleText.Text =
-            files.Count == 1 ? "Eliminar archivo" : "Eliminar archivos";
+            files.Count == 1
+                ? files[0].IsDirectory
+                    ? "Eliminar carpeta"
+                    : "Eliminar archivo"
+                : "Eliminar elementos";
         SearchManageSubtitleText.Text =
             files.Count == 1
                 ? files[0].Name
-                : $"{files.Count} archivos seleccionados";
+                : $"{files.Count} elementos seleccionados";
         SearchManageIconText.Text = "!";
         SearchManageIconBorder.Background =
             (Brush)Application.Current.Resources["BandaDangerSoftBrush"];
@@ -1561,8 +1688,8 @@ public sealed partial class SearchPage : Page
                     ? $"¿Enviar \"{files[0].Name}\" a la Papelera?"
                     : $"¿Eliminar permanentemente \"{files[0].Name}\"?"
                 : settings.UseRecycleBin
-                    ? $"¿Enviar los {files.Count} archivos seleccionados a la Papelera?"
-                    : $"¿Eliminar permanentemente los {files.Count} archivos seleccionados?";
+                    ? $"¿Enviar los {files.Count} elementos seleccionados a la Papelera?"
+                    : $"¿Eliminar permanentemente los {files.Count} elementos seleccionados?";
 
         if (!settings.UseRecycleBin)
         {
@@ -1572,7 +1699,9 @@ public sealed partial class SearchPage : Page
 
         SearchManagePrimaryButton.Visibility = Visibility.Collapsed;
         SearchManageDangerButton.Content =
-            files.Count == 1 ? "Eliminar" : $"Eliminar {files.Count} archivos";
+            files.Count == 1
+                ? "Eliminar"
+                : $"Eliminar {files.Count} elementos";
         SearchManageDangerButton.Visibility = Visibility.Visible;
 
         SearchManageValidationText.Visibility = Visibility.Collapsed;
@@ -1705,7 +1834,7 @@ public sealed partial class SearchPage : Page
                 if (string.IsNullOrWhiteSpace(proposedName))
                 {
                     SearchManageValidationText.Text =
-                        "Escribí un nombre para el archivo.";
+                        "Escribí un nombre para el elemento.";
                     SearchManageValidationText.Visibility = Visibility.Visible;
                     return;
                 }
@@ -1765,8 +1894,8 @@ public sealed partial class SearchPage : Page
             ShowSearchDetailStatus(
                 issues == 0
                     ? completed == 1
-                        ? $"Archivo movido a {targetCategory.Name}."
-                        : $"{completed} archivos movidos a {targetCategory.Name}."
+                        ? $"Elemento movido a {targetCategory.Name}."
+                        : $"{completed} elementos movidos a {targetCategory.Name}."
                     : $"{completed} movidos · {issues} no se modificaron por conflicto o error.");
         }
         catch (Exception ex)
@@ -1802,14 +1931,17 @@ public sealed partial class SearchPage : Page
             if (item.Status != SearchFileActionStatus.Completed)
             {
                 SearchManageValidationText.Text =
-                    item.Message ?? "No se pudo renombrar el archivo.";
+                    item.Message ?? "No se pudo renombrar el elemento.";
                 SearchManageValidationText.Visibility = Visibility.Visible;
                 return;
             }
 
             CloseSearchManageOverlay();
             await LoadRealSearchDataAsync();
-            ShowSearchDetailStatus("Archivo renombrado correctamente.");
+            ShowSearchDetailStatus(
+                file.IsDirectory
+                    ? "Carpeta renombrada correctamente."
+                    : "Archivo renombrado correctamente.");
         }
         catch (Exception ex)
         {
@@ -1856,7 +1988,7 @@ public sealed partial class SearchPage : Page
 
             ShowSearchDetailStatus(
                 issues == 0
-                    ? $"{completed} archivo{(completed == 1 ? string.Empty : "s")} {destinationText}."
+                    ? $"{completed} elemento{(completed == 1 ? string.Empty : "s")} {destinationText}."
                     : $"{completed} {destinationText} · {issues} no pudieron eliminarse.");
         }
         catch (Exception ex)
