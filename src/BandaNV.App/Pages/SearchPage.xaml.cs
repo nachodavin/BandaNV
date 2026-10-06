@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Shapes;
 using System.Globalization;
 
@@ -1998,6 +1999,72 @@ public sealed partial class SearchPage : Page
         _selectedSearchFolder =
             folder;
 
+        _searchFolderCurrentRelativePath =
+            string.Empty;
+        _searchFolderHistory.Clear();
+
+        RefreshSearchFolderContentView();
+
+        SearchFolderContentsPanel.Visibility =
+            Visibility.Visible;
+    }
+
+    private void RefreshSearchFolderContentView()
+    {
+        if (_selectedSearchFolder is null)
+        {
+            return;
+        }
+
+        var currentPath =
+            _searchFolderCurrentRelativePath;
+
+        var visibleItems =
+            _selectedSearchFolder.FolderContents
+                .Where(item =>
+                    GetSearchFolderParentRelativePath(
+                        item.RelativePath)
+                        .Equals(
+                            currentPath,
+                            StringComparison.OrdinalIgnoreCase))
+                .OrderBy(item =>
+                    item.IsDirectory
+                        ? 0
+                        : 1)
+                .ThenBy(
+                    item =>
+                        item.Name,
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        var visibleFolderCount =
+            visibleItems.Count(item =>
+                item.IsDirectory);
+
+        var visibleFileCount =
+            visibleItems.Count -
+            visibleFolderCount;
+
+        SearchFolderContentsTitleText.Text =
+            visibleFolderCount == 0
+                ? visibleFileCount == 1
+                    ? "CONTENIDO · 1 ARCHIVO"
+                    : $"CONTENIDO · {visibleFileCount} ARCHIVOS"
+                : visibleItems.Count == 1
+                    ? "CONTENIDO · 1 ELEMENTO"
+                    : $"CONTENIDO · {visibleItems.Count} ELEMENTOS";
+
+        SearchFolderContentsPathText.Text =
+            string.IsNullOrWhiteSpace(
+                currentPath)
+                ? "· Raíz"
+                : $"· {currentPath}";
+
+        SearchFolderContentsBackButton.Visibility =
+            _searchFolderHistory.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
         _syncingFolderContentSelection =
             true;
 
@@ -2005,7 +2072,7 @@ public sealed partial class SearchPage : Page
         {
             SearchFolderContentList.SelectedItems.Clear();
             SearchFolderContentList.ItemsSource =
-                folder.FolderContents;
+                visibleItems;
         }
         finally
         {
@@ -2013,16 +2080,8 @@ public sealed partial class SearchPage : Page
                 false;
         }
 
-        SearchFolderContentsTitleText.Text =
-            folder.ContainedFileCount == 1
-                ? "CONTENIDO · 1 ARCHIVO"
-                : $"CONTENIDO · {folder.ContainedFileCount} ARCHIVOS";
-
         SearchFolderContentsSelectionText.Text =
             "Seleccioná para gestionar";
-
-        SearchFolderContentsPanel.Visibility =
-            Visibility.Visible;
     }
 
     private void ResetFolderContentSelection(
@@ -2052,9 +2111,19 @@ public sealed partial class SearchPage : Page
             _selectedSearchFolder =
                 null;
 
+            _searchFolderCurrentRelativePath =
+                string.Empty;
+            _searchFolderHistory.Clear();
+
             SearchFolderContentsPanel.Visibility =
                 Visibility.Collapsed;
 
+            SearchFolderContentsTitleText.Text =
+                "CONTENIDO";
+            SearchFolderContentsPathText.Text =
+                string.Empty;
+            SearchFolderContentsBackButton.Visibility =
+                Visibility.Collapsed;
             SearchFolderContentsSelectionText.Text =
                 "Seleccioná para gestionar";
         }
@@ -2087,10 +2156,10 @@ public sealed partial class SearchPage : Page
         if (selectedFiles.Count == 0)
         {
             _selectedSearchFile =
-                _selectedSearchFolder;
+                GetCurrentSearchFolderTarget();
 
             ShowSearchFileDetails(
-                _selectedSearchFolder,
+                _selectedSearchFile,
                 preserveFolderContext:
                     true);
 
@@ -2150,16 +2219,115 @@ public sealed partial class SearchPage : Page
             GetFolderContentItemFromEventSource(
                 e.OriginalSource);
 
-        if (item is null)
+        if (item is null ||
+            _selectedSearchFolder is null)
         {
             return;
         }
 
-        OpenSearchFile(
-            item.ActionTarget);
+        if (!item.IsDirectory)
+        {
+            OpenSearchFile(
+                item.ActionTarget);
+
+            e.Handled =
+                true;
+            return;
+        }
+
+        _searchFolderHistory.Push(
+            _searchFolderCurrentRelativePath);
+
+        _searchFolderCurrentRelativePath =
+            item.RelativePath;
+
+        RefreshSearchFolderContentView();
+
+        _selectedSearchFile =
+            item.ActionTarget;
+
+        ShowSearchFileDetails(
+            item.ActionTarget,
+            preserveFolderContext:
+                true);
 
         e.Handled =
             true;
+    }
+
+    private void SearchFolderContentsBackButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_selectedSearchFolder is null ||
+            _searchFolderHistory.Count == 0)
+        {
+            return;
+        }
+
+        _searchFolderCurrentRelativePath =
+            _searchFolderHistory.Pop();
+
+        RefreshSearchFolderContentView();
+
+        _selectedSearchFile =
+            GetCurrentSearchFolderTarget();
+
+        ShowSearchFileDetails(
+            _selectedSearchFile,
+            preserveFolderContext:
+                true);
+    }
+
+    private void SearchFolderContentSelectAllAccelerator_Invoked(
+        KeyboardAccelerator sender,
+        Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        foreach (var item in SearchFolderContentList.Items
+                     .OfType<SearchFolderContentItem>())
+        {
+            if (!SearchFolderContentList.SelectedItems.Contains(
+                    item))
+            {
+                SearchFolderContentList.SelectedItems.Add(
+                    item);
+            }
+        }
+
+        args.Handled =
+            true;
+    }
+
+    private SearchFileResult GetCurrentSearchFolderTarget()
+    {
+        if (_selectedSearchFolder is null ||
+            string.IsNullOrWhiteSpace(
+                _searchFolderCurrentRelativePath))
+        {
+            return _selectedSearchFolder!;
+        }
+
+        return _selectedSearchFolder.FolderContents
+                   .FirstOrDefault(item =>
+                       item.IsDirectory &&
+                       item.RelativePath.Equals(
+                           _searchFolderCurrentRelativePath,
+                           StringComparison.OrdinalIgnoreCase))
+                   ?.ActionTarget ??
+               _selectedSearchFolder;
+    }
+
+    private static string GetSearchFolderParentRelativePath(
+        string relativePath)
+    {
+        var parent =
+            System.IO.Path.GetDirectoryName(
+                relativePath);
+
+        return string.IsNullOrWhiteSpace(
+                parent)
+            ? string.Empty
+            : parent;
     }
 
     private SearchFolderContentItem? GetFolderContentItemFromEventSource(
