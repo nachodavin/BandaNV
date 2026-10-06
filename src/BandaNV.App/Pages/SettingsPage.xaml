@@ -845,7 +845,7 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Usar Papelera al eliminar archivos" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Usar Papelera al eliminar elementos" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Evitar eliminación permanente siempre que sea posible." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="RecycleBinToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
@@ -858,7 +858,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
                                             <TextBlock Text="Confirmar acciones" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Pedir confirmación antes de borrar o reemplazar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            <TextBlock Text="Pedir confirmación antes de eliminar elementos o reemplazar contenido existente." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="ConfirmDestructiveToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
