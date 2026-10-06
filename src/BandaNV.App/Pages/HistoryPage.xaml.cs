@@ -57,11 +57,6 @@ public sealed partial class HistoryPage : Page
 
             foreach (var record in records)
             {
-                var isOrganization =
-                    record.Type.Equals(
-                        "ORGANIZE",
-                        StringComparison.OrdinalIgnoreCase);
-
                 var isUndo =
                     record.Type.Equals(
                         "UNDO",
