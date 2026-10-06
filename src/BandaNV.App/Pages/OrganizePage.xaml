@@ -120,7 +120,7 @@
                     <Button
                         Grid.Column="2"
                         Tag="{x:Bind ItemId}"
-                        Content="Ver detalle"
+                        Content="Ver contenido"
                         Click="FolderDetailButton_Click"
                         Padding="14,8"
                         MinWidth="96"
