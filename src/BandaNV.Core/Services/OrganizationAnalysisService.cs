@@ -350,6 +350,90 @@ public sealed class OrganizationAnalysisService
             }
         }
 
+        foreach (var nestedDirectory in EnumerateDirectoriesSafely(
+                     folderPath,
+                     excludedRoots,
+                     onSkippedDirectory,
+                     cancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                var relativeDirectoryPath =
+                    Path.GetRelativePath(
+                        directory.FullName,
+                        nestedDirectory);
+
+                var prefix =
+                    relativeDirectoryPath +
+                    Path.DirectorySeparatorChar;
+
+                var nestedFiles =
+                    folderFiles
+                        .Where(item =>
+                            !item.IsDirectory &&
+                            item.RelativePath.StartsWith(
+                                prefix,
+                                StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                var nestedCategories =
+                    nestedFiles
+                        .Where(item => item.IsClassified)
+                        .GroupBy(item => item.CategoryId, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                CategorySettings? nestedCategory =
+                    null;
+
+                if (nestedFiles.Count > 0 &&
+                    nestedFiles.All(item => item.IsClassified) &&
+                    nestedCategories.Count == 1)
+                {
+                    var categoryId =
+                        nestedCategories[0].Key;
+
+                    if (!string.IsNullOrWhiteSpace(categoryId))
+                    {
+                        nestedCategory =
+                            extensionMap.Values.FirstOrDefault(category =>
+                                category.Id.Equals(
+                                    categoryId,
+                                    StringComparison.OrdinalIgnoreCase));
+                    }
+                }
+
+                var nestedInfo =
+                    new DirectoryInfo(
+                        nestedDirectory);
+
+                folderFiles.Add(
+                    new OrganizationAnalysisFolderFile(
+                        relativeDirectoryPath,
+                        nestedInfo.Name,
+                        string.Empty,
+                        nestedFiles.Sum(item => item.SizeBytes),
+                        nestedInfo.LastWriteTime,
+                        nestedCategory?.Id,
+                        nestedCategory?.Name,
+                        nestedCategory?.Order,
+                        IsDirectory: true,
+                        ContainedFileCount: nestedFiles.Count,
+                        DistinctCategoryCount: nestedCategories.Count));
+            }
+            catch (UnauthorizedAccessException)
+            {
+                scanIncomplete = true;
+                onSkippedDirectory();
+            }
+            catch (IOException)
+            {
+                scanIncomplete = true;
+                onSkippedDirectory();
+            }
+        }
+
         if (totalFiles == 0)
         {
             return null;
@@ -428,7 +512,8 @@ public sealed class OrganizationAnalysisService
                 scanIncomplete,
             FolderFiles:
                 folderFiles
-                    .OrderBy(
+                    .OrderBy(item => item.IsDirectory ? 0 : 1)
+                    .ThenBy(
                         item => item.RelativePath,
                         StringComparer.CurrentCultureIgnoreCase)
                     .ToList(),
@@ -612,6 +697,88 @@ public sealed class OrganizationAnalysisService
             }
 
             yield return normalized;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateDirectoriesSafely(
+        string source,
+        HashSet<string> excludedRoots,
+        Action onSkippedDirectory,
+        CancellationToken cancellationToken)
+    {
+        var pending =
+            new Stack<string>();
+
+        pending.Push(
+            source);
+
+        while (pending.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var current =
+                pending.Pop();
+
+            string[] directories;
+
+            try
+            {
+                directories =
+                    Directory.GetDirectories(
+                        current,
+                        "*",
+                        SearchOption.TopDirectoryOnly);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                onSkippedDirectory();
+                continue;
+            }
+            catch (IOException)
+            {
+                onSkippedDirectory();
+                continue;
+            }
+
+            foreach (var directory in directories)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var normalized =
+                    NormalizeDirectoryPath(
+                        directory);
+
+                if (IsExcluded(
+                        normalized,
+                        excludedRoots))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var attributes =
+                        File.GetAttributes(
+                            normalized);
+
+                    if ((attributes &
+                         FileAttributes.ReparsePoint) != 0)
+                    {
+                        onSkippedDirectory();
+                        continue;
+                    }
+                }
+                catch
+                {
+                    onSkippedDirectory();
+                    continue;
+                }
+
+                yield return normalized;
+
+                pending.Push(
+                    normalized);
+            }
         }
     }
 
