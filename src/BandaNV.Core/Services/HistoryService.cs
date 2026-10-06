@@ -43,8 +43,47 @@ public sealed class HistoryService
             }
 
             return records
-                .OrderByDescending(item => item.Record.StartedAt)
-                .Select(item => item.Record)
+                .Where(item =>
+                    item.Record.ShowInHistory)
+                .OrderByDescending(item =>
+                    item.Record.StartedAt)
+                .Select(item =>
+                    item.Record)
+                .ToList();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<IReadOnlyList<OrganizationExecutionRecord>> LoadTechnicalUndoRecordsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(
+            cancellationToken);
+
+        try
+        {
+            PortablePaths.EnsureDirectories();
+
+            var records =
+                await LoadEntriesAsync(
+                    cancellationToken);
+
+            return records
+                .Select(entry =>
+                    entry.Record)
+                .Where(record =>
+                    !record.ShowInHistory &&
+                    UndoService.SupportsUndo(
+                        record) &&
+                    record.Items.Any(item =>
+                        UndoService.IsUndoCandidate(
+                            record,
+                            item)))
+                .OrderByDescending(record =>
+                    record.StartedAt)
                 .ToList();
         }
         finally
@@ -139,36 +178,35 @@ public sealed class HistoryService
                 }
             }
 
-            // Si Undo está desactivado, los backups de ejecuciones ya
-            // finalizadas dejan de ser necesarios. Los de una ejecución
-            // activa se conservan siempre por seguridad.
+            // Undo forma parte de la seguridad base del programa.
+            // Mientras una ejecución siga dentro de la ventana de retención,
+            // sus backups de reemplazo se conservan aunque no sea visible
+            // en Historial.
             var backupIdsToKeep =
                 new HashSet<string>(
                     activeExecutionIds,
                     StringComparer.OrdinalIgnoreCase);
 
-            if (settings.UndoEnabled)
+            foreach (var entry in entries)
             {
-                foreach (var entry in entries)
+                var record =
+                    entry.Record;
+
+                if (!retainedExecutionIds.Contains(
+                        record.ExecutionId) ||
+                    !record.Type.Equals(
+                        "ORGANIZE",
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    var record = entry.Record;
+                    continue;
+                }
 
-                    if (!retainedExecutionIds.Contains(
-                            record.ExecutionId) ||
-                        !record.Type.Equals(
-                            "ORGANIZE",
-                            StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (record.Items.Any(item =>
-                            !string.IsNullOrWhiteSpace(
-                                item.ReplacedBackupPath)))
-                    {
-                        backupIdsToKeep.Add(
-                            record.ExecutionId);
-                    }
+                if (record.Items.Any(item =>
+                        !string.IsNullOrWhiteSpace(
+                            item.ReplacedBackupPath)))
+                {
+                    backupIdsToKeep.Add(
+                        record.ExecutionId);
                 }
             }
 
