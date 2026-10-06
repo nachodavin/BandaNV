@@ -486,10 +486,6 @@
                                 <Button Tag="Category" Content="Categoría" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                                 <Button Tag="Extension" Content="Extensión" Click="GroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
 
-                                <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="8,6" />
-
-                                <Button Tag="Ascending" Content="Ascendente" Click="GroupDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                <Button Tag="Descending" Content="Descendente" Click="GroupDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
                             </StackPanel>
                         </Border>
                     </Flyout>
