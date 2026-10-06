@@ -51,7 +51,8 @@ public sealed class UndoService
 
         var originalMovedItems = original.Items
             .Where(item =>
-                item.Status == OrganizationExecutionItemStatus.Moved)
+                item.Status == OrganizationExecutionItemStatus.Moved &&
+                !item.IsDirectory)
             .ToList();
 
         if (originalMovedItems.Count == 0)
