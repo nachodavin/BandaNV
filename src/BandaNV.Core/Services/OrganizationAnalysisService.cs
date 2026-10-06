@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using BandaNV.Core.Models;
 
 namespace BandaNV.Core.Services;
@@ -266,6 +268,9 @@ public sealed class OrganizationAnalysisService
         var folderFiles =
             new List<OrganizationAnalysisFolderFile>();
 
+        var fingerprintParts =
+            new List<string>();
+
         foreach (var path in EnumerateFilesSafely(
                      folderPath,
                      includeSubfolders: true,
@@ -297,11 +302,14 @@ public sealed class OrganizationAnalysisService
                     extension,
                     out var category);
 
+                var relativePath =
+                    Path.GetRelativePath(
+                        directory.FullName,
+                        file.FullName);
+
                 folderFiles.Add(
                     new OrganizationAnalysisFolderFile(
-                        Path.GetRelativePath(
-                            directory.FullName,
-                            file.FullName),
+                        relativePath,
                         file.Name,
                         extension,
                         file.Length,
@@ -309,6 +317,9 @@ public sealed class OrganizationAnalysisService
                         category?.Id,
                         category?.Name,
                         category?.Order));
+
+                fingerprintParts.Add(
+                    $"{relativePath}\0{file.Length}\0{file.LastWriteTimeUtc.Ticks}");
 
                 if (category is null)
                 {
@@ -420,7 +431,36 @@ public sealed class OrganizationAnalysisService
                     .OrderBy(
                         item => item.RelativePath,
                         StringComparer.CurrentCultureIgnoreCase)
-                    .ToList());
+                    .ToList(),
+            ContentFingerprint:
+                scanIncomplete
+                    ? null
+                    : BuildContentFingerprint(
+                        fingerprintParts));
+    }
+
+    private static string BuildContentFingerprint(
+        IEnumerable<string> parts)
+    {
+        var ordered =
+            parts
+                .OrderBy(
+                    value => value,
+                    StringComparer.OrdinalIgnoreCase);
+
+        var payload =
+            string.Join(
+                "\n",
+                ordered);
+
+        var bytes =
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(
+                    payload));
+
+        return Convert.ToHexString(
+                bytes)
+            .ToLowerInvariant();
     }
 
     private static bool HasDestinationConflict(
