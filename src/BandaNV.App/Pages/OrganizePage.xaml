@@ -135,6 +135,7 @@
                         Tag="{x:Bind ItemId}"
                         Content="Asignar"
                         Click="PreviewCategorySelectorButton_Click"
+                        IsEnabled="{x:Bind CanAssignFolder}"
                         Padding="16,8"
                         MinWidth="92"
                         CornerRadius="10"
