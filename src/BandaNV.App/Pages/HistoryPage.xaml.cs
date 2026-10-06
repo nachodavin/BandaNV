@@ -72,14 +72,21 @@ public sealed partial class HistoryPage : Page
                         "SEARCH",
                         StringComparison.OrdinalIgnoreCase);
 
+                var isOrganizeAction =
+                    record.Type.Equals(
+                        "ORGANIZE_ACTION",
+                        StringComparison.OrdinalIgnoreCase);
+
                 var movedItems = record.Items
                     .Where(item =>
                         item.Status == OrganizationExecutionItemStatus.Moved)
                     .ToList();
 
-                var displayedItems = isSearch
-                    ? record.Items.ToList()
-                    : movedItems;
+                var displayedItems =
+                    isSearch ||
+                    isOrganizeAction
+                        ? record.Items.ToList()
+                        : movedItems;
 
                 var type =
                     GetHistoryExecutionTypeDisplayName(
@@ -141,8 +148,10 @@ public sealed partial class HistoryPage : Page
                     ReversibleFileCount = reversibleFileCount,
                     UndoBadgeText = isSearch
                         ? "Sin Undo · acción de Buscar"
-                        : isUndo
-                            ? "Registro Undo"
+                        : isOrganizeAction
+                            ? "Sin Undo · acción de Organizar"
+                            : isUndo
+                                ? "Registro Undo"
                             : reversibleFileCount == movedItems.Count &&
                               reversibleFileCount > 0
                                 ? "Reversible"
@@ -283,6 +292,18 @@ public sealed partial class HistoryPage : Page
             };
         }
 
+        if (record.Type.Equals(
+                "ORGANIZE_ACTION",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return record.Action?.ToUpperInvariant() switch
+            {
+                "RENAME" => "ORGANIZAR · RENOMBRAR",
+                "DELETE" => "ORGANIZAR · ELIMINAR",
+                _ => "ORGANIZAR · ACCIÓN"
+            };
+        }
+
         return "ORGANIZAR";
     }
 
@@ -290,9 +311,12 @@ public sealed partial class HistoryPage : Page
         OrganizationExecutionRecord record,
         OrganizationExecutionItemRecord item)
     {
-        if (record.Type.Equals(
-                "SEARCH",
-                StringComparison.OrdinalIgnoreCase) &&
+        if ((record.Type.Equals(
+                 "SEARCH",
+                 StringComparison.OrdinalIgnoreCase) ||
+             record.Type.Equals(
+                 "ORGANIZE_ACTION",
+                 StringComparison.OrdinalIgnoreCase)) &&
             record.Action?.Equals(
                 "RENAME",
                 StringComparison.OrdinalIgnoreCase) == true &&
@@ -430,17 +454,20 @@ public sealed partial class HistoryPage : Page
 
     private void ShowExecutionDetails(HistoryExecutionPreview execution)
     {
-        var isSearchAction =
+        var isAction =
             execution.Type.StartsWith(
                 "BUSCAR",
+                StringComparison.OrdinalIgnoreCase) ||
+            execution.Type.StartsWith(
+                "ORGANIZAR ·",
                 StringComparison.OrdinalIgnoreCase);
 
         DetailTitleText.Text =
-            isSearchAction
+            isAction
                 ? "Detalle de acción"
                 : "Detalle de ejecución";
         DetailFilesSectionTitleText.Text =
-            isSearchAction
+            isAction
                 ? "ELEMENTOS DE LA ACCIÓN"
                 : "ELEMENTOS DE LA EJECUCIÓN";
         DetailDateText.Text = $"{execution.DateTimeText} · {execution.Type}";
@@ -450,7 +477,7 @@ public sealed partial class HistoryPage : Page
         DetailDestinationText.Text = execution.Destination;
         UndoStatusText.Text = execution.UndoBadgeText;
         UndoPreviewButton.Content =
-            isSearchAction
+            isAction
                 ? "Acción sin Undo"
                 : "Deshacer ejecución";
         UndoPreviewButton.IsEnabled = execution.CanUndo;
@@ -708,7 +735,9 @@ public sealed partial class HistoryPage : Page
     private static string GetHistoryTypeFilterDisplayName(HistoryTypeFilter filter) =>
         filter switch
         {
-            HistoryTypeFilter.Organize => "Organizar",
+            HistoryTypeFilter.Organize => "Organizar · Todo",
+            HistoryTypeFilter.OrganizeRename => "Organizar · Renombrar",
+            HistoryTypeFilter.OrganizeDelete => "Organizar · Eliminar",
             HistoryTypeFilter.Search => "Buscar",
             HistoryTypeFilter.SearchCategory => "Buscar · Cambiar categoría",
             HistoryTypeFilter.SearchRename => "Buscar · Renombrar",
@@ -797,7 +826,19 @@ public sealed partial class HistoryPage : Page
         {
             HistoryTypeFilter.Organize =>
                 query.Where(execution =>
-                    execution.Type.Equals("ORGANIZAR", StringComparison.OrdinalIgnoreCase)),
+                    execution.Type.StartsWith(
+                        "ORGANIZAR",
+                        StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.OrganizeRename =>
+                query.Where(execution =>
+                    execution.Type.Equals(
+                        "ORGANIZAR · RENOMBRAR",
+                        StringComparison.OrdinalIgnoreCase)),
+            HistoryTypeFilter.OrganizeDelete =>
+                query.Where(execution =>
+                    execution.Type.Equals(
+                        "ORGANIZAR · ELIMINAR",
+                        StringComparison.OrdinalIgnoreCase)),
             HistoryTypeFilter.Search =>
                 query.Where(execution =>
                     execution.Type.StartsWith(
@@ -1178,6 +1219,8 @@ public enum HistoryTypeFilter
 {
     All,
     Organize,
+    OrganizeRename,
+    OrganizeDelete,
     Search,
     SearchCategory,
     SearchRename,
