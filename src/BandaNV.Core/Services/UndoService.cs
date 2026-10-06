@@ -15,6 +15,81 @@ public sealed class UndoService
         Converters = { new JsonStringEnumConverter() }
     };
 
+    public static bool SupportsUndo(
+        OrganizationExecutionRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(
+            record);
+
+        if (record.Type.Equals(
+                "ORGANIZE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return record.Action?.Equals(
+                       "CHANGE_CATEGORY",
+                       StringComparison.OrdinalIgnoreCase) == true ||
+                   record.Action?.Equals(
+                       "RENAME",
+                       StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        if (record.Type.Equals(
+                "ORGANIZE_ACTION",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return record.Action?.Equals(
+                       "RENAME",
+                       StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        return false;
+    }
+
+    public static bool IsUndoCandidate(
+        OrganizationExecutionRecord record,
+        OrganizationExecutionItemRecord item)
+    {
+        ArgumentNullException.ThrowIfNull(
+            record);
+        ArgumentNullException.ThrowIfNull(
+            item);
+
+        if (!SupportsUndo(
+                record))
+        {
+            return false;
+        }
+
+        if (record.Type.Equals(
+                "ORGANIZE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return item.Status ==
+                OrganizationExecutionItemStatus.Moved;
+        }
+
+        if (record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase) &&
+            record.Action?.Equals(
+                "CHANGE_CATEGORY",
+                StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return item.Status ==
+                OrganizationExecutionItemStatus.Moved;
+        }
+
+        return item.Status ==
+            OrganizationExecutionItemStatus.Renamed;
+    }
+
     public Task<OrganizationExecutionResult> UndoAsync(
         AppSettings settings,
         OrganizationExecutionRecord original,
@@ -39,27 +114,27 @@ public sealed class UndoService
         IProgress<OrganizationExecutionProgress>? progress,
         CancellationToken cancellationToken)
     {
-        if (!original.Type.Equals(
-                "ORGANIZE",
-                StringComparison.OrdinalIgnoreCase))
+        if (!SupportsUndo(
+                original))
         {
             throw new InvalidOperationException(
-                "Solo las ejecuciones de Organización pueden deshacerse.");
+                "La acción o ejecución seleccionada no admite Undo seguro.");
         }
 
         PortablePaths.EnsureDirectories();
 
-        var originalMovedItems =
+        var originalUndoItems =
             original.Items
                 .Where(item =>
-                    item.Status ==
-                    OrganizationExecutionItemStatus.Moved)
+                    IsUndoCandidate(
+                        original,
+                        item))
                 .ToList();
 
-        if (originalMovedItems.Count == 0)
+        if (originalUndoItems.Count == 0)
         {
             throw new InvalidOperationException(
-                "La ejecución seleccionada no contiene movimientos para deshacer.");
+                "La acción o ejecución seleccionada no contiene cambios reversibles.");
         }
 
         var now =
@@ -79,7 +154,7 @@ public sealed class UndoService
                 RelatedExecutionId =
                     original.ExecutionId,
                 Items =
-                    originalMovedItems
+                    originalUndoItems
                         .Select(item =>
                             new OrganizationExecutionItemRecord
                             {
@@ -159,7 +234,7 @@ public sealed class UndoService
                     undoRecord.Items[index];
 
                 var originalItem =
-                    originalMovedItems[index];
+                    originalUndoItems[index];
 
                 await UndoItemAsync(
                     settings,
@@ -277,8 +352,8 @@ public sealed class UndoService
                 OrganizationExecutionItemStatus.SourceMissing;
             undoItem.Message =
                 originalItem.IsDirectory
-                    ? "La carpeta organizada ya no existe en su ubicación final."
-                    : "El archivo organizado ya no existe en su ubicación final.";
+                    ? "La carpeta ya no existe en la ubicación registrada después de la acción."
+                    : "El archivo ya no existe en la ubicación registrada después de la acción.";
             return;
         }
 
@@ -300,8 +375,8 @@ public sealed class UndoService
                 OrganizationExecutionItemStatus.SourceChanged;
             undoItem.Message =
                 originalItem.IsDirectory
-                    ? "La carpeta cambió después de organizarse. Undo no la tocó."
-                    : "El archivo cambió después de organizarse. Undo no lo tocó.";
+                    ? "La carpeta cambió después de la acción original. Undo no la tocó."
+                    : "El archivo cambió después de la acción original. Undo no lo tocó.";
             return;
         }
 
