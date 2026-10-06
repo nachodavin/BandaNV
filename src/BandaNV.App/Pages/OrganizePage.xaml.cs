@@ -322,10 +322,19 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 Path.GetFullPath(
                     path);
 
+            var destinationSetting =
+                global::BandaNV.App.App.Settings.Current
+                    .DestinationFolder;
+
+            if (string.IsNullOrWhiteSpace(
+                    destinationSetting))
+            {
+                return false;
+            }
+
             var destination =
                 Path.GetFullPath(
-                    global::BandaNV.App.App.Settings.Current
-                        .DestinationFolder);
+                    destinationSetting);
 
             return IsSameOrInsidePath(
                 fullPath,
@@ -2316,6 +2325,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 ? null
                 : _folderDetailCurrentRelativePath;
 
+        StopSourceWatcher();
         BeginSourceWatcherSuppression();
 
         try
@@ -2379,6 +2389,12 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             OrganizeManagePrimaryButton.IsEnabled =
                 true;
             EndSourceWatcherSuppression();
+
+            if (PreviewStatePanel.Visibility ==
+                Visibility.Visible)
+            {
+                StartSourceWatcher();
+            }
         }
     }
 
@@ -2393,6 +2409,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
+        StopSourceWatcher();
         BeginSourceWatcherSuppression();
 
         try
@@ -2473,6 +2490,12 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             OrganizeManageDangerButton.IsEnabled =
                 true;
             EndSourceWatcherSuppression();
+
+            if (PreviewStatePanel.Visibility ==
+                Visibility.Visible)
+            {
+                StartSourceWatcher();
+            }
         }
     }
 
