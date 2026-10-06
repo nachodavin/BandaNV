@@ -149,46 +149,46 @@
 
         <DataTemplate x:Key="SearchFolderContentTemplate" x:DataType="local:SearchFolderContentItem">
             <Grid
-                Padding="10,8"
-                RowSpacing="3">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+                Padding="10,9"
+                ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.15*" />
+                    <ColumnDefinition Width="0.75*" />
+                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="1.35*" />
+                </Grid.ColumnDefinitions>
 
                 <TextBlock
                     Text="{x:Bind RelativePath}"
                     Foreground="{StaticResource BandaTextBrush}"
                     FontSize="12"
                     FontWeight="SemiBold"
-                    TextTrimming="CharacterEllipsis" />
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
 
-                <StackPanel
-                    Grid.Row="1"
-                    Orientation="Horizontal"
-                    Spacing="8">
-                    <TextBlock
-                        Text="{x:Bind ExtensionDisplay}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                        FontSize="11" />
-                    <TextBlock
-                        Text="·"
-                        Foreground="{StaticResource BandaMutedBrush}"
-                        FontSize="11" />
-                    <TextBlock
-                        Text="{x:Bind SizeText}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                        FontSize="11" />
-                    <TextBlock
-                        Text="·"
-                        Foreground="{StaticResource BandaMutedBrush}"
-                        FontSize="11" />
-                    <TextBlock
-                        Text="{x:Bind ModifiedText}"
-                        Foreground="{StaticResource BandaMutedBrush}"
-                        FontSize="11"
-                        TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{x:Bind ExtensionDisplay}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="11"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+
+                <TextBlock
+                    Grid.Column="2"
+                    Text="{x:Bind SizeText}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="11"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+
+                <TextBlock
+                    Grid.Column="3"
+                    Text="{x:Bind ModifiedText}"
+                    Foreground="{StaticResource BandaMutedBrush}"
+                    FontSize="11"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
             </Grid>
         </DataTemplate>
 
@@ -768,7 +768,9 @@
                                 <Border
                                     x:Name="SearchFolderContentsPanel"
                                     Grid.Row="1"
-                                    Margin="0,2,0,0"
+                                    Margin="0,6,0,2"
+                                    MinHeight="220"
+                                    MaxHeight="330"
                                     CornerRadius="12"
                                     Background="{StaticResource BandaNavIconBrush}"
                                     BorderBrush="{StaticResource BandaBorderBrush}"
@@ -778,11 +780,12 @@
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="36" />
                                             <RowDefinition Height="*" />
                                         </Grid.RowDefinitions>
 
                                         <Grid
-                                            Padding="11,9"
+                                            Padding="12,10,12,8"
                                             ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
@@ -805,9 +808,53 @@
                                                 VerticalAlignment="Center" />
                                         </Grid>
 
+                                        <Border
+                                            Grid.Row="1"
+                                            Background="{StaticResource BandaCardAltBrush}"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="0,1,0,1">
+                                            <Grid
+                                                Padding="12,0"
+                                                ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="2.15*" />
+                                                    <ColumnDefinition Width="0.75*" />
+                                                    <ColumnDefinition Width="0.8*" />
+                                                    <ColumnDefinition Width="1.35*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock
+                                                    Text="NOMBRE"
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Text="EXT."
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Text="TAMAÑO"
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    Grid.Column="3"
+                                                    Text="FECHA"
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+
                                         <ListView
                                             x:Name="SearchFolderContentList"
-                                            Grid.Row="1"
+                                            Grid.Row="2"
                                             ItemTemplate="{StaticResource SearchFolderContentTemplate}"
                                             SelectionMode="Extended"
                                             IsMultiSelectCheckBoxEnabled="False"
@@ -817,9 +864,8 @@
                                             HorizontalContentAlignment="Stretch"
                                             Background="Transparent"
                                             BorderThickness="0"
-                                            MinHeight="120"
-                                            MaxHeight="250"
-                                            Padding="4,0,4,4"
+                                            MinHeight="170"
+                                            Padding="6,6,6,8"
                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
 
@@ -841,9 +887,9 @@
                                                 <Style TargetType="ListViewItem">
                                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                                     <Setter Property="Padding" Value="0" />
-                                                    <Setter Property="Margin" Value="3,2" />
+                                                    <Setter Property="Margin" Value="0,2" />
                                                     <Setter Property="CornerRadius" Value="8" />
-                                                    <Setter Property="MinHeight" Value="48" />
+                                                    <Setter Property="MinHeight" Value="44" />
                                                 </Style>
                                             </ListView.ItemContainerStyle>
                                         </ListView>
