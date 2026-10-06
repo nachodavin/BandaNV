@@ -74,6 +74,18 @@ internal static class Program
             "Conflicto creado después del análisis se detecta al ejecutar",
             LateConflictIsResolvedAtExecutionAsync);
 
+        await RunAsync(
+            "Reanálisis detecta un archivo agregado externamente",
+            ReanalysisDetectsExternalCreateAsync);
+
+        await RunAsync(
+            "Reanálisis detecta un renombre externo",
+            ReanalysisDetectsExternalRenameAsync);
+
+        await RunAsync(
+            "Reanálisis actualiza carpeta tras un borrado interno externo",
+            ReanalysisDetectsNestedDeleteAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -1006,6 +1018,156 @@ internal static class Program
                         desiredTarget)!,
                     "tardio (2).txt")),
             "El archivo debería usar un nombre alternativo.");
+    }
+
+    private static async Task ReanalysisDetectsExternalCreateAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var initial =
+            await AnalyzeAsync(
+                workspace);
+
+        Equal(
+            0,
+            initial.Files.Count,
+            "El origen debería empezar vacío.");
+
+        WriteFile(
+            Path.Combine(
+                workspace.Source,
+                "nuevo.txt"),
+            "externo");
+
+        var refreshed =
+            await AnalyzeAsync(
+                workspace);
+
+        var file =
+            SingleFile(
+                refreshed,
+                "nuevo.txt");
+
+        Equal(
+            "DOCUMENTS",
+            file.CategoryName,
+            "El archivo agregado debería clasificarse al reanalizar.");
+    }
+
+    private static async Task ReanalysisDetectsExternalRenameAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var oldPath =
+            Path.Combine(
+                workspace.Source,
+                "antes.txt");
+
+        var newPath =
+            Path.Combine(
+                workspace.Source,
+                "despues.txt");
+
+        WriteFile(
+            oldPath,
+            "contenido");
+
+        var initial =
+            await AnalyzeAsync(
+                workspace);
+
+        SingleFile(
+            initial,
+            "antes.txt");
+
+        File.Move(
+            oldPath,
+            newPath);
+
+        var refreshed =
+            await AnalyzeAsync(
+                workspace);
+
+        True(
+            refreshed.Files.All(item =>
+                !item.FileName.Equals(
+                    "antes.txt",
+                    StringComparison.OrdinalIgnoreCase)),
+            "El nombre anterior no debería seguir en el análisis.");
+
+        SingleFile(
+            refreshed,
+            "despues.txt");
+    }
+
+    private static async Task ReanalysisDetectsNestedDeleteAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var mother =
+            Path.Combine(
+                workspace.Source,
+                "Cambiante");
+
+        var firstFile =
+            Path.Combine(
+                mother,
+                "uno.jpg");
+
+        var secondFile =
+            Path.Combine(
+                mother,
+                "sub",
+                "dos.jpg");
+
+        WriteFile(
+            firstFile,
+            "uno");
+
+        WriteFile(
+            secondFile,
+            "dos");
+
+        var initial =
+            await AnalyzeAsync(
+                workspace);
+
+        var before =
+            SingleFolder(
+                initial,
+                "Cambiante");
+
+        Equal(
+            2,
+            before.ContainedFileCount,
+            "La carpeta debería empezar con dos archivos.");
+
+        File.Delete(
+            secondFile);
+
+        var refreshed =
+            await AnalyzeAsync(
+                workspace);
+
+        var after =
+            SingleFolder(
+                refreshed,
+                "Cambiante");
+
+        Equal(
+            1,
+            after.ContainedFileCount,
+            "El reanálisis debería reflejar el archivo eliminado.");
+
+        True(
+            !string.Equals(
+                before.ContentFingerprint,
+                after.ContentFingerprint,
+                StringComparison.OrdinalIgnoreCase),
+            "El fingerprint debería cambiar después del borrado externo.");
     }
 
     private static async Task<OrganizationExecutionResult> ExecuteSingleAsync(
