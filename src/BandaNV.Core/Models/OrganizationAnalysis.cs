@@ -14,7 +14,10 @@ public sealed record OrganizationAnalysisFolderFile(
     DateTime ModifiedAt,
     string? CategoryId,
     string? CategoryName,
-    int? CategoryOrder)
+    int? CategoryOrder,
+    bool IsDirectory = false,
+    int ContainedFileCount = 1,
+    int DistinctCategoryCount = 0)
 {
     public bool IsClassified =>
         CategoryOrder.HasValue &&
