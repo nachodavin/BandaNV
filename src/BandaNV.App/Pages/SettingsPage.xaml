@@ -696,22 +696,24 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Incluir subcarpetas al analizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Buscar archivos individuales dentro de subdirectorios cuando no se organizan carpetas completas." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
+                                            <TextBlock Text="Organizar carpetas completas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Analizar cada carpeta del origen como una unidad y conservar toda su estructura interna." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
-                                        <ToggleSwitch x:Name="IncludeSubfoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="OrganizeFoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
-                                    <Grid>
+                                    <Grid
+                                        x:Name="IncludeSubfoldersRow"
+                                        Visibility="Collapsed">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Organizar carpetas completas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Analizar cada carpeta del origen como una unidad y conservar toda su estructura interna." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="Incluir subcarpetas al analizar" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Si una carpeta no puede organizarse como una sola unidad, buscar también carpetas organizables dentro de ella." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
-                                        <ToggleSwitch x:Name="OrganizeFoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="IncludeSubfoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
