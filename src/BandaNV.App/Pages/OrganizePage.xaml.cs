@@ -1003,6 +1003,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             item.IsDirectory
                 ? "Abrir carpeta"
                 : "Abrir archivo";
+        OrganizeCopyPathButton.Content =
+            "Copiar ruta";
+        OrganizeChangeCategoryButton.Content =
+            "Cambiar categoría";
 
         OrganizeDeleteButton.Content =
             item.IsDirectory
@@ -1124,12 +1128,16 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 : $"{locations.Count} ubicaciones";
 
         OrganizeDetailActionStatusText.Text =
-            string.Empty;
+            "Abrir elemento, abrir ubicación y renombrar requieren una selección individual.";
         OrganizeDetailActionStatusText.Visibility =
-            Visibility.Collapsed;
+            Visibility.Visible;
 
         OrganizeOpenButton.Content =
             "Abrir elemento";
+        OrganizeCopyPathButton.Content =
+            "Copiar rutas";
+        OrganizeChangeCategoryButton.Content =
+            "Cambiar categoría";
         OrganizeDeleteButton.Content =
             $"Eliminar {files.Count} elementos";
 
@@ -1470,6 +1478,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             item.IsDirectory
                 ? "Abrir carpeta"
                 : "Abrir archivo";
+        OrganizeCopyPathButton.Content =
+            "Copiar ruta";
+        OrganizeChangeCategoryButton.Content =
+            "Cambiar categoría";
 
         OrganizeDeleteButton.Content =
             item.IsDirectory
@@ -1569,12 +1581,16 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 : $"{locations.Count} ubicaciones";
 
         OrganizeDetailActionStatusText.Text =
-            string.Empty;
+            "Abrir elemento, abrir ubicación y renombrar requieren una selección individual.";
         OrganizeDetailActionStatusText.Visibility =
-            Visibility.Collapsed;
+            Visibility.Visible;
 
         OrganizeOpenButton.Content =
             "Abrir elemento";
+        OrganizeCopyPathButton.Content =
+            "Copiar rutas";
+        OrganizeChangeCategoryButton.Content =
+            "Cambiar categoría";
         OrganizeDeleteButton.Content =
             $"Eliminar {items.Count} elementos";
 
