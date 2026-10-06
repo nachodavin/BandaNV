@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -98,6 +99,9 @@ public sealed class OrganizationExecutionService
                 CategoryOrder = item.CategoryOrder,
                 SizeBytes = item.SizeBytes,
                 ModifiedUtcTicks = item.ModifiedUtcTicks,
+                Kind = item.Kind,
+                ContainedFileCount = item.ContainedFileCount,
+                ContentFingerprint = item.ContentFingerprint,
                 Status =
                     item.CategoryOrder.HasValue &&
                     !string.IsNullOrWhiteSpace(item.CategoryName)
@@ -107,7 +111,7 @@ public sealed class OrganizationExecutionService
                     item.CategoryOrder.HasValue &&
                     !string.IsNullOrWhiteSpace(item.CategoryName)
                         ? null
-                        : "El archivo no tiene una categoría asignada."
+                        : "El elemento no tiene una categoría asignada."
             }).ToList()
         };
 
@@ -254,6 +258,23 @@ public sealed class OrganizationExecutionService
             item.Status = OrganizationExecutionItemStatus.Error;
             item.Message =
                 "La ruta del archivo quedó fuera de la carpeta de origen configurada.";
+            return;
+        }
+
+        if (item.IsDirectory)
+        {
+            await ExecuteDirectoryItemAsync(
+                settings,
+                destinationRoot,
+                executionId,
+                record,
+                item,
+                historyPath,
+                logPath,
+                conflictResolver,
+                conflictState,
+                cancellationToken);
+
             return;
         }
 
