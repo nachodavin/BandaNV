@@ -88,6 +88,10 @@ internal static class Program
             HiddenHistoryKeepsTechnicalUndoAsync);
 
         await RunAsync(
+            "Undo funciona aunque el historial visible esté desactivado",
+            HiddenHistoryStillSupportsUndoAsync);
+
+        await RunAsync(
             "Historial activado mantiene la ejecución visible",
             VisibleHistoryRemainsVisibleAsync);
 
@@ -1237,6 +1241,95 @@ internal static class Program
         {
             DeleteExecutionArtifacts(
                 result);
+        }
+    }
+
+    private static async Task HiddenHistoryStillSupportsUndoAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var sourcePath =
+            Path.Combine(
+                workspace.Source,
+                "deshacer.txt");
+
+        WriteFile(
+            sourcePath,
+            "contenido");
+
+        var analysis =
+            await AnalyzeAsync(
+                workspace);
+
+        var item =
+            SingleFile(
+                analysis,
+                "deshacer.txt");
+
+        var organizeResult =
+            await ExecuteSingleAsync(
+                workspace,
+                item,
+                "Preguntar",
+                saveHistory:
+                    false);
+
+        OrganizationExecutionResult? undoResult =
+            null;
+
+        try
+        {
+            True(
+                !File.Exists(
+                    sourcePath),
+                "Después de organizar, el archivo ya no debería estar en origen.");
+
+            var settings =
+                CreateSettings(
+                    workspace,
+                    "Preguntar");
+
+            settings.SaveHistory =
+                false;
+
+            undoResult =
+                await new UndoService()
+                    .UndoAsync(
+                        settings,
+                        organizeResult.Record);
+
+            Equal(
+                false,
+                undoResult.Record.ShowInHistory,
+                "El Undo técnico tampoco debería agregarse al historial visible.");
+
+            True(
+                File.Exists(
+                    sourcePath),
+                "Undo debería restaurar el archivo al origen aunque Historial esté desactivado.");
+
+            Equal(
+                "contenido",
+                File.ReadAllText(
+                    sourcePath),
+                "El archivo restaurado debería conservar su contenido.");
+
+            True(
+                !OrganizationEntrySafety.Exists(
+                    organizeResult.Record.Items.Single().FinalPath!),
+                "La ubicación organizada debería quedar libre después del Undo.");
+        }
+        finally
+        {
+            DeleteExecutionArtifacts(
+                organizeResult);
+
+            if (undoResult is not null)
+            {
+                DeleteExecutionArtifacts(
+                    undoResult);
+            }
         }
     }
 
