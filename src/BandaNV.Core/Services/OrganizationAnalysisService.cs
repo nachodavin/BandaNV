@@ -93,29 +93,24 @@ public sealed class OrganizationAnalysisService
                          () => skippedDirectories++,
                          cancellationToken))
             {
-                var item =
-                    TryAnalyzeFolder(
-                        directory,
-                        source,
-                        destination,
-                        extensionMap,
-                        excludedRoots,
-                        settings.ConflictBehavior,
-                        () => skippedDirectories++,
-                        cancellationToken);
-
-                if (item is not null)
-                {
-                    items.Add(
-                        item);
-                }
+                AnalyzeFolderUnitsRecursively(
+                    directory,
+                    source,
+                    destination,
+                    extensionMap,
+                    excludedRoots,
+                    settings.ConflictBehavior,
+                    settings.IncludeSubfolders,
+                    items,
+                    () => skippedDirectories++,
+                    cancellationToken);
             }
         }
         else
         {
             foreach (var path in EnumerateFilesSafely(
                          source,
-                         settings.IncludeSubfolders,
+                         includeSubfolders: false,
                          excludedRoots,
                          () => skippedDirectories++,
                          cancellationToken))
@@ -437,6 +432,74 @@ public sealed class OrganizationAnalysisService
                     ? null
                     : BuildContentFingerprint(
                         fingerprintParts));
+    }
+
+    private static void AnalyzeFolderUnitsRecursively(
+        string directory,
+        string source,
+        string destination,
+        IReadOnlyDictionary<string, CategorySettings> extensionMap,
+        HashSet<string> excludedRoots,
+        string conflictBehavior,
+        bool includeSubfolders,
+        List<OrganizationAnalysisFile> items,
+        Action onSkippedDirectory,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var item =
+            TryAnalyzeFolder(
+                directory,
+                source,
+                destination,
+                extensionMap,
+                excludedRoots,
+                conflictBehavior,
+                onSkippedDirectory,
+                cancellationToken);
+
+        if (item is null)
+        {
+            return;
+        }
+
+        if (!includeSubfolders ||
+            item.IsClassified)
+        {
+            items.Add(
+                item);
+            return;
+        }
+
+        var itemCountBeforeChildren =
+            items.Count;
+
+        foreach (var childDirectory in EnumerateTopLevelDirectoriesSafely(
+                     directory,
+                     excludedRoots,
+                     onSkippedDirectory,
+                     cancellationToken))
+        {
+            AnalyzeFolderUnitsRecursively(
+                childDirectory,
+                source,
+                destination,
+                extensionMap,
+                excludedRoots,
+                conflictBehavior,
+                includeSubfolders: true,
+                items,
+                onSkippedDirectory,
+                cancellationToken);
+        }
+
+        if (items.Count ==
+            itemCountBeforeChildren)
+        {
+            items.Add(
+                item);
+        }
     }
 
     private static string BuildContentFingerprint(
