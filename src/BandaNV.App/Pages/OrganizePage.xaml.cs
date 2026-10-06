@@ -1732,6 +1732,10 @@ public sealed class OrganizePreviewFile
         !IsDirectory ||
         IsClassified;
 
+    public bool CanAssignFolder =>
+        IsDirectory &&
+        !ScanIncomplete;
+
     public Visibility FolderDetailVisibility =>
         IsDirectory
             ? Visibility.Visible
