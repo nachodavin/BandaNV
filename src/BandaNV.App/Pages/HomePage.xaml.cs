@@ -98,7 +98,7 @@ public sealed partial class HomePage : Page
 
         _sourceWatcher = CreateWatcher(
             settings.SourceFolder,
-            settings.IncludeSubfolders);
+            settings.OrganizeFoldersAsUnits);
 
         _destinationWatcher = CreateWatcher(
             settings.DestinationFolder,
