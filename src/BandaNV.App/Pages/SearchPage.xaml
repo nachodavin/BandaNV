@@ -869,13 +869,6 @@
                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
 
-                                            <ListView.KeyboardAccelerators>
-                                                <KeyboardAccelerator
-                                                    Key="A"
-                                                    Modifiers="Control"
-                                                    Invoked="SearchFolderContentSelectAllAccelerator_Invoked" />
-                                            </ListView.KeyboardAccelerators>
-
                                             <ListView.Resources>
                                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
                                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
