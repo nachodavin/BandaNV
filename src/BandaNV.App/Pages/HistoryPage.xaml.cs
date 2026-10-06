@@ -218,6 +218,11 @@ public sealed partial class HistoryPage : Page
         OrganizationExecutionRecord execution,
         OrganizationExecutionItemRecord item)
     {
+        if (item.IsDirectory)
+        {
+            return false;
+        }
+
         try
         {
             var currentPath =
