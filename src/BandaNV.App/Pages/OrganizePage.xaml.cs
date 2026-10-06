@@ -619,14 +619,40 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
                 _conflictResolutionTcs = completion;
 
-                ConflictFileNameText.Text = conflict.FileName;
-                ConflictSourcePathText.Text = conflict.SourcePath;
-                ConflictSourceMetaText.Text =
-                    $"{FormatBytes(conflict.SourceSizeBytes)} · Modificado {conflict.SourceModifiedAt:dd/MM/yyyy HH:mm:ss}";
+                var itemLabel =
+                    conflict.IsDirectory
+                        ? "carpeta"
+                        : "archivo";
 
-                ConflictDestinationPathText.Text = conflict.DestinationPath;
+                ConflictTitleText.Text =
+                    $"Ya existe un elemento con el mismo nombre";
+
+                ConflictFileNameText.Text =
+                    $"{conflict.FileName} · {itemLabel}";
+
+                ConflictSourceLabelText.Text =
+                    conflict.IsDirectory
+                        ? "CARPETA A ORGANIZAR"
+                        : "ARCHIVO A ORGANIZAR";
+
+                ConflictSourcePathText.Text =
+                    conflict.SourcePath;
+
+                ConflictSourceMetaText.Text =
+                    conflict.IsDirectory
+                        ? $"{conflict.SourceItemCount} archivo{(conflict.SourceItemCount == 1 ? string.Empty : "s")} · {FormatBytes(conflict.SourceSizeBytes)} · Modificado {conflict.SourceModifiedAt:dd/MM/yyyy HH:mm:ss}"
+                        : $"{FormatBytes(conflict.SourceSizeBytes)} · Modificado {conflict.SourceModifiedAt:dd/MM/yyyy HH:mm:ss}";
+
+                ConflictDestinationPathText.Text =
+                    conflict.DestinationPath;
+
                 ConflictDestinationMetaText.Text =
-                    $"{FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}";
+                    conflict.DestinationItemCount > 1
+                        ? $"{conflict.DestinationItemCount} archivos · {FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}"
+                        : $"{FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}";
+
+                ConflictInstructionText.Text =
+                    $"Elegí qué hacer con este conflicto. Cerrar esta ventana equivale a omitir {itemLabel}.";
 
                 ConflictApplyAllCheckBox.IsChecked = false;
                 ConflictOverlay.Visibility = Visibility.Visible;
