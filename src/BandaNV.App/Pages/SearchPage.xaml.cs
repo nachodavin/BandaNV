@@ -729,8 +729,11 @@ public sealed partial class SearchPage : Page
             _allFiles
                 .SelectMany(file =>
                     file.IsDirectory
-                        ? file.FolderContents.Select(item =>
-                            item.ExtensionDisplay.ToLowerInvariant())
+                        ? file.FolderContents
+                            .Where(item =>
+                                !item.IsDirectory)
+                            .Select(item =>
+                                item.ExtensionDisplay.ToLowerInvariant())
                         : new[]
                         {
                             file.ExtensionDisplay.ToLowerInvariant()
