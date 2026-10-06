@@ -199,46 +199,43 @@
                 Padding="10,9"
                 ColumnSpacing="10">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="2.15*" />
+                    <ColumnDefinition Width="0.75*" />
+                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="1.35*" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel
-                    Spacing="2"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        Text="{x:Bind FileName}"
-                        Foreground="{StaticResource BandaTextBrush}"
-                        FontSize="12"
-                        FontWeight="SemiBold"
-                        TextTrimming="CharacterEllipsis" />
-                    <StackPanel
-                        Orientation="Horizontal"
-                        Spacing="5">
-                        <TextBlock
-                            Text="{x:Bind ExtensionDisplay}"
-                            Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="10"
-                            FontWeight="SemiBold" />
-                        <TextBlock
-                            Text="·"
-                            Foreground="{StaticResource BandaMutedBrush}"
-                            FontSize="10" />
-                        <TextBlock
-                            Text="{x:Bind CategoryDisplay}"
-                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                            FontSize="10"
-                            TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </StackPanel>
+                <TextBlock
+                    Text="{x:Bind FileName}"
+                    Foreground="{StaticResource BandaTextBrush}"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
 
                 <TextBlock
                     Grid.Column="1"
+                    Text="{x:Bind ExtensionDisplay}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="11"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+
+                <TextBlock
+                    Grid.Column="2"
                     Text="{x:Bind SizeDisplay}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="11"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+
+                <TextBlock
+                    Grid.Column="3"
+                    Text="{x:Bind ModifiedDisplay}"
                     Foreground="{StaticResource BandaMutedBrush}"
-                    FontSize="10"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Right" />
+                    FontSize="11"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
             </Grid>
         </DataTemplate>
 
@@ -843,15 +840,36 @@
                             HorizontalContentAlignment="Stretch"
                             Background="Transparent"
                             BorderThickness="0"
-                            Padding="0"
+                            Padding="6,6,6,8"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                            <ListView.Resources>
+                                <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
+                                <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
+                                <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
+                                <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
+                            </ListView.Resources>
+
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0,2" />
+                                    <Setter Property="CornerRadius" Value="8" />
+                                    <Setter Property="MinHeight" Value="44" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                        </ListView>
                     </Grid>
                 </Border>
 
                 <Border
                     Grid.Column="1"
-                    Style="{StaticResource BandaCardStyle}"
+                    CornerRadius="14"
+                    Background="{StaticResource BandaCardAltBrush}"
+                    BorderBrush="{StaticResource BandaBorderBrush}"
+                    BorderThickness="1"
                     Padding="18"
                     VerticalAlignment="Stretch">
                     <Grid>
@@ -941,7 +959,6 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
@@ -953,6 +970,7 @@
 
                                 <StackPanel Spacing="4">
                                     <TextBlock
+                                        x:Name="OrganizeDetailTitleText"
                                         Text="Detalle del elemento"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="18"
@@ -962,16 +980,8 @@
                                         Text="Seleccioná un elemento"
                                         Foreground="{StaticResource BandaMutedStrongBrush}"
                                         FontSize="13"
-                                        FontWeight="SemiBold"
                                         TextWrapping="Wrap"
                                         TextTrimming="CharacterEllipsis"
-                                        MaxLines="2" />
-                                    <TextBlock
-                                        x:Name="OrganizeDetailSummaryText"
-                                        Text=""
-                                        Foreground="{StaticResource BandaMutedBrush}"
-                                        FontSize="11"
-                                        TextWrapping="Wrap"
                                         MaxLines="2" />
                                 </StackPanel>
 
@@ -993,6 +1003,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Border
+                                    x:Name="OrganizeDetailCategoryCard"
                                     Padding="12"
                                     CornerRadius="12"
                                     Background="{StaticResource BandaNavIconBrush}"
@@ -1000,13 +1011,23 @@
                                     BorderThickness="1">
                                     <StackPanel Spacing="5">
                                         <TextBlock Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                        <TextBlock
-                                            x:Name="OrganizeDetailCategoryText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaAccentBrush}"
-                                            FontSize="14"
-                                            FontWeight="SemiBold"
-                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel
+                                            Orientation="Horizontal"
+                                            Spacing="7">
+                                            <Ellipse
+                                                x:Name="OrganizeDetailCategoryDot"
+                                                Width="9"
+                                                Height="9"
+                                                Fill="{StaticResource BandaAccentBrush}"
+                                                VerticalAlignment="Center" />
+                                            <TextBlock
+                                                x:Name="OrganizeDetailCategoryText"
+                                                Text="—"
+                                                Foreground="{StaticResource BandaAccentBrush}"
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -1027,120 +1048,198 @@
                                 </Border>
                             </Grid>
 
-                            <StackPanel
+                            <Grid
                                 Grid.Row="2"
-                                Spacing="11">
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
+                                RowSpacing="12">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
 
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="TIPO / EXTENSIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
-                                        <TextBlock
-                                            x:Name="OrganizeDetailTypeText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="12"
-                                            TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-
-                                    <StackPanel
-                                        Grid.Column="1"
-                                        Spacing="4">
-                                        <TextBlock Text="MODIFICADO" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
-                                        <TextBlock
-                                            x:Name="OrganizeDetailModifiedText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="12"
-                                            TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
-                                    <TextBlock
-                                        x:Name="OrganizeDetailLocationText"
-                                        Text="—"
-                                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                                        FontSize="11"
-                                        TextWrapping="Wrap"
-                                        TextTrimming="CharacterEllipsis"
-                                        MaxLines="2" />
-                                </StackPanel>
-                            </StackPanel>
-
-                            <Border
-                                x:Name="OrganizeFolderContentsPanel"
-                                Grid.Row="3"
-                                Margin="0,14,0,0"
-                                MinHeight="210"
-                                CornerRadius="12"
-                                Background="{StaticResource BandaNavIconBrush}"
-                                BorderBrush="{StaticResource BandaBorderBrush}"
-                                BorderThickness="1"
-                                Visibility="Collapsed">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-
-                                    <Grid
-                                        Padding="12,10,12,6"
-                                        ColumnSpacing="8">
+                                <StackPanel Spacing="11">
+                                    <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock
-                                            Text="CONTENIDO"
-                                            Style="{StaticResource BandaLabelTextStyle}"
-                                            FontSize="10"
-                                            VerticalAlignment="Center" />
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="TIPO / EXTENSIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
+                                            <TextBlock
+                                                x:Name="OrganizeDetailTypeText"
+                                                Text="—"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="12"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
 
-                                        <Button
-                                            x:Name="FolderDetailBackButton"
+                                        <StackPanel
                                             Grid.Column="1"
-                                            Content="Atrás"
-                                            Click="FolderDetailBackButton_Click"
-                                            Padding="10,5"
-                                            CornerRadius="8"
-                                            Background="Transparent"
-                                            BorderBrush="{StaticResource BandaBorderBrush}"
-                                            BorderThickness="1"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            Visibility="Collapsed" />
+                                            Spacing="4">
+                                            <TextBlock Text="MODIFICADO" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
+                                            <TextBlock
+                                                x:Name="OrganizeDetailModifiedText"
+                                                Text="—"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="12"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
                                     </Grid>
 
-                                    <TextBlock
-                                        x:Name="FolderDetailPathText"
-                                        Grid.Row="1"
-                                        Text="Raíz"
-                                        Margin="12,0,12,7"
-                                        Foreground="{StaticResource BandaMutedBrush}"
-                                        FontSize="10"
-                                        TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
+                                        <TextBlock
+                                            x:Name="OrganizeDetailLocationText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            FontSize="11"
+                                            TextWrapping="Wrap"
+                                            TextTrimming="CharacterEllipsis"
+                                            MaxLines="2" />
+                                    </StackPanel>
+                                </StackPanel>
 
-                                    <ListView
-                                        x:Name="FolderDetailFilesList"
-                                        Grid.Row="2"
-                                        ItemTemplate="{StaticResource OrganizeSideFolderContentTemplate}"
-                                        SelectionMode="None"
-                                        IsItemClickEnabled="True"
-                                        ItemClick="FolderDetailFilesList_ItemClick"
-                                        HorizontalContentAlignment="Stretch"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="4,0,4,4"
-                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
-                                </Grid>
-                            </Border>
+                                <Border
+                                    x:Name="OrganizeFolderContentsPanel"
+                                    Grid.Row="1"
+                                    Margin="0,6,0,2"
+                                    MinHeight="220"
+                                    MaxHeight="360"
+                                    CornerRadius="12"
+                                    Background="{StaticResource BandaNavIconBrush}"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1"
+                                    Visibility="Collapsed">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="36" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+
+                                        <Grid
+                                            Padding="12,10,12,8"
+                                            ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Button
+                                                x:Name="FolderDetailBackButton"
+                                                Content="Atrás"
+                                                Click="FolderDetailBackButton_Click"
+                                                Padding="8,4"
+                                                Margin="0,0,8,0"
+                                                CornerRadius="8"
+                                                Background="Transparent"
+                                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                                BorderThickness="1"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                Visibility="Collapsed" />
+
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Spacing="5"
+                                                VerticalAlignment="Center">
+                                                <TextBlock
+                                                    x:Name="OrganizeFolderContentsTitleText"
+                                                    Text="CONTENIDO"
+                                                    Style="{StaticResource BandaLabelTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                                <TextBlock
+                                                    x:Name="FolderDetailPathText"
+                                                    Text=""
+                                                    Foreground="{StaticResource BandaMutedBrush}"
+                                                    FontSize="10"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    VerticalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="Seleccioná para explorar"
+                                                Foreground="{StaticResource BandaMutedBrush}"
+                                                FontSize="10"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <Border
+                                            Grid.Row="1"
+                                            Background="{StaticResource BandaCardAltBrush}"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="0,1,0,1">
+                                            <Grid
+                                                Padding="12,0"
+                                                ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="2.15*" />
+                                                    <ColumnDefinition Width="0.75*" />
+                                                    <ColumnDefinition Width="0.8*" />
+                                                    <ColumnDefinition Width="1.35*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock
+                                                    Text="NOMBRE"
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Text="EXT."
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Text="TAMAÑO"
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                                <TextBlock
+                                                    Grid.Column="3"
+                                                    Text="FECHA"
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+
+                                        <ListView
+                                            x:Name="FolderDetailFilesList"
+                                            Grid.Row="2"
+                                            ItemTemplate="{StaticResource OrganizeSideFolderContentTemplate}"
+                                            SelectionMode="None"
+                                            IsItemClickEnabled="True"
+                                            ItemClick="FolderDetailFilesList_ItemClick"
+                                            HorizontalContentAlignment="Stretch"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            MinHeight="170"
+                                            Padding="6,6,6,8"
+                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                                            <ListView.Resources>
+                                                <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
+                                            </ListView.Resources>
+
+                                            <ListView.ItemContainerStyle>
+                                                <Style TargetType="ListViewItem">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                    <Setter Property="Padding" Value="0" />
+                                                    <Setter Property="Margin" Value="0,2" />
+                                                    <Setter Property="CornerRadius" Value="8" />
+                                                    <Setter Property="MinHeight" Value="44" />
+                                                </Style>
+                                            </ListView.ItemContainerStyle>
+                                        </ListView>
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </Border>
