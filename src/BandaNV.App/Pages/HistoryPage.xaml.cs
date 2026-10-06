@@ -211,18 +211,13 @@ public sealed partial class HistoryPage : Page
                     CultureInfo.GetCultureInfo("es-AR"));
 
         HistoryLastOrganizationDetailText.Text =
-            $"{lastOrganization.FileCountText} archivos · {lastOrganization.SizeText}";
+            $"{lastOrganization.FileCountText} elementos · {lastOrganization.SizeText}";
     }
 
     private static bool IsItemCurrentlyReversible(
         OrganizationExecutionRecord execution,
         OrganizationExecutionItemRecord item)
     {
-        if (item.IsDirectory)
-        {
-            return false;
-        }
-
         try
         {
             var currentPath =
@@ -231,25 +226,30 @@ public sealed partial class HistoryPage : Page
                     execution,
                     item);
 
-            if (string.IsNullOrWhiteSpace(currentPath) ||
-                !File.Exists(currentPath) ||
-                File.Exists(item.OriginalPath))
+            if (string.IsNullOrWhiteSpace(
+                    currentPath) ||
+                !OrganizationEntrySafety.Exists(
+                    currentPath) ||
+                OrganizationEntrySafety.Exists(
+                    item.OriginalPath) ||
+                !OrganizationEntrySafety.MatchesExpected(
+                    currentPath,
+                    item))
             {
                 return false;
             }
 
-            var current = new FileInfo(currentPath);
-
-            if (current.Length != item.SizeBytes ||
-                Math.Abs(
-                    current.LastWriteTimeUtc.Ticks -
-                    item.ModifiedUtcTicks) > 20_000_000L)
+            if (string.IsNullOrWhiteSpace(
+                    item.ReplacedBackupPath))
             {
-                return false;
+                return true;
             }
 
-            return string.IsNullOrWhiteSpace(item.ReplacedBackupPath) ||
-                   File.Exists(item.ReplacedBackupPath);
+            return OrganizationEntrySafety.Exists(
+                       item.ReplacedBackupPath) &&
+                   OrganizationEntrySafety.MatchesReplacement(
+                       item.ReplacedBackupPath,
+                       item);
         }
         catch
         {
@@ -1032,7 +1032,7 @@ public sealed partial class HistoryPage : Page
                 ? $"BandaNV va a intentar restaurar los {execution.FileCount} archivo{(execution.FileCount == 1 ? string.Empty : "s")} " +
                   $"desde \"{execution.DestinationShort}\" hacia su ubicación original. " +
                   "Antes de cada movimiento se vuelve a validar que el archivo siga intacto y que el origen esté libre."
-                : $"{execution.ReversibleFileCount} de {execution.FileCount} archivos siguen siendo reversibles en este momento. " +
+                : $"{execution.ReversibleFileCount} de {execution.FileCount} elementos siguen siendo reversibles en este momento. " +
                   "BandaNV intentará restaurar la ejecución de forma segura; cualquier archivo modificado, ausente o con conflicto se dejará intacto y quedará registrado como incidencia.";
 
         HistoryModalIconText.Text = "↶";
@@ -1074,13 +1074,13 @@ public sealed partial class HistoryPage : Page
         HistoryModalPrimaryButton.IsEnabled = false;
         HistoryModalPrimaryButton.Content = "Deshaciendo...";
         HistoryModalBodyText.Text =
-            "Validando archivos y restaurando ubicaciones originales...";
+            "Validando elementos y restaurando ubicaciones originales...";
 
         var progress = new Progress<OrganizationExecutionProgress>(state =>
         {
             HistoryModalBodyText.Text =
                 $"{state.Message}: {state.FileName}\n" +
-                $"{state.Processed} de {state.Total} archivos procesados.";
+                $"{state.Processed} de {state.Total} elementos procesados.";
         });
 
         try
@@ -1121,7 +1121,7 @@ public sealed partial class HistoryPage : Page
                   "La operación quedó registrada en Historial y en logs."
                 : $"{restored} archivo{(restored == 1 ? string.Empty : "s")} restaurado{(restored == 1 ? string.Empty : "s")} " +
                   $"y {issues} incidencia{(issues == 1 ? string.Empty : "s")}. " +
-                  "Los archivos que no pasaron las validaciones quedaron intactos y el detalle quedó registrado.";
+                  "Los elementos que no pasaron las validaciones quedaron intactos y el detalle quedó registrado.";
 
             HistoryModalSecondaryButton.Content = "Cerrar";
             HistoryModalSecondaryButton.IsEnabled = true;
