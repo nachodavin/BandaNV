@@ -1612,25 +1612,6 @@ public sealed partial class SearchPage : Page
         SearchFolderContentList.SelectedItems.Clear();
     }
 
-    private void SearchFolderContentSelectAllAccelerator_Invoked(
-        Microsoft.UI.Xaml.Input.KeyboardAccelerator sender,
-        Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
-    {
-        foreach (var item in SearchFolderContentList.Items
-                     .OfType<SearchFolderContentItem>())
-        {
-            if (!SearchFolderContentList.SelectedItems.Contains(
-                    item))
-            {
-                SearchFolderContentList.SelectedItems.Add(
-                    item);
-            }
-        }
-
-        args.Handled =
-            true;
-    }
-
     private void SearchFolderContentList_DoubleTapped(
         object sender,
         Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
