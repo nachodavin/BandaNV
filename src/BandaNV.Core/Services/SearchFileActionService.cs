@@ -544,6 +544,7 @@ public sealed class SearchFileActionService
         var record = new OrganizationExecutionRecord
         {
             Type = "SEARCH",
+            ShowInHistory = settings.SaveSearchHistory,
             Action = action,
             StartedAt = startedAt,
             FinishedAt = DateTime.Now,
@@ -647,7 +648,16 @@ public sealed class SearchFileActionService
                 record),
             cancellationToken);
 
-        if (!settings.SaveSearchHistory)
+        var keepTechnicalUndo =
+            UndoService.SupportsUndo(
+                record) &&
+            record.Items.Any(item =>
+                UndoService.IsUndoCandidate(
+                    record,
+                    item));
+
+        if (!settings.SaveSearchHistory &&
+            !keepTechnicalUndo)
         {
             return;
         }
