@@ -123,97 +123,136 @@ public sealed class SearchFileActionService
         CancellationToken cancellationToken)
     {
         var destinationRoot =
-            NormalizeDirectoryPath(settings.DestinationFolder);
+            NormalizeDirectoryPath(
+                settings.DestinationFolder);
 
-        EnsureDirectoryExists(destinationRoot);
+        EnsureDirectoryExists(
+            destinationRoot);
 
-        var targetFolder = CategoryService.GetFolderPath(
-            destinationRoot,
-            targetCategory.Order,
-            targetCategory.Name);
+        var targetFolder =
+            CategoryService.GetFolderPath(
+                destinationRoot,
+                targetCategory.Order,
+                targetCategory.Name);
 
-        EnsurePathInsideRoot(targetFolder, destinationRoot);
+        EnsurePathInsideRoot(
+            targetFolder,
+            destinationRoot);
 
         if (settings.CreateFolders)
         {
-            Directory.CreateDirectory(targetFolder);
+            Directory.CreateDirectory(
+                targetFolder);
         }
-        else if (!Directory.Exists(targetFolder))
+        else if (!Directory.Exists(
+                     targetFolder))
         {
             throw new DirectoryNotFoundException(
                 $"La carpeta de categoría no existe: {targetFolder}");
         }
 
-        var results = new List<SearchFileActionItemResult>();
+        var results =
+            new List<SearchFileActionItemResult>();
 
         foreach (var rawPath in filePaths)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var source = Path.GetFullPath(rawPath);
-            EnsurePathInsideRoot(source, destinationRoot);
+            var source =
+                Path.GetFullPath(
+                    rawPath);
 
-            if (!File.Exists(source))
+            EnsurePathInsideRoot(
+                source,
+                destinationRoot);
+
+            var sourceIsDirectory =
+                Directory.Exists(
+                    source);
+
+            if (!sourceIsDirectory &&
+                !File.Exists(
+                    source))
             {
-                results.Add(new SearchFileActionItemResult(
-                    source,
-                    null,
-                    SearchFileActionStatus.Missing,
-                    "El archivo ya no existe."));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        source,
+                        null,
+                        SearchFileActionStatus.Missing,
+                        "El elemento ya no existe."));
+
                 continue;
             }
 
-            var desiredTarget = Path.Combine(
-                targetFolder,
-                Path.GetFileName(source));
+            var desiredTarget =
+                Path.Combine(
+                    targetFolder,
+                    Path.GetFileName(
+                        source));
 
-            if (PathsEqual(source, desiredTarget))
+            if (PathsEqual(
+                    source,
+                    desiredTarget))
             {
-                results.Add(new SearchFileActionItemResult(
-                    source,
-                    source,
-                    SearchFileActionStatus.Completed,
-                    "El archivo ya pertenece a esa categoría."));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        source,
+                        source,
+                        SearchFileActionStatus.Completed,
+                        "El elemento ya pertenece a esa categoría."));
+
                 continue;
             }
 
-            var target = ResolveTargetPath(
-                settings.ConflictBehavior,
-                desiredTarget);
+            var target =
+                ResolveTargetPath(
+                    settings.ConflictBehavior,
+                    desiredTarget,
+                    sourceIsDirectory);
 
             if (target is null)
             {
-                results.Add(new SearchFileActionItemResult(
-                    source,
-                    null,
-                    SearchFileActionStatus.SkippedConflict,
-                    "Ya existe un archivo con el mismo nombre en la categoría elegida."));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        source,
+                        null,
+                        SearchFileActionStatus.SkippedConflict,
+                        "Ya existe un elemento con el mismo nombre en la categoría elegida."));
+
                 continue;
             }
 
-            EnsurePathInsideRoot(target, destinationRoot);
+            EnsurePathInsideRoot(
+                target,
+                destinationRoot);
 
             try
             {
-                MoveFileSafely(source, target);
-
-                results.Add(new SearchFileActionItemResult(
+                OrganizationEntrySafety.MoveEntrySafely(
                     source,
                     target,
-                    SearchFileActionStatus.Completed,
-                    null));
+                    cancellationToken);
+
+                results.Add(
+                    new SearchFileActionItemResult(
+                        source,
+                        target,
+                        SearchFileActionStatus.Completed,
+                        null));
             }
             catch (Exception ex)
             {
-                results.Add(new SearchFileActionItemResult(
-                    source,
-                    null,
-                    SearchFileActionStatus.Error,
-                    ex.Message));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        source,
+                        null,
+                        SearchFileActionStatus.Error,
+                        ex.Message));
             }
         }
 
-        return new SearchFileActionResult(results);
+        return new SearchFileActionResult(
+            results);
     }
 
     private static SearchFileActionResult Rename(
@@ -225,14 +264,27 @@ public sealed class SearchFileActionService
         cancellationToken.ThrowIfCancellationRequested();
 
         var destinationRoot =
-            NormalizeDirectoryPath(settings.DestinationFolder);
+            NormalizeDirectoryPath(
+                settings.DestinationFolder);
 
-        EnsureDirectoryExists(destinationRoot);
+        EnsureDirectoryExists(
+            destinationRoot);
 
-        var source = Path.GetFullPath(filePath);
-        EnsurePathInsideRoot(source, destinationRoot);
+        var source =
+            Path.GetFullPath(
+                filePath);
 
-        if (!File.Exists(source))
+        EnsurePathInsideRoot(
+            source,
+            destinationRoot);
+
+        var isDirectory =
+            Directory.Exists(
+                source);
+
+        if (!isDirectory &&
+            !File.Exists(
+                source))
         {
             return new SearchFileActionResult(
             [
@@ -240,40 +292,53 @@ public sealed class SearchFileActionService
                     source,
                     null,
                     SearchFileActionStatus.Missing,
-                    "El archivo ya no existe.")
+                    "El elemento ya no existe.")
             ]);
         }
 
-        var fileName = proposedName.Trim();
+        var name =
+            proposedName.Trim();
 
-        if (string.IsNullOrWhiteSpace(fileName))
+        if (string.IsNullOrWhiteSpace(
+                name))
         {
             throw new ArgumentException(
                 "El nuevo nombre no puede estar vacío.",
                 nameof(proposedName));
         }
 
-        if (fileName.IndexOfAny(
-                Path.GetInvalidFileNameChars()) >= 0)
+        if (name.IndexOfAny(
+                Path.GetInvalidFileNameChars()) >=
+            0)
         {
             throw new ArgumentException(
                 "El nombre contiene caracteres no permitidos.",
                 nameof(proposedName));
         }
 
-        if (string.IsNullOrWhiteSpace(
-                Path.GetExtension(fileName)))
+        if (!isDirectory &&
+            string.IsNullOrWhiteSpace(
+                Path.GetExtension(
+                    name)))
         {
-            fileName += Path.GetExtension(source);
+            name +=
+                Path.GetExtension(
+                    source);
         }
 
-        var target = Path.Combine(
-            Path.GetDirectoryName(source)!,
-            fileName);
+        var target =
+            Path.Combine(
+                Path.GetDirectoryName(
+                    source)!,
+                name);
 
-        EnsurePathInsideRoot(target, destinationRoot);
+        EnsurePathInsideRoot(
+            target,
+            destinationRoot);
 
-        if (PathsEqual(source, target))
+        if (PathsEqual(
+                source,
+                target))
         {
             return new SearchFileActionResult(
             [
@@ -285,7 +350,8 @@ public sealed class SearchFileActionService
             ]);
         }
 
-        if (File.Exists(target))
+        if (OrganizationEntrySafety.Exists(
+                target))
         {
             return new SearchFileActionResult(
             [
@@ -293,13 +359,16 @@ public sealed class SearchFileActionService
                     source,
                     null,
                     SearchFileActionStatus.SkippedConflict,
-                    "Ya existe un archivo con ese nombre en la misma carpeta.")
+                    "Ya existe un elemento con ese nombre en la misma carpeta.")
             ]);
         }
 
         try
         {
-            MoveFileSafely(source, target);
+            OrganizationEntrySafety.MoveEntrySafely(
+                source,
+                target,
+                cancellationToken);
 
             return new SearchFileActionResult(
             [
@@ -329,26 +398,42 @@ public sealed class SearchFileActionService
         CancellationToken cancellationToken)
     {
         var destinationRoot =
-            NormalizeDirectoryPath(settings.DestinationFolder);
+            NormalizeDirectoryPath(
+                settings.DestinationFolder);
 
-        EnsureDirectoryExists(destinationRoot);
+        EnsureDirectoryExists(
+            destinationRoot);
 
-        var results = new List<SearchFileActionItemResult>();
+        var results =
+            new List<SearchFileActionItemResult>();
 
         foreach (var rawPath in filePaths)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var path = Path.GetFullPath(rawPath);
-            EnsurePathInsideRoot(path, destinationRoot);
+            var path =
+                Path.GetFullPath(
+                    rawPath);
 
-            if (!File.Exists(path))
+            EnsurePathInsideRoot(
+                path,
+                destinationRoot);
+
+            var isDirectory =
+                Directory.Exists(
+                    path);
+
+            if (!isDirectory &&
+                !File.Exists(
+                    path))
             {
-                results.Add(new SearchFileActionItemResult(
-                    path,
-                    null,
-                    SearchFileActionStatus.Missing,
-                    "El archivo ya no existe."));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        path,
+                        null,
+                        SearchFileActionStatus.Missing,
+                        "El elemento ya no existe."));
+
                 continue;
             }
 
@@ -356,33 +441,53 @@ public sealed class SearchFileActionService
             {
                 if (settings.UseRecycleBin)
                 {
-                    FileSystem.DeleteFile(
+                    if (isDirectory)
+                    {
+                        FileSystem.DeleteDirectory(
+                            path,
+                            UIOption.OnlyErrorDialogs,
+                            RecycleOption.SendToRecycleBin);
+                    }
+                    else
+                    {
+                        FileSystem.DeleteFile(
+                            path,
+                            UIOption.OnlyErrorDialogs,
+                            RecycleOption.SendToRecycleBin);
+                    }
+                }
+                else if (isDirectory)
+                {
+                    Directory.Delete(
                         path,
-                        UIOption.OnlyErrorDialogs,
-                        RecycleOption.SendToRecycleBin);
+                        recursive: true);
                 }
                 else
                 {
-                    File.Delete(path);
+                    File.Delete(
+                        path);
                 }
 
-                results.Add(new SearchFileActionItemResult(
-                    path,
-                    null,
-                    SearchFileActionStatus.Completed,
-                    null));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        path,
+                        null,
+                        SearchFileActionStatus.Completed,
+                        null));
             }
             catch (Exception ex)
             {
-                results.Add(new SearchFileActionItemResult(
-                    path,
-                    null,
-                    SearchFileActionStatus.Error,
-                    ex.Message));
+                results.Add(
+                    new SearchFileActionItemResult(
+                        path,
+                        null,
+                        SearchFileActionStatus.Error,
+                        ex.Message));
             }
         }
 
-        return new SearchFileActionResult(results);
+        return new SearchFileActionResult(
+            results);
     }
 
     private static async Task TryPersistAuditAsync(
@@ -406,7 +511,7 @@ public sealed class SearchFileActionService
         }
         catch
         {
-            // La auditoría es secundaria al resultado físico. Si el archivo
+            // La auditoría es secundaria al resultado físico. Si el elemento
             // ya fue modificado correctamente, un fallo de log no debe hacer
             // que Buscar informe una operación fallida.
         }
@@ -516,6 +621,13 @@ public sealed class SearchFileActionService
                         sourceInfo?.SizeBytes ?? 0,
                     ModifiedUtcTicks =
                         sourceInfo?.ModifiedUtcTicks ?? 0,
+                    Kind =
+                        sourceInfo?.Kind ??
+                        OrganizationAnalysisItemKind.File,
+                    ContainedFileCount =
+                        sourceInfo?.ContainedFileCount ?? 1,
+                    ContentFingerprint =
+                        sourceInfo?.ContentFingerprint,
                     Status = status,
                     Message = message
                 });
@@ -564,16 +676,39 @@ public sealed class SearchFileActionService
             try
             {
                 var fullPath =
-                    Path.GetFullPath(rawPath);
+                    Path.GetFullPath(
+                        rawPath);
+
                 var category =
                     ResolveCategoryForPath(
                         settings,
                         fullPath);
 
-                if (File.Exists(fullPath))
+                if (Directory.Exists(
+                        fullPath))
+                {
+                    var snapshot =
+                        OrganizationEntrySafety.GetDirectorySnapshot(
+                            fullPath);
+
+                    results.Add(
+                        new SearchAuditSourceInfo(
+                            fullPath,
+                            Path.GetFileName(
+                                fullPath),
+                            snapshot.TotalSizeBytes,
+                            snapshot.ModifiedUtcTicks,
+                            OrganizationAnalysisItemKind.Folder,
+                            snapshot.FileCount,
+                            snapshot.ContentFingerprint,
+                            category));
+                }
+                else if (File.Exists(
+                             fullPath))
                 {
                     var info =
-                        new FileInfo(fullPath);
+                        new FileInfo(
+                            fullPath);
 
                     results.Add(
                         new SearchAuditSourceInfo(
@@ -581,6 +716,9 @@ public sealed class SearchFileActionService
                             info.Name,
                             info.Length,
                             info.LastWriteTimeUtc.Ticks,
+                            OrganizationAnalysisItemKind.File,
+                            1,
+                            null,
                             category));
                 }
                 else
@@ -592,6 +730,9 @@ public sealed class SearchFileActionService
                                 fullPath),
                             0,
                             0,
+                            OrganizationAnalysisItemKind.File,
+                            1,
+                            null,
                             category));
                 }
             }
@@ -752,9 +893,11 @@ public sealed class SearchFileActionService
 
     private static string? ResolveTargetPath(
         string behavior,
-        string desiredTarget)
+        string desiredTarget,
+        bool isDirectory)
     {
-        if (!File.Exists(desiredTarget))
+        if (!OrganizationEntrySafety.Exists(
+                desiredTarget))
         {
             return desiredTarget;
         }
@@ -763,94 +906,55 @@ public sealed class SearchFileActionService
                 "Renombrar automáticamente",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return GetUniqueDestination(desiredTarget);
+            return GetUniqueDestination(
+                desiredTarget,
+                isDirectory);
         }
 
-        // Buscar nunca pisa un archivo existente silenciosamente. La opción
-        // Reemplazar requiere un journal/backup propio antes de habilitarse.
-        // Preguntar, Omitir y Reemplazar devuelven conflicto seguro.
+        // Buscar nunca reemplaza silenciosamente un elemento existente.
+        // Preguntar, Omitir y Reemplazar se resuelven como conflicto seguro.
         return null;
     }
 
     private static string GetUniqueDestination(
-        string desiredTarget)
+        string desiredTarget,
+        bool isDirectory)
     {
         var directory =
-            Path.GetDirectoryName(desiredTarget)!;
-        var name =
-            Path.GetFileNameWithoutExtension(desiredTarget);
-        var extension =
-            Path.GetExtension(desiredTarget);
+            Path.GetDirectoryName(
+                desiredTarget)!;
 
-        var index = 2;
+        var name =
+            isDirectory
+                ? Path.GetFileName(
+                    desiredTarget)
+                : Path.GetFileNameWithoutExtension(
+                    desiredTarget);
+
+        var extension =
+            isDirectory
+                ? string.Empty
+                : Path.GetExtension(
+                    desiredTarget);
+
+        var index =
+            2;
+
         string candidate;
 
         do
         {
-            candidate = Path.Combine(
-                directory,
-                $"{name} ({index}){extension}");
+            candidate =
+                Path.Combine(
+                    directory,
+                    $"{name} ({index}){extension}");
+
             index++;
         }
-        while (File.Exists(candidate));
+        while (OrganizationEntrySafety.Exists(
+            candidate));
 
         return candidate;
-    }
-
-    private static void MoveFileSafely(
-        string source,
-        string destination)
-    {
-        Directory.CreateDirectory(
-            Path.GetDirectoryName(destination)!);
-
-        try
-        {
-            File.Move(source, destination);
-            return;
-        }
-        catch (IOException)
-        {
-            // Puede ser un movimiento entre unidades.
-        }
-
-        var temporaryDestination =
-            destination +
-            $".bandanv_tmp_{Guid.NewGuid():N}";
-
-        try
-        {
-            File.Copy(
-                source,
-                temporaryDestination,
-                overwrite: false);
-
-            if (new FileInfo(source).Length !=
-                new FileInfo(temporaryDestination).Length)
-            {
-                throw new IOException(
-                    "La copia entre unidades no pudo validarse.");
-            }
-
-            File.Move(
-                temporaryDestination,
-                destination,
-                overwrite: false);
-
-            try
-            {
-                File.Delete(source);
-            }
-            catch
-            {
-                TryDelete(destination);
-                throw;
-            }
-        }
-        finally
-        {
-            TryDelete(temporaryDestination);
-        }
     }
 
     private static async Task WriteTextAtomicAsync(
@@ -990,5 +1094,8 @@ public sealed class SearchFileActionService
         string FileName,
         long SizeBytes,
         long ModifiedUtcTicks,
+        OrganizationAnalysisItemKind Kind,
+        int ContainedFileCount,
+        string? ContentFingerprint,
         SearchAuditCategory? Category);
 }
