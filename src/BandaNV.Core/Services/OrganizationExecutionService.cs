@@ -1804,7 +1804,14 @@ public sealed class OrganizationExecutionService
                 $"Acción: {GetSearchActionDisplayName(record.Action)}");
         }
 
-        builder.AppendLine("Formato: v2");
+        var formatVersion =
+            record.Format.Replace(
+                "BandaNV.Execution.",
+                string.Empty,
+                StringComparison.OrdinalIgnoreCase);
+
+        builder.AppendLine(
+            $"Formato: {formatVersion}");
         builder.AppendLine($"ExecutionID: {record.ExecutionId}");
         builder.AppendLine($"Inicio: {record.StartedAt:dd/MM/yyyy HH:mm:ss}");
         builder.AppendLine($"Origen: {record.SourceFolder}");
@@ -1843,6 +1850,16 @@ public sealed class OrganizationExecutionService
 
             builder.AppendLine(
                 $"[{logStatus}] {item.FileName}");
+
+            builder.AppendLine(
+                $"         Tipo: {(item.IsDirectory ? "CARPETA" : "ARCHIVO")}");
+
+            if (item.IsDirectory)
+            {
+                builder.AppendLine(
+                    $"         Contenido: {item.ContainedFileCount} archivo{(item.ContainedFileCount == 1 ? string.Empty : "s")}");
+            }
+
             builder.AppendLine($"         UndoID: {item.UndoId}");
             builder.AppendLine($"         Original: {item.OriginalPath}");
 
