@@ -369,21 +369,27 @@ public sealed class OrganizationExecutionService
 
         try
         {
-            if (File.Exists(target) &&
+            if (EntryExists(target) &&
                 targetResolution.Action == OrganizationConflictAction.Replace)
             {
-                var replacedInfo = new FileInfo(target);
+                var replacedInfo =
+                    GetEntryMetadata(
+                        target,
+                        cancellationToken);
 
-                item.ReplacedSizeBytes = replacedInfo.Length;
+                item.ReplacedSizeBytes =
+                    replacedInfo.SizeBytes;
                 item.ReplacedModifiedUtcTicks =
-                    replacedInfo.LastWriteTimeUtc.Ticks;
+                    replacedInfo.ModifiedUtcTicks;
 
-                replacedBackupPath = BackupReplacedFile(
-                    target,
-                    executionId,
-                    item.UndoId);
+                replacedBackupPath =
+                    BackupReplacedEntry(
+                        target,
+                        executionId,
+                        item.UndoId);
 
-                item.ReplacedBackupPath = replacedBackupPath;
+                item.ReplacedBackupPath =
+                    replacedBackupPath;
 
                 // La copia protegida ya existe físicamente. Persistimos esa
                 // evidencia antes de mover el archivo nuevo para que un cierre
@@ -408,17 +414,18 @@ public sealed class OrganizationExecutionService
             item.Message = ex.Message;
 
             if (replacedBackupPath is not null &&
-                File.Exists(replacedBackupPath) &&
-                !File.Exists(target))
+                EntryExists(replacedBackupPath) &&
+                !EntryExists(target))
             {
                 try
                 {
                     Directory.CreateDirectory(
                         Path.GetDirectoryName(target)!);
 
-                    MoveFileSafely(
+                    MoveEntrySafely(
                         replacedBackupPath,
-                        target);
+                        target,
+                        CancellationToken.None);
 
                     item.ReplacedBackupPath = null;
                 }
@@ -809,7 +816,7 @@ public sealed class OrganizationExecutionService
         ConflictResolutionState conflictState,
         CancellationToken cancellationToken)
     {
-        if (!File.Exists(desiredTarget))
+        if (!EntryExists(desiredTarget))
         {
             return new TargetResolution(desiredTarget, null);
         }
@@ -869,16 +876,26 @@ public sealed class OrganizationExecutionService
 
             try
             {
-                var destinationInfo = new FileInfo(desiredTarget);
+                var destinationInfo =
+                    GetEntryMetadata(
+                        desiredTarget,
+                        cancellationToken);
 
                 conflict = new OrganizationConflictInfo(
                     item.FileName,
                     item.OriginalPath,
                     desiredTarget,
                     sourceInfo.Length,
-                    destinationInfo.Length,
+                    destinationInfo.SizeBytes,
                     sourceInfo.LastWriteTime,
-                    destinationInfo.LastWriteTime);
+                    new DateTime(
+                        destinationInfo.ModifiedUtcTicks,
+                        DateTimeKind.Utc)
+                        .ToLocalTime(),
+                    IsDirectory: false,
+                    SourceItemCount: 1,
+                    DestinationItemCount:
+                        destinationInfo.ItemCount);
             }
             catch (FileNotFoundException)
             {
@@ -1535,7 +1552,7 @@ public sealed class OrganizationExecutionService
 
     private static string GetUniqueDestination(string desiredTarget)
     {
-        if (!File.Exists(desiredTarget))
+        if (!EntryExists(desiredTarget))
         {
             return desiredTarget;
         }
@@ -1554,7 +1571,7 @@ public sealed class OrganizationExecutionService
                 $"{name} ({index}){extension}");
             index++;
         }
-        while (File.Exists(candidate));
+        while (EntryExists(candidate));
 
         return candidate;
     }
