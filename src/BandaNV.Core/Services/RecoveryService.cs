@@ -777,7 +777,7 @@ public sealed class RecoveryService
         if (stats.InterruptedItems > 0)
         {
             parts.Add(
-                $"{stats.InterruptedItems} archivo{(stats.InterruptedItems == 1 ? string.Empty : "s")} marcado{(stats.InterruptedItems == 1 ? string.Empty : "s")} como interrumpido o con incidencia");
+                $"{stats.InterruptedItems} elemento{(stats.InterruptedItems == 1 ? string.Empty : "s")} marcado{(stats.InterruptedItems == 1 ? string.Empty : "s")} como interrumpido o con incidencia");
         }
 
         if (stats.TemporaryFilesDeleted > 0)
@@ -838,7 +838,8 @@ public sealed class RecoveryService
             record.ExecutionId,
             $"{item.UndoId}_{Path.GetFileName(targetPath)}");
 
-        return File.Exists(candidate)
+        return OrganizationEntrySafety.Exists(
+                candidate)
             ? candidate
             : null;
     }
@@ -865,183 +866,6 @@ public sealed class RecoveryService
         catch
         {
             return null;
-        }
-    }
-
-    private static bool MatchesExpectedFile(
-        string path,
-        OrganizationExecutionItemRecord item)
-    {
-        try
-        {
-            var info = new FileInfo(path);
-
-            return info.Exists &&
-                   info.Length == item.SizeBytes &&
-                   Math.Abs(
-                       info.LastWriteTimeUtc.Ticks -
-                       item.ModifiedUtcTicks) <=
-                   TimestampToleranceTicks;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool MatchesReplacedFile(
-        string path,
-        OrganizationExecutionItemRecord originalItem)
-    {
-        if (!originalItem.ReplacedSizeBytes.HasValue ||
-            !originalItem.ReplacedModifiedUtcTicks.HasValue)
-        {
-            return false;
-        }
-
-        try
-        {
-            var info = new FileInfo(path);
-
-            return info.Exists &&
-                   info.Length ==
-                   originalItem.ReplacedSizeBytes.Value &&
-                   Math.Abs(
-                       info.LastWriteTimeUtc.Ticks -
-                       originalItem.ReplacedModifiedUtcTicks.Value) <=
-                   TimestampToleranceTicks;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static async Task<bool> FilesAreIdenticalAsync(
-        string leftPath,
-        string rightPath,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var leftInfo = new FileInfo(leftPath);
-            var rightInfo = new FileInfo(rightPath);
-
-            if (!leftInfo.Exists ||
-                !rightInfo.Exists ||
-                leftInfo.Length != rightInfo.Length)
-            {
-                return false;
-            }
-
-            await using var left = new FileStream(
-                leftPath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 1024 * 128,
-                useAsync: true);
-
-            await using var right = new FileStream(
-                rightPath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 1024 * 128,
-                useAsync: true);
-
-            using var leftHash = IncrementalHash.CreateHash(
-                HashAlgorithmName.SHA256);
-            using var rightHash = IncrementalHash.CreateHash(
-                HashAlgorithmName.SHA256);
-
-            var leftBuffer = new byte[1024 * 128];
-            var rightBuffer = new byte[1024 * 128];
-
-            while (true)
-            {
-                var leftRead = await left.ReadAsync(
-                    leftBuffer,
-                    cancellationToken);
-                var rightRead = await right.ReadAsync(
-                    rightBuffer,
-                    cancellationToken);
-
-                if (leftRead != rightRead)
-                {
-                    return false;
-                }
-
-                if (leftRead == 0)
-                {
-                    break;
-                }
-
-                leftHash.AppendData(
-                    leftBuffer,
-                    0,
-                    leftRead);
-                rightHash.AppendData(
-                    rightBuffer,
-                    0,
-                    rightRead);
-            }
-
-            return CryptographicOperations.FixedTimeEquals(
-                leftHash.GetHashAndReset(),
-                rightHash.GetHashAndReset());
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static int CleanupTemporaryCopies(
-        string destinationPath)
-    {
-        if (string.IsNullOrWhiteSpace(destinationPath))
-        {
-            return 0;
-        }
-
-        try
-        {
-            var fullPath = Path.GetFullPath(destinationPath);
-            var directory = Path.GetDirectoryName(fullPath);
-
-            if (string.IsNullOrWhiteSpace(directory) ||
-                !Directory.Exists(directory))
-            {
-                return 0;
-            }
-
-            var fileName = Path.GetFileName(fullPath);
-            var pattern =
-                fileName + ".bandanv_tmp_*";
-
-            var deleted = 0;
-
-            foreach (var temporaryPath in Directory.EnumerateFiles(
-                         directory,
-                         pattern,
-                         SearchOption.TopDirectoryOnly))
-            {
-                if (TryDeleteFile(temporaryPath))
-                {
-                    deleted++;
-                }
-            }
-
-            return deleted;
-        }
-        catch
-        {
-            return 0;
         }
     }
 
@@ -1098,69 +922,6 @@ public sealed class RecoveryService
         finally
         {
             TryDeleteFile(temporaryPath);
-        }
-    }
-
-    private static void MoveFileSafely(
-        string source,
-        string destination)
-    {
-        Directory.CreateDirectory(
-            Path.GetDirectoryName(destination)!);
-
-        try
-        {
-            File.Move(
-                source,
-                destination);
-            return;
-        }
-        catch (IOException)
-        {
-            // Puede ser un movimiento entre unidades.
-        }
-
-        var temporaryDestination =
-            destination +
-            $".bandanv_tmp_{Guid.NewGuid():N}";
-
-        try
-        {
-            File.Copy(
-                source,
-                temporaryDestination,
-                overwrite: false);
-
-            var sourceLength =
-                new FileInfo(source).Length;
-            var copiedLength =
-                new FileInfo(
-                    temporaryDestination).Length;
-
-            if (sourceLength != copiedLength)
-            {
-                throw new IOException(
-                    "La copia entre unidades no pudo validarse.");
-            }
-
-            File.Move(
-                temporaryDestination,
-                destination,
-                overwrite: false);
-
-            try
-            {
-                File.Delete(source);
-            }
-            catch
-            {
-                TryDeleteFile(destination);
-                throw;
-            }
-        }
-        finally
-        {
-            TryDeleteFile(temporaryDestination);
         }
     }
 
