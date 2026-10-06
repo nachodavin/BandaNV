@@ -222,9 +222,27 @@ public sealed class OrganizationExecutionService
             throw;
         }
 
+        var hasTechnicalUndo =
+            record.Items.Any(item =>
+                UndoService.IsUndoCandidate(
+                    record,
+                    item));
+
+        if (!settings.SaveHistory &&
+            !hasTechnicalUndo)
+        {
+            TryDelete(
+                historyPath);
+            historyPath =
+                string.Empty;
+        }
+
         return new OrganizationExecutionResult(
             record,
-            historyPath,
+            string.IsNullOrWhiteSpace(
+                historyPath)
+                ? null
+                : historyPath,
             logPath);
     }
 
