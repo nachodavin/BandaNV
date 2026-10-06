@@ -7,6 +7,7 @@ internal static class Program
 {
     private static int _passed;
     private static int _failed;
+    private static readonly List<OrganizationExecutionResult> _generatedExecutionArtifacts = new();
 
     public static async Task<int> Main()
     {
@@ -105,6 +106,8 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
+
+        CleanupGeneratedExecutionArtifacts();
 
         return _failed == 0
             ? 0
@@ -1471,15 +1474,33 @@ internal static class Program
         settings.ConfirmDestructiveActions =
             confirmDestructiveActions;
 
-        return await new OrganizationExecutionService()
-            .ExecuteAsync(
-                settings,
-                [
-                    ToExecutionRequest(
-                        item)
-                ],
-                conflictResolver:
-                    resolver);
+        var result =
+            await new OrganizationExecutionService()
+                .ExecuteAsync(
+                    settings,
+                    [
+                        ToExecutionRequest(
+                            item)
+                    ],
+                    conflictResolver:
+                        resolver);
+
+        _generatedExecutionArtifacts.Add(
+            result);
+
+        return result;
+    }
+
+    private static void CleanupGeneratedExecutionArtifacts()
+    {
+        foreach (var result in
+                 _generatedExecutionArtifacts)
+        {
+            DeleteExecutionArtifacts(
+                result);
+        }
+
+        _generatedExecutionArtifacts.Clear();
     }
 
     private static void DeleteExecutionArtifacts(
@@ -1488,12 +1509,37 @@ internal static class Program
         try
         {
             if (!string.IsNullOrWhiteSpace(
-                    result.HistoryPath) &&
-                File.Exists(
                     result.HistoryPath))
             {
-                File.Delete(
-                    result.HistoryPath);
+                var historyDirectory =
+                    Path.GetDirectoryName(
+                        result.HistoryPath);
+
+                if (File.Exists(
+                        result.HistoryPath))
+                {
+                    File.Delete(
+                        result.HistoryPath);
+                }
+
+                if (!string.IsNullOrWhiteSpace(
+                        historyDirectory))
+                {
+                    var backupDirectory =
+                        Path.Combine(
+                            historyDirectory,
+                            "replaced",
+                            result.Record.ExecutionId);
+
+                    if (Directory.Exists(
+                            backupDirectory))
+                    {
+                        Directory.Delete(
+                            backupDirectory,
+                            recursive:
+                                true);
+                    }
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(
