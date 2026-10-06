@@ -666,9 +666,15 @@ public sealed partial class SearchPage : Page
 
         options.AddRange(
             _allFiles
-                .Select(file => file.ExtensionDisplay.ToLowerInvariant())
+                .SelectMany(file =>
+                    file.IsDirectory
+                        ? file.FolderContents.Select(item =>
+                            item.ExtensionDisplay.ToLowerInvariant())
+                        : [file.ExtensionDisplay.ToLowerInvariant()])
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase));
+                .OrderBy(
+                    extension => extension,
+                    StringComparer.OrdinalIgnoreCase));
 
         foreach (var option in options)
         {
