@@ -26,6 +26,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private OrganizeCategoryOption? _pendingAssignmentCategory;
     private bool _isCreatingAssignmentCategory;
 
+    private OrganizePreviewFile? _folderDetailRoot;
+    private string _folderDetailCurrentRelativePath = string.Empty;
+    private readonly Stack<string> _folderDetailHistory = new();
+
     public OrganizePage()
     {
         InitializeComponent();
@@ -447,20 +451,152 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
-        FolderDetailTitleText.Text =
-            folder.FileName;
+        _folderDetailRoot =
+            folder;
+        _folderDetailCurrentRelativePath =
+            string.Empty;
+        _folderDetailHistory.Clear();
 
-        FolderDetailSummaryText.Text =
-            folder.FolderDetailSummary;
-
-        FolderDetailPathText.Text =
-            folder.FullPath;
-
-        FolderDetailFilesList.ItemsSource =
-            folder.FolderContents;
+        RefreshFolderDetailView();
 
         FolderDetailOverlay.Visibility =
             Visibility.Visible;
+    }
+
+    private void FolderDetailFilesList_ItemClick(
+        object sender,
+        ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not FolderContentPreviewItem { IsDirectory: true } folder)
+        {
+            return;
+        }
+
+        _folderDetailHistory.Push(
+            _folderDetailCurrentRelativePath);
+
+        _folderDetailCurrentRelativePath =
+            folder.RelativePath;
+
+        RefreshFolderDetailView();
+    }
+
+    private void FolderDetailBackButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_folderDetailHistory.Count == 0)
+        {
+            return;
+        }
+
+        _folderDetailCurrentRelativePath =
+            _folderDetailHistory.Pop();
+
+        RefreshFolderDetailView();
+    }
+
+    private void RefreshFolderDetailView()
+    {
+        if (_folderDetailRoot is null)
+        {
+            return;
+        }
+
+        var currentPath =
+            _folderDetailCurrentRelativePath;
+
+        var currentFolder =
+            string.IsNullOrWhiteSpace(currentPath)
+                ? null
+                : _folderDetailRoot.FolderContents
+                    .FirstOrDefault(item =>
+                        item.IsDirectory &&
+                        item.RelativePath.Equals(
+                            currentPath,
+                            StringComparison.OrdinalIgnoreCase));
+
+        FolderDetailTitleText.Text =
+            currentFolder?.FileName ??
+            _folderDetailRoot.FileName;
+
+        FolderDetailSummaryText.Text =
+            currentFolder is null
+                ? _folderDetailRoot.FolderDetailSummary
+                : BuildNestedFolderSummary(
+                    currentFolder,
+                    _folderDetailRoot.FolderContents);
+
+        FolderDetailPathText.Text =
+            string.IsNullOrWhiteSpace(currentPath)
+                ? _folderDetailRoot.FullPath
+                : Path.Combine(
+                    _folderDetailRoot.FullPath,
+                    currentPath);
+
+        FolderDetailBackButton.Visibility =
+            _folderDetailHistory.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        FolderDetailFilesList.ItemsSource =
+            _folderDetailRoot.FolderContents
+                .Where(item =>
+                    GetParentRelativePath(
+                        item.RelativePath)
+                        .Equals(
+                            currentPath,
+                            StringComparison.OrdinalIgnoreCase))
+                .OrderBy(item => item.IsDirectory ? 0 : 1)
+                .ThenBy(
+                    item => item.FileName,
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+    }
+
+    private static string BuildNestedFolderSummary(
+        FolderContentPreviewItem folder,
+        IReadOnlyList<FolderContentPreviewItem> allItems)
+    {
+        var directSubfolderCount =
+            allItems.Count(item =>
+                item.IsDirectory &&
+                GetParentRelativePath(
+                    item.RelativePath)
+                    .Equals(
+                        folder.RelativePath,
+                        StringComparison.OrdinalIgnoreCase));
+
+        var parts =
+            new List<string>
+            {
+                $"{folder.ContainedFileCount} archivo{(folder.ContainedFileCount == 1 ? string.Empty : "s")}"
+            };
+
+        if (directSubfolderCount > 0)
+        {
+            parts.Add(
+                $"{directSubfolderCount} subcarpeta{(directSubfolderCount == 1 ? string.Empty : "s")}");
+        }
+
+        parts.Add(
+            folder.CategoryDisplay);
+
+        return string.Join(
+            " · ",
+            parts);
+    }
+
+    private static string GetParentRelativePath(
+        string relativePath)
+    {
+        var parent =
+            Path.GetDirectoryName(
+                relativePath);
+
+        return string.IsNullOrWhiteSpace(parent)
+            ? string.Empty
+            : parent;
     }
 
     private void CloseFolderDetailButton_Click(
@@ -484,6 +620,14 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         FolderDetailFilesList.ItemsSource =
             null;
+
+        _folderDetailRoot =
+            null;
+        _folderDetailCurrentRelativePath =
+            string.Empty;
+        _folderDetailHistory.Clear();
+        FolderDetailBackButton.Visibility =
+            Visibility.Collapsed;
     }
 
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
