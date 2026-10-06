@@ -93,17 +93,23 @@ public sealed class OrganizationAnalysisService
                          () => skippedDirectories++,
                          cancellationToken))
             {
-                AnalyzeFolderUnitsRecursively(
-                    directory,
-                    source,
-                    destination,
-                    extensionMap,
-                    excludedRoots,
-                    settings.ConflictBehavior,
-                    settings.IncludeSubfolders,
-                    items,
-                    () => skippedDirectories++,
-                    cancellationToken);
+                var item =
+                    TryAnalyzeFolder(
+                        directory,
+                        source,
+                        destination,
+                        extensionMap,
+                        excludedRoots,
+                        settings.ConflictBehavior,
+                        settings.IncludeSubfolders,
+                        () => skippedDirectories++,
+                        cancellationToken);
+
+                if (item is not null)
+                {
+                    items.Add(
+                        item);
+                }
             }
         }
         else
@@ -228,6 +234,7 @@ public sealed class OrganizationAnalysisService
         IReadOnlyDictionary<string, CategorySettings> extensionMap,
         HashSet<string> excludedRoots,
         string conflictBehavior,
+        bool includeSubfoldersInClassification,
         Action onSkippedDirectory,
         CancellationToken cancellationToken)
     {
@@ -250,6 +257,12 @@ public sealed class OrganizationAnalysisService
         var recognizedFiles =
             0;
 
+        var classificationFiles =
+            0;
+
+        var classificationRecognizedFiles =
+            0;
+
         var totalSize =
             0L;
 
@@ -257,6 +270,10 @@ public sealed class OrganizationAnalysisService
             false;
 
         var detectedCategories =
+            new Dictionary<string, CategorySettings>(
+                StringComparer.OrdinalIgnoreCase);
+
+        var classificationCategories =
             new Dictionary<string, CategorySettings>(
                 StringComparer.OrdinalIgnoreCase);
 
@@ -316,6 +333,21 @@ public sealed class OrganizationAnalysisService
                 fingerprintParts.Add(
                     $"{relativePath}\0{file.Length}\0{file.LastWriteTimeUtc.Ticks}");
 
+                var isDirectFile =
+                    PathsEqual(
+                        Path.GetDirectoryName(
+                            file.FullName) ?? string.Empty,
+                        directory.FullName);
+
+                var includeForClassification =
+                    includeSubfoldersInClassification ||
+                    isDirectFile;
+
+                if (includeForClassification)
+                {
+                    classificationFiles++;
+                }
+
                 if (category is null)
                 {
                     continue;
@@ -326,6 +358,15 @@ public sealed class OrganizationAnalysisService
                 detectedCategories.TryAdd(
                     category.Id,
                     category);
+
+                if (includeForClassification)
+                {
+                    classificationRecognizedFiles++;
+
+                    classificationCategories.TryAdd(
+                        category.Id,
+                        category);
+                }
             }
             catch (FileNotFoundException)
             {
@@ -354,11 +395,12 @@ public sealed class OrganizationAnalysisService
             null;
 
         if (!scanIncomplete &&
-            recognizedFiles == totalFiles &&
-            detectedCategories.Count == 1)
+            classificationFiles > 0 &&
+            classificationRecognizedFiles == classificationFiles &&
+            classificationCategories.Count == 1)
         {
             inferredCategory =
-                detectedCategories.Values.First();
+                classificationCategories.Values.First();
         }
 
         var destinationPath =
@@ -432,74 +474,6 @@ public sealed class OrganizationAnalysisService
                     ? null
                     : BuildContentFingerprint(
                         fingerprintParts));
-    }
-
-    private static void AnalyzeFolderUnitsRecursively(
-        string directory,
-        string source,
-        string destination,
-        IReadOnlyDictionary<string, CategorySettings> extensionMap,
-        HashSet<string> excludedRoots,
-        string conflictBehavior,
-        bool includeSubfolders,
-        List<OrganizationAnalysisFile> items,
-        Action onSkippedDirectory,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var item =
-            TryAnalyzeFolder(
-                directory,
-                source,
-                destination,
-                extensionMap,
-                excludedRoots,
-                conflictBehavior,
-                onSkippedDirectory,
-                cancellationToken);
-
-        if (item is null)
-        {
-            return;
-        }
-
-        if (!includeSubfolders ||
-            item.IsClassified)
-        {
-            items.Add(
-                item);
-            return;
-        }
-
-        var itemCountBeforeChildren =
-            items.Count;
-
-        foreach (var childDirectory in EnumerateTopLevelDirectoriesSafely(
-                     directory,
-                     excludedRoots,
-                     onSkippedDirectory,
-                     cancellationToken))
-        {
-            AnalyzeFolderUnitsRecursively(
-                childDirectory,
-                source,
-                destination,
-                extensionMap,
-                excludedRoots,
-                conflictBehavior,
-                includeSubfolders: true,
-                items,
-                onSkippedDirectory,
-                cancellationToken);
-        }
-
-        if (items.Count ==
-            itemCountBeforeChildren)
-        {
-            items.Add(
-                item);
-        }
     }
 
     private static string BuildContentFingerprint(
