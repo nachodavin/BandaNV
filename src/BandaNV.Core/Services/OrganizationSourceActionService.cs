@@ -377,6 +377,8 @@ public sealed class OrganizationSourceActionService
             {
                 Type =
                     "ORGANIZE_ACTION",
+                ShowInHistory =
+                    settings.SaveOrganizeHistory,
                 Action =
                     action,
                 StartedAt =
@@ -471,7 +473,16 @@ public sealed class OrganizationSourceActionService
                 record),
             cancellationToken);
 
-        if (!settings.SaveOrganizeHistory)
+        var keepTechnicalUndo =
+            UndoService.SupportsUndo(
+                record) &&
+            record.Items.Any(item =>
+                UndoService.IsUndoCandidate(
+                    record,
+                    item));
+
+        if (!settings.SaveOrganizeHistory &&
+            !keepTechnicalUndo)
         {
             return;
         }
