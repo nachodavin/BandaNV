@@ -149,78 +149,110 @@ public sealed class RecoveryService
         OrganizationExecutionRecord record,
         CancellationToken cancellationToken)
     {
-        var stats = new RecoveryStats();
+        var stats =
+            new RecoveryStats();
 
         foreach (var item in record.Items)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (item.Status == OrganizationExecutionItemStatus.Planned)
+            if (item.Status ==
+                OrganizationExecutionItemStatus.Planned)
             {
                 MarkInterrupted(
                     item,
-                    "La aplicación se cerró antes de que este archivo comenzara a moverse.");
+                    item.IsDirectory
+                        ? "La aplicación se cerró antes de que esta carpeta comenzara a moverse."
+                        : "La aplicación se cerró antes de que este archivo comenzara a moverse.");
+
                 stats.InterruptedItems++;
                 continue;
             }
 
-            if (item.Status != OrganizationExecutionItemStatus.Moving)
+            if (item.Status !=
+                OrganizationExecutionItemStatus.Moving)
             {
                 continue;
             }
 
-            if (item.IsDirectory)
+            if (string.IsNullOrWhiteSpace(
+                    item.FinalPath) ||
+                !IsSameOrInside(
+                    item.OriginalPath,
+                    record.SourceFolder) ||
+                !IsSameOrInside(
+                    item.FinalPath,
+                    record.DestinationFolder))
             {
-                MarkInterrupted(
-                    item,
-                    "La aplicación se cerró durante el movimiento de una carpeta. La recuperación automática conservó todas las copias encontradas sin modificarlas.");
-                stats.InterruptedItems++;
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(item.FinalPath) ||
-                !IsSameOrInside(item.OriginalPath, record.SourceFolder) ||
-                !IsSameOrInside(item.FinalPath, record.DestinationFolder))
-            {
-                item.Status = OrganizationExecutionItemStatus.Error;
+                item.Status =
+                    OrganizationExecutionItemStatus.Error;
                 item.Message =
                     "La ejecución se interrumpió y las rutas registradas no permiten una recuperación automática segura.";
+
                 stats.InterruptedItems++;
                 continue;
             }
 
-            var sourcePath = Path.GetFullPath(item.OriginalPath);
-            var targetPath = Path.GetFullPath(item.FinalPath);
-            var backupPath = GetReplacementBackupCandidate(
-                record,
-                item,
-                targetPath);
+            var sourcePath =
+                Path.GetFullPath(
+                    item.OriginalPath);
 
-            var sourceExists = File.Exists(sourcePath);
-            var targetExists = File.Exists(targetPath);
+            var targetPath =
+                Path.GetFullPath(
+                    item.FinalPath);
+
+            var backupPath =
+                GetReplacementBackupCandidate(
+                    record,
+                    item,
+                    targetPath);
+
+            var sourceExists =
+                OrganizationEntrySafety.Exists(
+                    sourcePath);
+
+            var targetExists =
+                OrganizationEntrySafety.Exists(
+                    targetPath);
+
             var backupExists =
-                !string.IsNullOrWhiteSpace(backupPath) &&
-                File.Exists(backupPath);
+                !string.IsNullOrWhiteSpace(
+                    backupPath) &&
+                OrganizationEntrySafety.Exists(
+                    backupPath);
 
-            if (sourceExists && targetExists)
+            if (sourceExists &&
+                targetExists)
             {
-                if (MatchesExpectedFile(sourcePath, item) &&
-                    MatchesExpectedFile(targetPath, item) &&
-                    await FilesAreIdenticalAsync(
+                if (OrganizationEntrySafety.MatchesExpected(
+                        sourcePath,
+                        item) &&
+                    OrganizationEntrySafety.MatchesExpected(
+                        targetPath,
+                        item) &&
+                    await OrganizationEntrySafety.AreIdenticalAsync(
                         sourcePath,
                         targetPath,
+                        item,
                         cancellationToken))
                 {
-                    if (TryDeleteFile(sourcePath))
+                    if (OrganizationEntrySafety.TryDeleteEntry(
+                            sourcePath))
                     {
                         if (backupExists)
                         {
-                            item.ReplacedBackupPath = backupPath;
+                            item.ReplacedBackupPath =
+                                backupPath;
                         }
 
-                        item.Status = OrganizationExecutionItemStatus.Moved;
+                        item.Status =
+                            OrganizationExecutionItemStatus.Moved;
+
                         item.Message =
-                            "Recuperado al iniciar: el movimiento había terminado, pero faltaba eliminar la copia de origen.";
+                            item.IsDirectory
+                                ? "Recuperado al iniciar: la carpeta ya se había copiado y verificado correctamente; se eliminó la copia duplicada del origen."
+                                : "Recuperado al iniciar: el movimiento había terminado, pero faltaba eliminar la copia de origen.";
+
                         stats.ReconciledMoves++;
                     }
                     else
@@ -228,6 +260,7 @@ public sealed class RecoveryService
                         MarkInterrupted(
                             item,
                             "Se detectaron dos copias idénticas después del cierre, pero no se pudo eliminar de forma segura la copia de origen.");
+
                         stats.InterruptedItems++;
                     }
                 }
@@ -235,27 +268,39 @@ public sealed class RecoveryService
                 {
                     MarkInterrupted(
                         item,
-                        "Se encontraron archivos tanto en origen como en destino, pero no son idénticos. BandaNV no modificó ninguno.");
+                        "Se encontraron elementos tanto en origen como en destino, pero no se pudo demostrar que sean la misma copia analizada. BandaNV no modificó ninguno.");
+
                     stats.InterruptedItems++;
                 }
             }
             else if (sourceExists)
             {
-                if (backupExists && !targetExists)
+                if (backupExists &&
+                    !targetExists)
                 {
                     try
                     {
-                        MoveFileSafely(backupPath!, targetPath);
-                        item.ReplacedBackupPath = null;
+                        OrganizationEntrySafety.MoveEntrySafely(
+                            backupPath!,
+                            targetPath,
+                            cancellationToken);
+
+                        item.ReplacedBackupPath =
+                            null;
                     }
                     catch (Exception ex)
                     {
-                        item.Status = OrganizationExecutionItemStatus.Error;
+                        item.Status =
+                            OrganizationExecutionItemStatus.Error;
+
                         item.Message =
-                            $"La ejecución se interrumpió antes de mover el archivo nuevo y no se pudo restaurar el archivo reemplazado: {ex.Message}";
+                            $"La ejecución se interrumpió antes de mover el elemento nuevo y no se pudo restaurar el elemento reemplazado: {ex.Message}";
+
                         stats.InterruptedItems++;
                         stats.TemporaryFilesDeleted +=
-                            CleanupTemporaryCopies(targetPath);
+                            OrganizationEntrySafety.CleanupTemporaryEntries(
+                                targetPath);
+
                         continue;
                     }
                 }
@@ -263,29 +308,41 @@ public sealed class RecoveryService
                 MarkInterrupted(
                     item,
                     backupExists
-                        ? "La ejecución se interrumpió antes de completar el movimiento. El archivo anterior del destino fue restaurado y el archivo nuevo permanece en origen."
-                        : "La ejecución se interrumpió antes de completar el movimiento. El archivo permanece en origen.");
+                        ? "La ejecución se interrumpió antes de completar el movimiento. El elemento anterior del destino fue restaurado y el nuevo permanece en origen."
+                        : "La ejecución se interrumpió antes de completar el movimiento. El elemento permanece en origen.");
+
                 stats.InterruptedItems++;
             }
             else if (targetExists)
             {
-                if (MatchesExpectedFile(targetPath, item))
+                if (OrganizationEntrySafety.MatchesExpected(
+                        targetPath,
+                        item))
                 {
                     if (backupExists)
                     {
-                        item.ReplacedBackupPath = backupPath;
+                        item.ReplacedBackupPath =
+                            backupPath;
                     }
 
-                    item.Status = OrganizationExecutionItemStatus.Moved;
+                    item.Status =
+                        OrganizationExecutionItemStatus.Moved;
+
                     item.Message =
-                        "Recuperado al iniciar: el archivo ya se encontraba correctamente en destino.";
+                        item.IsDirectory
+                            ? "Recuperado al iniciar: la carpeta ya se encontraba completa y validada en destino."
+                            : "Recuperado al iniciar: el archivo ya se encontraba correctamente en destino.";
+
                     stats.ReconciledMoves++;
                 }
                 else
                 {
-                    item.Status = OrganizationExecutionItemStatus.Error;
+                    item.Status =
+                        OrganizationExecutionItemStatus.Error;
+
                     item.Message =
-                        "La ejecución se interrumpió y el archivo encontrado en destino no coincide con el que se había analizado. No se modificó.";
+                        "La ejecución se interrumpió y el elemento encontrado en destino no coincide con el que se había analizado. No se modificó.";
+
                     stats.InterruptedItems++;
                 }
             }
@@ -295,25 +352,39 @@ public sealed class RecoveryService
                 {
                     try
                     {
-                        MoveFileSafely(backupPath!, targetPath);
-                        item.ReplacedBackupPath = null;
+                        OrganizationEntrySafety.MoveEntrySafely(
+                            backupPath!,
+                            targetPath,
+                            cancellationToken);
+
+                        item.ReplacedBackupPath =
+                            null;
                     }
                     catch (Exception ex)
                     {
-                        item.Status = OrganizationExecutionItemStatus.Error;
+                        item.Status =
+                            OrganizationExecutionItemStatus.Error;
+
                         item.Message =
-                            $"No se encontró el archivo nuevo y tampoco se pudo restaurar el archivo anterior del destino: {ex.Message}";
+                            $"No se encontró el elemento nuevo y tampoco se pudo restaurar el elemento anterior del destino: {ex.Message}";
+
                         stats.InterruptedItems++;
                         stats.TemporaryFilesDeleted +=
-                            CleanupTemporaryCopies(targetPath);
+                            OrganizationEntrySafety.CleanupTemporaryEntries(
+                                targetPath);
+
                         continue;
                     }
                 }
 
-                item.Status = OrganizationExecutionItemStatus.SourceMissing;
-                item.Message = backupExists
-                    ? "La ejecución se interrumpió y el archivo nuevo ya no estaba disponible. El archivo anterior del destino fue restaurado. Los temporales asociados se conservaron por seguridad."
-                    : "La ejecución se interrumpió y no se encontró el archivo ni en origen ni en destino. Los temporales asociados se conservaron por seguridad.";
+                item.Status =
+                    OrganizationExecutionItemStatus.SourceMissing;
+
+                item.Message =
+                    backupExists
+                        ? "La ejecución se interrumpió y el elemento nuevo ya no estaba disponible. El elemento anterior del destino fue restaurado. Los temporales asociados se conservaron por seguridad."
+                        : "La ejecución se interrumpió y no se encontró el elemento ni en origen ni en destino. Los temporales asociados se conservaron por seguridad.";
+
                 stats.InterruptedItems++;
 
                 // Si faltan ambas copias principales, un temporal puede ser
@@ -322,7 +393,8 @@ public sealed class RecoveryService
             }
 
             stats.TemporaryFilesDeleted +=
-                CleanupTemporaryCopies(targetPath);
+                OrganizationEntrySafety.CleanupTemporaryEntries(
+                    targetPath);
         }
 
         return stats;
@@ -333,12 +405,15 @@ public sealed class RecoveryService
         IReadOnlyDictionary<string, RecoveryEntry> recordsByExecutionId,
         CancellationToken cancellationToken)
     {
-        var stats = new RecoveryStats();
+        var stats =
+            new RecoveryStats();
 
         var relatedExecutionId =
-            ResolveRelatedExecutionId(undoRecord);
+            ResolveRelatedExecutionId(
+                undoRecord);
 
-        if (string.IsNullOrWhiteSpace(relatedExecutionId) ||
+        if (string.IsNullOrWhiteSpace(
+                relatedExecutionId) ||
             !recordsByExecutionId.TryGetValue(
                 relatedExecutionId,
                 out var originalEntry) ||
@@ -347,44 +422,51 @@ public sealed class RecoveryService
                 StringComparison.OrdinalIgnoreCase))
         {
             foreach (var item in undoRecord.Items.Where(item =>
-                         item.Status is OrganizationExecutionItemStatus.Planned or
+                         item.Status is
+                             OrganizationExecutionItemStatus.Planned or
                              OrganizationExecutionItemStatus.Moving))
             {
                 MarkInterrupted(
                     item,
-                    "El Undo se interrumpió y no se pudo identificar con certeza su ejecución original. BandaNV no modificó archivos durante la recuperación.");
-                stats.InterruptedItems++;
+                    "El Undo se interrumpió y no se pudo identificar con certeza su ejecución original. BandaNV no modificó elementos durante la recuperación.");
 
-                // Sin el vínculo con la ejecución original tampoco se
-                // eliminan temporales: alguno podría ser la única copia útil
-                // disponible después del cierre abrupto.
+                stats.InterruptedItems++;
             }
 
             return stats;
         }
 
-        undoRecord.RelatedExecutionId = relatedExecutionId;
-        var originalRecord = originalEntry.Record;
+        undoRecord.RelatedExecutionId =
+            relatedExecutionId;
+
+        var originalRecord =
+            originalEntry.Record;
 
         foreach (var undoItem in undoRecord.Items)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (undoItem.Status == OrganizationExecutionItemStatus.Planned)
+            if (undoItem.Status ==
+                OrganizationExecutionItemStatus.Planned)
             {
                 MarkInterrupted(
                     undoItem,
-                    "La aplicación se cerró antes de que comenzara la restauración de este archivo.");
+                    undoItem.IsDirectory
+                        ? "La aplicación se cerró antes de que comenzara la restauración de esta carpeta."
+                        : "La aplicación se cerró antes de que comenzara la restauración de este archivo.");
+
                 stats.InterruptedItems++;
                 continue;
             }
 
-            if (undoItem.Status != OrganizationExecutionItemStatus.Moving)
+            if (undoItem.Status !=
+                OrganizationExecutionItemStatus.Moving)
             {
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(undoItem.FinalPath) ||
+            if (string.IsNullOrWhiteSpace(
+                    undoItem.FinalPath) ||
                 !IsSameOrInside(
                     undoItem.OriginalPath,
                     undoRecord.SourceFolder) ||
@@ -392,42 +474,59 @@ public sealed class RecoveryService
                     undoItem.FinalPath,
                     undoRecord.DestinationFolder))
             {
-                undoItem.Status = OrganizationExecutionItemStatus.Error;
+                undoItem.Status =
+                    OrganizationExecutionItemStatus.Error;
+
                 undoItem.Message =
                     "El Undo se interrumpió y las rutas registradas no permiten una recuperación automática segura.";
+
                 stats.InterruptedItems++;
                 continue;
             }
 
-            var originalItem = originalRecord.Items.FirstOrDefault(item =>
-                item.Status == OrganizationExecutionItemStatus.Moved &&
-                PathsEqual(item.OriginalPath, undoItem.FinalPath) &&
-                item.SizeBytes == undoItem.SizeBytes &&
-                item.ModifiedUtcTicks == undoItem.ModifiedUtcTicks);
+            var originalItem =
+                ResolveOriginalUndoItem(
+                    originalRecord,
+                    undoItem);
 
             if (originalItem is null)
             {
                 MarkInterrupted(
                     undoItem,
-                    "El Undo se interrumpió y no se pudo vincular este archivo con un movimiento original de forma inequívoca.");
+                    "El Undo se interrumpió y no se pudo vincular este elemento con un movimiento original de forma inequívoca.");
+
                 stats.InterruptedItems++;
                 continue;
             }
 
-            var organizedPath = Path.GetFullPath(undoItem.OriginalPath);
-            var restoredPath = Path.GetFullPath(undoItem.FinalPath);
+            var organizedPath =
+                Path.GetFullPath(
+                    undoItem.OriginalPath);
 
-            var backupPath = GetSafeRecordedBackupPath(
-                originalItem.ReplacedBackupPath);
+            var restoredPath =
+                Path.GetFullPath(
+                    undoItem.FinalPath);
+
+            var backupPath =
+                GetSafeRecordedBackupPath(
+                    originalItem.ReplacedBackupPath);
+
             var replacementWasUsed =
                 !string.IsNullOrWhiteSpace(
                     originalItem.ReplacedBackupPath);
 
-            var organizedExists = File.Exists(organizedPath);
-            var restoredExists = File.Exists(restoredPath);
+            var organizedExists =
+                OrganizationEntrySafety.Exists(
+                    organizedPath);
+
+            var restoredExists =
+                OrganizationEntrySafety.Exists(
+                    restoredPath);
+
             var backupExists =
                 replacementWasUsed &&
-                File.Exists(backupPath);
+                OrganizationEntrySafety.Exists(
+                    backupPath);
 
             if (!restoredExists)
             {
@@ -435,55 +534,71 @@ public sealed class RecoveryService
                 {
                     MarkInterrupted(
                         undoItem,
-                        "El Undo se interrumpió antes de completar la restauración. El archivo organizado permanece en destino.");
+                        "El Undo se interrumpió antes de completar la restauración. El elemento organizado permanece en destino.");
                 }
                 else
                 {
                     undoItem.Status =
                         OrganizationExecutionItemStatus.SourceMissing;
-                    undoItem.Message =
-                        "El Undo se interrumpió y el archivo ya no está disponible ni en la ubicación organizada ni en su ubicación original. Los temporales asociados se conservaron por seguridad.";
-                    stats.InterruptedItems++;
 
-                    // No se eliminan temporales si podrían ser la única copia.
+                    undoItem.Message =
+                        "El Undo se interrumpió y el elemento ya no está disponible ni en la ubicación organizada ni en su ubicación original. Los temporales asociados se conservaron por seguridad.";
+
+                    stats.InterruptedItems++;
                     continue;
                 }
 
                 stats.InterruptedItems++;
             }
-            else if (!MatchesExpectedFile(restoredPath, undoItem))
+            else if (!OrganizationEntrySafety.MatchesExpected(
+                         restoredPath,
+                         undoItem))
             {
-                undoItem.Status = OrganizationExecutionItemStatus.Error;
+                undoItem.Status =
+                    OrganizationExecutionItemStatus.Error;
+
                 undoItem.Message =
-                    "El archivo presente en la ubicación original no coincide con el que se estaba restaurando. BandaNV no modificó nada.";
+                    "El elemento presente en la ubicación original no coincide con el que se estaba restaurando. BandaNV no modificó nada.";
+
                 stats.InterruptedItems++;
             }
             else if (!replacementWasUsed)
             {
                 if (!organizedExists)
                 {
-                    undoItem.Status = OrganizationExecutionItemStatus.Moved;
+                    undoItem.Status =
+                        OrganizationExecutionItemStatus.Moved;
+
                     undoItem.Message =
-                        "Recuperado al iniciar: el archivo ya había sido restaurado a su ubicación original.";
+                        "Recuperado al iniciar: el elemento ya había sido restaurado a su ubicación original.";
+
                     stats.ReconciledMoves++;
                 }
-                else if (MatchesExpectedFile(organizedPath, undoItem) &&
-                         await FilesAreIdenticalAsync(
+                else if (OrganizationEntrySafety.MatchesExpected(
+                             organizedPath,
+                             undoItem) &&
+                         await OrganizationEntrySafety.AreIdenticalAsync(
                              organizedPath,
                              restoredPath,
+                             undoItem,
                              cancellationToken) &&
-                         TryDeleteFile(organizedPath))
+                         OrganizationEntrySafety.TryDeleteEntry(
+                             organizedPath))
                 {
-                    undoItem.Status = OrganizationExecutionItemStatus.Moved;
+                    undoItem.Status =
+                        OrganizationExecutionItemStatus.Moved;
+
                     undoItem.Message =
                         "Recuperado al iniciar: la restauración había terminado y se eliminó la copia duplicada que quedó en destino.";
+
                     stats.ReconciledMoves++;
                 }
                 else
                 {
                     MarkInterrupted(
                         undoItem,
-                        "Se encontraron archivos en ambas ubicaciones y no se pudo demostrar que fueran la misma copia. BandaNV no modificó ninguno.");
+                        "Se encontraron elementos en ambas ubicaciones y no se pudo demostrar que fueran la misma copia. BandaNV no modificó ninguno.");
+
                     stats.InterruptedItems++;
                 }
             }
@@ -491,67 +606,141 @@ public sealed class RecoveryService
             {
                 if (organizedExists)
                 {
-                    if (!MatchesExpectedFile(organizedPath, undoItem) ||
-                        !await FilesAreIdenticalAsync(
+                    if (!OrganizationEntrySafety.MatchesExpected(
+                            organizedPath,
+                            undoItem) ||
+                        !await OrganizationEntrySafety.AreIdenticalAsync(
                             organizedPath,
                             restoredPath,
+                            undoItem,
                             cancellationToken) ||
-                        !TryDeleteFile(organizedPath))
+                        !OrganizationEntrySafety.TryDeleteEntry(
+                            organizedPath))
                     {
                         MarkInterrupted(
                             undoItem,
-                            "El archivo nuevo quedó presente en ambas ubicaciones y no pudo reconciliarse de forma segura. El backup protegido se conserva.");
+                            "El elemento nuevo quedó presente en ambas ubicaciones y no pudo reconciliarse de forma segura. El backup protegido se conserva.");
+
                         stats.InterruptedItems++;
                         stats.TemporaryFilesDeleted +=
-                            CleanupTemporaryCopies(restoredPath);
+                            OrganizationEntrySafety.CleanupTemporaryEntries(
+                                restoredPath);
                         stats.TemporaryFilesDeleted +=
-                            CleanupTemporaryCopies(organizedPath);
+                            OrganizationEntrySafety.CleanupTemporaryEntries(
+                                organizedPath);
+
                         continue;
                     }
                 }
 
-                try
+                if (!OrganizationEntrySafety.MatchesReplacement(
+                        backupPath!,
+                        originalItem))
                 {
-                    MoveFileSafely(backupPath!, organizedPath);
+                    undoItem.Status =
+                        OrganizationExecutionItemStatus.Error;
 
-                    undoItem.Status = OrganizationExecutionItemStatus.Moved;
                     undoItem.Message =
-                        "Recuperado al iniciar: se completó la restauración y se repuso el archivo que había sido reemplazado.";
-                    stats.ReconciledMoves++;
-                }
-                catch (Exception ex)
-                {
-                    undoItem.Status = OrganizationExecutionItemStatus.Error;
-                    undoItem.Message =
-                        $"El archivo nuevo fue restaurado, pero no se pudo reponer el archivo reemplazado desde su backup protegido: {ex.Message}";
+                        "La copia protegida del elemento reemplazado no coincide con el registro original. BandaNV no realizó cambios adicionales.";
+
                     stats.InterruptedItems++;
+                }
+                else
+                {
+                    try
+                    {
+                        OrganizationEntrySafety.MoveEntrySafely(
+                            backupPath!,
+                            organizedPath,
+                            cancellationToken);
+
+                        undoItem.Status =
+                            OrganizationExecutionItemStatus.Moved;
+
+                        undoItem.Message =
+                            "Recuperado al iniciar: se completó la restauración y se repuso el elemento que había sido reemplazado.";
+
+                        stats.ReconciledMoves++;
+                    }
+                    catch (Exception ex)
+                    {
+                        undoItem.Status =
+                            OrganizationExecutionItemStatus.Error;
+
+                        undoItem.Message =
+                            $"El elemento nuevo fue restaurado, pero no se pudo reponer el elemento reemplazado desde su backup protegido: {ex.Message}";
+
+                        stats.InterruptedItems++;
+                    }
                 }
             }
             else if (organizedExists &&
-                     MatchesReplacedFile(
+                     OrganizationEntrySafety.MatchesReplacement(
                          organizedPath,
                          originalItem))
             {
-                undoItem.Status = OrganizationExecutionItemStatus.Moved;
+                undoItem.Status =
+                    OrganizationExecutionItemStatus.Moved;
+
                 undoItem.Message =
-                    "Recuperado al iniciar: el Undo ya había restaurado el archivo nuevo y repuesto correctamente el archivo reemplazado.";
+                    "Recuperado al iniciar: el Undo ya había restaurado el elemento nuevo y repuesto correctamente el elemento reemplazado.";
+
                 stats.ReconciledMoves++;
             }
             else
             {
-                undoItem.Status = OrganizationExecutionItemStatus.Error;
+                undoItem.Status =
+                    OrganizationExecutionItemStatus.Error;
+
                 undoItem.Message =
-                    "El archivo nuevo fue restaurado, pero no se pudo comprobar que el archivo reemplazado también haya sido repuesto. BandaNV no realizó cambios adicionales.";
+                    "El elemento nuevo fue restaurado, pero no se pudo comprobar que el elemento reemplazado también haya sido repuesto. BandaNV no realizó cambios adicionales.";
+
                 stats.InterruptedItems++;
             }
 
             stats.TemporaryFilesDeleted +=
-                CleanupTemporaryCopies(restoredPath);
+                OrganizationEntrySafety.CleanupTemporaryEntries(
+                    restoredPath);
+
             stats.TemporaryFilesDeleted +=
-                CleanupTemporaryCopies(organizedPath);
+                OrganizationEntrySafety.CleanupTemporaryEntries(
+                    organizedPath);
         }
 
         return stats;
+    }
+
+    private static OrganizationExecutionItemRecord? ResolveOriginalUndoItem(
+        OrganizationExecutionRecord originalRecord,
+        OrganizationExecutionItemRecord undoItem)
+    {
+        if (!string.IsNullOrWhiteSpace(
+                undoItem.RelatedItemUndoId))
+        {
+            var linked =
+                originalRecord.Items.FirstOrDefault(item =>
+                    item.UndoId.Equals(
+                        undoItem.RelatedItemUndoId,
+                        StringComparison.OrdinalIgnoreCase));
+
+            if (linked is not null)
+            {
+                return linked;
+            }
+        }
+
+        return originalRecord.Items.FirstOrDefault(item =>
+            item.Status ==
+                OrganizationExecutionItemStatus.Moved &&
+            item.Kind ==
+                undoItem.Kind &&
+            PathsEqual(
+                item.OriginalPath,
+                undoItem.FinalPath ?? string.Empty) &&
+            item.SizeBytes ==
+                undoItem.SizeBytes &&
+            item.ModifiedUtcTicks ==
+                undoItem.ModifiedUtcTicks);
     }
 
     private static void FinalizeRecoveredRecord(
