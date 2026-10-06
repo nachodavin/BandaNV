@@ -32,8 +32,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private OrganizePreviewFile? _folderDetailRoot;
     private string _folderDetailCurrentRelativePath = string.Empty;
     private readonly Stack<string> _folderDetailHistory = new();
+    private bool _syncingFolderDetailSelection;
 
     private readonly List<OrganizePreviewFile> _managedOrganizeFiles = new();
+    private readonly List<OrganizeActionTarget> _managedOrganizeTargets = new();
     private OrganizeManageMode _organizeManageMode = OrganizeManageMode.None;
     private OrganizeCategoryOption? _pendingOrganizeCategory;
 
@@ -553,7 +555,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     }
 
     private void ShowOrganizeDetail(
-        OrganizePreviewFile item)
+        OrganizePreviewFile item,
+        bool preserveFolderContext = false)
     {
         OrganizeSummaryPanel.Visibility =
             Visibility.Collapsed;
@@ -630,11 +633,18 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
-        _folderDetailRoot =
-            item;
-        _folderDetailCurrentRelativePath =
-            string.Empty;
-        _folderDetailHistory.Clear();
+        if (!preserveFolderContext ||
+            _folderDetailRoot is null ||
+            !_folderDetailRoot.FullPath.Equals(
+                item.FullPath,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            _folderDetailRoot =
+                item;
+            _folderDetailCurrentRelativePath =
+                string.Empty;
+            _folderDetailHistory.Clear();
+        }
 
         OrganizeFolderContentsPanel.Visibility =
             Visibility.Visible;
@@ -743,12 +753,30 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private void ApplyOrganizeDetailCategoryVisual(
         OrganizePreviewFile? item)
     {
-        var category =
-            item?.SelectedCategory;
+        ApplyOrganizeDetailCategoryVisual(
+            item?.SelectedCategory);
+    }
 
-        if (category is null ||
-            item is null ||
-            !item.IsClassified)
+    private void ApplyOrganizeDetailCategoryVisual(
+        string? categoryName)
+    {
+        var category =
+            string.IsNullOrWhiteSpace(
+                categoryName)
+                ? null
+                : _categories.FirstOrDefault(item =>
+                    item.Name.Equals(
+                        categoryName,
+                        StringComparison.CurrentCultureIgnoreCase));
+
+        ApplyOrganizeDetailCategoryVisual(
+            category);
+    }
+
+    private void ApplyOrganizeDetailCategoryVisual(
+        OrganizeCategoryOption? category)
+    {
+        if (category is null)
         {
             OrganizeDetailCategoryCard.Background =
                 (Brush)Application.Current.Resources[
