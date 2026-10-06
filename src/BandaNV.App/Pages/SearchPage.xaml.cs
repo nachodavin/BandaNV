@@ -1964,7 +1964,7 @@ public sealed partial class SearchPage : Page
         SearchDetailExtensionText.Text =
             extensionCount == 1
                 ? files[0].ExtensionDisplay
-                : $"{extensionCount} extensiones";
+                : $"{extensionCount} tipos";
 
         SearchDetailModifiedText.Text =
             "Varias fechas";
