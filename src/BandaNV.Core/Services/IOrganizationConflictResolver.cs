@@ -17,7 +17,8 @@ public sealed record OrganizationConflictInfo(
     DateTime DestinationModifiedAt,
     bool IsDirectory = false,
     int SourceItemCount = 1,
-    int DestinationItemCount = 1);
+    int DestinationItemCount = 1,
+    bool DestinationIsDirectory = false);
 
 public sealed record OrganizationConflictResolution(
     OrganizationConflictAction Action,
