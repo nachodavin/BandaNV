@@ -967,8 +967,8 @@ public sealed partial class HistoryPage : Page
         sortMode switch
         {
             HistorySortMode.Oldest => "Fecha · más antigua",
-            HistorySortMode.FilesDescending => "Archivos · mayor primero",
-            HistorySortMode.FilesAscending => "Archivos · menor primero",
+            HistorySortMode.FilesDescending => "Elementos · mayor primero",
+            HistorySortMode.FilesAscending => "Elementos · menor primero",
             HistorySortMode.SizeDescending => "Tamaño · mayor primero",
             HistorySortMode.SizeAscending => "Tamaño · menor primero",
             _ => "Fecha · más reciente"
