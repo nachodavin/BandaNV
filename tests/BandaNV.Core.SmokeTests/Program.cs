@@ -112,6 +112,11 @@ internal static class Program
                 "Madre");
 
         Equal(
+            1,
+            result.Files.Count,
+            "Las subcarpetas no deberían convertirse en unidades independientes.");
+
+        Equal(
             "IMAGES",
             folder.CategoryName,
             "La carpeta debería inferirse como IMAGES.");
