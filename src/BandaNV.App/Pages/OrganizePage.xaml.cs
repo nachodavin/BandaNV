@@ -2527,6 +2527,512 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         }
     }
 
+    private async Task HandleLiveSourceRefreshAsync()
+    {
+        if (IsSourceWatcherSuppressed ||
+            PreviewStatePanel.Visibility !=
+                Visibility.Visible ||
+            _lastAnalysis is null)
+        {
+            return;
+        }
+
+        if (_isLiveSourceRefreshRunning)
+        {
+            _liveSourceRefreshPending =
+                true;
+            return;
+        }
+
+        _isLiveSourceRefreshRunning =
+            true;
+
+        IReadOnlyDictionary<string, string> renames;
+
+        lock (_sourceWatcherGate)
+        {
+            renames =
+                new Dictionary<string, string>(
+                    _pendingExternalRenames,
+                    StringComparer.OrdinalIgnoreCase);
+
+            _pendingExternalRenames.Clear();
+        }
+
+        var selectedMainPaths =
+            GetSelectedOrganizeFiles()
+                .Select(file =>
+                    RemapPathByRenames(
+                        file.FullPath,
+                        renames))
+                .ToList();
+
+        var folderState =
+            CaptureFolderDetailState();
+
+        if (folderState is not null)
+        {
+            folderState =
+                RemapFolderDetailState(
+                    folderState,
+                    renames);
+        }
+
+        var preservedAssignments =
+            CaptureManualAssignments(
+                renames);
+
+        try
+        {
+            if (OrganizeManageOverlay.Visibility ==
+                Visibility.Visible)
+            {
+                CloseOrganizeManageOverlay();
+            }
+
+            if (AssignmentOverlay.Visibility ==
+                Visibility.Visible)
+            {
+                CloseAssignmentOverlay();
+            }
+
+            await AnalyzeFilesAsync(
+                forcePreview:
+                    true,
+                preservedAssignments:
+                    preservedAssignments);
+
+            if (PreviewStatePanel.Visibility !=
+                Visibility.Visible)
+            {
+                return;
+            }
+
+            var folderRestored =
+                folderState is not null &&
+                RestoreFolderDetailState(
+                    folderState);
+
+            if (!folderRestored)
+            {
+                RestoreMainSelectionByPaths(
+                    selectedMainPaths);
+            }
+
+            ShowOrganizeActionStatus(
+                "Se detectaron cambios externos. El análisis se actualizó automáticamente.");
+        }
+        finally
+        {
+            _isLiveSourceRefreshRunning =
+                false;
+
+            if (_liveSourceRefreshPending)
+            {
+                _liveSourceRefreshPending =
+                    false;
+                ScheduleLiveSourceRefresh();
+            }
+        }
+    }
+
+    private Dictionary<string, string> CaptureManualAssignments(
+        IReadOnlyDictionary<string, string>? renames = null)
+    {
+        var result =
+            new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in _files.Where(file =>
+                     file.AssignmentSource ==
+                         OrganizeAssignmentSource.IndividualOverride &&
+                     file.IsClassified &&
+                     !string.IsNullOrWhiteSpace(
+                         file.CategoryId)))
+        {
+            var path =
+                renames is null
+                    ? file.FullPath
+                    : RemapPathByRenames(
+                        file.FullPath,
+                        renames);
+
+            result[path] =
+                file.CategoryId!;
+        }
+
+        return result;
+    }
+
+    private OrganizeFolderDetailState? CaptureFolderDetailState()
+    {
+        if (_folderDetailRoot is null ||
+            OrganizeFolderContentsPanel.Visibility !=
+                Visibility.Visible)
+        {
+            return null;
+        }
+
+        var rootPath =
+            _folderDetailRoot.FullPath;
+
+        var currentDirectoryPath =
+            string.IsNullOrWhiteSpace(
+                _folderDetailCurrentRelativePath)
+                ? rootPath
+                : Path.GetFullPath(
+                    Path.Combine(
+                        rootPath,
+                        _folderDetailCurrentRelativePath));
+
+        var selectedEntryPaths =
+            GetSelectedFolderContentItems()
+                .Select(GetFolderContentFullPath)
+                .ToList();
+
+        return new OrganizeFolderDetailState(
+            rootPath,
+            currentDirectoryPath,
+            selectedEntryPaths);
+    }
+
+    private static OrganizeFolderDetailState RemapFolderDetailState(
+        OrganizeFolderDetailState state,
+        IReadOnlyDictionary<string, string> renames) =>
+        new(
+            RemapPathByRenames(
+                state.RootPath,
+                renames),
+            RemapPathByRenames(
+                state.CurrentDirectoryPath,
+                renames),
+            state.SelectedEntryPaths
+                .Select(path =>
+                    RemapPathByRenames(
+                        path,
+                        renames))
+                .ToList());
+
+    private static string RemapPathByRenames(
+        string path,
+        IReadOnlyDictionary<string, string> renames)
+    {
+        var current =
+            Path.GetFullPath(
+                path);
+
+        for (var pass = 0;
+             pass < renames.Count;
+             pass++)
+        {
+            var match =
+                renames
+                    .Where(pair =>
+                        IsSameOrInsidePath(
+                            current,
+                            pair.Key))
+                    .OrderByDescending(pair =>
+                        pair.Key.Length)
+                    .FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(
+                    match.Key))
+            {
+                break;
+            }
+
+            var oldRoot =
+                Path.GetFullPath(
+                    match.Key);
+
+            var newRoot =
+                Path.GetFullPath(
+                    match.Value);
+
+            if (current.Equals(
+                    oldRoot,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                current =
+                    newRoot;
+                continue;
+            }
+
+            var relative =
+                Path.GetRelativePath(
+                    oldRoot,
+                    current);
+
+            current =
+                Path.GetFullPath(
+                    Path.Combine(
+                        newRoot,
+                        relative));
+        }
+
+        return current;
+    }
+
+    private void RestoreMainSelectionByPaths(
+        IReadOnlyCollection<string> paths)
+    {
+        var requested =
+            paths
+                .Select(Path.GetFullPath)
+                .ToHashSet(
+                    StringComparer.OrdinalIgnoreCase);
+
+        var matches =
+            PreviewFilesList.Items
+                .OfType<OrganizePreviewFile>()
+                .Where(item =>
+                    requested.Contains(
+                        Path.GetFullPath(
+                            item.FullPath)))
+                .ToList();
+
+        _isRefreshingPreview =
+            true;
+
+        try
+        {
+            PreviewFilesList.SelectedItems.Clear();
+
+            foreach (var item in matches)
+            {
+                PreviewFilesList.SelectedItems.Add(
+                    item);
+            }
+        }
+        finally
+        {
+            _isRefreshingPreview =
+                false;
+        }
+
+        if (matches.Count == 1)
+        {
+            ShowOrganizeDetail(
+                matches[0]);
+        }
+        else if (matches.Count > 1)
+        {
+            ShowMultipleOrganizeDetails(
+                matches);
+        }
+        else
+        {
+            ShowOrganizeSummary();
+        }
+    }
+
+    private bool RestoreFolderDetailState(
+        OrganizeFolderDetailState state)
+    {
+        var root =
+            _files.FirstOrDefault(file =>
+                file.IsDirectory &&
+                file.FullPath.Equals(
+                    state.RootPath,
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (root is null)
+        {
+            return false;
+        }
+
+        _isRefreshingPreview =
+            true;
+
+        try
+        {
+            PreviewFilesList.SelectedItems.Clear();
+            PreviewFilesList.SelectedItems.Add(
+                root);
+        }
+        finally
+        {
+            _isRefreshingPreview =
+                false;
+        }
+
+        ShowOrganizeDetail(
+            root);
+
+        var currentRelativePath =
+            ResolveExistingFolderDetailRelativePath(
+                root,
+                state.CurrentDirectoryPath);
+
+        _folderDetailCurrentRelativePath =
+            currentRelativePath;
+
+        RebuildFolderDetailHistory(
+            currentRelativePath);
+
+        RefreshFolderDetailView();
+
+        var requestedEntries =
+            state.SelectedEntryPaths
+                .Select(Path.GetFullPath)
+                .ToHashSet(
+                    StringComparer.OrdinalIgnoreCase);
+
+        var selected =
+            FolderDetailFilesList.Items
+                .OfType<FolderContentPreviewItem>()
+                .Where(item =>
+                    requestedEntries.Contains(
+                        Path.GetFullPath(
+                            GetFolderContentFullPath(
+                                item))))
+                .ToList();
+
+        _syncingFolderDetailSelection =
+            true;
+
+        try
+        {
+            FolderDetailFilesList.SelectedItems.Clear();
+
+            foreach (var item in selected)
+            {
+                FolderDetailFilesList.SelectedItems.Add(
+                    item);
+            }
+        }
+        finally
+        {
+            _syncingFolderDetailSelection =
+                false;
+        }
+
+        FolderDetailSelectionText.Text =
+            selected.Count switch
+            {
+                0 =>
+                    "Seleccioná para gestionar",
+                1 =>
+                    "1 seleccionado",
+                _ =>
+                    $"{selected.Count} seleccionados"
+            };
+
+        if (selected.Count == 1)
+        {
+            ShowFolderContentItemDetails(
+                selected[0]);
+        }
+        else if (selected.Count > 1)
+        {
+            ShowMultipleFolderContentDetails(
+                selected);
+        }
+        else
+        {
+            ShowOrganizeDetail(
+                root,
+                preserveFolderContext:
+                    true);
+        }
+
+        return true;
+    }
+
+    private static string ResolveExistingFolderDetailRelativePath(
+        OrganizePreviewFile root,
+        string requestedDirectoryPath)
+    {
+        string relativePath;
+
+        try
+        {
+            if (!IsSameOrInsidePath(
+                    requestedDirectoryPath,
+                    root.FullPath))
+            {
+                return string.Empty;
+            }
+
+            relativePath =
+                Path.GetRelativePath(
+                    root.FullPath,
+                    requestedDirectoryPath);
+
+            if (relativePath.Equals(
+                    ".",
+                    StringComparison.Ordinal))
+            {
+                return string.Empty;
+            }
+        }
+        catch
+        {
+            return string.Empty;
+        }
+
+        while (!string.IsNullOrWhiteSpace(
+                   relativePath))
+        {
+            if (root.FolderContents.Any(item =>
+                    item.IsDirectory &&
+                    item.RelativePath.Equals(
+                        relativePath,
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                return relativePath;
+            }
+
+            relativePath =
+                GetParentRelativePath(
+                    relativePath);
+        }
+
+        return string.Empty;
+    }
+
+    private void RebuildFolderDetailHistory(
+        string currentRelativePath)
+    {
+        _folderDetailHistory.Clear();
+
+        if (string.IsNullOrWhiteSpace(
+                currentRelativePath))
+        {
+            return;
+        }
+
+        _folderDetailHistory.Push(
+            string.Empty);
+
+        var parts =
+            currentRelativePath.Split(
+                [
+                    Path.DirectorySeparatorChar,
+                    Path.AltDirectorySeparatorChar
+                ],
+                StringSplitOptions.RemoveEmptyEntries);
+
+        var accumulated =
+            string.Empty;
+
+        for (var index = 0;
+             index < parts.Length - 1;
+             index++)
+        {
+            accumulated =
+                string.IsNullOrWhiteSpace(
+                    accumulated)
+                    ? parts[index]
+                    : Path.Combine(
+                        accumulated,
+                        parts[index]);
+
+            _folderDetailHistory.Push(
+                accumulated);
+        }
+    }
+
     private async Task ReanalyzePreviewAfterSourceActionAsync(
         string? preferredSelectionPath,
         string? renamedFromPath = null,
@@ -3847,6 +4353,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             ? $"{value:0} {units[unitIndex]}"
             : $"{value:0.##} {units[unitIndex]}";
     }
+
+    private sealed record OrganizeFolderDetailState(
+        string RootPath,
+        string CurrentDirectoryPath,
+        IReadOnlyList<string> SelectedEntryPaths);
 
     private sealed record OrganizeActionTarget(
         string FullPath,
