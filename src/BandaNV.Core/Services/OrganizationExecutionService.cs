@@ -792,7 +792,9 @@ public sealed class OrganizationExecutionService
                     SourceItemCount:
                         sourceSnapshot.FileCount,
                     DestinationItemCount:
-                        destinationMetadata.ItemCount);
+                        destinationMetadata.ItemCount,
+                    DestinationIsDirectory:
+                        destinationMetadata.IsDirectory);
 
             resolution =
                 await conflictResolver.ResolveAsync(
@@ -932,7 +934,9 @@ public sealed class OrganizationExecutionService
                     IsDirectory: false,
                     SourceItemCount: 1,
                     DestinationItemCount:
-                        destinationInfo.ItemCount);
+                        destinationInfo.ItemCount,
+                    DestinationIsDirectory:
+                        destinationInfo.IsDirectory);
             }
             catch (FileNotFoundException)
             {
