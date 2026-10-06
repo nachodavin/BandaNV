@@ -592,6 +592,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDetailLocationText.Text =
             item.FullPath;
 
+        OrganizeDetailActionStatusText.Text =
+            string.Empty;
+        OrganizeDetailActionStatusText.Visibility =
+            Visibility.Collapsed;
+
         OrganizeOpenButton.Content =
             item.IsDirectory
                 ? "Abrir carpeta"
@@ -708,6 +713,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             locations.Count == 1
                 ? locations[0]
                 : $"{locations.Count} ubicaciones";
+
+        OrganizeDetailActionStatusText.Text =
+            string.Empty;
+        OrganizeDetailActionStatusText.Visibility =
+            Visibility.Collapsed;
 
         OrganizeOpenButton.Content =
             "Abrir elemento";
@@ -1115,6 +1125,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeManageCategoryValueText.Text =
             _pendingOrganizeCategory?.DisplayName ??
             "Elegir categoría";
+        OrganizeManageCategoryValueText.Foreground =
+            _pendingOrganizeCategory is null
+                ? GetBrush(
+                    "BandaTextBrush")
+                : CreateOrganizeCategoryBrush(
+                    _pendingOrganizeCategory.ColorHex,
+                    0xFF);
 
         OrganizeManagePrimaryButton.Content =
             files.Count == 1
@@ -1595,13 +1612,27 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         string message,
         bool isError = false)
     {
-        FooterStatusText.Foreground =
+        var brush =
             GetBrush(
                 isError
                     ? "BandaDangerBrush"
                     : "BandaMutedStrongBrush");
+
+        FooterStatusText.Foreground =
+            brush;
         FooterStatusText.Text =
             message;
+
+        if (OrganizeDetailPanel.Visibility ==
+            Visibility.Visible)
+        {
+            OrganizeDetailActionStatusText.Text =
+                message;
+            OrganizeDetailActionStatusText.Foreground =
+                brush;
+            OrganizeDetailActionStatusText.Visibility =
+                Visibility.Visible;
+        }
     }
 
     private async Task ReanalyzePreviewAfterSourceActionAsync(
