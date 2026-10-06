@@ -1074,6 +1074,14 @@
                                             TextTrimming="CharacterEllipsis"
                                             MaxLines="2" />
                                     </StackPanel>
+
+                                    <TextBlock
+                                        x:Name="OrganizeDetailActionStatusText"
+                                        Text=""
+                                        Foreground="{StaticResource BandaMutedBrush}"
+                                        FontSize="11"
+                                        TextWrapping="Wrap"
+                                        Visibility="Collapsed" />
                                 </StackPanel>
 
                                 <Border
