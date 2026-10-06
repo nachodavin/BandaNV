@@ -683,11 +683,14 @@ public sealed class OrganizationExecutionService
         }
 
         if (behavior.Equals(
+                "Omitir elemento",
+                StringComparison.OrdinalIgnoreCase) ||
+            behavior.Equals(
                 "Omitir archivo",
                 StringComparison.OrdinalIgnoreCase))
         {
             item.ConflictResolution =
-                "Omitir archivo";
+                "Omitir elemento";
             item.Status =
                 OrganizationExecutionItemStatus.SkippedConflict;
             item.Message =
@@ -848,13 +851,16 @@ public sealed class OrganizationExecutionService
         }
 
         if (behavior.Equals(
+                "Omitir elemento",
+                StringComparison.OrdinalIgnoreCase) ||
+            behavior.Equals(
                 "Omitir archivo",
                 StringComparison.OrdinalIgnoreCase))
         {
-            item.ConflictResolution = "Omitir archivo";
+            item.ConflictResolution = "Omitir elemento";
             item.Status = OrganizationExecutionItemStatus.SkippedConflict;
             item.Message =
-                "Ya existe un archivo con el mismo nombre en el destino.";
+                "Ya existe un elemento con el mismo nombre en el destino.";
             return new TargetResolution(
                 null,
                 OrganizationConflictAction.Skip);
@@ -874,7 +880,7 @@ public sealed class OrganizationExecutionService
         {
             item.Status = OrganizationExecutionItemStatus.ConflictNeedsDecision;
             item.Message =
-                "Ya existe un archivo con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
+                "Ya existe un elemento con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
             return new TargetResolution(null, null);
         }
 
@@ -960,7 +966,7 @@ public sealed class OrganizationExecutionService
                     OrganizationConflictAction.Replace);
 
             default:
-                item.ConflictResolution = "Omitir archivo";
+                item.ConflictResolution = "Omitir elemento";
                 item.Status = OrganizationExecutionItemStatus.SkippedConflict;
                 item.Message = "Omitido por decisión del usuario.";
                 return new TargetResolution(
