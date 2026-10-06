@@ -1064,9 +1064,21 @@
                         <Button
                             x:Name="HistoryModalPrimaryButton"
                             Grid.Column="2"
-                            Content="Eliminar"
+                            Content="Deshacer ahora"
                             Click="HistoryModalPrimaryButton_Click"
-                            Style="{StaticResource BandaPopupDangerButtonStyle}" />
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
