@@ -2355,7 +2355,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                         : "archivo";
 
                 ConflictTitleText.Text =
-                    $"Ya existe un elemento con el mismo nombre";
+                    conflict.DestinationIsDirectory
+                        ? "Ya existe una carpeta con el mismo nombre"
+                        : "Ya existe un archivo con el mismo nombre";
 
                 ConflictFileNameText.Text =
                     $"{conflict.FileName} · {itemLabel}";
@@ -2377,9 +2379,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     conflict.DestinationPath;
 
                 ConflictDestinationMetaText.Text =
-                    conflict.DestinationItemCount > 1
-                        ? $"{conflict.DestinationItemCount} archivos · {FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}"
-                        : $"{FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}";
+                    conflict.DestinationIsDirectory
+                        ? $"CARPETA · {conflict.DestinationItemCount} archivo{(conflict.DestinationItemCount == 1 ? string.Empty : "s")} · {FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}"
+                        : $"ARCHIVO · {FormatBytes(conflict.DestinationSizeBytes)} · Modificado {conflict.DestinationModifiedAt:dd/MM/yyyy HH:mm:ss}";
 
                 ConflictInstructionText.Text =
                     $"Elegí qué hacer con este conflicto. Cerrar esta ventana equivale a omitir {itemLabel}.";
