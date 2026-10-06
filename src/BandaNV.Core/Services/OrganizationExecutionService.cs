@@ -734,10 +734,26 @@ public sealed class OrganizationExecutionService
         }
         else
         {
-            var destinationMetadata =
-                GetEntryMetadata(
-                    desiredTarget,
-                    cancellationToken);
+            EntryMetadata destinationMetadata;
+
+            try
+            {
+                destinationMetadata =
+                    GetEntryMetadata(
+                        desiredTarget,
+                        cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                item.Status =
+                    OrganizationExecutionItemStatus.Error;
+                item.Message =
+                    $"No se pudo inspeccionar el elemento existente en destino: {ex.Message}";
+
+                return new TargetResolution(
+                    null,
+                    null);
+            }
 
             var conflict =
                 new OrganizationConflictInfo(
@@ -904,6 +920,17 @@ public sealed class OrganizationExecutionService
             catch (DirectoryNotFoundException)
             {
                 return new TargetResolution(desiredTarget, null);
+            }
+            catch (Exception ex)
+            {
+                item.Status =
+                    OrganizationExecutionItemStatus.Error;
+                item.Message =
+                    $"No se pudo inspeccionar el elemento existente en destino: {ex.Message}";
+
+                return new TargetResolution(
+                    null,
+                    null);
             }
 
             resolution = await conflictResolver.ResolveAsync(
