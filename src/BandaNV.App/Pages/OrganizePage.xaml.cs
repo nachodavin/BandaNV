@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System.Globalization;
+using System.Diagnostics;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace BandaNV.App.Pages;
 
@@ -29,6 +31,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private OrganizePreviewFile? _folderDetailRoot;
     private string _folderDetailCurrentRelativePath = string.Empty;
     private readonly Stack<string> _folderDetailHistory = new();
+
+    private readonly List<OrganizePreviewFile> _managedOrganizeFiles = new();
+    private OrganizeManageMode _organizeManageMode = OrganizeManageMode.None;
+    private OrganizeCategoryOption? _pendingOrganizeCategory;
 
     public OrganizePage()
     {
@@ -439,15 +445,44 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
-        if (PreviewFilesList.SelectedItem is OrganizePreviewFile item)
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count == 0)
         {
-            ShowOrganizeDetail(
-                item);
+            ShowOrganizeSummary();
             return;
         }
 
-        ShowOrganizeSummary();
+        if (files.Count == 1)
+        {
+            ShowOrganizeDetail(
+                files[0]);
+            return;
+        }
+
+        ShowMultipleOrganizeDetails(
+            files);
     }
+
+    private void PreviewSelectAllAccelerator_Invoked(
+        KeyboardAccelerator sender,
+        Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (PreviewFilesList.Items.Count == 0)
+        {
+            return;
+        }
+
+        PreviewFilesList.SelectAll();
+        args.Handled =
+            true;
+    }
+
+    private List<OrganizePreviewFile> GetSelectedOrganizeFiles() =>
+        PreviewFilesList.SelectedItems
+            .OfType<OrganizePreviewFile>()
+            .ToList();
 
     private void FolderDetailButton_Click(
         object sender,
@@ -537,6 +572,30 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDetailLocationText.Text =
             item.FullPath;
 
+        OrganizeOpenButton.Content =
+            item.IsDirectory
+                ? "Abrir carpeta"
+                : "Abrir archivo";
+
+        OrganizeDeleteButton.Content =
+            item.IsDirectory
+                ? "Eliminar carpeta"
+                : "Eliminar archivo";
+
+        OrganizeOpenButton.IsEnabled =
+            true;
+        OrganizeOpenLocationButton.IsEnabled =
+            true;
+        OrganizeCopyPathButton.IsEnabled =
+            true;
+        OrganizeChangeCategoryButton.IsEnabled =
+            !item.IsDirectory ||
+            item.CanAssignFolder;
+        OrganizeRenameButton.IsEnabled =
+            true;
+        OrganizeDeleteButton.IsEnabled =
+            true;
+
         if (!item.IsDirectory)
         {
             OrganizeFolderContentsPanel.Visibility =
@@ -558,13 +617,107 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RefreshFolderDetailView();
     }
 
+    private void ShowMultipleOrganizeDetails(
+        IReadOnlyList<OrganizePreviewFile> files)
+    {
+        ResetFolderDetailNavigation();
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeSummaryPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeDetailPanel.Visibility =
+            Visibility.Visible;
+
+        var categories =
+            files
+                .Select(file =>
+                    file.CategoryDisplay)
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        var types =
+            files
+                .Select(file =>
+                    file.IsDirectory
+                        ? "CARPETA"
+                        : file.ExtensionDisplay)
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        var locations =
+            files
+                .Select(file =>
+                    Path.GetDirectoryName(
+                        file.FullPath) ??
+                    file.FullPath)
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        OrganizeDetailTitleText.Text =
+            "Selección múltiple";
+        OrganizeDetailFileNameText.Text =
+            $"{files.Count} elementos seleccionados";
+        OrganizeDetailCategoryText.Text =
+            categories.Count == 1
+                ? categories[0]
+                : $"{categories.Count} categorías";
+
+        ApplyOrganizeDetailCategoryVisual(
+            categories.Count == 1 &&
+            files.All(file =>
+                file.IsClassified)
+                ? files[0]
+                : null);
+
+        OrganizeDetailSizeText.Text =
+            FormatBytes(
+                files.Sum(file =>
+                    file.SizeBytes));
+
+        OrganizeDetailTypeText.Text =
+            types.Count == 1
+                ? types[0]
+                : $"{types.Count} tipos";
+        OrganizeDetailModifiedText.Text =
+            "Varias fechas";
+        OrganizeDetailLocationText.Text =
+            locations.Count == 1
+                ? locations[0]
+                : $"{locations.Count} ubicaciones";
+
+        OrganizeOpenButton.Content =
+            "Abrir elemento";
+        OrganizeDeleteButton.Content =
+            $"Eliminar {files.Count} elementos";
+
+        OrganizeOpenButton.IsEnabled =
+            false;
+        OrganizeOpenLocationButton.IsEnabled =
+            false;
+        OrganizeCopyPathButton.IsEnabled =
+            true;
+        OrganizeChangeCategoryButton.IsEnabled =
+            files.All(file =>
+                !file.IsDirectory ||
+                file.CanAssignFolder);
+        OrganizeRenameButton.IsEnabled =
+            false;
+        OrganizeDeleteButton.IsEnabled =
+            true;
+    }
+
     private void ApplyOrganizeDetailCategoryVisual(
-        OrganizePreviewFile item)
+        OrganizePreviewFile? item)
     {
         var category =
-            item.SelectedCategory;
+            item?.SelectedCategory;
 
         if (category is null ||
+            item is null ||
             !item.IsClassified)
         {
             OrganizeDetailCategoryCard.Background =
