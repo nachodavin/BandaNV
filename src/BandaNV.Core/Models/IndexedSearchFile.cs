@@ -5,7 +5,9 @@ public sealed record IndexedSearchChild(
     string Name,
     string Extension,
     long SizeBytes,
-    DateTime ModifiedAt);
+    DateTime ModifiedAt,
+    bool IsDirectory = false,
+    int ContainedFileCount = 1);
 
 public sealed record IndexedSearchFile(
     string FullPath,
