@@ -1927,13 +1927,18 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         if (_organizeManageMode !=
             OrganizeManageMode.Rename ||
-            _managedOrganizeFiles.Count != 1)
+            _managedOrganizeTargets.Count != 1)
         {
             return;
         }
 
-        var file =
-            _managedOrganizeFiles[0];
+        var target =
+            _managedOrganizeTargets[0];
+
+        var preservedFolderPath =
+            target.IsRootItem
+                ? null
+                : _folderDetailCurrentRelativePath;
 
         try
         {
@@ -1944,7 +1949,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 await global::BandaNV.App.App.OrganizationSourceActions
                     .RenameAsync(
                         global::BandaNV.App.App.Settings.Current,
-                        file.FullPath,
+                        target.FullPath,
                         OrganizeManageRenameTextBox.Text);
 
             var itemResult =
@@ -1962,15 +1967,24 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 return;
             }
 
-            var targetPath =
+            var renamedPath =
                 itemResult.ResultPath;
+
+            var preferredRootPath =
+                target.IsRootItem
+                    ? renamedPath
+                    : target.RootPreviewFile.FullPath;
 
             CloseOrganizeManageOverlay();
 
             await ReanalyzePreviewAfterSourceActionAsync(
-                targetPath,
+                preferredRootPath,
                 renamedFromPath:
-                    file.FullPath);
+                    target.IsRootItem
+                        ? target.FullPath
+                        : null,
+                preferredFolderRelativePath:
+                    preservedFolderPath);
 
             ShowOrganizeActionStatus(
                 "Elemento renombrado. El análisis se actualizó automáticamente.");
@@ -1995,7 +2009,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     {
         if (_organizeManageMode !=
                 OrganizeManageMode.Delete ||
-            _managedOrganizeFiles.Count == 0)
+            _managedOrganizeTargets.Count == 0)
         {
             return;
         }
@@ -2005,13 +2019,27 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             OrganizeManageDangerButton.IsEnabled =
                 false;
 
+            var preferredRootPath =
+                _managedOrganizeTargets.All(target =>
+                    !target.IsRootItem)
+                    ? _managedOrganizeTargets[0]
+                        .RootPreviewFile
+                        .FullPath
+                    : null;
+
+            var preservedFolderPath =
+                _managedOrganizeTargets.All(target =>
+                    !target.IsRootItem)
+                    ? _folderDetailCurrentRelativePath
+                    : null;
+
             var result =
                 await global::BandaNV.App.App.OrganizationSourceActions
                     .DeleteAsync(
                         global::BandaNV.App.App.Settings.Current,
-                        _managedOrganizeFiles
-                            .Select(file =>
-                                file.FullPath)
+                        _managedOrganizeTargets
+                            .Select(target =>
+                                target.FullPath)
                             .ToList());
 
             if (result.CompletedCount == 0)
@@ -2038,7 +2066,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             CloseOrganizeManageOverlay();
 
             await ReanalyzePreviewAfterSourceActionAsync(
-                preferredSelectionPath: null);
+                preferredSelectionPath:
+                    preferredRootPath,
+                preferredFolderRelativePath:
+                    preservedFolderPath);
 
             ShowOrganizeActionStatus(
                 hadErrors
@@ -2083,6 +2114,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             Visibility.Collapsed;
 
         _managedOrganizeFiles.Clear();
+        _managedOrganizeTargets.Clear();
         _pendingOrganizeCategory =
             null;
         _organizeManageMode =
@@ -2121,7 +2153,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
     private async Task ReanalyzePreviewAfterSourceActionAsync(
         string? preferredSelectionPath,
-        string? renamedFromPath = null)
+        string? renamedFromPath = null,
+        string? preferredFolderRelativePath = null)
     {
         var preservedAssignments =
             _files
@@ -2157,6 +2190,30 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 preferredSelectionPath,
             preservedAssignments:
                 preservedAssignments);
+
+        if (_folderDetailRoot is null ||
+            preferredFolderRelativePath is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                preferredFolderRelativePath) ||
+            _folderDetailRoot.FolderContents.Any(item =>
+                item.IsDirectory &&
+                item.RelativePath.Equals(
+                    preferredFolderRelativePath,
+                    StringComparison.OrdinalIgnoreCase)))
+        {
+            _folderDetailCurrentRelativePath =
+                preferredFolderRelativePath;
+
+            RefreshFolderDetailView();
+
+            ShowOrganizeDetail(
+                _folderDetailRoot,
+                preserveFolderContext: true);
+        }
     }
 
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
