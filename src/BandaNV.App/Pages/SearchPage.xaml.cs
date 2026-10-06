@@ -873,30 +873,36 @@ public sealed partial class SearchPage : Page
         var results = _sortMode switch
         {
             SearchSortMode.Oldest => query
-                .OrderBy(file => file.ModifiedAt)
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenBy(file => file.ModifiedAt)
                 .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
 
             SearchSortMode.NameAscending => query
-                .OrderBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
 
             SearchSortMode.NameDescending => query
-                .OrderByDescending(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenByDescending(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
 
             SearchSortMode.SizeDescending => query
-                .OrderByDescending(file => file.SizeBytes)
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenByDescending(file => file.SizeBytes)
                 .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
 
             SearchSortMode.SizeAscending => query
-                .OrderBy(file => file.SizeBytes)
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenBy(file => file.SizeBytes)
                 .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList(),
 
             SearchSortMode.Category => query
-                .OrderBy(file =>
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenBy(file =>
                     categoryOrder.TryGetValue(file.Category, out var order)
                         ? order
                         : int.MaxValue)
@@ -904,7 +910,8 @@ public sealed partial class SearchPage : Page
                 .ToList(),
 
             _ => query
-                .OrderByDescending(file => file.ModifiedAt)
+                .OrderByDescending(file => file.IsDirectory)
+                .ThenByDescending(file => file.ModifiedAt)
                 .ThenBy(file => file.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList()
         };
