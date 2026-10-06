@@ -899,6 +899,699 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             : parent;
     }
 
+    private void OrganizeOpenButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count != 1)
+        {
+            return;
+        }
+
+        var file =
+            files[0];
+
+        if (!OrganizationEntrySafety.Exists(
+                file.FullPath))
+        {
+            ShowOrganizeActionStatus(
+                "El elemento ya no existe. Se volverá a analizar el origen.");
+            _ =
+                ReanalyzePreviewAfterSourceActionAsync(
+                    preferredSelectionPath: null);
+            return;
+        }
+
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        file.FullPath,
+                    UseShellExecute =
+                        true
+                });
+
+            ShowOrganizeActionStatus(
+                file.IsDirectory
+                    ? "Carpeta abierta."
+                    : "Archivo abierto.");
+        }
+        catch
+        {
+            ShowOrganizeActionStatus(
+                file.IsDirectory
+                    ? "No se pudo abrir la carpeta."
+                    : "No se pudo abrir el archivo.",
+                isError: true);
+        }
+    }
+
+    private void OrganizeOpenLocationButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count != 1)
+        {
+            return;
+        }
+
+        var location =
+            Path.GetDirectoryName(
+                files[0].FullPath);
+
+        if (string.IsNullOrWhiteSpace(
+                location) ||
+            !Directory.Exists(
+                location))
+        {
+            ShowOrganizeActionStatus(
+                "La ubicación ya no existe.",
+                isError: true);
+            return;
+        }
+
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        location,
+                    UseShellExecute =
+                        true
+                });
+
+            ShowOrganizeActionStatus(
+                "Ubicación abierta.");
+        }
+        catch
+        {
+            ShowOrganizeActionStatus(
+                "No se pudo abrir la ubicación.",
+                isError: true);
+        }
+    }
+
+    private void OrganizeCopyPathButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        var dataPackage =
+            new DataPackage();
+
+        dataPackage.SetText(
+            string.Join(
+                Environment.NewLine,
+                files.Select(file =>
+                    file.FullPath)));
+
+        Clipboard.SetContent(
+            dataPackage);
+
+        ShowOrganizeActionStatus(
+            files.Count == 1
+                ? "Ruta copiada al portapapeles."
+                : $"{files.Count} rutas copiadas al portapapeles.");
+    }
+
+    private void OrganizeChangeCategoryButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count == 0 ||
+            files.Any(file =>
+                file.IsDirectory &&
+                !file.CanAssignFolder))
+        {
+            return;
+        }
+
+        _managedOrganizeFiles.Clear();
+        _managedOrganizeFiles.AddRange(
+            files);
+
+        _organizeManageMode =
+            OrganizeManageMode.ChangeCategory;
+
+        var commonCategory =
+            files
+                .Select(file =>
+                    file.CategoryName)
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+        _pendingOrganizeCategory =
+            commonCategory.Count == 1 &&
+            !string.IsNullOrWhiteSpace(
+                commonCategory[0])
+                ? _categories.FirstOrDefault(category =>
+                    category.Name.Equals(
+                        commonCategory[0]!,
+                        StringComparison.CurrentCultureIgnoreCase))
+                : null;
+
+        OrganizeManageTitleText.Text =
+            "Cambiar categoría";
+        OrganizeManageSubtitleText.Text =
+            files.Count == 1
+                ? files[0].FileName
+                : $"{files.Count} elementos seleccionados";
+        OrganizeManageIconText.Text =
+            "↻";
+        OrganizeManageIconBorder.Background =
+            GetBrush(
+                "BandaAccentSoftBrush");
+        OrganizeManageIconText.Foreground =
+            GetBrush(
+                "BandaAccentBrush");
+
+        OrganizeManageCategoryPanel.Visibility =
+            Visibility.Visible;
+        OrganizeManageRenamePanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageDeletePanel.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeManageCategoryValueText.Text =
+            _pendingOrganizeCategory?.DisplayName ??
+            "Elegir categoría";
+
+        OrganizeManagePrimaryButton.Content =
+            files.Count == 1
+                ? "Cambiar categoría"
+                : $"Cambiar {files.Count} elementos";
+        OrganizeManagePrimaryButton.Visibility =
+            Visibility.Visible;
+        OrganizeManageDangerButton.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeManageValidationText.Visibility =
+            Visibility.Collapsed;
+
+        BuildOrganizeManageCategoryOptions();
+
+        OrganizeManageOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private void OrganizeRenameButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count != 1)
+        {
+            return;
+        }
+
+        _managedOrganizeFiles.Clear();
+        _managedOrganizeFiles.Add(
+            files[0]);
+
+        _organizeManageMode =
+            OrganizeManageMode.Rename;
+        _pendingOrganizeCategory =
+            null;
+
+        OrganizeManageTitleText.Text =
+            files[0].IsDirectory
+                ? "Renombrar carpeta"
+                : "Renombrar archivo";
+        OrganizeManageSubtitleText.Text =
+            files[0].FileName;
+        OrganizeManageIconText.Text =
+            "✎";
+        OrganizeManageIconBorder.Background =
+            GetBrush(
+                "BandaAccentSoftBrush");
+        OrganizeManageIconText.Foreground =
+            GetBrush(
+                "BandaAccentBrush");
+
+        OrganizeManageCategoryPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageRenamePanel.Visibility =
+            Visibility.Visible;
+        OrganizeManageDeletePanel.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeManageRenameTextBox.Text =
+            files[0].FileName;
+
+        OrganizeManagePrimaryButton.Content =
+            "Guardar nombre";
+        OrganizeManagePrimaryButton.Visibility =
+            Visibility.Visible;
+        OrganizeManageDangerButton.Visibility =
+            Visibility.Collapsed;
+
+        OrganizeManageValidationText.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageOverlay.Visibility =
+            Visibility.Visible;
+
+        OrganizeManageRenameTextBox.SelectAll();
+        OrganizeManageRenameTextBox.Focus(
+            FocusState.Programmatic);
+    }
+
+    private void OrganizeDeleteButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var files =
+            GetSelectedOrganizeFiles();
+
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        _managedOrganizeFiles.Clear();
+        _managedOrganizeFiles.AddRange(
+            files);
+
+        _organizeManageMode =
+            OrganizeManageMode.Delete;
+        _pendingOrganizeCategory =
+            null;
+
+        OrganizeManageTitleText.Text =
+            files.Count == 1
+                ? files[0].IsDirectory
+                    ? "Eliminar carpeta"
+                    : "Eliminar archivo"
+                : "Eliminar elementos";
+        OrganizeManageSubtitleText.Text =
+            files.Count == 1
+                ? files[0].FileName
+                : $"{files.Count} elementos seleccionados";
+
+        OrganizeManageIconText.Text =
+            "!";
+        OrganizeManageIconBorder.Background =
+            GetBrush(
+                "BandaDangerSoftBrush");
+        OrganizeManageIconText.Foreground =
+            GetBrush(
+                "BandaDangerBrush");
+
+        OrganizeManageCategoryPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageRenamePanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageDeletePanel.Visibility =
+            Visibility.Visible;
+
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        OrganizeManageDeleteText.Text =
+            files.Count == 1
+                ? settings.UseRecycleBin
+                    ? $"¿Enviar \"{files[0].FileName}\" a la Papelera?"
+                    : $"¿Eliminar permanentemente \"{files[0].FileName}\"?"
+                : settings.UseRecycleBin
+                    ? $"¿Enviar los {files.Count} elementos seleccionados a la Papelera?"
+                    : $"¿Eliminar permanentemente los {files.Count} elementos seleccionados?";
+
+        OrganizeManagePrimaryButton.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageDangerButton.Content =
+            settings.UseRecycleBin
+                ? "Enviar a Papelera"
+                : "Eliminar";
+        OrganizeManageDangerButton.Visibility =
+            Visibility.Visible;
+
+        OrganizeManageValidationText.Visibility =
+            Visibility.Collapsed;
+        OrganizeManageOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private void BuildOrganizeManageCategoryOptions()
+    {
+        OrganizeManageCategoryOptionsPanel.Children.Clear();
+
+        OrganizeManageCategoryOptionsPanel.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    "CATEGORÍAS",
+                Margin =
+                    new Thickness(
+                        10,
+                        6,
+                        10,
+                        4),
+                Foreground =
+                    GetBrush(
+                        "BandaMutedStrongBrush"),
+                FontSize =
+                    11,
+                FontWeight =
+                    Microsoft.UI.Text.FontWeights.SemiBold
+            });
+
+        foreach (var category in _categories
+                     .OrderBy(category =>
+                         category.Order)
+                     .ThenBy(
+                         category =>
+                             category.Name,
+                         StringComparer.CurrentCultureIgnoreCase))
+        {
+            var optionButton =
+                new Button
+                {
+                    Content =
+                        CreateCategoryOptionContent(
+                            category),
+                    Style =
+                        (Style)Application.Current.Resources[
+                            "BandaPopupOptionButtonStyle"]
+                };
+
+            if (_pendingOrganizeCategory?.Id.Equals(
+                    category.Id,
+                    StringComparison.OrdinalIgnoreCase) ==
+                true)
+            {
+                optionButton.Background =
+                    GetBrush(
+                        "BandaAccentSoftBrush");
+            }
+
+            optionButton.Click +=
+                (_, _) =>
+                {
+                    _pendingOrganizeCategory =
+                        category;
+
+                    OrganizeManageCategoryValueText.Text =
+                        category.DisplayName;
+                    OrganizeManageCategoryValueText.Foreground =
+                        CreateOrganizeCategoryBrush(
+                            category.ColorHex,
+                            0xFF);
+
+                    OrganizeManageCategoryFlyout.Hide();
+                    BuildOrganizeManageCategoryOptions();
+                };
+
+            OrganizeManageCategoryOptionsPanel.Children.Add(
+                optionButton);
+        }
+    }
+
+    private async void OrganizeManagePrimaryButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        OrganizeManageValidationText.Visibility =
+            Visibility.Collapsed;
+
+        if (_organizeManageMode ==
+            OrganizeManageMode.ChangeCategory)
+        {
+            if (_pendingOrganizeCategory is null)
+            {
+                OrganizeManageValidationText.Text =
+                    "Elegí una categoría.";
+                OrganizeManageValidationText.Visibility =
+                    Visibility.Visible;
+                return;
+            }
+
+            foreach (var file in _managedOrganizeFiles)
+            {
+                file.AssignTo(
+                    _pendingOrganizeCategory,
+                    OrganizeAssignmentSource.IndividualOverride);
+            }
+
+            var selectedIds =
+                _managedOrganizeFiles
+                    .Select(file =>
+                        file.ItemId)
+                    .ToHashSet(
+                        StringComparer.Ordinal);
+
+            CloseOrganizeManageOverlay();
+
+            RefreshPreview();
+
+            _isRefreshingPreview =
+                true;
+
+            try
+            {
+                PreviewFilesList.SelectedItems.Clear();
+
+                foreach (var item in PreviewFilesList.Items
+                             .OfType<OrganizePreviewFile>()
+                             .Where(item =>
+                                 selectedIds.Contains(
+                                     item.ItemId)))
+                {
+                    PreviewFilesList.SelectedItems.Add(
+                        item);
+                }
+            }
+            finally
+            {
+                _isRefreshingPreview =
+                    false;
+            }
+
+            var selected =
+                GetSelectedOrganizeFiles();
+
+            if (selected.Count == 1)
+            {
+                ShowOrganizeDetail(
+                    selected[0]);
+            }
+            else if (selected.Count > 1)
+            {
+                ShowMultipleOrganizeDetails(
+                    selected);
+            }
+
+            ShowOrganizeActionStatus(
+                "Categoría prevista actualizada. El archivo todavía no fue movido.");
+            return;
+        }
+
+        if (_organizeManageMode !=
+            OrganizeManageMode.Rename ||
+            _managedOrganizeFiles.Count != 1)
+        {
+            return;
+        }
+
+        var file =
+            _managedOrganizeFiles[0];
+
+        try
+        {
+            OrganizeManagePrimaryButton.IsEnabled =
+                false;
+
+            var result =
+                await global::BandaNV.App.App.OrganizationSourceActions
+                    .RenameAsync(
+                        global::BandaNV.App.App.Settings.Current,
+                        file.FullPath,
+                        OrganizeManageRenameTextBox.Text);
+
+            var itemResult =
+                result.Items.FirstOrDefault();
+
+            if (itemResult is null ||
+                itemResult.Status !=
+                OrganizationSourceActionStatus.Completed)
+            {
+                OrganizeManageValidationText.Text =
+                    itemResult?.Message ??
+                    "No se pudo renombrar el elemento.";
+                OrganizeManageValidationText.Visibility =
+                    Visibility.Visible;
+                return;
+            }
+
+            var targetPath =
+                itemResult.ResultPath;
+
+            CloseOrganizeManageOverlay();
+
+            await ReanalyzePreviewAfterSourceActionAsync(
+                targetPath);
+
+            ShowOrganizeActionStatus(
+                "Elemento renombrado. El análisis se actualizó automáticamente.");
+        }
+        catch (Exception ex)
+        {
+            OrganizeManageValidationText.Text =
+                ex.Message;
+            OrganizeManageValidationText.Visibility =
+                Visibility.Visible;
+        }
+        finally
+        {
+            OrganizeManagePrimaryButton.IsEnabled =
+                true;
+        }
+    }
+
+    private async void OrganizeManageDangerButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_organizeManageMode !=
+                OrganizeManageMode.Delete ||
+            _managedOrganizeFiles.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            OrganizeManageDangerButton.IsEnabled =
+                false;
+
+            var result =
+                await global::BandaNV.App.App.OrganizationSourceActions
+                    .DeleteAsync(
+                        global::BandaNV.App.App.Settings.Current,
+                        _managedOrganizeFiles
+                            .Select(file =>
+                                file.FullPath)
+                            .ToList());
+
+            if (result.CompletedCount == 0)
+            {
+                OrganizeManageValidationText.Text =
+                    result.Items
+                        .Select(item =>
+                            item.Message)
+                        .FirstOrDefault(message =>
+                            !string.IsNullOrWhiteSpace(
+                                message)) ??
+                    "No se pudo eliminar ningún elemento.";
+                OrganizeManageValidationText.Visibility =
+                    Visibility.Visible;
+                return;
+            }
+
+            var completed =
+                result.CompletedCount;
+
+            var hadErrors =
+                result.HasErrors;
+
+            CloseOrganizeManageOverlay();
+
+            await ReanalyzePreviewAfterSourceActionAsync(
+                preferredSelectionPath: null);
+
+            ShowOrganizeActionStatus(
+                hadErrors
+                    ? $"{completed} elemento(s) eliminado(s). Algunos no pudieron modificarse."
+                    : completed == 1
+                        ? "Elemento eliminado. El análisis se actualizó automáticamente."
+                        : $"{completed} elementos eliminados. El análisis se actualizó automáticamente.",
+                isError:
+                    hadErrors);
+        }
+        catch (Exception ex)
+        {
+            OrganizeManageValidationText.Text =
+                ex.Message;
+            OrganizeManageValidationText.Visibility =
+                Visibility.Visible;
+        }
+        finally
+        {
+            OrganizeManageDangerButton.IsEnabled =
+                true;
+        }
+    }
+
+    private void CloseOrganizeManageOverlayButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        CloseOrganizeManageOverlay();
+    }
+
+    private void OrganizeManageBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseOrganizeManageOverlay();
+    }
+
+    private void CloseOrganizeManageOverlay()
+    {
+        OrganizeManageOverlay.Visibility =
+            Visibility.Collapsed;
+
+        _managedOrganizeFiles.Clear();
+        _pendingOrganizeCategory =
+            null;
+        _organizeManageMode =
+            OrganizeManageMode.None;
+
+        OrganizeManageValidationText.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void ShowOrganizeActionStatus(
+        string message,
+        bool isError = false)
+    {
+        FooterStatusText.Foreground =
+            GetBrush(
+                isError
+                    ? "BandaDangerBrush"
+                    : "BandaMutedStrongBrush");
+        FooterStatusText.Text =
+            message;
+    }
+
+    private async Task ReanalyzePreviewAfterSourceActionAsync(
+        string? preferredSelectionPath)
+    {
+        await AnalyzeFilesAsync(
+            forcePreview: true,
+            preferredSelectionPath);
+    }
+
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isRefreshingPreview ||
