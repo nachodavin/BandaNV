@@ -310,7 +310,21 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
-        ScheduleLiveSourceRefresh();
+        DispatcherQueue.TryEnqueue(
+            () =>
+            {
+                if (PreviewStatePanel.Visibility !=
+                    Visibility.Visible)
+                {
+                    return;
+                }
+
+                // Si Windows perdió eventos por desborde del buffer,
+                // reiniciamos el watcher y hacemos un análisis completo.
+                StopSourceWatcher();
+                StartSourceWatcher();
+                ScheduleLiveSourceRefresh();
+            });
     }
 
     private bool ShouldIgnoreSourceWatcherPath(
