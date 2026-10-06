@@ -381,6 +381,14 @@ public sealed class OrganizationExecutionService
                     replacedInfo.SizeBytes;
                 item.ReplacedModifiedUtcTicks =
                     replacedInfo.ModifiedUtcTicks;
+                item.ReplacedKind =
+                    replacedInfo.IsDirectory
+                        ? OrganizationAnalysisItemKind.Folder
+                        : OrganizationAnalysisItemKind.File;
+                item.ReplacedContainedFileCount =
+                    replacedInfo.ItemCount;
+                item.ReplacedContentFingerprint =
+                    replacedInfo.ContentFingerprint;
 
                 replacedBackupPath =
                     BackupReplacedEntry(
@@ -592,6 +600,14 @@ public sealed class OrganizationExecutionService
                     replacementInfo.SizeBytes;
                 item.ReplacedModifiedUtcTicks =
                     replacementInfo.ModifiedUtcTicks;
+                item.ReplacedKind =
+                    replacementInfo.IsDirectory
+                        ? OrganizationAnalysisItemKind.Folder
+                        : OrganizationAnalysisItemKind.File;
+                item.ReplacedContainedFileCount =
+                    replacementInfo.ItemCount;
+                item.ReplacedContentFingerprint =
+                    replacementInfo.ContentFingerprint;
 
                 replacedBackupPath =
                     BackupReplacedEntry(
@@ -985,7 +1001,8 @@ public sealed class OrganizationExecutionService
         long SizeBytes,
         long ModifiedUtcTicks,
         int ItemCount,
-        bool IsDirectory);
+        bool IsDirectory,
+        string? ContentFingerprint);
 
     private sealed class ConflictResolutionState
     {
@@ -1041,6 +1058,9 @@ public sealed class OrganizationExecutionService
                     item.ReplacedBackupPath = null;
                     item.ReplacedSizeBytes = null;
                     item.ReplacedModifiedUtcTicks = null;
+                    item.ReplacedKind = null;
+                    item.ReplacedContainedFileCount = null;
+                    item.ReplacedContentFingerprint = null;
                 }
             }
             catch
@@ -1111,7 +1131,9 @@ public sealed class OrganizationExecutionService
                 snapshot.TotalSizeBytes,
                 snapshot.ModifiedUtcTicks,
                 snapshot.FileCount,
-                IsDirectory: true);
+                IsDirectory: true,
+                ContentFingerprint:
+                    snapshot.ContentFingerprint);
         }
 
         var file =
@@ -1122,7 +1144,8 @@ public sealed class OrganizationExecutionService
             file.Length,
             file.LastWriteTimeUtc.Ticks,
             ItemCount: 1,
-            IsDirectory: false);
+            IsDirectory: false,
+            ContentFingerprint: null);
     }
 
     private static DirectorySnapshot BuildDirectorySnapshot(
