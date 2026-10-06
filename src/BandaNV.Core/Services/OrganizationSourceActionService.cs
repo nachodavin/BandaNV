@@ -370,6 +370,5 @@ public sealed record OrganizationSourceActionResult(
 
     public bool HasErrors =>
         Items.Any(item =>
-            item.Status is OrganizationSourceActionStatus.Error or
-                OrganizationSourceActionStatus.Conflict);
+            item.Status != OrganizationSourceActionStatus.Completed);
 }
