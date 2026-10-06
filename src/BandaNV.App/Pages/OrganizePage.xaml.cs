@@ -1486,7 +1486,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             CloseOrganizeManageOverlay();
 
             await ReanalyzePreviewAfterSourceActionAsync(
-                targetPath);
+                targetPath,
+                renamedFromPath:
+                    file.FullPath);
 
             ShowOrganizeActionStatus(
                 "Elemento renombrado. El análisis se actualizó automáticamente.");
@@ -1636,12 +1638,43 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     }
 
     private async Task ReanalyzePreviewAfterSourceActionAsync(
-        string? preferredSelectionPath)
+        string? preferredSelectionPath,
+        string? renamedFromPath = null)
     {
+        var preservedAssignments =
+            _files
+                .Where(file =>
+                    file.AssignmentSource ==
+                        OrganizeAssignmentSource.IndividualOverride &&
+                    file.IsClassified &&
+                    !string.IsNullOrWhiteSpace(
+                        file.CategoryId))
+                .ToDictionary(
+                    file =>
+                        file.FullPath,
+                    file =>
+                        file.CategoryId!,
+                    StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(
+                renamedFromPath) &&
+            !string.IsNullOrWhiteSpace(
+                preferredSelectionPath) &&
+            preservedAssignments.Remove(
+                renamedFromPath,
+                out var renamedCategoryId))
+        {
+            preservedAssignments[
+                preferredSelectionPath] =
+                renamedCategoryId;
+        }
+
         await AnalyzeFilesAsync(
             forcePreview: true,
             preferredSelectionPath:
-                preferredSelectionPath);
+                preferredSelectionPath,
+            preservedAssignments:
+                preservedAssignments);
     }
 
     private void PreviewCategorySelectorButton_Click(object sender, RoutedEventArgs e)
@@ -2041,7 +2074,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
     private async Task AnalyzeFilesAsync(
         bool forcePreview = false,
-        string? preferredSelectionPath = null)
+        string? preferredSelectionPath = null,
+        IReadOnlyDictionary<string, string>? preservedAssignments = null)
     {
         _analysisCts?.Cancel();
         _analysisCts?.Dispose();
@@ -2096,6 +2130,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             ApplyRememberedAssignments();
             ApplyUnknownExtensionBehavior();
+            ApplyPreservedAssignments(
+                preservedAssignments);
 
             PreviewDestinationText.Text = result.DestinationFolder;
 
@@ -2219,6 +2255,43 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         ShowOrganizeDetail(
             target);
+    }
+
+    private void ApplyPreservedAssignments(
+        IReadOnlyDictionary<string, string>? preservedAssignments)
+    {
+        if (preservedAssignments is null ||
+            preservedAssignments.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var file in _files)
+        {
+            if (!preservedAssignments.TryGetValue(
+                    file.FullPath,
+                    out var categoryId))
+            {
+                continue;
+            }
+
+            var category =
+                _categories.FirstOrDefault(item =>
+                    item.Id.Equals(
+                        categoryId,
+                        StringComparison.OrdinalIgnoreCase));
+
+            if (category is null ||
+                (file.IsDirectory &&
+                 !file.CanAssignFolder))
+            {
+                continue;
+            }
+
+            file.AssignTo(
+                category,
+                OrganizeAssignmentSource.IndividualOverride);
+        }
     }
 
     private void LoadCategoryOptions()
