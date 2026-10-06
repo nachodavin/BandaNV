@@ -484,8 +484,23 @@ public sealed partial class SettingsPage : Page
                     AutoUpdateToggle.IsOn);
         }
 
+        if (ReferenceEquals(
+                sender,
+                OrganizeFoldersToggle))
+        {
+            UpdateIncludeSubfoldersToggleVisibility();
+        }
+
         QueuePersistSettings();
         ShowSettingsFeedback("Preferencia actualizada.");
+    }
+
+    private void UpdateIncludeSubfoldersToggleVisibility()
+    {
+        IncludeSubfoldersRow.Visibility =
+            OrganizeFoldersToggle.IsOn
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
     private void OpenLogsFolderButton_Click(object sender, RoutedEventArgs e)
@@ -674,6 +689,7 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
         IncludeSubfoldersToggle.IsOn = backup.IncludeSubfolders;
         OrganizeFoldersToggle.IsOn = backup.OrganizeFoldersAsUnits;
+        UpdateIncludeSubfoldersToggleVisibility();
         CreateFoldersToggle.IsOn = backup.CreateFolders;
         DeleteEmptyFoldersToggle.IsOn = backup.DeleteEmptyFolders;
         ConflictBehaviorValueText.Text = backup.ConflictBehavior;
@@ -991,6 +1007,7 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = true;
         IncludeSubfoldersToggle.IsOn = false;
         OrganizeFoldersToggle.IsOn = false;
+        UpdateIncludeSubfoldersToggleVisibility();
         CreateFoldersToggle.IsOn = true;
         DeleteEmptyFoldersToggle.IsOn = false;
 
@@ -1040,6 +1057,7 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
         IncludeSubfoldersToggle.IsOn = settings.IncludeSubfolders;
         OrganizeFoldersToggle.IsOn = settings.OrganizeFoldersAsUnits;
+        UpdateIncludeSubfoldersToggleVisibility();
         CreateFoldersToggle.IsOn = settings.CreateFolders;
         DeleteEmptyFoldersToggle.IsOn = settings.DeleteEmptyFolders;
 
