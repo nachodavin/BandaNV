@@ -49,11 +49,12 @@ public sealed class UndoService
 
         PortablePaths.EnsureDirectories();
 
-        var originalMovedItems = original.Items
-            .Where(item =>
-                item.Status == OrganizationExecutionItemStatus.Moved &&
-                !item.IsDirectory)
-            .ToList();
+        var originalMovedItems =
+            original.Items
+                .Where(item =>
+                    item.Status ==
+                    OrganizationExecutionItemStatus.Moved)
+                .ToList();
 
         if (originalMovedItems.Count == 0)
         {
@@ -61,48 +62,78 @@ public sealed class UndoService
                 "La ejecución seleccionada no contiene movimientos para deshacer.");
         }
 
-        var now = DateTime.Now;
-        var undoRecord = new OrganizationExecutionRecord
-        {
-            Type = "UNDO",
-            StartedAt = now,
-            SourceFolder = original.DestinationFolder,
-            DestinationFolder = original.SourceFolder,
-            ConflictBehavior = "Undo seguro",
-            RelatedExecutionId = original.ExecutionId,
-            Items = originalMovedItems
-                .Select(item => new OrganizationExecutionItemRecord
-                {
-                    FileName = item.FileName,
-                    OriginalPath = item.FinalPath ?? string.Empty,
-                    FinalPath = item.OriginalPath,
-                    CategoryId = item.CategoryId,
-                    CategoryName = item.CategoryName,
-                    CategoryOrder = item.CategoryOrder,
-                    SizeBytes = item.SizeBytes,
-                    ModifiedUtcTicks = item.ModifiedUtcTicks,
-                    Status = OrganizationExecutionItemStatus.Planned,
-                    Message = $"Undo de {original.ExecutionId}"
-                })
-                .ToList()
-        };
+        var now =
+            DateTime.Now;
+
+        var undoRecord =
+            new OrganizationExecutionRecord
+            {
+                Type = "UNDO",
+                StartedAt = now,
+                SourceFolder =
+                    original.DestinationFolder,
+                DestinationFolder =
+                    original.SourceFolder,
+                ConflictBehavior =
+                    "Undo seguro",
+                RelatedExecutionId =
+                    original.ExecutionId,
+                Items =
+                    originalMovedItems
+                        .Select(item =>
+                            new OrganizationExecutionItemRecord
+                            {
+                                FileName =
+                                    item.FileName,
+                                OriginalPath =
+                                    item.FinalPath ??
+                                    string.Empty,
+                                FinalPath =
+                                    item.OriginalPath,
+                                CategoryId =
+                                    item.CategoryId,
+                                CategoryName =
+                                    item.CategoryName,
+                                CategoryOrder =
+                                    item.CategoryOrder,
+                                SizeBytes =
+                                    item.SizeBytes,
+                                ModifiedUtcTicks =
+                                    item.ModifiedUtcTicks,
+                                Kind =
+                                    item.Kind,
+                                ContainedFileCount =
+                                    item.ContainedFileCount,
+                                ContentFingerprint =
+                                    item.ContentFingerprint,
+                                RelatedItemUndoId =
+                                    item.UndoId,
+                                Status =
+                                    OrganizationExecutionItemStatus.Planned,
+                                Message =
+                                    $"Undo de {original.ExecutionId}"
+                            })
+                        .ToList()
+            };
 
         var baseName =
             $"BandaNV_{now:dd-MM-yyyy____HH-mm-ss}";
 
-        var historyPath = Path.Combine(
-            PortablePaths.HistoryDirectory,
-            BuildUniqueFileName(
+        var historyPath =
+            Path.Combine(
                 PortablePaths.HistoryDirectory,
-                baseName,
-                ".json"));
+                BuildUniqueFileName(
+                    PortablePaths.HistoryDirectory,
+                    baseName,
+                    ".json"));
 
-        var logPath = Path.Combine(
-            PortablePaths.LogsDirectory,
-            BuildUniqueFileName(
+        var logPath =
+            Path.Combine(
                 PortablePaths.LogsDirectory,
-                baseName,
-                ".txt"));
+                BuildUniqueFileName(
+                    PortablePaths.LogsDirectory,
+                    baseName,
+                    ".txt"));
 
         await PersistRecordAsync(
             undoRecord,
@@ -110,17 +141,25 @@ public sealed class UndoService
             logPath,
             cancellationToken);
 
-        var total = undoRecord.Items.Count;
-        var processed = 0;
+        var total =
+            undoRecord.Items.Count;
+
+        var processed =
+            0;
 
         try
         {
-            for (var index = 0; index < undoRecord.Items.Count; index++)
+            for (var index = 0;
+                 index < undoRecord.Items.Count;
+                 index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var undoItem = undoRecord.Items[index];
-                var originalItem = originalMovedItems[index];
+                var undoItem =
+                    undoRecord.Items[index];
+
+                var originalItem =
+                    originalMovedItems[index];
 
                 await UndoItemAsync(
                     settings,
@@ -140,18 +179,24 @@ public sealed class UndoService
 
                 processed++;
 
-                progress?.Report(new OrganizationExecutionProgress(
-                    processed,
-                    total,
-                    undoItem.FileName,
-                    GetProgressMessage(undoItem)));
+                progress?.Report(
+                    new OrganizationExecutionProgress(
+                        processed,
+                        total,
+                        undoItem.FileName,
+                        GetProgressMessage(
+                            undoItem)));
             }
 
-            undoRecord.FinishedAt = DateTime.Now;
-            undoRecord.Status = undoRecord.Items.Any(item =>
-                    item.Status is not OrganizationExecutionItemStatus.Moved)
-                ? OrganizationExecutionStatus.CompletedWithIssues
-                : OrganizationExecutionStatus.Completed;
+            undoRecord.FinishedAt =
+                DateTime.Now;
+
+            undoRecord.Status =
+                undoRecord.Items.Any(item =>
+                    item.Status is not
+                        OrganizationExecutionItemStatus.Moved)
+                    ? OrganizationExecutionStatus.CompletedWithIssues
+                    : OrganizationExecutionStatus.Completed;
 
             await PersistRecordAsync(
                 undoRecord,
@@ -161,8 +206,11 @@ public sealed class UndoService
         }
         catch (OperationCanceledException)
         {
-            undoRecord.FinishedAt = DateTime.Now;
-            undoRecord.Status = OrganizationExecutionStatus.Cancelled;
+            undoRecord.FinishedAt =
+                DateTime.Now;
+
+            undoRecord.Status =
+                OrganizationExecutionStatus.Cancelled;
 
             await PersistRecordAsync(
                 undoRecord,
@@ -195,15 +243,18 @@ public sealed class UndoService
                 original,
                 originalItem);
 
-        if (string.IsNullOrWhiteSpace(organizedPath))
+        if (string.IsNullOrWhiteSpace(
+                organizedPath))
         {
-            undoItem.Status = OrganizationExecutionItemStatus.Error;
+            undoItem.Status =
+                OrganizationExecutionItemStatus.Error;
             undoItem.Message =
                 "El historial original no contiene una ruta final válida.";
             return;
         }
 
-        undoItem.OriginalPath = organizedPath;
+        undoItem.OriginalPath =
+            organizedPath;
 
         if (!IsSameOrInside(
                 organizedPath,
@@ -212,67 +263,93 @@ public sealed class UndoService
                 originalItem.OriginalPath,
                 original.SourceFolder))
         {
-            undoItem.Status = OrganizationExecutionItemStatus.Error;
+            undoItem.Status =
+                OrganizationExecutionItemStatus.Error;
             undoItem.Message =
                 "Las rutas registradas quedaron fuera de los límites de la ejecución original.";
             return;
         }
 
-        if (!File.Exists(organizedPath))
+        if (!OrganizationEntrySafety.Exists(
+                organizedPath))
         {
-            undoItem.Status = OrganizationExecutionItemStatus.SourceMissing;
+            undoItem.Status =
+                OrganizationExecutionItemStatus.SourceMissing;
             undoItem.Message =
-                "El archivo organizado ya no existe en su ubicación final.";
+                originalItem.IsDirectory
+                    ? "La carpeta organizada ya no existe en su ubicación final."
+                    : "El archivo organizado ya no existe en su ubicación final.";
             return;
         }
 
-        if (File.Exists(originalItem.OriginalPath))
+        if (OrganizationEntrySafety.Exists(
+                originalItem.OriginalPath))
         {
             undoItem.Status =
                 OrganizationExecutionItemStatus.ConflictNeedsDecision;
             undoItem.Message =
-                "Ya existe un archivo en la ubicación original. Undo no sobrescribió nada.";
+                "Ya existe un elemento en la ubicación original. Undo no sobrescribió nada.";
             return;
         }
 
-        FileInfo organizedInfo;
-        try
+        if (!OrganizationEntrySafety.MatchesExpected(
+                organizedPath,
+                originalItem))
         {
-            organizedInfo = new FileInfo(organizedPath);
-        }
-        catch (Exception ex)
-        {
-            undoItem.Status = OrganizationExecutionItemStatus.Error;
-            undoItem.Message = ex.Message;
-            return;
-        }
-
-        if (organizedInfo.Length != originalItem.SizeBytes ||
-            Math.Abs(
-                organizedInfo.LastWriteTimeUtc.Ticks -
-                originalItem.ModifiedUtcTicks) > 20_000_000L)
-        {
-            undoItem.Status = OrganizationExecutionItemStatus.SourceChanged;
+            undoItem.Status =
+                OrganizationExecutionItemStatus.SourceChanged;
             undoItem.Message =
-                "El archivo cambió después de organizarse. Undo no lo tocó.";
+                originalItem.IsDirectory
+                    ? "La carpeta cambió después de organizarse. Undo no la tocó."
+                    : "El archivo cambió después de organizarse. Undo no lo tocó.";
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(
-                originalItem.ReplacedBackupPath) &&
-            !File.Exists(originalItem.ReplacedBackupPath))
+        var backupPath =
+            GetSafeRecordedBackupPath(
+                originalItem.ReplacedBackupPath);
+
+        var replacementWasUsed =
+            !string.IsNullOrWhiteSpace(
+                originalItem.ReplacedBackupPath);
+
+        if (replacementWasUsed)
         {
-            undoItem.Status = OrganizationExecutionItemStatus.Error;
-            undoItem.Message =
-                "Falta la copia protegida del archivo reemplazado. Undo se detuvo para no perder datos.";
-            return;
+            if (string.IsNullOrWhiteSpace(
+                    backupPath) ||
+                !OrganizationEntrySafety.Exists(
+                    backupPath))
+            {
+                undoItem.Status =
+                    OrganizationExecutionItemStatus.Error;
+                undoItem.Message =
+                    "Falta la copia protegida del elemento reemplazado. Undo se detuvo para no perder datos.";
+                return;
+            }
+
+            if (!OrganizationEntrySafety.MatchesReplacement(
+                    backupPath,
+                    originalItem))
+            {
+                undoItem.Status =
+                    OrganizationExecutionItemStatus.Error;
+                undoItem.Message =
+                    "La copia protegida del elemento reemplazado no coincide con el registro original. Undo se detuvo para no perder datos.";
+                return;
+            }
         }
 
         Directory.CreateDirectory(
-            Path.GetDirectoryName(originalItem.OriginalPath)!);
+            Path.GetDirectoryName(
+                originalItem.OriginalPath)!);
 
-        undoItem.Status = OrganizationExecutionItemStatus.Moving;
-        undoItem.Message = "Restauración iniciada.";
+        undoItem.Status =
+            OrganizationExecutionItemStatus.Moving;
+
+        undoItem.Message =
+            originalItem.IsDirectory
+                ? "Restauración de carpeta iniciada."
+                : "Restauración iniciada.";
 
         await PersistRecordAsync(
             undoRecord,
@@ -280,59 +357,108 @@ public sealed class UndoService
             logPath,
             cancellationToken);
 
-        var restoredOrganizedFile = false;
+        var restoredOrganizedEntry =
+            false;
 
         try
         {
-            MoveFileSafely(
+            OrganizationEntrySafety.MoveEntrySafely(
                 organizedPath,
-                originalItem.OriginalPath);
+                originalItem.OriginalPath,
+                cancellationToken);
 
-            restoredOrganizedFile = true;
+            restoredOrganizedEntry =
+                true;
 
-            if (!string.IsNullOrWhiteSpace(
-                    originalItem.ReplacedBackupPath))
+            if (replacementWasUsed &&
+                !string.IsNullOrWhiteSpace(
+                    backupPath))
             {
                 Directory.CreateDirectory(
-                    Path.GetDirectoryName(organizedPath)!);
+                    Path.GetDirectoryName(
+                        organizedPath)!);
 
-                MoveFileSafely(
-                    originalItem.ReplacedBackupPath,
-                    organizedPath);
+                OrganizationEntrySafety.MoveEntrySafely(
+                    backupPath,
+                    organizedPath,
+                    cancellationToken);
             }
 
-            undoItem.Status = OrganizationExecutionItemStatus.Moved;
+            undoItem.Status =
+                OrganizationExecutionItemStatus.Moved;
+
             undoItem.Message =
-                string.IsNullOrWhiteSpace(originalItem.ReplacedBackupPath)
-                    ? "Restaurado al origen."
-                    : "Restaurado al origen y repuesto el archivo que había sido reemplazado.";
+                replacementWasUsed
+                    ? "Restaurado al origen y repuesto el elemento que había sido reemplazado."
+                    : "Restaurado al origen.";
         }
         catch (Exception ex)
         {
-            var rollbackFailed = false;
+            var rollbackFailed =
+                false;
 
-            if (restoredOrganizedFile &&
-                File.Exists(originalItem.OriginalPath) &&
-                !File.Exists(organizedPath))
+            if (restoredOrganizedEntry &&
+                OrganizationEntrySafety.Exists(
+                    originalItem.OriginalPath) &&
+                !OrganizationEntrySafety.Exists(
+                    organizedPath))
             {
                 try
                 {
-                    MoveFileSafely(
+                    OrganizationEntrySafety.MoveEntrySafely(
                         originalItem.OriginalPath,
-                        organizedPath);
+                        organizedPath,
+                        CancellationToken.None);
 
-                    restoredOrganizedFile = false;
+                    restoredOrganizedEntry =
+                        false;
                 }
                 catch
                 {
-                    rollbackFailed = true;
+                    rollbackFailed =
+                        true;
                 }
             }
 
-            undoItem.Status = OrganizationExecutionItemStatus.Error;
-            undoItem.Message = rollbackFailed
-                ? $"{ex.Message} Además, no se pudo revertir automáticamente el movimiento parcial."
-                : $"{ex.Message} El archivo se dejó en el estado más seguro disponible.";
+            undoItem.Status =
+                OrganizationExecutionItemStatus.Error;
+
+            undoItem.Message =
+                rollbackFailed
+                    ? $"{ex.Message} Además, no se pudo revertir automáticamente el movimiento parcial."
+                    : $"{ex.Message} El elemento se dejó en el estado más seguro disponible.";
+        }
+    }
+
+    private static string? GetSafeRecordedBackupPath(
+        string? backupPath)
+    {
+        if (string.IsNullOrWhiteSpace(
+                backupPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var fullPath =
+                Path.GetFullPath(
+                    backupPath);
+
+            var replacedRoot =
+                Path.Combine(
+                    PortablePaths.HistoryDirectory,
+                    "replaced");
+
+            return IsSameOrInside(
+                    fullPath,
+                    replacedRoot)
+                ? fullPath
+                : null;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -342,9 +468,10 @@ public sealed class UndoService
         string logPath,
         CancellationToken cancellationToken)
     {
-        var json = JsonSerializer.Serialize(
-            record,
-            JsonOptions);
+        var json =
+            JsonSerializer.Serialize(
+                record,
+                JsonOptions);
 
         await WriteTextAtomicAsync(
             historyPath,
@@ -353,7 +480,8 @@ public sealed class UndoService
 
         await WriteTextAtomicAsync(
             logPath,
-            OrganizationExecutionService.FormatHumanLog(record),
+            OrganizationExecutionService.FormatHumanLog(
+                record),
             cancellationToken);
     }
 
@@ -363,10 +491,12 @@ public sealed class UndoService
         CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(
-            Path.GetDirectoryName(path)!);
+            Path.GetDirectoryName(
+                path)!);
 
         var tempPath =
-            path + $".tmp_{Guid.NewGuid():N}";
+            path +
+            $".tmp_{Guid.NewGuid():N}";
 
         try
         {
@@ -374,17 +504,20 @@ public sealed class UndoService
                 tempPath,
                 content,
                 new UTF8Encoding(
-                    encoderShouldEmitUTF8Identifier: false),
+                    encoderShouldEmitUTF8Identifier:
+                        false),
                 cancellationToken);
 
             File.Move(
                 tempPath,
                 path,
-                overwrite: true);
+                overwrite:
+                    true);
         }
         finally
         {
-            TryDelete(tempPath);
+            TryDelete(
+                tempPath);
         }
     }
 
@@ -393,24 +526,32 @@ public sealed class UndoService
         string baseName,
         string extension)
     {
-        var candidate = baseName + extension;
+        var candidate =
+            baseName +
+            extension;
 
         if (!File.Exists(
-                Path.Combine(directory, candidate)))
+                Path.Combine(
+                    directory,
+                    candidate)))
         {
             return candidate;
         }
 
-        var index = 2;
+        var index =
+            2;
 
         do
         {
             candidate =
                 $"{baseName}__{index}{extension}";
+
             index++;
         }
         while (File.Exists(
-            Path.Combine(directory, candidate)));
+            Path.Combine(
+                directory,
+                candidate)));
 
         return candidate;
     }
@@ -419,7 +560,8 @@ public sealed class UndoService
         OrganizationExecutionItemRecord item) =>
         item.Status switch
         {
-            OrganizationExecutionItemStatus.Moved => "Restaurado",
+            OrganizationExecutionItemStatus.Moved =>
+                "Restaurado",
             OrganizationExecutionItemStatus.ConflictNeedsDecision =>
                 "Conflicto en origen",
             OrganizationExecutionItemStatus.Interrupted =>
@@ -428,8 +570,10 @@ public sealed class UndoService
                 "Ya no existe",
             OrganizationExecutionItemStatus.SourceChanged =>
                 "Cambió después de organizarse",
-            OrganizationExecutionItemStatus.Error => "Error",
-            _ => item.Status.ToString()
+            OrganizationExecutionItemStatus.Error =>
+                "Error",
+            _ =>
+                item.Status.ToString()
         };
 
     private static bool IsSameOrInside(
@@ -437,9 +581,12 @@ public sealed class UndoService
         string root)
     {
         var fullCandidate =
-            NormalizeDirectoryPath(candidate);
+            NormalizeDirectoryPath(
+                candidate);
+
         var fullRoot =
-            NormalizeDirectoryPath(root);
+            NormalizeDirectoryPath(
+                root);
 
         return fullCandidate.Equals(
                    fullRoot,
@@ -453,7 +600,8 @@ public sealed class UndoService
     private static string NormalizeDirectoryPath(
         string? path)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (string.IsNullOrWhiteSpace(
+                path))
         {
             return string.Empty;
         }
@@ -466,78 +614,18 @@ public sealed class UndoService
                 Path.AltDirectorySeparatorChar);
     }
 
-    private static void MoveFileSafely(
-        string source,
-        string destination)
-    {
-        Directory.CreateDirectory(
-            Path.GetDirectoryName(destination)!);
-
-        try
-        {
-            File.Move(
-                source,
-                destination);
-            return;
-        }
-        catch (IOException)
-        {
-            // Puede ser un movimiento entre unidades.
-        }
-
-        var temporaryDestination =
-            destination +
-            $".bandanv_tmp_{Guid.NewGuid():N}";
-
-        try
-        {
-            File.Copy(
-                source,
-                temporaryDestination,
-                overwrite: false);
-
-            var sourceLength =
-                new FileInfo(source).Length;
-            var copiedLength =
-                new FileInfo(
-                    temporaryDestination).Length;
-
-            if (sourceLength != copiedLength)
-            {
-                throw new IOException(
-                    "La copia entre unidades no pudo validarse.");
-            }
-
-            File.Move(
-                temporaryDestination,
-                destination,
-                overwrite: false);
-
-            try
-            {
-                File.Delete(source);
-            }
-            catch
-            {
-                TryDelete(destination);
-                throw;
-            }
-        }
-        finally
-        {
-            TryDelete(temporaryDestination);
-        }
-    }
-
     private static void TryDelete(
         string? path)
     {
         try
         {
-            if (!string.IsNullOrWhiteSpace(path) &&
-                File.Exists(path))
+            if (!string.IsNullOrWhiteSpace(
+                    path) &&
+                File.Exists(
+                    path))
             {
-                File.Delete(path);
+                File.Delete(
+                    path);
             }
         }
         catch
