@@ -194,6 +194,54 @@
             </Border>
         </DataTemplate>
 
+        <DataTemplate x:Key="OrganizeSideFolderContentTemplate" x:DataType="local:FolderContentPreviewItem">
+            <Grid
+                Padding="10,9"
+                ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel
+                    Spacing="2"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                        Text="{x:Bind FileName}"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        TextTrimming="CharacterEllipsis" />
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="5">
+                        <TextBlock
+                            Text="{x:Bind ExtensionDisplay}"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="10"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="·"
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="10" />
+                        <TextBlock
+                            Text="{x:Bind CategoryDisplay}"
+                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                            FontSize="10"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{x:Bind SizeDisplay}"
+                    Foreground="{StaticResource BandaMutedBrush}"
+                    FontSize="10"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Right" />
+            </Grid>
+        </DataTemplate>
+
         <DataTemplate x:Key="ResolvedExtensionTemplate" x:DataType="local:ResolvedExtensionAssignment">
             <Border
                 Padding="14,12"
@@ -288,18 +336,6 @@
                             Text="{x:Bind ExtensionDisplay}"
                             Foreground="{StaticResource BandaMutedBrush}"
                             FontSize="12" />
-                        <Button
-                            Tag="{x:Bind ItemId}"
-                            Content="Ver contenido"
-                            Click="FolderDetailButton_Click"
-                            Visibility="{x:Bind FolderDetailVisibility}"
-                            Padding="0"
-                            Margin="0,1,0,0"
-                            HorizontalAlignment="Left"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="11" />
                         <TextBlock
                             Text="{x:Bind ConflictDisplay}"
                             Visibility="{x:Bind ConflictVisibility}"
@@ -731,8 +767,8 @@
                 ColumnSpacing="14"
                 MinHeight="300">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.35*" />
-                    <ColumnDefinition Width="0.85*" />
+                    <ColumnDefinition Width="2.2*" />
+                    <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
 
                 <Border
@@ -797,16 +833,19 @@
                             </Grid>
                         </Border>
 
-                        <ScrollViewer
+                        <ListView
+                            x:Name="PreviewFilesList"
                             Grid.Row="2"
-                            VerticalAlignment="Stretch"
-                            VerticalScrollBarVisibility="Auto"
-                            HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl
-                                x:Name="PreviewFilesList"
-                                ItemTemplate="{StaticResource PreviewFileTemplate}"
-                                HorizontalContentAlignment="Stretch" />
-                        </ScrollViewer>
+                            ItemTemplate="{StaticResource PreviewFileTemplate}"
+                            SelectionMode="Single"
+                            IsMultiSelectCheckBoxEnabled="False"
+                            SelectionChanged="PreviewFilesList_SelectionChanged"
+                            HorizontalContentAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
                     </Grid>
                 </Border>
 
@@ -816,81 +855,293 @@
                     Padding="18"
                     VerticalAlignment="Stretch">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+                        <!-- Estado inicial: resumen general -->
+                        <Grid x:Name="OrganizeSummaryPanel">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                        <StackPanel Spacing="4">
-                            <TextBlock
-                                Text="Resumen"
-                                Foreground="{StaticResource BandaTextBrush}"
-                                FontSize="17"
-                                FontWeight="SemiBold" />
-                            <TextBlock
-                                Text="Distribución por categoría"
-                                Style="{StaticResource BandaMutedTextStyle}" />
-                        </StackPanel>
-
-                        <ScrollViewer
-                            Grid.Row="1"
-                            Margin="0,12,0,18"
-                            VerticalScrollBarVisibility="Auto">
-                            <ItemsControl
-                                x:Name="SummaryCategoriesList"
-                                ItemTemplate="{StaticResource SummaryCategoryTemplate}" />
-                        </ScrollViewer>
-
-                        <StackPanel Grid.Row="2" Spacing="10">
-                            <Border
-                                Height="1"
-                                Background="{StaticResource BandaBorderBrush}" />
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Se moverán" Style="{StaticResource BandaMutedTextStyle}" />
+                            <StackPanel Spacing="4">
                                 <TextBlock
-                                    x:Name="SummaryMoveCountText"
-                                    Grid.Column="1"
-                                    Text="0"
+                                    Text="Resumen"
                                     Foreground="{StaticResource BandaTextBrush}"
-                                    FontSize="13"
+                                    FontSize="17"
                                     FontWeight="SemiBold" />
-                            </Grid>
+                                <TextBlock
+                                    Text="Distribución por categoría"
+                                    Style="{StaticResource BandaMutedTextStyle}" />
+                            </StackPanel>
 
-                            <Grid>
+                            <ScrollViewer
+                                Grid.Row="1"
+                                Margin="0,12,0,18"
+                                VerticalScrollBarVisibility="Auto">
+                                <ItemsControl
+                                    x:Name="SummaryCategoriesList"
+                                    ItemTemplate="{StaticResource SummaryCategoryTemplate}" />
+                            </ScrollViewer>
+
+                            <StackPanel Grid.Row="2" Spacing="10">
+                                <Border
+                                    Height="1"
+                                    Background="{StaticResource BandaBorderBrush}" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Se moverán" Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock
+                                        x:Name="SummaryMoveCountText"
+                                        Grid.Column="1"
+                                        Text="0"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        x:Name="SummaryUnclassifiedLabel"
+                                        Text="Quedarán sin mover"
+                                        Style="{StaticResource BandaMutedTextStyle}" />
+                                    <TextBlock
+                                        x:Name="SummaryUnclassifiedCountText"
+                                        Grid.Column="1"
+                                        Text="0"
+                                        Foreground="{StaticResource OrganizeWarningBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold" />
+                                </Grid>
+
+                                <StackPanel Spacing="3" Margin="0,4,0,0">
+                                    <TextBlock Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock
+                                        x:Name="PreviewDestinationText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaAccentBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Estado contextual: detalle del elemento seleccionado -->
+                        <Grid
+                            x:Name="OrganizeDetailPanel"
+                            Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid ColumnSpacing="10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock
-                                    x:Name="SummaryUnclassifiedLabel"
-                                    Text="Quedarán sin mover"
-                                    Style="{StaticResource BandaMutedTextStyle}" />
-                                <TextBlock
-                                    x:Name="SummaryUnclassifiedCountText"
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        Text="Detalle del elemento"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="18"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        x:Name="OrganizeDetailFileNameText"
+                                        Text="Seleccioná un elemento"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        TextWrapping="Wrap"
+                                        TextTrimming="CharacterEllipsis"
+                                        MaxLines="2" />
+                                    <TextBlock
+                                        x:Name="OrganizeDetailSummaryText"
+                                        Text=""
+                                        Foreground="{StaticResource BandaMutedBrush}"
+                                        FontSize="11"
+                                        TextWrapping="Wrap"
+                                        MaxLines="2" />
+                                </StackPanel>
+
+                                <Button
                                     Grid.Column="1"
-                                    Text="0"
-                                    Foreground="{StaticResource OrganizeWarningBrush}"
-                                    FontSize="13"
-                                    FontWeight="SemiBold" />
+                                    Content="×"
+                                    Click="ClearOrganizeDetailButton_Click"
+                                    Style="{StaticResource BandaPopupCloseButtonStyle}"
+                                    VerticalAlignment="Top" />
                             </Grid>
 
-                            <StackPanel Spacing="3" Margin="0,4,0,0">
-                                <TextBlock Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" />
-                                <TextBlock
-                                    x:Name="PreviewDestinationText"
-                                    Text="—"
-                                    Foreground="{StaticResource BandaAccentBrush}"
-                                    FontSize="13"
-                                    FontWeight="SemiBold"
-                                    TextTrimming="CharacterEllipsis" />
+                            <Grid
+                                Grid.Row="1"
+                                Margin="0,16,0,16"
+                                ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border
+                                    Padding="12"
+                                    CornerRadius="12"
+                                    Background="{StaticResource BandaNavIconBrush}"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1">
+                                    <StackPanel Spacing="5">
+                                        <TextBlock Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                        <TextBlock
+                                            x:Name="OrganizeDetailCategoryText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="12"
+                                    CornerRadius="12"
+                                    Background="{StaticResource BandaNavIconBrush}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
+                                        <TextBlock
+                                            x:Name="OrganizeDetailSizeText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <StackPanel
+                                Grid.Row="2"
+                                Spacing="11">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="TIPO / EXTENSIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
+                                        <TextBlock
+                                            x:Name="OrganizeDetailTypeText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            FontSize="12"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Spacing="4">
+                                        <TextBlock Text="MODIFICADO" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
+                                        <TextBlock
+                                            x:Name="OrganizeDetailModifiedText"
+                                            Text="—"
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            FontSize="12"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="UBICACIÓN" Style="{StaticResource BandaMutedTextStyle}" FontSize="10" />
+                                    <TextBlock
+                                        x:Name="OrganizeDetailLocationText"
+                                        Text="—"
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="11"
+                                        TextWrapping="Wrap"
+                                        TextTrimming="CharacterEllipsis"
+                                        MaxLines="2" />
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
+
+                            <Border
+                                x:Name="OrganizeFolderContentsPanel"
+                                Grid.Row="3"
+                                Margin="0,14,0,0"
+                                MinHeight="210"
+                                CornerRadius="12"
+                                Background="{StaticResource BandaNavIconBrush}"
+                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                BorderThickness="1"
+                                Visibility="Collapsed">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid
+                                        Padding="12,10,12,6"
+                                        ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock
+                                            Text="CONTENIDO"
+                                            Style="{StaticResource BandaLabelTextStyle}"
+                                            FontSize="10"
+                                            VerticalAlignment="Center" />
+
+                                        <Button
+                                            x:Name="FolderDetailBackButton"
+                                            Grid.Column="1"
+                                            Content="Atrás"
+                                            Click="FolderDetailBackButton_Click"
+                                            Padding="10,5"
+                                            CornerRadius="8"
+                                            Background="Transparent"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="1"
+                                            Foreground="{StaticResource BandaMutedStrongBrush}"
+                                            Visibility="Collapsed" />
+                                    </Grid>
+
+                                    <TextBlock
+                                        x:Name="FolderDetailPathText"
+                                        Grid.Row="1"
+                                        Text="Raíz"
+                                        Margin="12,0,12,7"
+                                        Foreground="{StaticResource BandaMutedBrush}"
+                                        FontSize="10"
+                                        TextTrimming="CharacterEllipsis" />
+
+                                    <ListView
+                                        x:Name="FolderDetailFilesList"
+                                        Grid.Row="2"
+                                        ItemTemplate="{StaticResource OrganizeSideFolderContentTemplate}"
+                                        SelectionMode="None"
+                                        IsItemClickEnabled="True"
+                                        ItemClick="FolderDetailFilesList_ItemClick"
+                                        HorizontalContentAlignment="Stretch"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4,0,4,4"
+                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>
@@ -1256,187 +1507,6 @@
                             Content="Guardar asignación"
                             Click="SaveAssignmentOverlayButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
-                    </Grid>
-                </Grid>
-            </Border>
-        </Grid>
-
-        <!-- Detalle de contenido de una carpeta analizada -->
-        <Grid
-            x:Name="FolderDetailOverlay"
-            Canvas.ZIndex="105"
-            Visibility="Collapsed">
-            <Border
-                Background="{StaticResource BandaPopupBackdropBrush}"
-                Tapped="FolderDetailBackdrop_Tapped" />
-
-            <Border
-                Width="860"
-                MaxHeight="720"
-                Style="{StaticResource BandaPopupCardStyle}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-                <Grid RowSpacing="16">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Grid ColumnSpacing="14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border
-                            Width="46"
-                            Height="46"
-                            CornerRadius="14"
-                            Background="{StaticResource BandaAccentSoftBrush}">
-                            <SymbolIcon
-                                Symbol="Folder"
-                                Foreground="{StaticResource BandaAccentBrush}"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center" />
-                        </Border>
-
-                        <StackPanel
-                            Grid.Column="1"
-                            Spacing="4"
-                            VerticalAlignment="Center">
-                            <TextBlock
-                                x:Name="FolderDetailTitleText"
-                                Text="Detalle de carpeta"
-                                Foreground="{StaticResource BandaTextBrush}"
-                                FontSize="22"
-                                FontWeight="SemiBold"
-                                TextTrimming="CharacterEllipsis" />
-                            <TextBlock
-                                x:Name="FolderDetailSummaryText"
-                                Text=""
-                                Foreground="{StaticResource BandaMutedBrush}"
-                                FontSize="13"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <Button
-                            Grid.Column="2"
-                            Content="×"
-                            Click="CloseFolderDetailButton_Click"
-                            Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
-                    </Grid>
-
-                    <Border
-                        Grid.Row="1"
-                        Padding="14"
-                        CornerRadius="14"
-                        Background="{StaticResource BandaCardBrush}"
-                        BorderBrush="{StaticResource BandaBorderBrush}"
-                        BorderThickness="1">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <Button
-                                x:Name="FolderDetailBackButton"
-                                Content="Atrás"
-                                Click="FolderDetailBackButton_Click"
-                                Style="{StaticResource BandaPopupSecondaryButtonStyle}"
-                                VerticalAlignment="Center"
-                                Visibility="Collapsed" />
-
-                            <StackPanel
-                                Grid.Column="1"
-                                Spacing="4">
-                                <TextBlock
-                                    Text="RUTA"
-                                    Style="{StaticResource BandaLabelTextStyle}"
-                                    FontSize="10" />
-                                <TextBlock
-                                    x:Name="FolderDetailPathText"
-                                    Text=""
-                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                    FontSize="12"
-                                    TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        Grid.Row="2"
-                        MinHeight="260"
-                        MaxHeight="430"
-                        CornerRadius="14"
-                        Background="{StaticResource BandaCardBrush}"
-                        BorderBrush="{StaticResource BandaBorderBrush}"
-                        BorderThickness="1">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <Border
-                                Background="{StaticResource BandaCardAltBrush}"
-                                BorderBrush="{StaticResource BandaBorderBrush}"
-                                BorderThickness="0,0,0,1">
-                                <Grid
-                                    Padding="14,10"
-                                    ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="2.4*" />
-                                        <ColumnDefinition Width="0.8*" />
-                                        <ColumnDefinition Width="1.15*" />
-                                        <ColumnDefinition Width="0.7*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <TextBlock Text="ELEMENTO" Style="{StaticResource BandaLabelTextStyle}" />
-                                    <TextBlock Grid.Column="1" Text="EXTENSIÓN" Style="{StaticResource BandaLabelTextStyle}" />
-                                    <TextBlock Grid.Column="2" Text="CATEGORÍA DETECTADA" Style="{StaticResource BandaLabelTextStyle}" />
-                                    <TextBlock Grid.Column="3" Text="TAMAÑO" Style="{StaticResource BandaLabelTextStyle}" HorizontalAlignment="Right" />
-                                </Grid>
-                            </Border>
-
-                            <ListView
-                                x:Name="FolderDetailFilesList"
-                                Grid.Row="1"
-                                ItemTemplate="{StaticResource FolderContentTemplate}"
-                                SelectionMode="None"
-                                IsItemClickEnabled="True"
-                                ItemClick="FolderDetailFilesList_ItemClick"
-                                HorizontalContentAlignment="Stretch"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                ScrollViewer.VerticalScrollBarVisibility="Auto" />
-                        </Grid>
-                    </Border>
-
-                    <Grid
-                        Grid.Row="3"
-                        ColumnSpacing="10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock
-                            Text="El listado corresponde al análisis actual y no modifica ningún archivo."
-                            Foreground="{StaticResource BandaMutedBrush}"
-                            FontSize="12"
-                            VerticalAlignment="Center" />
-
-                        <Button
-                            Grid.Column="1"
-                            Content="Cerrar"
-                            Click="CloseFolderDetailButton_Click"
-                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
                     </Grid>
                 </Grid>
             </Border>
