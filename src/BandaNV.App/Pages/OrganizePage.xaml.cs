@@ -1403,25 +1403,26 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         object sender,
         RoutedEventArgs e)
     {
-        var files =
-            GetSelectedOrganizeFiles();
+        var targets =
+            GetActiveOrganizeActionTargets();
 
-        if (files.Count != 1)
+        if (targets.Count != 1)
         {
             return;
         }
 
-        var file =
-            files[0];
+        var target =
+            targets[0];
 
         if (!OrganizationEntrySafety.Exists(
-                file.FullPath))
+                target.FullPath))
         {
             ShowOrganizeActionStatus(
                 "El elemento ya no existe. Se volverá a analizar el origen.");
+
             _ =
                 ReanalyzePreviewAfterSourceActionAsync(
-                    preferredSelectionPath: null);
+                    target.RootPreviewFile.FullPath);
             return;
         }
 
@@ -1431,20 +1432,20 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 new ProcessStartInfo
                 {
                     FileName =
-                        file.FullPath,
+                        target.FullPath,
                     UseShellExecute =
                         true
                 });
 
             ShowOrganizeActionStatus(
-                file.IsDirectory
+                target.IsDirectory
                     ? "Carpeta abierta."
                     : "Archivo abierto.");
         }
         catch
         {
             ShowOrganizeActionStatus(
-                file.IsDirectory
+                target.IsDirectory
                     ? "No se pudo abrir la carpeta."
                     : "No se pudo abrir el archivo.",
                 isError: true);
@@ -1455,17 +1456,17 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         object sender,
         RoutedEventArgs e)
     {
-        var files =
-            GetSelectedOrganizeFiles();
+        var targets =
+            GetActiveOrganizeActionTargets();
 
-        if (files.Count != 1)
+        if (targets.Count != 1)
         {
             return;
         }
 
         var location =
             Path.GetDirectoryName(
-                files[0].FullPath);
+                targets[0].FullPath);
 
         if (string.IsNullOrWhiteSpace(
                 location) ||
@@ -1504,10 +1505,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         object sender,
         RoutedEventArgs e)
     {
-        var files =
-            GetSelectedOrganizeFiles();
+        var targets =
+            GetActiveOrganizeActionTargets();
 
-        if (files.Count == 0)
+        if (targets.Count == 0)
         {
             return;
         }
@@ -1518,16 +1519,16 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         dataPackage.SetText(
             string.Join(
                 Environment.NewLine,
-                files.Select(file =>
-                    file.FullPath)));
+                targets.Select(target =>
+                    target.FullPath)));
 
         Clipboard.SetContent(
             dataPackage);
 
         ShowOrganizeActionStatus(
-            files.Count == 1
+            targets.Count == 1
                 ? "Ruta copiada al portapapeles."
-                : $"{files.Count} rutas copiadas al portapapeles.");
+                : $"{targets.Count} rutas copiadas al portapapeles.");
     }
 
     private void OrganizeChangeCategoryButton_Click(
@@ -1535,7 +1536,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RoutedEventArgs e)
     {
         var files =
-            GetSelectedOrganizeFiles();
+            GetCategoryAssignmentFiles();
 
         if (files.Count == 0 ||
             files.Any(file =>
@@ -1545,6 +1546,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
+        _managedOrganizeTargets.Clear();
         _managedOrganizeFiles.Clear();
         _managedOrganizeFiles.AddRange(
             files);
@@ -1570,12 +1572,20 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                         StringComparison.CurrentCultureIgnoreCase))
                 : null;
 
+        var isNestedSelection =
+            GetSelectedFolderContentItems().Count > 0 &&
+            _folderDetailRoot is not null;
+
         OrganizeManageTitleText.Text =
             "Cambiar categoría";
+
         OrganizeManageSubtitleText.Text =
-            files.Count == 1
-                ? files[0].FileName
-                : $"{files.Count} elementos seleccionados";
+            isNestedSelection
+                ? $"La selección pertenece a \"{_folderDetailRoot!.FileName}\". Se cambiará la categoría prevista de esa carpeta completa."
+                : files.Count == 1
+                    ? files[0].FileName
+                    : $"{files.Count} elementos seleccionados";
+
         OrganizeManageIconText.Text =
             "↻";
         OrganizeManageIconBorder.Background =
@@ -1625,17 +1635,18 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         object sender,
         RoutedEventArgs e)
     {
-        var files =
-            GetSelectedOrganizeFiles();
+        var targets =
+            GetActiveOrganizeActionTargets();
 
-        if (files.Count != 1)
+        if (targets.Count != 1)
         {
             return;
         }
 
         _managedOrganizeFiles.Clear();
-        _managedOrganizeFiles.Add(
-            files[0]);
+        _managedOrganizeTargets.Clear();
+        _managedOrganizeTargets.Add(
+            targets[0]);
 
         _organizeManageMode =
             OrganizeManageMode.Rename;
@@ -1643,11 +1654,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             null;
 
         OrganizeManageTitleText.Text =
-            files[0].IsDirectory
+            targets[0].IsDirectory
                 ? "Renombrar carpeta"
                 : "Renombrar archivo";
         OrganizeManageSubtitleText.Text =
-            files[0].FileName;
+            targets[0].FileName;
         OrganizeManageIconText.Text =
             "✎";
         OrganizeManageIconBorder.Background =
@@ -1665,7 +1676,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             Visibility.Collapsed;
 
         OrganizeManageRenameTextBox.Text =
-            files[0].FileName;
+            targets[0].FileName;
 
         OrganizeManagePrimaryButton.Content =
             "Guardar nombre";
@@ -1688,17 +1699,18 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         object sender,
         RoutedEventArgs e)
     {
-        var files =
-            GetSelectedOrganizeFiles();
+        var targets =
+            GetActiveOrganizeActionTargets();
 
-        if (files.Count == 0)
+        if (targets.Count == 0)
         {
             return;
         }
 
         _managedOrganizeFiles.Clear();
-        _managedOrganizeFiles.AddRange(
-            files);
+        _managedOrganizeTargets.Clear();
+        _managedOrganizeTargets.AddRange(
+            targets);
 
         _organizeManageMode =
             OrganizeManageMode.Delete;
@@ -1706,15 +1718,15 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             null;
 
         OrganizeManageTitleText.Text =
-            files.Count == 1
-                ? files[0].IsDirectory
+            targets.Count == 1
+                ? targets[0].IsDirectory
                     ? "Eliminar carpeta"
                     : "Eliminar archivo"
                 : "Eliminar elementos";
         OrganizeManageSubtitleText.Text =
-            files.Count == 1
-                ? files[0].FileName
-                : $"{files.Count} elementos seleccionados";
+            targets.Count == 1
+                ? targets[0].FileName
+                : $"{targets.Count} elementos seleccionados";
 
         OrganizeManageIconText.Text =
             "!";
@@ -1736,13 +1748,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             global::BandaNV.App.App.Settings.Current;
 
         OrganizeManageDeleteText.Text =
-            files.Count == 1
+            targets.Count == 1
                 ? settings.UseRecycleBin
-                    ? $"¿Enviar \"{files[0].FileName}\" a la Papelera?"
-                    : $"¿Eliminar permanentemente \"{files[0].FileName}\"?"
+                    ? $"¿Enviar \"{targets[0].FileName}\" a la Papelera?"
+                    : $"¿Eliminar permanentemente \"{targets[0].FileName}\"?"
                 : settings.UseRecycleBin
-                    ? $"¿Enviar los {files.Count} elementos seleccionados a la Papelera?"
-                    : $"¿Eliminar permanentemente los {files.Count} elementos seleccionados?";
+                    ? $"¿Enviar los {targets.Count} elementos seleccionados a la Papelera?"
+                    : $"¿Eliminar permanentemente los {targets.Count} elementos seleccionados?";
 
         OrganizeManagePrimaryButton.Visibility =
             Visibility.Collapsed;
