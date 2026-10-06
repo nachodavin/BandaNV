@@ -80,7 +80,7 @@
 
                         <TextBlock
                             Grid.Row="3"
-                            Text="Archivos"
+                            Text="Elementos"
                             Style="{StaticResource BandaMutedTextStyle}"
                             FontSize="13"
                             Margin="0,2,0,0" />
@@ -96,6 +96,7 @@
                     <ColumnDefinition Width="1.05*" />
                     <ColumnDefinition Width="0.8*" />
                     <ColumnDefinition Width="1.25*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Spacing="2" VerticalAlignment="Center">
@@ -144,7 +145,66 @@
                     FontSize="13"
                     VerticalAlignment="Center"
                     TextTrimming="CharacterEllipsis" />
+
+                <Button
+                    Grid.Column="4"
+                    Content="Ver contenido"
+                    Click="SearchFolderContentButton_Click"
+                    Visibility="{x:Bind FolderContentVisibility}"
+                    Padding="12,7"
+                    MinWidth="102"
+                    CornerRadius="9"
+                    Background="Transparent"
+                    Foreground="{StaticResource BandaAccentBrush}"
+                    BorderBrush="{StaticResource BandaBorderBrush}"
+                    BorderThickness="1"
+                    VerticalAlignment="Center" />
             </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SearchFolderContentTemplate" x:DataType="local:SearchFolderContentItem">
+            <Border
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="0,0,0,1">
+                <Grid
+                    Padding="14,10"
+                    ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.25*" />
+                        <ColumnDefinition Width="0.8*" />
+                        <ColumnDefinition Width="0.8*" />
+                        <ColumnDefinition Width="1.15*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Text="{x:Bind RelativePath}"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind ExtensionDisplay}"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="12"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="{x:Bind SizeText}"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="12"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="{x:Bind ModifiedText}"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        FontSize="12"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="DateWheelItemTemplate">
@@ -182,7 +242,7 @@
                 FontSize="32" />
 
             <TextBlock
-                Text="Encontrá y explorá los archivos organizados por BandaNV."
+                Text="Encontrá y explorá los archivos y carpetas organizados por BandaNV."
                 Style="{StaticResource BandaMutedTextStyle}"
                 FontSize="14" />
         </StackPanel>
@@ -273,7 +333,7 @@
             <TextBox
                 x:Name="SearchBox"
                 Grid.Column="0"
-                PlaceholderText="Buscar por nombre, extensión o categoría..."
+                PlaceholderText="Buscar por nombre, contenido, extensión o categoría..."
                 TextChanged="SearchBox_TextChanged"
                 FontSize="14"
                 Padding="14,10"
@@ -298,7 +358,7 @@
                         Foreground="{StaticResource BandaTextBrush}"
                         FontWeight="SemiBold" />
                     <TextBlock
-                        Text="Archivos"
+                        Text="Elementos"
                         Style="{StaticResource BandaMutedTextStyle}" />
                 </StackPanel>
             </Border>
@@ -483,12 +543,14 @@
                                     <ColumnDefinition Width="1.05*" />
                                     <ColumnDefinition Width="0.8*" />
                                     <ColumnDefinition Width="1.25*" />
+                                    <ColumnDefinition Width="116" />
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock Text="NOMBRE" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="4" Text="CONTENIDO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center" />
                             </Grid>
 
                             <Grid Grid.Row="1" MinHeight="330">
@@ -552,7 +614,7 @@
 
                                     <TextBlock
                                         x:Name="EmptyStateTitle"
-                                        Text="No hay archivos que coincidan"
+                                        Text="No hay elementos que coincidan"
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="15"
                                         FontWeight="SemiBold"
@@ -589,13 +651,13 @@
                             <StackPanel Spacing="4">
                                 <TextBlock
                                     x:Name="SearchDetailTitleText"
-                                    Text="Detalle del archivo"
+                                    Text="Detalle del elemento"
                                     Foreground="{StaticResource BandaTextBrush}"
                                     FontSize="18"
                                     FontWeight="SemiBold" />
                                 <TextBlock
                                     x:Name="SearchDetailFileNameText"
-                                    Text="Seleccioná un archivo"
+                                    Text="Seleccioná un elemento"
                                     Foreground="{StaticResource BandaMutedStrongBrush}"
                                     FontSize="13"
                                     TextWrapping="Wrap"
@@ -835,7 +897,168 @@
         </Border>
         </Grid>
 
-        <!-- Gestión del archivo seleccionado -->
+        <!-- Gestión del elemento seleccionado -->
+        <Grid
+            x:Name="SearchFolderContentOverlay"
+            Canvas.ZIndex="105"
+            Visibility="Collapsed">
+
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="SearchFolderContentBackdrop_Tapped" />
+
+            <Border
+                Width="860"
+                MaxHeight="720"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <Grid RowSpacing="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <SymbolIcon
+                                Symbol="Folder"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="SearchFolderContentTitleText"
+                                Text="Contenido de carpeta"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                x:Name="SearchFolderContentSummaryText"
+                                Text=""
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="13" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CloseSearchFolderContentButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        Padding="14"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                Text="RUTA"
+                                Style="{StaticResource BandaLabelTextStyle}"
+                                FontSize="10" />
+                            <TextBlock
+                                x:Name="SearchFolderContentPathText"
+                                Text=""
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Grid.Row="2"
+                        MinHeight="260"
+                        MaxHeight="430"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border
+                                Background="{StaticResource BandaCardAltBrush}"
+                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                BorderThickness="0,0,0,1">
+                                <Grid
+                                    Padding="14,10"
+                                    ColumnSpacing="14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2.25*" />
+                                        <ColumnDefinition Width="0.8*" />
+                                        <ColumnDefinition Width="0.8*" />
+                                        <ColumnDefinition Width="1.15*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="ARCHIVO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Grid.Column="1" Text="EXTENSIÓN" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Grid.Column="2" Text="TAMAÑO" Style="{StaticResource BandaLabelTextStyle}" />
+                                    <TextBlock Grid.Column="3" Text="MODIFICADO" Style="{StaticResource BandaLabelTextStyle}" />
+                                </Grid>
+                            </Border>
+
+                            <ListView
+                                x:Name="SearchFolderContentList"
+                                Grid.Row="1"
+                                ItemTemplate="{StaticResource SearchFolderContentTemplate}"
+                                SelectionMode="None"
+                                IsItemClickEnabled="False"
+                                HorizontalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Text="Los archivos internos se mantienen agrupados como una sola carpeta en Buscar."
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="12"
+                            VerticalAlignment="Center" />
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Cerrar"
+                            Click="CloseSearchFolderContentButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
         <Grid
             x:Name="SearchManageOverlay"
             Canvas.ZIndex="110"
@@ -884,7 +1107,7 @@
                         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
                             <TextBlock
                                 x:Name="SearchManageTitleText"
-                                Text="Gestionar archivo"
+                                Text="Gestionar elemento"
                                 Foreground="{StaticResource BandaTextBrush}"
                                 FontSize="22"
                                 FontWeight="SemiBold" />
@@ -984,7 +1207,7 @@
                                     FontWeight="SemiBold" />
                                 <TextBox
                                     x:Name="SearchManageRenameTextBox"
-                                    PlaceholderText="Nombre del archivo"
+                                    PlaceholderText="Nombre del elemento"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
                                     BorderBrush="{StaticResource BandaBorderBrush}"
                                     BorderThickness="1" />
@@ -995,7 +1218,7 @@
                                 Spacing="8"
                                 Visibility="Collapsed">
                                 <TextBlock
-                                    Text="ELIMINAR ARCHIVO"
+                                    Text="ELIMINAR ELEMENTO"
                                     Foreground="{StaticResource BandaDangerBrush}"
                                     FontSize="11"
                                     FontWeight="SemiBold" />
@@ -1099,7 +1322,7 @@
                             Spacing="4"
                             VerticalAlignment="Center">
                             <TextBlock
-                                Text="Filtrar archivos"
+                                Text="Filtrar elementos"
                                 Foreground="{StaticResource BandaTextBrush}"
                                 FontSize="22"
                                 FontWeight="SemiBold" />
