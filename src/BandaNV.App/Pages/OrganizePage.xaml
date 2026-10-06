@@ -1467,7 +1467,8 @@
 
                         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
                             <TextBlock
-                                Text="Ya existe un archivo con este nombre"
+                                x:Name="ConflictTitleText"
+                                Text="Ya existe un elemento con este nombre"
                                 Foreground="{StaticResource BandaTextBrush}"
                                 FontSize="22"
                                 FontWeight="SemiBold" />
@@ -1502,7 +1503,8 @@
                                 BorderThickness="1">
                                 <StackPanel Spacing="7">
                                     <TextBlock
-                                        Text="ARCHIVO A ORGANIZAR"
+                                        x:Name="ConflictSourceLabelText"
+                                        Text="ELEMENTO A ORGANIZAR"
                                         Style="{StaticResource BandaLabelTextStyle}" />
                                     <TextBlock
                                         x:Name="ConflictSourcePathText"
@@ -1551,7 +1553,8 @@
                         </Grid>
 
                         <TextBlock
-                            Text="Elegí qué hacer con este conflicto. Cerrar esta ventana equivale a omitir el archivo."
+                            x:Name="ConflictInstructionText"
+                            Text="Elegí qué hacer con este conflicto. Cerrar esta ventana equivale a omitir el elemento."
                             Foreground="{StaticResource BandaMutedBrush}"
                             FontSize="12"
                             TextWrapping="Wrap" />
