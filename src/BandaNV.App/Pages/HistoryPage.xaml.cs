@@ -25,6 +25,7 @@ public sealed partial class HistoryPage : Page
     private string? _pendingOriginFilter;
 
     private HistoryExecutionPreview? _pendingUndoExecution;
+    private HistoryExecutionPreview? _technicalUndoExecution;
     private bool _isUndoRunning;
 
     public HistoryPage()
@@ -42,11 +43,17 @@ public sealed partial class HistoryPage : Page
     private async Task LoadHistoryAsync()
     {
         _allPreviewExecutions.Clear();
+        _technicalUndoExecution =
+            null;
 
         try
         {
             var records =
                 await global::BandaNV.App.App.History.LoadAsync();
+
+            var technicalUndoRecords =
+                await global::BandaNV.App.App.History
+                    .LoadTechnicalUndoRecordsAsync();
 
             var categoryColors =
                 global::BandaNV.App.App.Categories.GetAll()
@@ -57,66 +64,100 @@ public sealed partial class HistoryPage : Page
 
             foreach (var record in records)
             {
-                var isUndo =
-                    record.Type.Equals(
-                        "UNDO",
-                        StringComparison.OrdinalIgnoreCase);
+                _allPreviewExecutions.Add(
+                    BuildHistoryPreview(
+                        record,
+                        categoryColors));
+            }
 
-                var isSearch =
-                    record.Type.Equals(
-                        "SEARCH",
-                        StringComparison.OrdinalIgnoreCase);
+            _technicalUndoExecution =
+                technicalUndoRecords
+                    .Select(record =>
+                        BuildHistoryPreview(
+                            record,
+                            categoryColors))
+                    .FirstOrDefault(preview =>
+                        preview.CanUndo);
+        }
+        catch
+        {
+            // Historial queda vacío si no puede leerse; nunca se rellenan mocks.
+        }
 
-                var isOrganizeAction =
-                    record.Type.Equals(
-                        "ORGANIZE_ACTION",
-                        StringComparison.OrdinalIgnoreCase);
+        UpdateTechnicalUndoPanel();
+        UpdateHistoryMetrics();
+        RefreshHistoryResults();
+    }
 
-                var movedItems = record.Items
-                    .Where(item =>
-                        item.Status == OrganizationExecutionItemStatus.Moved)
-                    .ToList();
+    private static HistoryExecutionPreview BuildHistoryPreview(
+        OrganizationExecutionRecord record,
+        IReadOnlyDictionary<string, string> categoryColors)
+    {
+        var isUndo =
+            record.Type.Equals(
+                "UNDO",
+                StringComparison.OrdinalIgnoreCase);
 
-                var displayedItems =
-                    isSearch ||
-                    isOrganizeAction
-                        ? record.Items.ToList()
-                        : movedItems;
+        var isSearch =
+            record.Type.Equals(
+                "SEARCH",
+                StringComparison.OrdinalIgnoreCase);
 
-                var undoCandidates =
-                    record.Items
-                        .Where(item =>
-                            UndoService.IsUndoCandidate(
-                                record,
-                                item))
-                        .ToList();
+        var isOrganizeAction =
+            record.Type.Equals(
+                "ORGANIZE_ACTION",
+                StringComparison.OrdinalIgnoreCase);
 
-                var type =
-                    GetHistoryExecutionTypeDisplayName(
-                        record);
+        var movedItems =
+            record.Items
+                .Where(item =>
+                    item.Status ==
+                        OrganizationExecutionItemStatus.Moved)
+                .ToList();
 
-                var reversibleFileCount =
-                    UndoService.SupportsUndo(
-                        record)
-                        ? undoCandidates.Count(item =>
-                            IsItemCurrentlyReversible(
-                                record,
-                                item))
-                        : 0;
+        var displayedItems =
+            isSearch ||
+            isOrganizeAction
+                ? record.Items.ToList()
+                : movedItems;
 
-                var canUndo =
-                    UndoService.SupportsUndo(
-                        record) &&
-                    global::BandaNV.App.App.Settings.Current.UndoEnabled &&
-                    reversibleFileCount > 0;
+        var undoCandidates =
+            record.Items
+                .Where(item =>
+                    UndoService.IsUndoCandidate(
+                        record,
+                        item))
+                .ToList();
 
-                var files = displayedItems
-                    .Select(item => new HistoryFilePreview(
+        var type =
+            GetHistoryExecutionTypeDisplayName(
+                record);
+
+        var reversibleFileCount =
+            UndoService.SupportsUndo(
+                record)
+                ? undoCandidates.Count(item =>
+                    IsItemCurrentlyReversible(
+                        record,
+                        item))
+                : 0;
+
+        var canUndo =
+            UndoService.SupportsUndo(
+                record) &&
+            reversibleFileCount > 0;
+
+        var files =
+            displayedItems
+                .Select(item =>
+                    new HistoryFilePreview(
                         GetHistoryItemDisplayName(
                             record,
                             item),
-                        item.CategoryName ?? "Sin categoría",
-                        FormatHistoryBytes(item.SizeBytes),
+                        item.CategoryName ??
+                            "Sin categoría",
+                        FormatHistoryBytes(
+                            item.SizeBytes),
                         item.CategoryId is not null &&
                         categoryColors.TryGetValue(
                             item.CategoryId,
@@ -126,58 +167,106 @@ public sealed partial class HistoryPage : Page
                         GetHistoryItemStatusText(
                             record,
                             item.Status),
-                        IsHistoryItemIssue(item.Status),
+                        IsHistoryItemIssue(
+                            item.Status),
                         item.IsDirectory
                             ? $"CARPETA · {item.ContainedFileCount} archivo{(item.ContainedFileCount == 1 ? string.Empty : "s")}"
                             : "ARCHIVO"))
-                    .ToList();
+                .ToList();
 
-                _allPreviewExecutions.Add(new HistoryExecutionPreview
-                {
-                    ExecutionId = record.ExecutionId,
-                    ExecutionRecord = record,
-                    DateTimeText =
-                        record.StartedAt.ToString(
-                            "dd/MM/yyyy · HH:mm:ss",
-                            CultureInfo.GetCultureInfo("es-AR")),
-                    Type = type,
-                    OriginShort = GetFolderDisplayName(record.SourceFolder),
-                    Origin = record.SourceFolder,
-                    Destination = record.DestinationFolder,
-                    FileCount = displayedItems.Count,
-                    FileCountText =
-                        displayedItems.Count.ToString(CultureInfo.CurrentCulture),
-                    SizeText = FormatHistoryBytes(
-                        displayedItems.Sum(item => item.SizeBytes)),
-                    CanUndo = canUndo,
-                    ReversibleFileCount = reversibleFileCount,
-                    UndoBadgeText = isUndo
-                        ? "Registro Undo"
-                        : !UndoService.SupportsUndo(record)
-                            ? isSearch
-                                ? "Sin Undo · acción de Buscar"
-                                : isOrganizeAction
-                                    ? "Sin Undo · acción de Organizar"
-                                    : "No reversible"
-                            : reversibleFileCount == undoCandidates.Count &&
-                              reversibleFileCount > 0
-                                ? "Reversible"
-                                : reversibleFileCount > 0
-                                    ? $"Parcial · {reversibleFileCount}/{undoCandidates.Count}"
-                                    : undoCandidates.Count == 0
-                                        ? "Sin cambios reversibles"
-                                        : "No reversible",
-                    Files = files
-                });
-            }
-        }
-        catch
+        return new HistoryExecutionPreview
         {
-            // Historial queda vacío si no puede leerse; nunca se rellenan mocks.
+            ExecutionId =
+                record.ExecutionId,
+            ExecutionRecord =
+                record,
+            DateTimeText =
+                record.StartedAt.ToString(
+                    "dd/MM/yyyy · HH:mm:ss",
+                    CultureInfo.GetCultureInfo(
+                        "es-AR")),
+            Type =
+                type,
+            OriginShort =
+                GetFolderDisplayName(
+                    record.SourceFolder),
+            Origin =
+                record.SourceFolder,
+            Destination =
+                record.DestinationFolder,
+            FileCount =
+                displayedItems.Count,
+            FileCountText =
+                displayedItems.Count.ToString(
+                    CultureInfo.CurrentCulture),
+            SizeText =
+                FormatHistoryBytes(
+                    displayedItems.Sum(item =>
+                        item.SizeBytes)),
+            CanUndo =
+                canUndo,
+            ReversibleFileCount =
+                reversibleFileCount,
+            UndoBadgeText =
+                isUndo
+                    ? "Registro Undo"
+                    : !UndoService.SupportsUndo(
+                        record)
+                        ? isSearch
+                            ? "Sin Undo · acción de Buscar"
+                            : isOrganizeAction
+                                ? "Sin Undo · acción de Organizar"
+                                : "No reversible"
+                        : reversibleFileCount ==
+                              undoCandidates.Count &&
+                          reversibleFileCount > 0
+                            ? "Reversible"
+                            : reversibleFileCount > 0
+                                ? $"Parcial · {reversibleFileCount}/{undoCandidates.Count}"
+                                : undoCandidates.Count == 0
+                                    ? "Sin cambios reversibles"
+                                    : "No reversible",
+            Files =
+                files
+        };
+    }
+
+    private void UpdateTechnicalUndoPanel()
+    {
+        if (_technicalUndoExecution is not
+            { CanUndo: true } execution)
+        {
+            TechnicalUndoPanel.Visibility =
+                Visibility.Collapsed;
+            TechnicalUndoButton.IsEnabled =
+                false;
+            return;
         }
 
-        UpdateHistoryMetrics();
-        RefreshHistoryResults();
+        TechnicalUndoPanel.Visibility =
+            Visibility.Visible;
+        TechnicalUndoButton.IsEnabled =
+            true;
+
+        var actionLabel =
+            execution.Type.StartsWith(
+                "BUSCAR",
+                StringComparison.OrdinalIgnoreCase) ||
+            execution.Type.StartsWith(
+                "ORGANIZAR ·",
+                StringComparison.OrdinalIgnoreCase)
+                ? "acción"
+                : "organización";
+
+        TechnicalUndoText.Text =
+            $"{execution.DateTimeText} · {execution.Type} · {execution.ReversibleFileCount} elemento{(execution.ReversibleFileCount == 1 ? string.Empty : "s")} reversible{(execution.ReversibleFileCount == 1 ? string.Empty : "s")}";
+
+        TechnicalUndoButton.Content =
+            actionLabel.Equals(
+                "acción",
+                StringComparison.Ordinal)
+                ? "Deshacer última acción"
+                : "Deshacer última organización";
     }
 
     private void UpdateHistoryMetrics()
