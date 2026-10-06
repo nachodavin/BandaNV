@@ -645,6 +645,7 @@ public sealed partial class SettingsPage : Page
             RecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructive = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
+            SaveOrganizeHistory = SaveOrganizeHistoryToggle.IsOn,
             SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
             HistoryRetention = HistoryRetentionValueText.Text,
             Categories = global::BandaNV.App.App.Settings.Current.Categories
@@ -680,6 +681,7 @@ public sealed partial class SettingsPage : Page
         RecycleBinToggle.IsOn = backup.RecycleBin;
         ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
         SaveHistoryToggle.IsOn = backup.SaveHistory;
+        SaveOrganizeHistoryToggle.IsOn = backup.SaveOrganizeHistory;
         SaveSearchHistoryToggle.IsOn = backup.SaveSearchHistory;
         HistoryRetentionValueText.Text = backup.HistoryRetention;
 
@@ -999,6 +1001,7 @@ public sealed partial class SettingsPage : Page
         ConfirmDestructiveToggle.IsOn = true;
 
         SaveHistoryToggle.IsOn = true;
+        SaveOrganizeHistoryToggle.IsOn = true;
         SaveSearchHistoryToggle.IsOn = true;
         HistoryRetentionValueText.Text = "Siempre";
 
@@ -1047,6 +1050,7 @@ public sealed partial class SettingsPage : Page
         ConfirmDestructiveToggle.IsOn = settings.ConfirmDestructiveActions;
 
         SaveHistoryToggle.IsOn = settings.SaveHistory;
+        SaveOrganizeHistoryToggle.IsOn = settings.SaveOrganizeHistory;
         SaveSearchHistoryToggle.IsOn = settings.SaveSearchHistory;
         HistoryRetentionValueText.Text = settings.HistoryRetention;
 
@@ -1096,6 +1100,7 @@ public sealed partial class SettingsPage : Page
             UseRecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructiveActions = ConfirmDestructiveToggle.IsOn,
             SaveHistory = SaveHistoryToggle.IsOn,
+            SaveOrganizeHistory = SaveOrganizeHistoryToggle.IsOn,
             SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
             HistoryRetention = HistoryRetentionValueText.Text,
             Categories = global::BandaNV.App.App.Settings.Current.Categories
@@ -1231,6 +1236,7 @@ internal sealed class SettingsBackupModel
     public bool ConfirmDestructive { get; set; } = true;
 
     public bool SaveHistory { get; set; } = true;
+    public bool SaveOrganizeHistory { get; set; } = true;
     public bool SaveSearchHistory { get; set; } = true;
     public string HistoryRetention { get; set; } = "Siempre";
 
