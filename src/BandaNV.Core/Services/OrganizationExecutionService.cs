@@ -87,6 +87,7 @@ public sealed class OrganizationExecutionService
         var record = new OrganizationExecutionRecord
         {
             StartedAt = now,
+            ShowInHistory = settings.SaveHistory,
             SourceFolder = sourceRoot,
             DestinationFolder = destinationRoot,
             ConflictBehavior = settings.ConflictBehavior,
@@ -115,7 +116,6 @@ public sealed class OrganizationExecutionService
             }).ToList()
         };
 
-        var keepStructuredHistory = settings.SaveHistory || settings.UndoEnabled;
         var historyPath = Path.Combine(
             PortablePaths.HistoryDirectory,
             BuildUniqueFileName(
@@ -192,12 +192,6 @@ public sealed class OrganizationExecutionService
                         destinationRoot);
             }
 
-            if (!settings.UndoEnabled)
-            {
-                ReleaseReplacementBackups(
-                    record);
-            }
-
             record.FinishedAt = DateTime.Now;
             record.Status = record.Items.Any(item =>
                     item.Status is OrganizationExecutionItemStatus.Error or
@@ -228,15 +222,9 @@ public sealed class OrganizationExecutionService
             throw;
         }
 
-        if (!keepStructuredHistory)
-        {
-            TryDelete(historyPath);
-            historyPath = string.Empty;
-        }
-
         return new OrganizationExecutionResult(
             record,
-            string.IsNullOrWhiteSpace(historyPath) ? null : historyPath,
+            historyPath,
             logPath);
     }
 
