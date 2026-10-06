@@ -2,7 +2,7 @@ namespace BandaNV.Core.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -27,7 +27,6 @@ public sealed class AppSettings
     public string ConflictBehavior { get; set; } = "Preguntar";
     public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
 
-    public bool UndoEnabled { get; set; } = true;
     public bool UseRecycleBin { get; set; } = true;
     public bool ConfirmDestructiveActions { get; set; } = true;
 
