@@ -114,7 +114,10 @@ public sealed partial class HistoryPage : Page
                         GetHistoryItemStatusText(
                             record,
                             item.Status),
-                        IsHistoryItemIssue(item.Status)))
+                        IsHistoryItemIssue(item.Status),
+                        item.IsDirectory
+                            ? $"CARPETA · {item.ContainedFileCount} archivo{(item.ContainedFileCount == 1 ? string.Empty : "s")}"
+                            : "ARCHIVO"))
                     .ToList();
 
                 _allPreviewExecutions.Add(new HistoryExecutionPreview
@@ -438,8 +441,8 @@ public sealed partial class HistoryPage : Page
                 : "Detalle de ejecución";
         DetailFilesSectionTitleText.Text =
             isSearchAction
-                ? "ARCHIVOS DE LA ACCIÓN"
-                : "ARCHIVOS DE LA EJECUCIÓN";
+                ? "ELEMENTOS DE LA ACCIÓN"
+                : "ELEMENTOS DE LA EJECUCIÓN";
         DetailDateText.Text = $"{execution.DateTimeText} · {execution.Type}";
         DetailFileCountText.Text = execution.FileCountText;
         DetailSizeText.Text = execution.SizeText;
@@ -485,7 +488,7 @@ public sealed partial class HistoryPage : Page
         var reversibleCount = executions.Count(execution => execution.CanUndo);
 
         DetailTitleText.Text = "Selección múltiple";
-        DetailFilesSectionTitleText.Text = "ARCHIVOS DE LAS EJECUCIONES";
+        DetailFilesSectionTitleText.Text = "ELEMENTOS DE LAS EJECUCIONES";
         DetailDateText.Text = $"{executions.Count} ejecuciones seleccionadas";
         DetailFileCountText.Text = totalFiles.ToString(CultureInfo.CurrentCulture);
         DetailSizeText.Text = FormatHistoryBytes(totalBytes);
@@ -944,7 +947,7 @@ public sealed partial class HistoryPage : Page
     private void ClearExecutionDetails()
     {
         DetailTitleText.Text = "Detalle de ejecución";
-        DetailFilesSectionTitleText.Text = "ARCHIVOS DE LA EJECUCIÓN";
+        DetailFilesSectionTitleText.Text = "ELEMENTOS DE LA EJECUCIÓN";
         DetailDateText.Text = "—";
         DetailFileCountText.Text = "—";
         DetailSizeText.Text = "—";
@@ -1243,7 +1246,8 @@ public sealed class HistoryFilePreview
         string sizeText,
         string colorHex,
         string statusText = "",
-        bool isIssue = false)
+        bool isIssue = false,
+        string typeText = "ARCHIVO")
     {
         Name = name;
         Category = category;
@@ -1251,6 +1255,7 @@ public sealed class HistoryFilePreview
         ColorHex = colorHex;
         StatusText = statusText;
         IsIssue = isIssue;
+        TypeText = typeText;
     }
 
     public string Name { get; set; } = string.Empty;
@@ -1259,6 +1264,7 @@ public sealed class HistoryFilePreview
     public string ColorHex { get; set; } = string.Empty;
     public string StatusText { get; set; } = string.Empty;
     public bool IsIssue { get; set; }
+    public string TypeText { get; set; } = "ARCHIVO";
 
     public Visibility StatusVisibility =>
         string.IsNullOrWhiteSpace(StatusText)
