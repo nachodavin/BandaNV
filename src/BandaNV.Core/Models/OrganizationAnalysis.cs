@@ -39,7 +39,8 @@ public sealed record OrganizationAnalysisFile(
     int RecognizedFileCount = 0,
     int DistinctCategoryCount = 0,
     bool ScanIncomplete = false,
-    IReadOnlyList<OrganizationAnalysisFolderFile>? FolderFiles = null)
+    IReadOnlyList<OrganizationAnalysisFolderFile>? FolderFiles = null,
+    string? ContentFingerprint = null)
 {
     public bool IsClassified =>
         CategoryOrder.HasValue &&
