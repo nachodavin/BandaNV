@@ -101,7 +101,6 @@ public sealed class OrganizationAnalysisService
                         extensionMap,
                         excludedRoots,
                         settings.ConflictBehavior,
-                        settings.IncludeSubfolders,
                         () => skippedDirectories++,
                         cancellationToken);
 
@@ -234,7 +233,6 @@ public sealed class OrganizationAnalysisService
         IReadOnlyDictionary<string, CategorySettings> extensionMap,
         HashSet<string> excludedRoots,
         string conflictBehavior,
-        bool includeSubfoldersInClassification,
         Action onSkippedDirectory,
         CancellationToken cancellationToken)
     {
@@ -257,12 +255,6 @@ public sealed class OrganizationAnalysisService
         var recognizedFiles =
             0;
 
-        var classificationFiles =
-            0;
-
-        var classificationRecognizedFiles =
-            0;
-
         var totalSize =
             0L;
 
@@ -270,10 +262,6 @@ public sealed class OrganizationAnalysisService
             false;
 
         var detectedCategories =
-            new Dictionary<string, CategorySettings>(
-                StringComparer.OrdinalIgnoreCase);
-
-        var classificationCategories =
             new Dictionary<string, CategorySettings>(
                 StringComparer.OrdinalIgnoreCase);
 
@@ -333,21 +321,6 @@ public sealed class OrganizationAnalysisService
                 fingerprintParts.Add(
                     $"{relativePath}\0{file.Length}\0{file.LastWriteTimeUtc.Ticks}");
 
-                var isDirectFile =
-                    PathsEqual(
-                        Path.GetDirectoryName(
-                            file.FullName) ?? string.Empty,
-                        directory.FullName);
-
-                var includeForClassification =
-                    includeSubfoldersInClassification ||
-                    isDirectFile;
-
-                if (includeForClassification)
-                {
-                    classificationFiles++;
-                }
-
                 if (category is null)
                 {
                     continue;
@@ -358,15 +331,6 @@ public sealed class OrganizationAnalysisService
                 detectedCategories.TryAdd(
                     category.Id,
                     category);
-
-                if (includeForClassification)
-                {
-                    classificationRecognizedFiles++;
-
-                    classificationCategories.TryAdd(
-                        category.Id,
-                        category);
-                }
             }
             catch (FileNotFoundException)
             {
@@ -395,12 +359,11 @@ public sealed class OrganizationAnalysisService
             null;
 
         if (!scanIncomplete &&
-            classificationFiles > 0 &&
-            classificationRecognizedFiles == classificationFiles &&
-            classificationCategories.Count == 1)
+            recognizedFiles == totalFiles &&
+            detectedCategories.Count == 1)
         {
             inferredCategory =
-                classificationCategories.Values.First();
+                detectedCategories.Values.First();
         }
 
         var destinationPath =
