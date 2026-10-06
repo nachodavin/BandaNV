@@ -62,7 +62,7 @@ public sealed class CategoryService
         OrganizationExecutionItemRecord item)
     {
         if (!string.IsNullOrWhiteSpace(item.FinalPath) &&
-            File.Exists(item.FinalPath))
+            OrganizationEntrySafety.Exists(item.FinalPath))
         {
             return item.FinalPath;
         }
