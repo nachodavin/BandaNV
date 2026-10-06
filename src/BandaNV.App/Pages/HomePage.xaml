@@ -423,19 +423,17 @@
                         </Border>
 
                         <!-- Métricas del gráfico -->
-                        <Grid
+                        <StackPanel
                             Grid.Column="1"
-                            RowSpacing="14">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
+                            Spacing="14"
+                            VerticalAlignment="Top">
 
                             <Border
-                                Grid.Row="0"
-                                Style="{StaticResource BandaMetricCardStyle}">
-                                <StackPanel Spacing="8">
+                                Style="{StaticResource BandaMetricCardStyle}"
+                                MinHeight="156">
+                                <StackPanel
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
                                     <TextBlock
                                         Text="TAMAÑO TOTAL"
                                         Style="{StaticResource BandaMutedTextStyle}"
@@ -446,7 +444,7 @@
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="40"
                                         FontWeight="SemiBold"
-                                        Margin="0,20,0,0" />
+                                        Margin="0,10,0,0" />
                                     <TextBlock
                                         Text="Espacio ocupado actualmente"
                                         Style="{StaticResource BandaMutedTextStyle}"
@@ -455,9 +453,11 @@
                             </Border>
 
                             <Border
-                                Grid.Row="1"
-                                Style="{StaticResource BandaMetricCardStyle}">
-                                <StackPanel Spacing="8">
+                                Style="{StaticResource BandaMetricCardStyle}"
+                                MinHeight="156">
+                                <StackPanel
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
                                     <TextBlock
                                         Text="ARCHIVOS ORGANIZADOS"
                                         Style="{StaticResource BandaMutedTextStyle}"
@@ -468,7 +468,7 @@
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="40"
                                         FontWeight="SemiBold"
-                                        Margin="0,20,0,0" />
+                                        Margin="0,10,0,0" />
                                     <TextBlock
                                         Text="Archivos actualmente organizados"
                                         Style="{StaticResource BandaMutedTextStyle}"
@@ -477,9 +477,11 @@
                             </Border>
 
                             <Border
-                                Grid.Row="2"
-                                Style="{StaticResource BandaMetricCardStyle}">
-                                <StackPanel Spacing="8">
+                                Style="{StaticResource BandaMetricCardStyle}"
+                                MinHeight="156">
+                                <StackPanel
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
                                     <TextBlock
                                         Text="CATEGORÍAS EN USO"
                                         Style="{StaticResource BandaMutedTextStyle}"
@@ -490,14 +492,14 @@
                                         Foreground="{StaticResource BandaTextBrush}"
                                         FontSize="40"
                                         FontWeight="SemiBold"
-                                        Margin="0,20,0,0" />
+                                        Margin="0,10,0,0" />
                                     <TextBlock
                                         Text="Categorías con archivos"
                                         Style="{StaticResource BandaMutedTextStyle}"
                                         FontSize="13" />
                                 </StackPanel>
                             </Border>
-                        </Grid>
+                        </StackPanel>
                     </Grid>
                 </Grid>
             </Grid>
