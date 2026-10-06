@@ -647,7 +647,8 @@ public sealed class SearchFileActionService
                 record),
             cancellationToken);
 
-        if (!settings.SaveSearchHistory)
+        if (!settings.SaveHistory ||
+            !settings.SaveSearchHistory)
         {
             return;
         }
