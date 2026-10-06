@@ -869,7 +869,7 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Confirmar acciones destructivas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Confirmar acciones permanentes" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Pedir confirmación antes de borrar o reemplazar." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="ConfirmDestructiveToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
