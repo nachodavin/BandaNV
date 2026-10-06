@@ -1406,21 +1406,16 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             folderItems.Count > 0;
 
         OrganizeButton.Content =
-            hasFolderItems
-                ? "Carpetas detectadas · ejecución pendiente"
-                : $"Organizar {classifiedFiles.Count} archivo{(classifiedFiles.Count == 1 ? string.Empty : "s")}";
+            $"Organizar {classifiedFiles.Count} elemento{(classifiedFiles.Count == 1 ? string.Empty : "s")}";
 
         OrganizeButton.IsEnabled =
-            classifiedFiles.Count > 0 &&
-            !hasFolderItems;
+            classifiedFiles.Count > 0;
 
         ToolTipService.SetToolTip(
             OrganizeButton,
-            hasFolderItems
-                ? "La detección de carpetas ya está activa. El movimiento seguro se conecta en el siguiente bloque."
-                : classifiedFiles.Count > 0
-                    ? "Ejecuta exactamente la organización mostrada en esta vista previa."
-                    : null);
+            classifiedFiles.Count > 0
+                ? "Ejecuta exactamente la organización mostrada en esta vista previa."
+                : null);
 
         var warningBrush = GetBrush("OrganizeWarningBrush");
         var warningSoftBrush = GetBrush("OrganizeWarningSoftBrush");
@@ -1474,13 +1469,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             else
             {
                 FooterStatusText.Foreground =
-                    hasFolderItems
-                        ? mutedBrush
-                        : accentBrush;
+                    accentBrush;
 
                 FooterStatusText.Text =
                     hasFolderItems
-                        ? $"Detección lista: {folderItems.Count} carpeta{(folderItems.Count == 1 ? string.Empty : "s")} analizada{(folderItems.Count == 1 ? string.Empty : "s")} como unidad. El movimiento seguro se conecta en el siguiente bloque."
+                        ? $"Todos los elementos tienen destino. {folderItems.Count} carpeta{(folderItems.Count == 1 ? string.Empty : "s")} se moverá{(folderItems.Count == 1 ? string.Empty : "n")} conservando su estructura interna."
                         : "Todos los archivos tienen destino. Ya podés ejecutar esta organización.";
             }
         }
