@@ -2700,9 +2700,11 @@ public sealed partial class SearchPage : Page
 
         SearchManagePrimaryButton.Visibility = Visibility.Collapsed;
         SearchManageDangerButton.Content =
-            files.Count == 1
-                ? "Eliminar"
-                : $"Eliminar {files.Count} elementos";
+            settings.UseRecycleBin
+                ? "Enviar a Papelera"
+                : files.Count == 1
+                    ? "Eliminar"
+                    : $"Eliminar {files.Count} elementos";
         SearchManageDangerButton.Visibility = Visibility.Visible;
 
         SearchManageValidationText.Visibility = Visibility.Collapsed;
