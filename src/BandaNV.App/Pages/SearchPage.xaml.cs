@@ -2303,6 +2303,51 @@ public sealed class SearchCategorySummary
     }
 }
 
+public sealed class SearchFolderContentItem
+{
+    public SearchFolderContentItem(
+        string relativePath,
+        string name,
+        string extension,
+        long sizeBytes,
+        DateTime modifiedAt)
+    {
+        RelativePath =
+            relativePath;
+
+        Name =
+            name;
+
+        Extension =
+            extension;
+
+        SizeBytes =
+            sizeBytes;
+
+        ModifiedAt =
+            modifiedAt;
+    }
+
+    public string RelativePath { get; }
+    public string Name { get; }
+    public string Extension { get; }
+    public long SizeBytes { get; }
+    public DateTime ModifiedAt { get; }
+
+    public string ExtensionDisplay =>
+        Extension.ToUpperInvariant();
+
+    public string SizeText =>
+        SearchFileResult.FormatBytes(
+            SizeBytes);
+
+    public string ModifiedText =>
+        ModifiedAt.ToString(
+            "dd/MM/yyyy HH:mm:ss",
+            CultureInfo.GetCultureInfo(
+                "es-AR"));
+}
+
 public sealed class SearchFileResult
 {
     public SearchFileResult(
@@ -2311,14 +2356,53 @@ public sealed class SearchFileResult
         long sizeBytes,
         DateTime modifiedAt,
         string location,
-        string colorHex)
+        string colorHex,
+        bool isDirectory = false,
+        int containedFileCount = 1,
+        IReadOnlyList<IndexedSearchChild>? contents = null)
     {
-        Name = name;
-        Category = category;
-        SizeBytes = sizeBytes;
-        ModifiedAt = modifiedAt;
-        Location = location;
-        ColorHex = colorHex;
+        Name =
+            name;
+
+        Category =
+            category;
+
+        SizeBytes =
+            sizeBytes;
+
+        ModifiedAt =
+            modifiedAt;
+
+        Location =
+            location;
+
+        ColorHex =
+            colorHex;
+
+        IsDirectory =
+            isDirectory;
+
+        ContainedFileCount =
+            containedFileCount;
+
+        FolderContents =
+            (contents ?? [])
+                .Select(item =>
+                    new SearchFolderContentItem(
+                        item.RelativePath,
+                        item.Name,
+                        item.Extension,
+                        item.SizeBytes,
+                        item.ModifiedAt))
+                .ToList();
+
+        ContentSearchText =
+            IsDirectory
+                ? string.Join(
+                    " ",
+                    FolderContents.Select(item =>
+                        $"{item.RelativePath} {item.Name} {item.ExtensionDisplay}"))
+                : string.Empty;
     }
 
     public string Name { get; private set; }
@@ -2327,48 +2411,85 @@ public sealed class SearchFileResult
     public long SizeBytes { get; }
     public DateTime ModifiedAt { get; }
     public string Location { get; private set; }
+    public bool IsDirectory { get; }
+    public int ContainedFileCount { get; }
+    public IReadOnlyList<SearchFolderContentItem> FolderContents { get; }
+    public string ContentSearchText { get; }
 
     public Brush CategoryBrush =>
-        CreateCategoryBrush(0xFF);
+        CreateCategoryBrush(
+            0xFF);
 
     public Brush CategorySoftBrush =>
-        CreateCategoryBrush(0x20);
+        CreateCategoryBrush(
+            0x20);
 
     public string FilePath =>
-        System.IO.Path.Combine(Location, Name);
+        System.IO.Path.Combine(
+            Location,
+            Name);
 
-    public void Rename(string proposedName)
+    public Visibility FolderContentVisibility =>
+        IsDirectory
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    public void Rename(
+        string proposedName)
     {
-        var value = proposedName.Trim();
+        var value =
+            proposedName.Trim();
 
-        if (string.IsNullOrWhiteSpace(System.IO.Path.GetExtension(value)))
+        if (!IsDirectory &&
+            string.IsNullOrWhiteSpace(
+                System.IO.Path.GetExtension(
+                    value)))
         {
-            value += System.IO.Path.GetExtension(Name);
+            value +=
+                System.IO.Path.GetExtension(
+                    Name);
         }
 
-        Name = value;
+        Name =
+            value;
     }
 
     public void ChangeCategory(
         string categoryName,
         string? colorHex = null)
     {
-        var parent = System.IO.Directory.GetParent(Location)?.FullName;
+        Category =
+            categoryName;
 
-        Category = categoryName;
-
-        if (!string.IsNullOrWhiteSpace(colorHex))
+        if (!string.IsNullOrWhiteSpace(
+                colorHex))
         {
-            ColorHex = colorHex;
-        }
-
-        if (!string.IsNullOrWhiteSpace(parent))
-        {
-            Location = System.IO.Path.Combine(parent, categoryName);
+            ColorHex =
+                colorHex;
         }
     }
 
-    private Brush CreateCategoryBrush(byte alpha)
+    public bool MatchesExtensionFilters(
+        IReadOnlyCollection<string> extensions)
+    {
+        if (extensions.Count == 0)
+        {
+            return true;
+        }
+
+        if (!IsDirectory)
+        {
+            return extensions.Contains(
+                ExtensionDisplay);
+        }
+
+        return FolderContents.Any(item =>
+            extensions.Contains(
+                item.ExtensionDisplay));
+    }
+
+    private Brush CreateCategoryBrush(
+        byte alpha)
     {
         if (!CategoryColorPalette.TryNormalizeHex(
                 ColorHex,
@@ -2383,29 +2504,56 @@ public sealed class SearchFileResult
         return new SolidColorBrush(
             Windows.UI.Color.FromArgb(
                 alpha,
-                Convert.ToByte(normalized.Substring(1, 2), 16),
-                Convert.ToByte(normalized.Substring(3, 2), 16),
-                Convert.ToByte(normalized.Substring(5, 2), 16)));
+                Convert.ToByte(
+                    normalized.Substring(
+                        1,
+                        2),
+                    16),
+                Convert.ToByte(
+                    normalized.Substring(
+                        3,
+                        2),
+                    16),
+                Convert.ToByte(
+                    normalized.Substring(
+                        5,
+                        2),
+                    16)));
     }
 
     public string ExtensionDisplay =>
-        System.IO.Path.GetExtension(Name).ToUpperInvariant();
+        IsDirectory
+            ? $"CARPETA · {ContainedFileCount} archivo{(ContainedFileCount == 1 ? string.Empty : "s")}"
+            : System.IO.Path.GetExtension(
+                    Name)
+                .ToUpperInvariant();
 
-    public string SizeText => FormatBytes(SizeBytes);
+    public string SizeText =>
+        FormatBytes(
+            SizeBytes);
 
     public string ModifiedText =>
         ModifiedAt.ToString(
             "dd/MM/yyyy HH:mm:ss",
-            CultureInfo.GetCultureInfo("es-AR"));
+            CultureInfo.GetCultureInfo(
+                "es-AR"));
 
-    private static string FormatBytes(long bytes)
+    public static string FormatBytes(
+        long bytes)
     {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        string[] units =
+            ["B", "KB", "MB", "GB", "TB"];
 
-        var value = (double)Math.Max(0, bytes);
-        var unitIndex = 0;
+        var value =
+            (double)Math.Max(
+                0,
+                bytes);
 
-        while (value >= 1024 && unitIndex < units.Length - 1)
+        var unitIndex =
+            0;
+
+        while (value >= 1024 &&
+               unitIndex < units.Length - 1)
         {
             value /= 1024;
             unitIndex++;
