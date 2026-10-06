@@ -925,6 +925,18 @@ public sealed class OrganizationExecutionService
         }
     }
 
+    private sealed record DirectorySnapshot(
+        int FileCount,
+        long TotalSizeBytes,
+        long ModifiedUtcTicks,
+        string ContentFingerprint);
+
+    private sealed record EntryMetadata(
+        long SizeBytes,
+        long ModifiedUtcTicks,
+        int ItemCount,
+        bool IsDirectory);
+
     private sealed class ConflictResolutionState
     {
         public OrganizationConflictAction? ApplyToRemaining { get; set; }
@@ -973,7 +985,7 @@ public sealed class OrganizationExecutionService
                     continue;
                 }
 
-                if (!File.Exists(backupPath) ||
+                if (!EntryExists(backupPath) ||
                     TryDeleteAndConfirm(backupPath))
                 {
                     item.ReplacedBackupPath = null;
@@ -1007,12 +1019,517 @@ public sealed class OrganizationExecutionService
     {
         try
         {
-            File.Delete(path);
-            return !File.Exists(path);
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(
+                    path,
+                    recursive: true);
+
+                return !Directory.Exists(
+                    path);
+            }
+
+            File.Delete(
+                path);
+
+            return !File.Exists(
+                path);
         }
         catch
         {
             return false;
+        }
+    }
+
+    private static bool EntryExists(
+        string path) =>
+        File.Exists(path) ||
+        Directory.Exists(path);
+
+    private static EntryMetadata GetEntryMetadata(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        if (Directory.Exists(path))
+        {
+            var snapshot =
+                BuildDirectorySnapshot(
+                    path,
+                    cancellationToken);
+
+            return new EntryMetadata(
+                snapshot.TotalSizeBytes,
+                snapshot.ModifiedUtcTicks,
+                snapshot.FileCount,
+                IsDirectory: true);
+        }
+
+        var file =
+            new FileInfo(
+                path);
+
+        return new EntryMetadata(
+            file.Length,
+            file.LastWriteTimeUtc.Ticks,
+            ItemCount: 1,
+            IsDirectory: false);
+    }
+
+    private static DirectorySnapshot BuildDirectorySnapshot(
+        string root,
+        CancellationToken cancellationToken)
+    {
+        var normalizedRoot =
+            Path.GetFullPath(
+                root);
+
+        if (!Directory.Exists(
+                normalizedRoot))
+        {
+            throw new DirectoryNotFoundException(
+                "La carpeta ya no existe.");
+        }
+
+        var rootAttributes =
+            File.GetAttributes(
+                normalizedRoot);
+
+        if ((rootAttributes &
+             FileAttributes.ReparsePoint) != 0)
+        {
+            throw new IOException(
+                "La carpeta es un vínculo o punto de reanálisis y no puede moverse como unidad.");
+        }
+
+        var pending =
+            new Stack<string>();
+
+        pending.Push(
+            normalizedRoot);
+
+        var fingerprintParts =
+            new List<string>();
+
+        var fileCount =
+            0;
+
+        var totalSize =
+            0L;
+
+        while (pending.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var current =
+                pending.Pop();
+
+            string[] files;
+            string[] directories;
+
+            try
+            {
+                files =
+                    Directory.GetFiles(
+                        current,
+                        "*",
+                        SearchOption.TopDirectoryOnly);
+
+                directories =
+                    Directory.GetDirectories(
+                        current,
+                        "*",
+                        SearchOption.TopDirectoryOnly);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                throw new IOException(
+                    $"No se pudo leer completamente la carpeta: {current}",
+                    ex);
+            }
+
+            foreach (var filePath in files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var attributes =
+                    File.GetAttributes(
+                        filePath);
+
+                if ((attributes &
+                     FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new IOException(
+                        $"La carpeta contiene un vínculo o punto de reanálisis: {filePath}");
+                }
+
+                var info =
+                    new FileInfo(
+                        filePath);
+
+                var relativePath =
+                    Path.GetRelativePath(
+                        normalizedRoot,
+                        info.FullName);
+
+                fileCount++;
+                totalSize +=
+                    info.Length;
+
+                fingerprintParts.Add(
+                    $"{relativePath}\0{info.Length}\0{info.LastWriteTimeUtc.Ticks}");
+            }
+
+            foreach (var directory in directories)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var attributes =
+                    File.GetAttributes(
+                        directory);
+
+                if ((attributes &
+                     FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new IOException(
+                        $"La carpeta contiene un vínculo o punto de reanálisis: {directory}");
+                }
+
+                pending.Push(
+                    directory);
+            }
+        }
+
+        var payload =
+            string.Join(
+                "\n",
+                fingerprintParts
+                    .OrderBy(
+                        value => value,
+                        StringComparer.OrdinalIgnoreCase));
+
+        var hash =
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(
+                    payload));
+
+        return new DirectorySnapshot(
+            fileCount,
+            totalSize,
+            Directory.GetLastWriteTimeUtc(
+                    normalizedRoot)
+                .Ticks,
+            Convert.ToHexString(
+                    hash)
+                .ToLowerInvariant());
+    }
+
+    private static string GetUniqueDirectoryDestination(
+        string desiredTarget)
+    {
+        if (!EntryExists(
+                desiredTarget))
+        {
+            return desiredTarget;
+        }
+
+        var parent =
+            Path.GetDirectoryName(
+                desiredTarget)
+            ?? throw new InvalidOperationException(
+                "No se pudo determinar la carpeta de destino.");
+
+        var name =
+            Path.GetFileName(
+                desiredTarget);
+
+        var index =
+            2;
+
+        string candidate;
+
+        do
+        {
+            candidate =
+                Path.Combine(
+                    parent,
+                    $"{name} ({index})");
+
+            index++;
+        }
+        while (EntryExists(
+            candidate));
+
+        return candidate;
+    }
+
+    private static string BackupReplacedEntry(
+        string target,
+        string executionId,
+        string undoId)
+    {
+        var backupDirectory =
+            Path.Combine(
+                PortablePaths.HistoryDirectory,
+                "replaced",
+                executionId);
+
+        Directory.CreateDirectory(
+            backupDirectory);
+
+        var backupPath =
+            Path.Combine(
+                backupDirectory,
+                $"{undoId}_{Path.GetFileName(target)}");
+
+        MoveEntrySafely(
+            target,
+            backupPath,
+            CancellationToken.None);
+
+        return backupPath;
+    }
+
+    private static void MoveEntrySafely(
+        string source,
+        string destination,
+        CancellationToken cancellationToken)
+    {
+        if (Directory.Exists(
+                source))
+        {
+            MoveDirectorySafely(
+                source,
+                destination,
+                cancellationToken);
+
+            return;
+        }
+
+        if (File.Exists(
+                source))
+        {
+            MoveFileSafely(
+                source,
+                destination);
+
+            return;
+        }
+
+        throw new FileNotFoundException(
+            "El elemento que debía moverse ya no existe.",
+            source);
+    }
+
+    private static void MoveDirectorySafely(
+        string source,
+        string destination,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(
+                source))
+        {
+            throw new DirectoryNotFoundException(
+                $"La carpeta de origen ya no existe: {source}");
+        }
+
+        if (EntryExists(
+                destination))
+        {
+            throw new IOException(
+                $"Ya existe un elemento en el destino: {destination}");
+        }
+
+        Directory.CreateDirectory(
+            Path.GetDirectoryName(
+                destination)!);
+
+        try
+        {
+            Directory.Move(
+                source,
+                destination);
+
+            return;
+        }
+        catch (IOException)
+        {
+            if (!Directory.Exists(
+                    source) ||
+                EntryExists(
+                    destination))
+            {
+                throw;
+            }
+
+            // Entre unidades distintas Directory.Move no puede completar
+            // la operación. Se usa una copia temporal verificable.
+        }
+
+        var temporaryDestination =
+            destination +
+            $".bandanv_tmp_{Guid.NewGuid():N}";
+
+        try
+        {
+            CopyDirectoryTree(
+                source,
+                temporaryDestination,
+                cancellationToken);
+
+            var sourceSnapshot =
+                BuildDirectorySnapshot(
+                    source,
+                    cancellationToken);
+
+            var copySnapshot =
+                BuildDirectorySnapshot(
+                    temporaryDestination,
+                    cancellationToken);
+
+            if (sourceSnapshot.FileCount !=
+                    copySnapshot.FileCount ||
+                sourceSnapshot.TotalSizeBytes !=
+                    copySnapshot.TotalSizeBytes ||
+                !sourceSnapshot.ContentFingerprint.Equals(
+                    copySnapshot.ContentFingerprint,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IOException(
+                    "La copia de la carpeta entre unidades no pudo validarse.");
+            }
+
+            Directory.Move(
+                temporaryDestination,
+                destination);
+
+            try
+            {
+                Directory.Delete(
+                    source,
+                    recursive: true);
+            }
+            catch (Exception ex)
+            {
+                throw new IOException(
+                    "La carpeta se copió y verificó correctamente en destino, pero no se pudo eliminar por completo el origen. Se conservó la copia de destino para evitar pérdida de datos.",
+                    ex);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(
+                    temporaryDestination))
+            {
+                try
+                {
+                    Directory.Delete(
+                        temporaryDestination,
+                        recursive: true);
+                }
+                catch
+                {
+                }
+            }
+        }
+    }
+
+    private static void CopyDirectoryTree(
+        string source,
+        string destination,
+        CancellationToken cancellationToken)
+    {
+        var normalizedSource =
+            Path.GetFullPath(
+                source);
+
+        var pending =
+            new Stack<(string Source, string Destination)>();
+
+        pending.Push(
+            (normalizedSource, destination));
+
+        while (pending.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var current =
+                pending.Pop();
+
+            var attributes =
+                File.GetAttributes(
+                    current.Source);
+
+            if ((attributes &
+                 FileAttributes.ReparsePoint) != 0)
+            {
+                throw new IOException(
+                    $"No se puede copiar un vínculo o punto de reanálisis: {current.Source}");
+            }
+
+            Directory.CreateDirectory(
+                current.Destination);
+
+            foreach (var filePath in Directory.GetFiles(
+                         current.Source,
+                         "*",
+                         SearchOption.TopDirectoryOnly))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var fileAttributes =
+                    File.GetAttributes(
+                        filePath);
+
+                if ((fileAttributes &
+                     FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new IOException(
+                        $"La carpeta contiene un vínculo o punto de reanálisis: {filePath}");
+                }
+
+                var destinationFile =
+                    Path.Combine(
+                        current.Destination,
+                        Path.GetFileName(
+                            filePath));
+
+                File.Copy(
+                    filePath,
+                    destinationFile,
+                    overwrite: false);
+
+                File.SetLastWriteTimeUtc(
+                    destinationFile,
+                    File.GetLastWriteTimeUtc(
+                        filePath));
+            }
+
+            foreach (var directoryPath in Directory.GetDirectories(
+                         current.Source,
+                         "*",
+                         SearchOption.TopDirectoryOnly))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var directoryAttributes =
+                    File.GetAttributes(
+                        directoryPath);
+
+                if ((directoryAttributes &
+                     FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new IOException(
+                        $"La carpeta contiene un vínculo o punto de reanálisis: {directoryPath}");
+                }
+
+                pending.Push(
+                    (
+                        directoryPath,
+                        Path.Combine(
+                            current.Destination,
+                            Path.GetFileName(
+                                directoryPath))));
+            }
         }
     }
 
