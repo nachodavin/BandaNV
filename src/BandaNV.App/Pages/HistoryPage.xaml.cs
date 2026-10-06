@@ -88,20 +88,30 @@ public sealed partial class HistoryPage : Page
                         ? record.Items.ToList()
                         : movedItems;
 
+                var undoCandidates =
+                    record.Items
+                        .Where(item =>
+                            UndoService.IsUndoCandidate(
+                                record,
+                                item))
+                        .ToList();
+
                 var type =
                     GetHistoryExecutionTypeDisplayName(
                         record);
 
                 var reversibleFileCount =
-                    isOrganization
-                        ? movedItems.Count(item =>
+                    UndoService.SupportsUndo(
+                        record)
+                        ? undoCandidates.Count(item =>
                             IsItemCurrentlyReversible(
                                 record,
                                 item))
                         : 0;
 
                 var canUndo =
-                    isOrganization &&
+                    UndoService.SupportsUndo(
+                        record) &&
                     global::BandaNV.App.App.Settings.Current.UndoEnabled &&
                     reversibleFileCount > 0;
 
@@ -146,19 +156,21 @@ public sealed partial class HistoryPage : Page
                         displayedItems.Sum(item => item.SizeBytes)),
                     CanUndo = canUndo,
                     ReversibleFileCount = reversibleFileCount,
-                    UndoBadgeText = isSearch
-                        ? "Sin Undo · acción de Buscar"
-                        : isOrganizeAction
-                            ? "Sin Undo · acción de Organizar"
-                            : isUndo
-                                ? "Registro Undo"
-                            : reversibleFileCount == movedItems.Count &&
+                    UndoBadgeText = isUndo
+                        ? "Registro Undo"
+                        : !UndoService.SupportsUndo(record)
+                            ? isSearch
+                                ? "Sin Undo · acción de Buscar"
+                                : isOrganizeAction
+                                    ? "Sin Undo · acción de Organizar"
+                                    : "No reversible"
+                            : reversibleFileCount == undoCandidates.Count &&
                               reversibleFileCount > 0
                                 ? "Reversible"
                                 : reversibleFileCount > 0
-                                    ? $"Parcial · {reversibleFileCount}/{movedItems.Count}"
-                                    : movedItems.Count == 0
-                                        ? "Sin movimientos"
+                                    ? $"Parcial · {reversibleFileCount}/{undoCandidates.Count}"
+                                    : undoCandidates.Count == 0
+                                        ? "Sin cambios reversibles"
                                         : "No reversible",
                     Files = files
                 });
@@ -478,7 +490,9 @@ public sealed partial class HistoryPage : Page
         UndoStatusText.Text = execution.UndoBadgeText;
         UndoPreviewButton.Content =
             isAction
-                ? "Acción sin Undo"
+                ? execution.CanUndo
+                    ? "Deshacer acción"
+                    : "Acción sin Undo"
                 : "Deshacer ejecución";
         UndoPreviewButton.IsEnabled = execution.CanUndo;
 
@@ -1070,14 +1084,25 @@ public sealed partial class HistoryPage : Page
 
         _pendingUndoExecution = execution;
 
-        HistoryModalTitleText.Text = "Deshacer organización";
+        var isAction =
+            execution.Type.StartsWith(
+                "BUSCAR",
+                StringComparison.OrdinalIgnoreCase) ||
+            execution.Type.StartsWith(
+                "ORGANIZAR ·",
+                StringComparison.OrdinalIgnoreCase);
+
+        HistoryModalTitleText.Text =
+            isAction
+                ? "Deshacer acción"
+                : "Deshacer organización";
+
         HistoryModalBodyText.Text =
             execution.ReversibleFileCount == execution.FileCount
-                ? $"BandaNV va a intentar restaurar los {execution.FileCount} archivo{(execution.FileCount == 1 ? string.Empty : "s")} " +
-                  $"desde \"{execution.DestinationShort}\" hacia su ubicación original. " +
-                  "Antes de cada movimiento se vuelve a validar que el archivo siga intacto y que el origen esté libre."
+                ? $"BandaNV va a intentar restaurar los {execution.FileCount} elemento{(execution.FileCount == 1 ? string.Empty : "s")} a su nombre o ubicación anterior. " +
+                  "Antes de cada cambio se vuelve a validar que el elemento siga intacto y que la ubicación original esté libre."
                 : $"{execution.ReversibleFileCount} de {execution.FileCount} elementos siguen siendo reversibles en este momento. " +
-                  "BandaNV intentará restaurar la ejecución de forma segura; cualquier archivo modificado, ausente o con conflicto se dejará intacto y quedará registrado como incidencia.";
+                  "BandaNV intentará restaurarlos de forma segura; cualquier elemento modificado, ausente o con conflicto se dejará intacto y quedará registrado como incidencia.";
 
         HistoryModalIconText.Text = "↶";
         HistoryModalIconBorder.Background =
@@ -1118,7 +1143,7 @@ public sealed partial class HistoryPage : Page
         HistoryModalPrimaryButton.IsEnabled = false;
         HistoryModalPrimaryButton.Content = "Deshaciendo...";
         HistoryModalBodyText.Text =
-            "Validando elementos y restaurando ubicaciones originales...";
+            "Validando elementos y restaurando nombres o ubicaciones anteriores...";
 
         var progress = new Progress<OrganizationExecutionProgress>(state =>
         {
@@ -1160,10 +1185,10 @@ public sealed partial class HistoryPage : Page
                 : "Undo completado con incidencias";
 
             HistoryModalBodyText.Text = issues == 0
-                ? $"{restored} archivo{(restored == 1 ? string.Empty : "s")} " +
+                ? $"{restored} elemento{(restored == 1 ? string.Empty : "s")} " +
                   $"restaurado{(restored == 1 ? string.Empty : "s")} correctamente. " +
                   "La operación quedó registrada en Historial y en logs."
-                : $"{restored} archivo{(restored == 1 ? string.Empty : "s")} restaurado{(restored == 1 ? string.Empty : "s")} " +
+                : $"{restored} elemento{(restored == 1 ? string.Empty : "s")} restaurado{(restored == 1 ? string.Empty : "s")} " +
                   $"y {issues} incidencia{(issues == 1 ? string.Empty : "s")}. " +
                   "Los elementos que no pasaron las validaciones quedaron intactos y el detalle quedó registrado.";
 
