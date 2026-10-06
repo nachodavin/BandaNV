@@ -431,6 +431,375 @@ public sealed class OrganizationExecutionService
         }
     }
 
+    private static async Task ExecuteDirectoryItemAsync(
+        AppSettings settings,
+        string destinationRoot,
+        string executionId,
+        OrganizationExecutionRecord record,
+        OrganizationExecutionItemRecord item,
+        string historyPath,
+        string? logPath,
+        IOrganizationConflictResolver? conflictResolver,
+        ConflictResolutionState conflictState,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(item.OriginalPath))
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.SourceMissing;
+            item.Message =
+                "La carpeta ya no existe en el origen.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                item.ContentFingerprint))
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.SourceChanged;
+            item.Message =
+                "La carpeta no pudo analizarse por completo. Se requiere un nuevo análisis antes de moverla.";
+            return;
+        }
+
+        DirectorySnapshot sourceSnapshot;
+
+        try
+        {
+            sourceSnapshot =
+                BuildDirectorySnapshot(
+                    item.OriginalPath,
+                    cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.Error;
+            item.Message =
+                $"No se pudo validar la carpeta antes de moverla: {ex.Message}";
+            return;
+        }
+
+        if (sourceSnapshot.FileCount !=
+                item.ContainedFileCount ||
+            sourceSnapshot.TotalSizeBytes !=
+                item.SizeBytes ||
+            !sourceSnapshot.ContentFingerprint.Equals(
+                item.ContentFingerprint,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.SourceChanged;
+            item.Message =
+                "El contenido de la carpeta cambió desde el análisis. No se movió.";
+            return;
+        }
+
+        if (!item.CategoryOrder.HasValue ||
+            string.IsNullOrWhiteSpace(
+                item.CategoryName))
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.SkippedUnclassified;
+            item.Message =
+                "Sin categoría.";
+            return;
+        }
+
+        var categoryFolder =
+            CategoryService.GetFolderPath(
+                destinationRoot,
+                item.CategoryOrder.Value,
+                item.CategoryName);
+
+        if (settings.CreateFolders)
+        {
+            Directory.CreateDirectory(
+                categoryFolder);
+        }
+        else if (!Directory.Exists(
+                     categoryFolder))
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.Error;
+            item.Message =
+                $"La carpeta de categoría no existe: {categoryFolder}";
+            return;
+        }
+
+        var desiredTarget =
+            Path.Combine(
+                categoryFolder,
+                item.FileName);
+
+        var targetResolution =
+            await ResolveDirectoryTargetPathAsync(
+                settings.ConflictBehavior,
+                desiredTarget,
+                sourceSnapshot,
+                item,
+                conflictResolver,
+                conflictState,
+                cancellationToken);
+
+        var target =
+            targetResolution.Target;
+
+        if (target is null)
+        {
+            return;
+        }
+
+        EnsurePathInsideRoot(
+            target,
+            destinationRoot);
+
+        item.FinalPath =
+            target;
+        item.Status =
+            OrganizationExecutionItemStatus.Moving;
+        item.Message =
+            "Movimiento de carpeta iniciado.";
+
+        await PersistRecordAsync(
+            record,
+            historyPath,
+            logPath,
+            cancellationToken);
+
+        string? replacedBackupPath =
+            null;
+
+        try
+        {
+            if (EntryExists(target) &&
+                targetResolution.Action ==
+                OrganizationConflictAction.Replace)
+            {
+                var replacementInfo =
+                    GetEntryMetadata(
+                        target,
+                        cancellationToken);
+
+                item.ReplacedSizeBytes =
+                    replacementInfo.SizeBytes;
+                item.ReplacedModifiedUtcTicks =
+                    replacementInfo.ModifiedUtcTicks;
+
+                replacedBackupPath =
+                    BackupReplacedEntry(
+                        target,
+                        executionId,
+                        item.UndoId);
+
+                item.ReplacedBackupPath =
+                    replacedBackupPath;
+
+                await PersistRecordAsync(
+                    record,
+                    historyPath,
+                    logPath,
+                    cancellationToken);
+            }
+
+            MoveDirectorySafely(
+                item.OriginalPath,
+                target,
+                cancellationToken);
+
+            item.Status =
+                OrganizationExecutionItemStatus.Moved;
+            item.Message =
+                null;
+        }
+        catch (Exception ex)
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.Error;
+            item.Message =
+                ex.Message;
+
+            if (!string.IsNullOrWhiteSpace(
+                    replacedBackupPath) &&
+                EntryExists(
+                    replacedBackupPath) &&
+                !EntryExists(
+                    target))
+            {
+                try
+                {
+                    MoveEntrySafely(
+                        replacedBackupPath,
+                        target,
+                        CancellationToken.None);
+
+                    item.ReplacedBackupPath =
+                        null;
+                }
+                catch
+                {
+                    item.Message +=
+                        " Además, no se pudo restaurar automáticamente la carpeta o archivo reemplazado.";
+                }
+            }
+        }
+    }
+
+    private static async Task<TargetResolution> ResolveDirectoryTargetPathAsync(
+        string behavior,
+        string desiredTarget,
+        DirectorySnapshot sourceSnapshot,
+        OrganizationExecutionItemRecord item,
+        IOrganizationConflictResolver? conflictResolver,
+        ConflictResolutionState conflictState,
+        CancellationToken cancellationToken)
+    {
+        if (!EntryExists(
+                desiredTarget))
+        {
+            return new TargetResolution(
+                desiredTarget,
+                null);
+        }
+
+        if (behavior.Equals(
+                "Renombrar automáticamente",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            item.ConflictResolution =
+                "Renombrar automáticamente";
+
+            return new TargetResolution(
+                GetUniqueDirectoryDestination(
+                    desiredTarget),
+                OrganizationConflictAction.Rename);
+        }
+
+        if (behavior.Equals(
+                "Omitir archivo",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            item.ConflictResolution =
+                "Omitir archivo";
+            item.Status =
+                OrganizationExecutionItemStatus.SkippedConflict;
+            item.Message =
+                "Ya existe un elemento con el mismo nombre en el destino.";
+
+            return new TargetResolution(
+                null,
+                OrganizationConflictAction.Skip);
+        }
+
+        if (behavior.Equals(
+                "Reemplazar",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            item.ConflictResolution =
+                "Reemplazar";
+
+            return new TargetResolution(
+                desiredTarget,
+                OrganizationConflictAction.Replace);
+        }
+
+        if (conflictResolver is null)
+        {
+            item.Status =
+                OrganizationExecutionItemStatus.ConflictNeedsDecision;
+            item.Message =
+                "Ya existe un elemento con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
+
+            return new TargetResolution(
+                null,
+                null);
+        }
+
+        OrganizationConflictResolution resolution;
+
+        if (conflictState.ApplyToRemaining is
+            { } rememberedAction)
+        {
+            resolution =
+                new OrganizationConflictResolution(
+                    rememberedAction,
+                    ApplyToRemaining: true);
+        }
+        else
+        {
+            var destinationMetadata =
+                GetEntryMetadata(
+                    desiredTarget,
+                    cancellationToken);
+
+            var conflict =
+                new OrganizationConflictInfo(
+                    item.FileName,
+                    item.OriginalPath,
+                    desiredTarget,
+                    sourceSnapshot.TotalSizeBytes,
+                    destinationMetadata.SizeBytes,
+                    new DateTime(
+                        sourceSnapshot.ModifiedUtcTicks,
+                        DateTimeKind.Utc)
+                        .ToLocalTime(),
+                    new DateTime(
+                        destinationMetadata.ModifiedUtcTicks,
+                        DateTimeKind.Utc)
+                        .ToLocalTime(),
+                    IsDirectory: true,
+                    SourceItemCount:
+                        sourceSnapshot.FileCount,
+                    DestinationItemCount:
+                        destinationMetadata.ItemCount);
+
+            resolution =
+                await conflictResolver.ResolveAsync(
+                    conflict,
+                    cancellationToken);
+
+            if (resolution.ApplyToRemaining)
+            {
+                conflictState.ApplyToRemaining =
+                    resolution.Action;
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        switch (resolution.Action)
+        {
+            case OrganizationConflictAction.Rename:
+                item.ConflictResolution =
+                    "Renombrar automáticamente";
+
+                return new TargetResolution(
+                    GetUniqueDirectoryDestination(
+                        desiredTarget),
+                    OrganizationConflictAction.Rename);
+
+            case OrganizationConflictAction.Replace:
+                item.ConflictResolution =
+                    "Reemplazar";
+
+                return new TargetResolution(
+                    desiredTarget,
+                    OrganizationConflictAction.Replace);
+
+            default:
+                item.ConflictResolution =
+                    "Omitir archivo";
+                item.Status =
+                    OrganizationExecutionItemStatus.SkippedConflict;
+                item.Message =
+                    "Omitido por decisión del usuario.";
+
+                return new TargetResolution(
+                    null,
+                    OrganizationConflictAction.Skip);
+        }
+    }
+
     private static async Task<TargetResolution> ResolveTargetPathAsync(
         string behavior,
         string desiredTarget,
