@@ -311,82 +311,61 @@
         </DataTemplate>
 
         <DataTemplate x:Key="PreviewFileTemplate" x:DataType="local:OrganizePreviewFile">
-            <Border
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="0,0,0,1">
-                <Grid Padding="14,9" ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.25*" />
-                        <ColumnDefinition Width="1.45*" />
-                        <ColumnDefinition Width="0.75*" />
-                        <ColumnDefinition Width="1.25*" />
-                    </Grid.ColumnDefinitions>
+            <Grid Padding="12,10" ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.1*" />
+                    <ColumnDefinition Width="1.05*" />
+                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="1.25*" />
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Spacing="3" VerticalAlignment="Center">
-                        <TextBlock
-                            Text="{x:Bind FileName}"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="14"
-                            FontWeight="SemiBold"
-                            TextTrimming="CharacterEllipsis" />
-                        <TextBlock
-                            Text="{x:Bind ExtensionDisplay}"
-                            Foreground="{StaticResource BandaMutedBrush}"
-                            FontSize="12" />
-                        <TextBlock
-                            Text="{x:Bind ConflictDisplay}"
-                            Visibility="{x:Bind ConflictVisibility}"
-                            Foreground="{StaticResource OrganizeWarningBrush}"
-                            FontSize="11"
-                            FontWeight="SemiBold"
-                            TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-
-                    <Button
-                        Grid.Column="1"
-                        Tag="{x:Bind ItemId}"
-                        Click="PreviewCategorySelectorButton_Click"
-                        IsEnabled="{x:Bind CanAssignFromPreview}"
-                        Width="190"
-                        Style="{StaticResource BandaCompactSelectorButtonStyle}"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center">
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Text="{x:Bind SelectedCategoryDisplayName}"
-                                Foreground="{StaticResource BandaTextBrush}"
-                                FontSize="13"
-                                TextTrimming="CharacterEllipsis"
-                                VerticalAlignment="Center" />
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="⌄"
-                                Foreground="{StaticResource BandaAccentBrush}"
-                                FontSize="13"
-                                VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
-
+                <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock
-                        Grid.Column="2"
-                        Text="{x:Bind SizeDisplay}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        Text="{x:Bind FileName}"
+                        Foreground="{StaticResource BandaTextBrush}"
                         FontSize="13"
+                        FontWeight="SemiBold"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Text="{x:Bind ExtensionDisplay}"
+                        Foreground="{StaticResource BandaMutedBrush}"
+                        FontSize="11" />
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="7"
+                    VerticalAlignment="Center">
+                    <Ellipse
+                        Width="8"
+                        Height="8"
+                        Fill="{x:Bind CategoryBrush}"
                         VerticalAlignment="Center" />
-
                     <TextBlock
-                        Grid.Column="3"
-                        Text="{x:Bind ModifiedDisplay}"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        Text="{x:Bind CategoryDisplay}"
+                        Foreground="{x:Bind CategoryBrush}"
                         FontSize="13"
+                        FontWeight="SemiBold"
                         VerticalAlignment="Center"
                         TextTrimming="CharacterEllipsis" />
-                </Grid>
-            </Border>
+                </StackPanel>
+
+                <TextBlock
+                    Grid.Column="2"
+                    Text="{x:Bind SizeDisplay}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
+                    VerticalAlignment="Center" />
+
+                <TextBlock
+                    Grid.Column="3"
+                    Text="{x:Bind ModifiedDisplay}"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis" />
+            </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="SummaryCategoryTemplate" x:DataType="local:OrganizeCategorySummary">
@@ -834,7 +813,7 @@
                             x:Name="PreviewFilesList"
                             Grid.Row="2"
                             ItemTemplate="{StaticResource PreviewFileTemplate}"
-                            SelectionMode="Single"
+                            SelectionMode="Extended"
                             IsMultiSelectCheckBoxEnabled="False"
                             SelectionChanged="PreviewFilesList_SelectionChanged"
                             HorizontalContentAlignment="Stretch"
@@ -860,6 +839,13 @@
                                     <Setter Property="MinHeight" Value="44" />
                                 </Style>
                             </ListView.ItemContainerStyle>
+
+                            <ListView.KeyboardAccelerators>
+                                <KeyboardAccelerator
+                                    Key="A"
+                                    Modifiers="Control"
+                                    Invoked="PreviewSelectAllAccelerator_Invoked" />
+                            </ListView.KeyboardAccelerators>
                         </ListView>
                     </Grid>
                 </Border>
@@ -960,38 +946,25 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <Grid ColumnSpacing="10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Spacing="4">
-                                    <TextBlock
-                                        x:Name="OrganizeDetailTitleText"
-                                        Text="Detalle del elemento"
-                                        Foreground="{StaticResource BandaTextBrush}"
-                                        FontSize="18"
-                                        FontWeight="SemiBold" />
-                                    <TextBlock
-                                        x:Name="OrganizeDetailFileNameText"
-                                        Text="Seleccioná un elemento"
-                                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                                        FontSize="13"
-                                        TextWrapping="Wrap"
-                                        TextTrimming="CharacterEllipsis"
-                                        MaxLines="2" />
-                                </StackPanel>
-
-                                <Button
-                                    Grid.Column="1"
-                                    Content="×"
-                                    Click="ClearOrganizeDetailButton_Click"
-                                    Style="{StaticResource BandaPopupCloseButtonStyle}"
-                                    VerticalAlignment="Top" />
-                            </Grid>
+                            <StackPanel Spacing="4">
+                                <TextBlock
+                                    x:Name="OrganizeDetailTitleText"
+                                    Text="Detalle del elemento"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="18"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    x:Name="OrganizeDetailFileNameText"
+                                    Text="Seleccioná un elemento"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="13"
+                                    TextWrapping="Wrap"
+                                    TextTrimming="CharacterEllipsis"
+                                    MaxLines="2" />
+                            </StackPanel>
 
                             <Grid
                                 Grid.Row="1"
@@ -1240,6 +1213,104 @@
                                     </Grid>
                                 </Border>
                             </Grid>
+
+                            <StackPanel
+                                Grid.Row="3"
+                                Spacing="8"
+                                Margin="0,16,0,0">
+                                <Button
+                                    x:Name="OrganizeOpenButton"
+                                    Content="Abrir archivo"
+                                    Click="OrganizeOpenButton_Click"
+                                    FontSize="14"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Padding="14,10"
+                                    CornerRadius="12"
+                                    FontWeight="SemiBold"
+                                    IsEnabled="False">
+                                    <Button.Resources>
+                                        <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                        <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                    </Button.Resources>
+                                </Button>
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        x:Name="OrganizeOpenLocationButton"
+                                        Content="Abrir ubicación"
+                                        Click="OrganizeOpenLocationButton_Click"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        IsEnabled="False" />
+                                    <Button
+                                        x:Name="OrganizeCopyPathButton"
+                                        Grid.Column="1"
+                                        Content="Copiar ruta"
+                                        Click="OrganizeCopyPathButton_Click"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        IsEnabled="False" />
+                                </Grid>
+
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button
+                                        x:Name="OrganizeChangeCategoryButton"
+                                        Content="Cambiar categoría"
+                                        Click="OrganizeChangeCategoryButton_Click"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        IsEnabled="False" />
+                                    <Button
+                                        x:Name="OrganizeRenameButton"
+                                        Grid.Column="1"
+                                        Content="Renombrar"
+                                        Click="OrganizeRenameButton_Click"
+                                        Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                        IsEnabled="False" />
+                                </Grid>
+
+                                <Border
+                                    Height="1"
+                                    Margin="0,4,0,4"
+                                    Background="{StaticResource BandaBorderBrush}" />
+
+                                <Button
+                                    x:Name="OrganizeDeleteButton"
+                                    Content="Eliminar archivo"
+                                    Click="OrganizeDeleteButton_Click"
+                                    FontSize="14"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Padding="14,10"
+                                    CornerRadius="12"
+                                    FontWeight="SemiBold"
+                                    IsEnabled="False">
+                                    <Button.Resources>
+                                        <SolidColorBrush x:Key="ButtonBackground" Color="#FF6F6F" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FF8585" />
+                                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D95454" />
+                                        <SolidColorBrush x:Key="ButtonForeground" Color="#190909" />
+                                        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#190909" />
+                                        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#190909" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#FF6F6F" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#FF8585" />
+                                        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#D95454" />
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
                         </Grid>
                     </Grid>
                 </Border>
@@ -1606,6 +1677,218 @@
                             Content="Guardar asignación"
                             Click="SaveAssignmentOverlayButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Gestión del elemento seleccionado durante el análisis -->
+        <Grid
+            x:Name="OrganizeManageOverlay"
+            Canvas.ZIndex="108"
+            Visibility="Collapsed">
+
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="OrganizeManageBackdrop_Tapped" />
+
+            <Border
+                Width="560"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <Grid RowSpacing="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            x:Name="OrganizeManageIconBorder"
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <TextBlock
+                                x:Name="OrganizeManageIconText"
+                                Text="✎"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="OrganizeManageTitleText"
+                                Text="Gestionar elemento"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="OrganizeManageSubtitleText"
+                                Text=""
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="13"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CloseOrganizeManageOverlayButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        Padding="16"
+                        CornerRadius="16"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <StackPanel Spacing="12">
+                            <StackPanel
+                                x:Name="OrganizeManageCategoryPanel"
+                                Spacing="8"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    Text="NUEVA CATEGORÍA"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+
+                                <Button
+                                    x:Name="OrganizeManageCategorySelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="OrganizeManageCategoryValueText"
+                                            Text="Elegir categoría"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            TextTrimming="CharacterEllipsis"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="⌄"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="OrganizeManageCategoryFlyout"
+                                            Placement="BottomEdgeAlignedLeft"
+                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="300"
+                                                MaxHeight="330"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <ScrollViewer
+                                                    VerticalScrollBarVisibility="Auto"
+                                                    HorizontalScrollBarVisibility="Disabled">
+                                                    <StackPanel
+                                                        x:Name="OrganizeManageCategoryOptionsPanel"
+                                                        Margin="0,0,12,0"
+                                                        Spacing="2" />
+                                                </ScrollViewer>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel
+                                x:Name="OrganizeManageRenamePanel"
+                                Spacing="8"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    Text="NUEVO NOMBRE"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <TextBox
+                                    x:Name="OrganizeManageRenameTextBox"
+                                    PlaceholderText="Nombre del elemento"
+                                    Background="{StaticResource BandaPopupSurfaceBrush}"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1" />
+                            </StackPanel>
+
+                            <StackPanel
+                                x:Name="OrganizeManageDeletePanel"
+                                Spacing="8"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    Text="ELIMINAR ELEMENTO"
+                                    Foreground="{StaticResource BandaDangerBrush}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    x:Name="OrganizeManageDeleteText"
+                                    Text=""
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="13"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <TextBlock
+                                x:Name="OrganizeManageValidationText"
+                                Text=""
+                                Foreground="{StaticResource BandaDangerBrush}"
+                                FontSize="12"
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Cancelar"
+                            Click="CloseOrganizeManageOverlayButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+
+                        <Button
+                            x:Name="OrganizeManagePrimaryButton"
+                            Grid.Column="2"
+                            Content="Guardar"
+                            Click="OrganizeManagePrimaryButton_Click"
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+
+                        <Button
+                            x:Name="OrganizeManageDangerButton"
+                            Grid.Column="2"
+                            Content="Eliminar"
+                            Click="OrganizeManageDangerButton_Click"
+                            Style="{StaticResource BandaPopupDangerButtonStyle}"
+                            Visibility="Collapsed" />
                     </Grid>
                 </Grid>
             </Border>
