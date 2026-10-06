@@ -159,7 +159,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
-                    Text="{x:Bind RelativePath}"
+                    Text="{x:Bind Name}"
                     Foreground="{StaticResource BandaTextBrush}"
                     FontSize="12"
                     FontWeight="SemiBold"
@@ -889,20 +889,47 @@
                                             Padding="12,10,12,8"
                                             ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
-                                            <TextBlock
-                                                x:Name="SearchFolderContentsTitleText"
-                                                Text="CONTENIDO"
-                                                Style="{StaticResource BandaLabelTextStyle}"
-                                                FontSize="10"
-                                                VerticalAlignment="Center" />
+                                            <Button
+                                                x:Name="SearchFolderContentsBackButton"
+                                                Content="Atrás"
+                                                Click="SearchFolderContentsBackButton_Click"
+                                                Padding="8,4"
+                                                Margin="0,0,8,0"
+                                                CornerRadius="8"
+                                                Background="Transparent"
+                                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                                BorderThickness="1"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                Visibility="Collapsed" />
+
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Spacing="5"
+                                                VerticalAlignment="Center">
+                                                <TextBlock
+                                                    x:Name="SearchFolderContentsTitleText"
+                                                    Text="CONTENIDO"
+                                                    Style="{StaticResource BandaLabelTextStyle}"
+                                                    FontSize="10"
+                                                    VerticalAlignment="Center" />
+                                                <TextBlock
+                                                    x:Name="SearchFolderContentsPathText"
+                                                    Text=""
+                                                    Foreground="{StaticResource BandaMutedBrush}"
+                                                    FontSize="10"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    VerticalAlignment="Center" />
+                                            </StackPanel>
 
                                             <TextBlock
                                                 x:Name="SearchFolderContentsSelectionText"
-                                                Grid.Column="1"
+                                                Grid.Column="2"
                                                 Text="Seleccioná para gestionar"
                                                 Foreground="{StaticResource BandaMutedBrush}"
                                                 FontSize="10"
@@ -959,6 +986,7 @@
                                             ItemTemplate="{StaticResource SearchFolderContentTemplate}"
                                             SelectionMode="Extended"
                                             IsMultiSelectCheckBoxEnabled="False"
+                                            KeyboardAcceleratorPlacementMode="Hidden"
                                             SelectionChanged="SearchFolderContentList_SelectionChanged"
                                             Tapped="SearchFolderContentList_Tapped"
                                             DoubleTapped="SearchFolderContentList_DoubleTapped"
@@ -986,6 +1014,13 @@
                                                     <Setter Property="MinHeight" Value="44" />
                                                 </Style>
                                             </ListView.ItemContainerStyle>
+
+                                            <ListView.KeyboardAccelerators>
+                                                <KeyboardAccelerator
+                                                    Key="A"
+                                                    Modifiers="Control"
+                                                    Invoked="SearchFolderContentSelectAllAccelerator_Invoked" />
+                                            </ListView.KeyboardAccelerators>
                                         </ListView>
                                     </Grid>
                                 </Border>
