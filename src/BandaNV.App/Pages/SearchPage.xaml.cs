@@ -47,7 +47,6 @@ public sealed partial class SearchPage : Page
     private SearchSortField _sortField = SearchSortField.DateModified;
     private SearchSortDirection _sortDirection = SearchSortDirection.Descending;
     private SearchGroupField _groupField = SearchGroupField.None;
-    private SearchSortDirection _groupDirection = SearchSortDirection.Ascending;
 
     private SearchDateFilter _pendingDateFilter = SearchDateFilter.All;
     private DateTime? _pendingSpecificDateFilter;
@@ -695,24 +694,6 @@ public sealed partial class SearchPage : Page
         RefreshSearchResults();
     }
 
-    private void GroupDirectionOptionButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { Tag: string directionKey })
-        {
-            return;
-        }
-
-        _groupDirection = directionKey.Equals(
-            "Descending",
-            StringComparison.OrdinalIgnoreCase)
-                ? SearchSortDirection.Descending
-                : SearchSortDirection.Ascending;
-
-        UpdateSortAndGroupSelectorText();
-        GroupFlyout.Hide();
-        RefreshSearchResults();
-    }
-
     private void UpdatePendingFilterLabels()
     {
         DateFilterValueText.Text =
@@ -835,7 +816,7 @@ public sealed partial class SearchPage : Page
         GroupValueText.Text =
             _groupField == SearchGroupField.None
                 ? "Ninguno"
-                : $"{GetGroupFieldDisplayName(_groupField)} · {GetDirectionShortDisplayName(_groupDirection)}";
+                : GetGroupFieldDisplayName(_groupField);
     }
 
     private static string GetSortFieldDisplayName(SearchSortField field) =>
@@ -1363,7 +1344,7 @@ public sealed partial class SearchPage : Page
                     categoryOrder));
 
         var orderedGroups =
-            _groupDirection == SearchSortDirection.Ascending
+            _sortDirection == SearchSortDirection.Ascending
                 ? groups
                     .OrderBy(group => group.Key.Order)
                     .ThenBy(
