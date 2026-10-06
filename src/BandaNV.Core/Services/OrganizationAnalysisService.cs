@@ -369,6 +369,9 @@ public sealed class OrganizationAnalysisService
                     relativeDirectoryPath +
                     Path.DirectorySeparatorChar;
 
+                fingerprintParts.Add(
+                    $"DIR\0{relativeDirectoryPath}");
+
                 var nestedFiles =
                     folderFiles
                         .Where(item =>
@@ -432,11 +435,6 @@ public sealed class OrganizationAnalysisService
                 scanIncomplete = true;
                 onSkippedDirectory();
             }
-        }
-
-        if (totalFiles == 0)
-        {
-            return null;
         }
 
         CategorySettings? inferredCategory =
