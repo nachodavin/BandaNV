@@ -336,6 +336,7 @@ public sealed class OrganizationExecutionService
 
         var targetResolution = await ResolveTargetPathAsync(
             settings.ConflictBehavior,
+            settings.ConfirmDestructiveActions,
             desiredTarget,
             sourceInfo,
             item,
@@ -549,6 +550,7 @@ public sealed class OrganizationExecutionService
         var targetResolution =
             await ResolveDirectoryTargetPathAsync(
                 settings.ConflictBehavior,
+                settings.ConfirmDestructiveActions,
                 desiredTarget,
                 sourceSnapshot,
                 item,
@@ -669,6 +671,7 @@ public sealed class OrganizationExecutionService
 
     private static async Task<TargetResolution> ResolveDirectoryTargetPathAsync(
         string behavior,
+        bool confirmDestructiveActions,
         string desiredTarget,
         DirectorySnapshot sourceSnapshot,
         OrganizationExecutionItemRecord item,
@@ -718,7 +721,8 @@ public sealed class OrganizationExecutionService
 
         if (behavior.Equals(
                 "Reemplazar",
-                StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase) &&
+            !confirmDestructiveActions)
         {
             item.ConflictResolution =
                 "Reemplazar";
@@ -733,7 +737,7 @@ public sealed class OrganizationExecutionService
             item.Status =
                 OrganizationExecutionItemStatus.ConflictNeedsDecision;
             item.Message =
-                "Ya existe un elemento con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
+                "Ya existe un elemento con el mismo nombre y se requiere una decisión antes de reemplazarlo o moverlo.";
 
             return new TargetResolution(
                 null,
@@ -845,6 +849,7 @@ public sealed class OrganizationExecutionService
 
     private static async Task<TargetResolution> ResolveTargetPathAsync(
         string behavior,
+        bool confirmDestructiveActions,
         string desiredTarget,
         FileInfo sourceInfo,
         OrganizationExecutionItemRecord item,
@@ -885,7 +890,8 @@ public sealed class OrganizationExecutionService
 
         if (behavior.Equals(
                 "Reemplazar",
-                StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase) &&
+            !confirmDestructiveActions)
         {
             item.ConflictResolution = "Reemplazar";
             return new TargetResolution(
@@ -897,7 +903,7 @@ public sealed class OrganizationExecutionService
         {
             item.Status = OrganizationExecutionItemStatus.ConflictNeedsDecision;
             item.Message =
-                "Ya existe un elemento con el mismo nombre. La opción Preguntar requiere resolver este conflicto antes de moverlo.";
+                "Ya existe un elemento con el mismo nombre y se requiere una decisión antes de reemplazarlo o moverlo.";
             return new TargetResolution(null, null);
         }
 
