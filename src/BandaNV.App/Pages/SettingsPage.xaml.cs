@@ -13,6 +13,7 @@ public sealed partial class SettingsPage : Page
 {
     private SettingsSection _currentSection = SettingsSection.General;
     private SettingsConfirmMode _confirmMode = SettingsConfirmMode.None;
+    private const string UnselectedFolderText = "No seleccionada";
     private CancellationTokenSource? _saveDebounceCts;
     private bool _isPageReady;
 
@@ -109,18 +110,32 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
-        var previousSource = SourceFolderText.Text;
-        var previousDefaultDestination =
-            System.IO.Path.Combine(previousSource, "ORGANIZADO");
+        var previousSource =
+            GetConfiguredFolderPath(
+                SourceFolderText);
+        var previousDestination =
+            GetConfiguredFolderPath(
+                DestinationFolderText);
 
-        SourceFolderText.Text = folder.Path;
+        var wasUsingLinkedDestination =
+            !string.IsNullOrWhiteSpace(previousSource) &&
+            previousDestination.Equals(
+                System.IO.Path.Combine(
+                    previousSource,
+                    "ORGANIZADO"),
+                StringComparison.CurrentCultureIgnoreCase);
 
-        if (DestinationFolderText.Text.Equals(
-                previousDefaultDestination,
-                StringComparison.CurrentCultureIgnoreCase))
+        SetConfiguredFolderText(
+            SourceFolderText,
+            folder.Path);
+
+        if (wasUsingLinkedDestination)
         {
-            DestinationFolderText.Text =
-                System.IO.Path.Combine(folder.Path, "ORGANIZADO");
+            SetConfiguredFolderText(
+                DestinationFolderText,
+                System.IO.Path.Combine(
+                    folder.Path,
+                    "ORGANIZADO"));
         }
 
         QueuePersistSettings();
@@ -135,9 +150,29 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
-        DestinationFolderText.Text = folder.Path;
+        SetConfiguredFolderText(
+            DestinationFolderText,
+            folder.Path);
         QueuePersistSettings();
         ShowSettingsFeedback("Carpeta de destino actualizada.");
+    }
+
+    private static string GetConfiguredFolderPath(
+        TextBlock textBlock) =>
+        textBlock.Text.Equals(
+            UnselectedFolderText,
+            StringComparison.CurrentCultureIgnoreCase)
+            ? string.Empty
+            : textBlock.Text.Trim();
+
+    private static void SetConfiguredFolderText(
+        TextBlock textBlock,
+        string? path)
+    {
+        textBlock.Text =
+            string.IsNullOrWhiteSpace(path)
+                ? UnselectedFolderText
+                : path.Trim();
     }
 
     private static async Task<Windows.Storage.StorageFolder?> PickFolderAsync()
@@ -233,7 +268,12 @@ public sealed partial class SettingsPage : Page
 
     private void ResetPrimaryColorButton_Click(object sender, RoutedEventArgs e)
     {
-        var primary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
+        var defaults = AppSettings.CreateDefault();
+
+        if (!TryParseHexColor(defaults.PrimaryColor, out var primary))
+        {
+            return;
+        }
 
         PrimaryColorPicker.Color = primary;
         PrimaryColorHexText.Text = ToHex(primary);
@@ -247,7 +287,12 @@ public sealed partial class SettingsPage : Page
 
     private void ResetSecondaryColorButton_Click(object sender, RoutedEventArgs e)
     {
-        var secondary = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+        var defaults = AppSettings.CreateDefault();
+
+        if (!TryParseHexColor(defaults.SecondaryColor, out var secondary))
+        {
+            return;
+        }
 
         SecondaryColorPicker.Color = secondary;
         SecondaryColorHexText.Text = ToHex(secondary);
@@ -460,6 +505,44 @@ public sealed partial class SettingsPage : Page
             UpdateHistoryDependentVisibility();
         }
 
+        if (ReferenceEquals(
+                sender,
+                DeleteUnusedCategoryFoldersToggle) &&
+            DeleteUnusedCategoryFoldersToggle.IsOn)
+        {
+            _saveDebounceCts?.Cancel();
+            _saveDebounceCts?.Dispose();
+            _saveDebounceCts = null;
+
+            try
+            {
+                await global::BandaNV.App.App.Settings.SaveAsync(
+                    CapturePersistentSettings());
+
+                var deleted =
+                    await global::BandaNV.App.App.CategoryFolders
+                        .CleanupUnusedCategoryFoldersAsync(
+                            global::BandaNV.App.App.Settings.Current);
+
+                await global::BandaNV.App.App.Settings.SaveAsync(
+                    global::BandaNV.App.App.Settings.Current);
+
+                ShowSettingsFeedback(
+                    deleted == 0
+                        ? "Preferencia actualizada. No había carpetas sin uso para eliminar."
+                        : deleted == 1
+                            ? "Preferencia actualizada. Se eliminó 1 carpeta de categoría sin uso."
+                            : $"Preferencia actualizada. Se eliminaron {deleted} carpetas de categorías sin uso.");
+            }
+            catch (Exception ex)
+            {
+                ShowSettingsFeedback(
+                    $"La preferencia se actualizó, pero no se pudo completar la limpieza: {ex.Message}");
+            }
+
+            return;
+        }
+
         QueuePersistSettings();
         ShowSettingsFeedback("Preferencia actualizada.");
     }
@@ -617,8 +700,8 @@ public sealed partial class SettingsPage : Page
         return new SettingsBackupModel
         {
             CreatedAt = DateTime.Now,
-            SourceFolder = SourceFolderText.Text,
-            DestinationFolder = DestinationFolderText.Text,
+            SourceFolder = GetConfiguredFolderPath(SourceFolderText),
+            DestinationFolder = GetConfiguredFolderPath(DestinationFolderText),
             StartupPage = StartupPageValueText.Text,
             CloseBehavior = CloseBehaviorValueText.Text,
             StartWithWindows = StartWithWindowsToggle.IsOn,
@@ -629,6 +712,7 @@ public sealed partial class SettingsPage : Page
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
+            DeleteUnusedCategoryFolders = DeleteUnusedCategoryFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
             RecycleBin = RecycleBinToggle.IsOn,
@@ -652,8 +736,12 @@ public sealed partial class SettingsPage : Page
     {
         _isPageReady = false;
 
-        SourceFolderText.Text = backup.SourceFolder;
-        DestinationFolderText.Text = backup.DestinationFolder;
+        SetConfiguredFolderText(
+            SourceFolderText,
+            backup.SourceFolder);
+        SetConfiguredFolderText(
+            DestinationFolderText,
+            backup.DestinationFolder);
         StartupPageValueText.Text = backup.StartupPage;
         CloseBehaviorValueText.Text = backup.CloseBehavior;
         ThemeValueText.Text = backup.Theme;
@@ -663,6 +751,8 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
         OrganizeFoldersToggle.IsOn = backup.OrganizeFoldersAsUnits;
         CreateFoldersToggle.IsOn = backup.CreateFolders;
+        DeleteUnusedCategoryFoldersToggle.IsOn =
+            backup.DeleteUnusedCategoryFolders;
         ConflictBehaviorValueText.Text = backup.ConflictBehavior;
         UnknownExtensionBehaviorValueText.Text = backup.UnknownExtensionBehavior;
         RecycleBinToggle.IsOn = backup.RecycleBin;
@@ -969,6 +1059,10 @@ public sealed partial class SettingsPage : Page
                     var defaultCategories =
                         AppSettings.CreateDefault().Categories;
 
+                    global::BandaNV.App.App.Settings.Current
+                        .OrphanedCategoryFolders
+                        .Clear();
+
                     await global::BandaNV.App.App.Settings.UpdateCategoriesAsync(
                         defaultCategories);
 
@@ -1009,43 +1103,30 @@ public sealed partial class SettingsPage : Page
 
     private void ResetVisibleSettingsToDefaults()
     {
-        var primary = Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
-        var secondary = Windows.UI.Color.FromArgb(255, 0x4F, 0xE0, 0xC6);
+        var defaults =
+            AppSettings.CreateDefault();
+
+        defaults.Categories =
+            global::BandaNV.App.App.Settings.Current.Categories
+                .Select(category => new CategorySettings(
+                    category.Id,
+                    category.Name,
+                    category.Extensions,
+                    category.Order,
+                    category.ColorHex))
+                .ToList();
+
+        defaults.OrphanedCategoryFolders =
+            global::BandaNV.App.App.Settings.Current
+                .OrphanedCategoryFolders
+                .ToList();
 
         _isPageReady = false;
 
-        var defaults = AppSettings.CreateDefault();
-
-        SourceFolderText.Text = defaults.SourceFolder;
-        DestinationFolderText.Text = defaults.DestinationFolder;
-
-        StartupPageValueText.Text = "Inicio";
-        CloseBehaviorValueText.Text = "Cerrar BandaNV";
-
-        StartWithWindowsToggle.IsOn = false;
-        AutoUpdateToggle.IsOn = true;
-
-        ThemeValueText.Text = "Oscuro";
-        PrimaryColorPicker.Color = primary;
-        PrimaryColorHexText.Text = ToHex(primary);
-        SecondaryColorPicker.Color = secondary;
-        SecondaryColorHexText.Text = ToHex(secondary);
-        PreviewBeforeOrganizeToggle.IsOn = true;
-        OrganizeFoldersToggle.IsOn = false;
-        CreateFoldersToggle.IsOn = true;
-
-        ConflictBehaviorValueText.Text = "Preguntar";
-        UnknownExtensionBehaviorValueText.Text = "Preguntar en la vista previa";
-
-        RecycleBinToggle.IsOn = true;
-        ConfirmDestructiveToggle.IsOn = true;
-
-        SaveHistoryToggle.IsOn = true;
-        SaveOrganizeHistoryToggle.IsOn = true;
-        SaveSearchHistoryToggle.IsOn = true;
-        HistoryRetentionValueText.Text = "Siempre";
-
+        LoadPersistentSettingsIntoUi(
+            defaults);
         UpdateHistoryDependentVisibility();
+
         _isPageReady = true;
 
         ApplyCurrentAppearance();
@@ -1053,7 +1134,7 @@ public sealed partial class SettingsPage : Page
         try
         {
             WindowsStartupService.Apply(
-                enabled: false);
+                defaults.StartWithWindows);
         }
         catch
         {
@@ -1061,7 +1142,7 @@ public sealed partial class SettingsPage : Page
 
         global::BandaNV.App.App.MainWindowInstance?
             .SyncUpdateStartupNoticeToggle(
-                enabled: true);
+                defaults.AutoUpdate);
 
         UpdateAppearancePreview();
         QueuePersistSettings();
@@ -1069,8 +1150,12 @@ public sealed partial class SettingsPage : Page
 
     private void LoadPersistentSettingsIntoUi(AppSettings settings)
     {
-        SourceFolderText.Text = settings.SourceFolder;
-        DestinationFolderText.Text = settings.DestinationFolder;
+        SetConfiguredFolderText(
+            SourceFolderText,
+            settings.SourceFolder);
+        SetConfiguredFolderText(
+            DestinationFolderText,
+            settings.DestinationFolder);
         StartupPageValueText.Text = settings.StartupPage;
         CloseBehaviorValueText.Text = settings.CloseBehavior;
 
@@ -1081,6 +1166,8 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
         OrganizeFoldersToggle.IsOn = settings.OrganizeFoldersAsUnits;
         CreateFoldersToggle.IsOn = settings.CreateFolders;
+        DeleteUnusedCategoryFoldersToggle.IsOn =
+            settings.DeleteUnusedCategoryFolders;
 
         ConflictBehaviorValueText.Text = settings.ConflictBehavior;
         UnknownExtensionBehaviorValueText.Text = settings.UnknownExtensionBehavior;
@@ -1120,8 +1207,8 @@ public sealed partial class SettingsPage : Page
         return new AppSettings
         {
             SchemaVersion = AppSettings.CurrentSchemaVersion,
-            SourceFolder = SourceFolderText.Text.Trim(),
-            DestinationFolder = DestinationFolderText.Text.Trim(),
+            SourceFolder = GetConfiguredFolderPath(SourceFolderText),
+            DestinationFolder = GetConfiguredFolderPath(DestinationFolderText),
             StartupPage = StartupPageValueText.Text,
             CloseBehavior = CloseBehaviorValueText.Text,
             StartWithWindows = StartWithWindowsToggle.IsOn,
@@ -1132,6 +1219,7 @@ public sealed partial class SettingsPage : Page
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
+            DeleteUnusedCategoryFolders = DeleteUnusedCategoryFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
             UseRecycleBin = RecycleBinToggle.IsOn,
@@ -1147,7 +1235,11 @@ public sealed partial class SettingsPage : Page
                     category.Extensions,
                     category.Order,
                     category.ColorHex))
-                .ToList()
+                .ToList(),
+            OrphanedCategoryFolders =
+                global::BandaNV.App.App.Settings.Current
+                    .OrphanedCategoryFolders
+                    .ToList()
         };
     }
 
@@ -1262,8 +1354,9 @@ internal sealed class SettingsBackupModel
     public string AccentColor { get; set; } = string.Empty;
 
     public bool PreviewBeforeOrganize { get; set; } = true;
-    public bool OrganizeFoldersAsUnits { get; set; }
+    public bool OrganizeFoldersAsUnits { get; set; } = true;
     public bool CreateFolders { get; set; } = true;
+    public bool DeleteUnusedCategoryFolders { get; set; } = true;
 
     public string ConflictBehavior { get; set; } = "Preguntar";
     public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
