@@ -4516,7 +4516,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             UnassignedDescriptionText.Text =
                 unclassifiedFolders.Count > 0
-                    ? "Las extensiones nuevas y las carpetas con contenido mixto, desconocido o incompleto se resuelven directamente en este panel."
+                    ? "Las extensiones nuevas se pueden resolver acá. Las carpetas siempre requieren una asignación manual antes de organizarse."
                     : _resolvedAssignments.Count > 0
                         ? "Todavía quedan extensiones pendientes. Las asignaciones que ya resolviste se mantienen registradas abajo."
                         : "Estas extensiones todavía no pertenecen a ninguna categoría. Podés resolverlas ahora para incluir sus archivos en esta organización.";
