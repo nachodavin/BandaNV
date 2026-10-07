@@ -710,7 +710,11 @@
                             Content="×"
                             Click="CloseHistoryFiltersOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Grid Grid.Row="1" ColumnSpacing="12">
@@ -1003,7 +1007,11 @@
                             Content="×"
                             Click="HistoryModalCloseButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Border
