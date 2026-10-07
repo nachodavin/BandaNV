@@ -191,6 +191,22 @@ public sealed class SettingsService
         settings.OrganizeExtensionFilters =
             NormalizeViewExtensions(settings.OrganizeExtensionFilters);
 
+        if (!settings.SearchDateFilter.Equals(
+                "SpecificDate",
+                StringComparison.Ordinal))
+        {
+            settings.SearchSpecificDateFilter =
+                null;
+        }
+
+        if (!settings.OrganizeDateFilter.Equals(
+                "SpecificDate",
+                StringComparison.Ordinal))
+        {
+            settings.OrganizeSpecificDateFilter =
+                null;
+        }
+
         settings.SourceFolder =
             settings.SourceFolder?.Trim() ?? string.Empty;
         settings.DestinationFolder =
