@@ -1124,6 +1124,10 @@ public sealed partial class SearchPage : Page
                 hasAdvancedFilters ? "BandaAccentBrush" : "BandaTextBrush"];
 
         ClearFiltersButton.IsEnabled = hasAnyFilter;
+        ClearFiltersButton.Visibility =
+            hasAnyFilter
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
     private void BuildActiveCategoryFilterVisuals(
