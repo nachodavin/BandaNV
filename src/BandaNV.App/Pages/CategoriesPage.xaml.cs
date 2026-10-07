@@ -13,7 +13,11 @@ public sealed partial class CategoriesPage : Page
 {
     private readonly List<CategoryAdminItem> _allCategories = new();
     private readonly List<string> _editorExtensions = new();
-    private CategoryAdminItem? _draggedCategory;
+    private CategoryAdminItem? _pointerDraggedCategory;
+    private FrameworkElement? _pointerDragCard;
+    private Windows.Foundation.Point _pointerDragStart;
+    private bool _pointerDragActive;
+    private bool _isCategoryReorderSaving;
 
     public ObservableCollection<CategoryAdminItem> VisibleCategories { get; } = new();
 
@@ -121,16 +125,6 @@ public sealed partial class CategoriesPage : Page
             VisibleCategories.Add(category);
         }
 
-        var canReorder =
-            string.IsNullOrWhiteSpace(searchText);
-
-        CategoryList.CanDragItems =
-            canReorder;
-        CategoryList.CanReorderItems =
-            canReorder;
-        CategoryList.AllowDrop =
-            canReorder;
-
         CategoryFooterCountText.Text =
             string.IsNullOrWhiteSpace(searchText)
                 ? _allCategories.Count == 1
@@ -183,49 +177,248 @@ public sealed partial class CategoriesPage : Page
                 columns);
     }
 
-    private void CategoryList_DragItemsStarting(
+    private void CategoryCard_PointerPressed(
         object sender,
-        DragItemsStartingEventArgs e)
+        PointerRoutedEventArgs e)
     {
-        _draggedCategory =
-            e.Items
-                .OfType<CategoryAdminItem>()
-                .FirstOrDefault();
-
-        if (_draggedCategory is null ||
+        if (_isCategoryReorderSaving ||
             !string.IsNullOrWhiteSpace(
-                CategorySearchBox.Text))
-        {
-            e.Cancel = true;
-        }
-    }
-
-    private void CategoryList_DragOver(
-        object sender,
-        DragEventArgs e)
-    {
-        if (_draggedCategory is null ||
-            !string.IsNullOrWhiteSpace(
-                CategorySearchBox.Text))
+                CategorySearchBox.Text) ||
+            sender is not FrameworkElement
+            {
+                Tag: string categoryId
+            } card)
         {
             return;
         }
 
-        e.AcceptedOperation =
-            Windows.ApplicationModel.DataTransfer
-                .DataPackageOperation.Move;
+        var point =
+            e.GetCurrentPoint(
+                CategoryList);
 
-        e.DragUIOverride.Caption =
-            "Mover categoría";
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
 
-        e.Handled = true;
+        var category =
+            _allCategories.FirstOrDefault(item =>
+                item.Id.Equals(
+                    categoryId,
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (category is null)
+        {
+            return;
+        }
+
+        _pointerDraggedCategory =
+            category;
+        _pointerDragCard =
+            card;
+        _pointerDragStart =
+            point.Position;
+        _pointerDragActive =
+            false;
+
+        card.CapturePointer(
+            e.Pointer);
+
+        e.Handled =
+            true;
     }
 
-    private async void CategoryList_Drop(
+    private void CategoryCard_PointerMoved(
         object sender,
-        DragEventArgs e)
+        PointerRoutedEventArgs e)
     {
-        if (_draggedCategory is null ||
+        if (_pointerDraggedCategory is null ||
+            _pointerDragCard is null ||
+            !ReferenceEquals(
+                sender,
+                _pointerDragCard))
+        {
+            return;
+        }
+
+        var point =
+            e.GetCurrentPoint(
+                CategoryList);
+
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            CancelCategoryPointerDrag();
+            return;
+        }
+
+        var deltaX =
+            point.Position.X -
+            _pointerDragStart.X;
+        var deltaY =
+            point.Position.Y -
+            _pointerDragStart.Y;
+
+        if (!_pointerDragActive &&
+            (Math.Abs(deltaX) >= 6 ||
+             Math.Abs(deltaY) >= 6))
+        {
+            _pointerDragActive =
+                true;
+            _pointerDragCard.Opacity =
+                0.72;
+        }
+
+        if (!_pointerDragActive)
+        {
+            return;
+        }
+
+        var sourceIndex =
+            VisibleCategories.IndexOf(
+                _pointerDraggedCategory);
+
+        var insertionIndex =
+            GetCategoryDropInsertionIndex(
+                point.Position);
+
+        var targetIndex =
+            NormalizeCategoryDropIndex(
+                sourceIndex,
+                insertionIndex);
+
+        CategoryStatusText.Text =
+            targetIndex == sourceIndex
+                ? "Soltá para mantener esta posición."
+                : $"Soltá para mover la categoría a la posición {(targetIndex + 1).ToString("00", CultureInfo.InvariantCulture)}.";
+
+        CategoryStatusText.Foreground =
+            (Brush)Application.Current.Resources[
+                "BandaMutedBrush"];
+        CategoryStatusText.Visibility =
+            Visibility.Visible;
+
+        e.Handled =
+            true;
+    }
+
+    private async void CategoryCard_PointerReleased(
+        object sender,
+        PointerRoutedEventArgs e)
+    {
+        if (_pointerDraggedCategory is null ||
+            _pointerDragCard is null ||
+            !ReferenceEquals(
+                sender,
+                _pointerDragCard))
+        {
+            return;
+        }
+
+        var draggedCategory =
+            _pointerDraggedCategory;
+        var wasDragging =
+            _pointerDragActive;
+        var pointer =
+            e.GetCurrentPoint(
+                CategoryList)
+                .Position;
+        var card =
+            _pointerDragCard;
+
+        ResetCategoryPointerDrag();
+
+        try
+        {
+            card.ReleasePointerCapture(
+                e.Pointer);
+        }
+        catch
+        {
+        }
+
+        e.Handled =
+            true;
+
+        if (!wasDragging)
+        {
+            CategoryStatusText.Text =
+                "Arrastrá las cards para cambiar el orden global.";
+            return;
+        }
+
+        await ReorderCategoryFromPointerAsync(
+            draggedCategory,
+            pointer);
+    }
+
+    private void CategoryCard_PointerCanceled(
+        object sender,
+        PointerRoutedEventArgs e)
+    {
+        CancelCategoryPointerDrag();
+    }
+
+    private void CategoryCard_PointerCaptureLost(
+        object sender,
+        PointerRoutedEventArgs e)
+    {
+        if (_pointerDragCard is not null &&
+            ReferenceEquals(
+                sender,
+                _pointerDragCard))
+        {
+            CancelCategoryPointerDrag();
+        }
+    }
+
+    private void CancelCategoryPointerDrag()
+    {
+        var card =
+            _pointerDragCard;
+
+        ResetCategoryPointerDrag();
+
+        if (card is not null)
+        {
+            try
+            {
+                card.ReleasePointerCaptures();
+            }
+            catch
+            {
+            }
+        }
+
+        CategoryStatusText.Text =
+            "Arrastrá las cards para cambiar el orden global.";
+        CategoryStatusText.Foreground =
+            (Brush)Application.Current.Resources[
+                "BandaMutedBrush"];
+        CategoryStatusText.Visibility =
+            Visibility.Visible;
+    }
+
+    private void ResetCategoryPointerDrag()
+    {
+        if (_pointerDragCard is not null)
+        {
+            _pointerDragCard.Opacity =
+                1;
+        }
+
+        _pointerDraggedCategory =
+            null;
+        _pointerDragCard =
+            null;
+        _pointerDragActive =
+            false;
+    }
+
+    private async Task ReorderCategoryFromPointerAsync(
+        CategoryAdminItem draggedCategory,
+        Windows.Foundation.Point pointer)
+    {
+        if (_isCategoryReorderSaving ||
             !string.IsNullOrWhiteSpace(
                 CategorySearchBox.Text))
         {
@@ -234,7 +427,7 @@ public sealed partial class CategoriesPage : Page
 
         var sourceIndex =
             VisibleCategories.IndexOf(
-                _draggedCategory);
+                draggedCategory);
 
         if (sourceIndex < 0)
         {
@@ -243,35 +436,17 @@ public sealed partial class CategoriesPage : Page
 
         var insertionIndex =
             GetCategoryDropInsertionIndex(
-                e.GetPosition(
-                    CategoryList));
+                pointer);
 
-        insertionIndex =
-            Math.Clamp(
-                insertionIndex,
-                0,
-                VisibleCategories.Count);
+        var targetIndex =
+            NormalizeCategoryDropIndex(
+                sourceIndex,
+                insertionIndex);
 
-        // El índice de inserción se calcula antes de quitar el elemento.
-        // Si el origen estaba antes del hueco elegido, compensamos ese
-        // corrimiento para que la card termine exactamente donde se soltó.
-        if (sourceIndex < insertionIndex)
+        if (sourceIndex == targetIndex)
         {
-            insertionIndex--;
-        }
-
-        insertionIndex =
-            Math.Clamp(
-                insertionIndex,
-                0,
-                VisibleCategories.Count - 1);
-
-        if (sourceIndex == insertionIndex)
-        {
-            e.AcceptedOperation =
-                Windows.ApplicationModel.DataTransfer
-                    .DataPackageOperation.Move;
-            e.Handled = true;
+            CategoryStatusText.Text =
+                "Arrastrá las cards para cambiar el orden global.";
             return;
         }
 
@@ -282,8 +457,8 @@ public sealed partial class CategoriesPage : Page
             sourceIndex);
 
         reordered.Insert(
-            insertionIndex,
-            _draggedCategory);
+            targetIndex,
+            draggedCategory);
 
         _allCategories.Clear();
         _allCategories.AddRange(
@@ -291,30 +466,57 @@ public sealed partial class CategoriesPage : Page
 
         NormalizeCategoryOrder();
 
-        if (!await PersistCategoriesAsync())
-        {
-            ReloadCategoriesAfterSyncFailure();
-            e.Handled = true;
-            return;
-        }
-
-        RefreshDerivedCategoryData();
-        RefreshCategoryList();
-        UpdateCategoryMetrics();
-        _ = RefreshUnassignedFilesMetricAsync();
+        _isCategoryReorderSaving =
+            true;
 
         CategoryStatusText.Text =
-            "Orden de categorías actualizado.";
-        CategoryStatusText.Foreground =
-            (Brush)Application.Current.Resources[
-                "BandaMutedBrush"];
-        CategoryStatusText.Visibility =
-            Visibility.Visible;
+            "Actualizando orden de categorías...";
 
-        e.AcceptedOperation =
-            Windows.ApplicationModel.DataTransfer
-                .DataPackageOperation.Move;
-        e.Handled = true;
+        try
+        {
+            if (!await PersistCategoriesAsync())
+            {
+                ReloadCategoriesAfterSyncFailure();
+                return;
+            }
+
+            RefreshDerivedCategoryData();
+            RefreshCategoryList();
+            UpdateCategoryMetrics();
+            _ = RefreshUnassignedFilesMetricAsync();
+
+            CategoryStatusText.Text =
+                "Orden de categorías actualizado.";
+            CategoryStatusText.Foreground =
+                (Brush)Application.Current.Resources[
+                    "BandaMutedBrush"];
+            CategoryStatusText.Visibility =
+                Visibility.Visible;
+        }
+        finally
+        {
+            _isCategoryReorderSaving =
+                false;
+        }
+    }
+
+    private static int NormalizeCategoryDropIndex(
+        int sourceIndex,
+        int insertionIndex)
+    {
+        if (sourceIndex < 0)
+        {
+            return sourceIndex;
+        }
+
+        if (sourceIndex < insertionIndex)
+        {
+            insertionIndex--;
+        }
+
+        return Math.Max(
+            0,
+            insertionIndex);
     }
 
     private int GetCategoryDropInsertionIndex(
@@ -324,6 +526,13 @@ public sealed partial class CategoriesPage : Page
         {
             return 0;
         }
+
+        var nearestIndex =
+            0;
+        var nearestDistance =
+            double.MaxValue;
+        var placeAfter =
+            false;
 
         for (var index = 0;
              index < VisibleCategories.Count;
@@ -344,41 +553,41 @@ public sealed partial class CategoriesPage : Page
                             0,
                             0));
 
-            var right =
+            var centerX =
                 topLeft.X +
-                container.ActualWidth;
-            var bottom =
+                (container.ActualWidth / 2);
+            var centerY =
                 topLeft.Y +
-                container.ActualHeight;
+                (container.ActualHeight / 2);
 
-            if (pointer.Y < topLeft.Y ||
-                pointer.Y > bottom ||
-                pointer.X < topLeft.X ||
-                pointer.X > right)
+            var deltaX =
+                pointer.X -
+                centerX;
+            var deltaY =
+                pointer.Y -
+                centerY;
+            var distance =
+                (deltaX * deltaX) +
+                (deltaY * deltaY);
+
+            if (distance >= nearestDistance)
             {
                 continue;
             }
 
-            var centerX =
-                topLeft.X +
-                (container.ActualWidth / 2);
-
-            return pointer.X < centerX
-                ? index
-                : index + 1;
+            nearestDistance =
+                distance;
+            nearestIndex =
+                index;
+            placeAfter =
+                pointer.X >= centerX;
         }
 
-        // Si se suelta en el espacio vacío después de la última card,
-        // la categoría va al final del orden.
-        return VisibleCategories.Count;
-    }
-
-    private void CategoryList_DragItemsCompleted(
-        ListViewBase sender,
-        DragItemsCompletedEventArgs args)
-    {
-        _draggedCategory =
-            null;
+        return Math.Clamp(
+            nearestIndex +
+            (placeAfter ? 1 : 0),
+            0,
+            VisibleCategories.Count);
     }
 
     private void NormalizeCategoryOrder()
