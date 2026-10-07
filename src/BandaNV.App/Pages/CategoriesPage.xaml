@@ -257,7 +257,7 @@
                                 <Setter Property="VerticalContentAlignment" Value="Stretch" />
                                 <Setter Property="Padding" Value="0" />
                                 <Setter Property="Margin" Value="0,0,12,12" />
-                                <Setter Property="MinHeight" Value="158" />
+                                <Setter Property="MinHeight" Value="188" />
                             </Style>
                         </GridView.ItemContainerStyle>
 
@@ -265,8 +265,8 @@
                             <DataTemplate x:DataType="local:CategoryAdminItem">
                                 <Border
                                     Tag="{x:Bind Id}"
-                                    MinHeight="158"
-                                    Padding="18"
+                                    MinHeight="188"
+                                    Padding="20,20,20,18"
                                     CornerRadius="18"
                                     Background="{x:Bind ColorSoftBrush}"
                                     BorderBrush="{x:Bind ColorBrush}"
@@ -277,7 +277,7 @@
                                     PointerCanceled="CategoryCard_PointerCanceled"
                                     PointerCaptureLost="CategoryCard_PointerCaptureLost">
 
-                                    <Grid RowSpacing="3">
+                                    <Grid RowSpacing="7">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
@@ -312,7 +312,7 @@
                                                 Grid.Column="2"
                                                 Text="{x:Bind Name}"
                                                 Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                FontSize="13"
+                                                FontSize="14"
                                                 FontWeight="SemiBold"
                                                 VerticalAlignment="Center"
                                                 TextTrimming="CharacterEllipsis"
@@ -383,7 +383,7 @@
                                             Text="{x:Bind ExtensionsDisplayText}"
                                             Foreground="{x:Bind ColorBrush}"
                                             FontSize="13"
-                                            Margin="0,6,0,0"
+                                            Margin="0,10,0,0"
                                             TextTrimming="CharacterEllipsis"
                                             MaxLines="1" />
 
@@ -391,9 +391,9 @@
                                             Grid.Row="2"
                                             Text="{x:Bind FileCountText}"
                                             Foreground="{StaticResource BandaTextBrush}"
-                                            FontSize="30"
+                                            FontSize="32"
                                             FontWeight="SemiBold"
-                                            Margin="0,6,0,0"
+                                            Margin="0,12,0,0"
                                             VerticalAlignment="Center" />
 
                                         <TextBlock
@@ -401,7 +401,7 @@
                                             Text="Archivos"
                                             Style="{StaticResource BandaMutedTextStyle}"
                                             FontSize="13"
-                                            Margin="0,2,0,0" />
+                                            Margin="0,4,0,0" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
