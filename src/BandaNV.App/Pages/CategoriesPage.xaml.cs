@@ -842,19 +842,6 @@ public sealed partial class CategoriesPage : Page
         TryAddExtensionsFromEditorInput();
     }
 
-    private void CategoryExtensionInputTextBox_KeyDown(
-        object sender,
-        KeyRoutedEventArgs e)
-    {
-        if (e.Key != Windows.System.VirtualKey.Enter)
-        {
-            return;
-        }
-
-        TryAddExtensionsFromEditorInput();
-        e.Handled = true;
-    }
-
     private bool TryAddExtensionsFromEditorInput()
     {
         var input = CategoryExtensionInputTextBox.Text?.Trim() ?? string.Empty;
