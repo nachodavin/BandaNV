@@ -80,7 +80,7 @@
 
                         <TextBlock
                             Grid.Row="3"
-                            Text="Elementos"
+                            Text="Archivos"
                             Style="{StaticResource BandaMutedTextStyle}"
                             FontSize="13"
                             Margin="0,2,0,0" />
