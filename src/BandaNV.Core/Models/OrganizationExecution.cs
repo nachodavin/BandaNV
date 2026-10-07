@@ -57,7 +57,6 @@ public sealed class OrganizationExecutionRecord
     public DateTime? RecoveredAt { get; set; }
     public string? RecoveryMessage { get; set; }
 
-    public int EmptyDirectoriesDeleted { get; set; }
     public List<OrganizationExecutionItemRecord> Items { get; set; } = [];
 
     public int MovedCount =>
