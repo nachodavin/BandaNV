@@ -1305,29 +1305,75 @@ public sealed class CategoryAdminItem
     public string Id { get; }
     public string Name { get; set; }
     public string ColorHex { get; private set; }
-    public Brush ColorBrush => CreateColorBrush(ColorHex);
+    public Brush ColorBrush =>
+        CreateColorBrush(
+            ColorHex,
+            0xFF);
+
+    public Brush ColorSoftBrush =>
+        CreateColorBrush(
+            ColorHex,
+            0x22);
+
+    public Brush ColorBorderBrush =>
+        CreateColorBrush(
+            ColorHex,
+            0x66);
+
     public List<string> Extensions { get; private set; }
     public int Order { get; set; }
     public int FileCount { get; private set; }
     public string FolderPath { get; private set; }
 
-    public string OrderText => Order.ToString("00", CultureInfo.InvariantCulture);
+    public string OrderText =>
+        Order.ToString(
+            "00",
+            CultureInfo.InvariantCulture);
 
     public string FileCountText =>
-        FileCount.ToString(CultureInfo.CurrentCulture);
+        FileCount.ToString(
+            CultureInfo.CurrentCulture);
 
-    public string ExtensionsSummary
+    public string FileCountDisplayText =>
+        FileCount == 1
+            ? "1 archivo organizado"
+            : $"{FileCount.ToString(CultureInfo.CurrentCulture)} archivos organizados";
+
+    public string ExtensionCountText =>
+        Extensions.Count == 1
+            ? "1 extensión"
+            : $"{Extensions.Count.ToString(CultureInfo.CurrentCulture)} extensiones";
+
+    public IReadOnlyList<CategoryExtensionChip> ExtensionChips
     {
         get
         {
             const int visibleCount = 5;
-            var visible = Extensions.Take(visibleCount);
-            var summary = string.Join(" · ", visible);
-            var remaining = Extensions.Count - visibleCount;
 
-            return remaining > 0
-                ? $"{summary} +{remaining}"
-                : summary;
+            var chips =
+                Extensions
+                    .Take(visibleCount)
+                    .Select(extension =>
+                        new CategoryExtensionChip(
+                            extension,
+                            ColorSoftBrush,
+                            ColorBrush))
+                    .ToList();
+
+            var remaining =
+                Extensions.Count -
+                visibleCount;
+
+            if (remaining > 0)
+            {
+                chips.Add(
+                    new CategoryExtensionChip(
+                        $"+{remaining}",
+                        ColorSoftBrush,
+                        ColorBrush));
+            }
+
+            return chips;
         }
     }
 
@@ -1347,22 +1393,46 @@ public sealed class CategoryAdminItem
             global::BandaNV.App.App.Settings.Current.SecondaryColor);
     }
 
-    private static Brush CreateColorBrush(string colorHex)
+    private static Brush CreateColorBrush(
+        string colorHex,
+        byte alpha)
     {
         if (!CategoryColorPalette.TryNormalizeHex(
                 colorHex,
                 out var normalized))
         {
-            return (Brush)Application.Current.Resources[
-                "BandaAccentBrush"];
+            if (alpha == 0xFF)
+            {
+                return (Brush)Application.Current.Resources[
+                    "BandaAccentBrush"];
+            }
+
+            return new SolidColorBrush(
+                Windows.UI.Color.FromArgb(
+                    alpha,
+                    0x4F,
+                    0xE0,
+                    0xC6));
         }
 
         return new SolidColorBrush(
             Windows.UI.Color.FromArgb(
-                255,
-                Convert.ToByte(normalized.Substring(1, 2), 16),
-                Convert.ToByte(normalized.Substring(3, 2), 16),
-                Convert.ToByte(normalized.Substring(5, 2), 16)));
+                alpha,
+                Convert.ToByte(
+                    normalized.Substring(
+                        1,
+                        2),
+                    16),
+                Convert.ToByte(
+                    normalized.Substring(
+                        3,
+                        2),
+                    16),
+                Convert.ToByte(
+                    normalized.Substring(
+                        5,
+                        2),
+                    16)));
     }
 
     public void UpdateDerivedState(string destinationRoot)
@@ -1385,4 +1455,21 @@ public sealed class CategoryAdminItem
             Extensions,
             Order,
             ColorHex);
+}
+
+public sealed class CategoryExtensionChip
+{
+    public CategoryExtensionChip(
+        string text,
+        Brush backgroundBrush,
+        Brush foregroundBrush)
+    {
+        Text = text;
+        BackgroundBrush = backgroundBrush;
+        ForegroundBrush = foregroundBrush;
+    }
+
+    public string Text { get; }
+    public Brush BackgroundBrush { get; }
+    public Brush ForegroundBrush { get; }
 }
