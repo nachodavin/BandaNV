@@ -23,6 +23,34 @@ public sealed class CategoryFolderSyncService
             cancellationToken);
     }
 
+    public Task<int> CleanupUnusedCategoryFoldersAsync(
+        AppSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        return Task.Run(
+            () =>
+            {
+                var destinationRoot =
+                    NormalizeDirectoryPath(
+                        settings.DestinationFolder);
+
+                if (string.IsNullOrWhiteSpace(destinationRoot) ||
+                    !Directory.Exists(destinationRoot))
+                {
+                    return 0;
+                }
+
+                return CleanupTrackedOrphanFolders(
+                    settings,
+                    destinationRoot,
+                    settings.DeleteUnusedCategoryFolders,
+                    cancellationToken);
+            },
+            cancellationToken);
+    }
+
     private static CategoryFolderSyncResult Synchronize(
         AppSettings settings,
         IReadOnlyList<CategorySettings> previousCategories,
@@ -46,6 +74,8 @@ public sealed class CategoryFolderSyncService
 
             Directory.CreateDirectory(destinationRoot);
         }
+
+        settings.OrphanedCategoryFolders ??= [];
 
         var previousById = previousCategories
             .Where(category => !string.IsNullOrWhiteSpace(category.Id))
@@ -94,19 +124,72 @@ public sealed class CategoryFolderSyncService
                     next.Id)));
         }
 
+        var deletedMoves =
+            new List<DeletedFolderMove>();
+
+        foreach (var previous in previousCategories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (nextById.ContainsKey(previous.Id))
+            {
+                continue;
+            }
+
+            var source = CategoryService.GetFolderPath(
+                destinationRoot,
+                previous.Order,
+                previous.Name);
+
+            if (!Directory.Exists(source))
+            {
+                continue;
+            }
+
+            deletedMoves.Add(
+                new DeletedFolderMove(
+                    previous.Id,
+                    previous.Name,
+                    source,
+                    BuildTemporaryPath(
+                        destinationRoot,
+                        previous.Id)));
+        }
+
+        var originalOrphans =
+            settings.OrphanedCategoryFolders.ToList();
+
         try
         {
             ValidateTargets(
                 destinationRoot,
                 moves,
+                deletedMoves,
                 nextCategories);
 
             var createdFolders = new List<string>();
             var phaseOneCompleted = new List<FolderMove>();
             var phaseTwoCompleted = new List<FolderMove>();
+            var deletedStaged = new List<DeletedFolderMove>();
+            var preservedDeletedMoves =
+                new List<PreservedDeletedFolderMove>();
 
             try
             {
+                // Primero apartamos las categorías eliminadas. Esto libera
+                // prefijos numéricos que pueden pasar a otra categoría activa.
+                foreach (var deleted in deletedMoves)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    Directory.Move(
+                        deleted.Source,
+                        deleted.Temporary);
+
+                    deletedStaged.Add(
+                        deleted);
+                }
+
                 foreach (var move in moves)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -160,41 +243,58 @@ public sealed class CategoryFolderSyncService
                 var deletedEmpty = 0;
                 var preservedDeleted = 0;
 
-                foreach (var previous in previousCategories)
+                foreach (var deleted in deletedMoves)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    if (nextById.ContainsKey(previous.Id))
+                    var isEmpty =
+                        !Directory
+                            .EnumerateFileSystemEntries(
+                                deleted.Temporary)
+                            .Any();
+
+                    if (isEmpty &&
+                        settings.DeleteUnusedCategoryFolders)
                     {
+                        Directory.Delete(
+                            deleted.Temporary,
+                            recursive: false);
+
+                        deletedEmpty++;
                         continue;
                     }
 
-                    var deletedCategoryFolder =
-                        CategoryService.GetFolderPath(
+                    var orphanTarget =
+                        BuildAvailableOrphanPath(
                             destinationRoot,
-                            previous.Order,
-                            previous.Name);
+                            deleted.CategoryName);
 
-                    if (!Directory.Exists(deletedCategoryFolder))
-                    {
-                        continue;
-                    }
+                    EnsurePathInsideRoot(
+                        orphanTarget,
+                        destinationRoot);
 
-                    if (Directory
-                        .EnumerateFileSystemEntries(
-                            deletedCategoryFolder)
-                        .Any())
-                    {
-                        preservedDeleted++;
-                        continue;
-                    }
+                    Directory.Move(
+                        deleted.Temporary,
+                        orphanTarget);
 
-                    Directory.Delete(
-                        deletedCategoryFolder,
-                        recursive: false);
+                    preservedDeletedMoves.Add(
+                        new PreservedDeletedFolderMove(
+                            deleted,
+                            orphanTarget));
 
-                    deletedEmpty++;
+                    TrackOrphanFolder(
+                        settings,
+                        orphanTarget);
+
+                    preservedDeleted++;
                 }
+
+                deletedEmpty +=
+                    CleanupTrackedOrphanFolders(
+                        settings,
+                        destinationRoot,
+                        settings.DeleteUnusedCategoryFolders,
+                        cancellationToken);
 
                 return new CategoryFolderSyncResult(
                     true,
@@ -207,14 +307,61 @@ public sealed class CategoryFolderSyncService
             }
             catch
             {
-                RollBackMoves(
-                    phaseOneCompleted,
-                    phaseTwoCompleted);
+                settings.OrphanedCategoryFolders =
+                    originalOrphans;
+
+                foreach (var preserved in
+                         preservedDeletedMoves.AsEnumerable().Reverse())
+                {
+                    try
+                    {
+                        if (Directory.Exists(preserved.Target) &&
+                            !Directory.Exists(
+                                preserved.Deleted.Temporary))
+                        {
+                            Directory.Move(
+                                preserved.Target,
+                                preserved.Deleted.Temporary);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
 
                 foreach (var created in createdFolders
                              .OrderByDescending(path => path.Length))
                 {
                     TryDeleteEmptyDirectory(created);
+                }
+
+                RollBackMoves(
+                    phaseOneCompleted,
+                    phaseTwoCompleted);
+
+                foreach (var deleted in
+                         deletedStaged.AsEnumerable().Reverse())
+                {
+                    try
+                    {
+                        if (!Directory.Exists(deleted.Temporary) &&
+                            !Directory.Exists(deleted.Source))
+                        {
+                            Directory.CreateDirectory(
+                                deleted.Temporary);
+                        }
+
+                        if (Directory.Exists(deleted.Temporary) &&
+                            !Directory.Exists(deleted.Source))
+                        {
+                            Directory.Move(
+                                deleted.Temporary,
+                                deleted.Source);
+                        }
+                    }
+                    catch
+                    {
+                    }
                 }
 
                 throw;
@@ -226,6 +373,9 @@ public sealed class CategoryFolderSyncService
         }
         catch (Exception ex)
         {
+            settings.OrphanedCategoryFolders =
+                originalOrphans;
+
             return CategoryFolderSyncResult.Failed(
                 $"No se pudieron sincronizar las carpetas físicas: {ex.Message}");
         }
@@ -234,11 +384,25 @@ public sealed class CategoryFolderSyncService
     private static void ValidateTargets(
         string destinationRoot,
         IReadOnlyList<FolderMove> moves,
+        IReadOnlyList<DeletedFolderMove> deletedMoves,
         IReadOnlyList<CategorySettings> nextCategories)
     {
-        var sources = moves
+        var releasedPaths = moves
             .Select(move => NormalizeDirectoryPath(move.Source))
+            .Concat(
+                deletedMoves.Select(move =>
+                    NormalizeDirectoryPath(move.Source)))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var deleted in deletedMoves)
+        {
+            EnsurePathInsideRoot(
+                deleted.Source,
+                destinationRoot);
+            EnsurePathInsideRoot(
+                deleted.Temporary,
+                destinationRoot);
+        }
 
         foreach (var move in moves)
         {
@@ -259,7 +423,7 @@ public sealed class CategoryFolderSyncService
             }
 
             if (Directory.Exists(move.Target) &&
-                !sources.Contains(
+                !releasedPaths.Contains(
                     NormalizeDirectoryPath(move.Target)))
             {
                 throw new IOException(
@@ -284,6 +448,159 @@ public sealed class CategoryFolderSyncService
             throw new IOException(
                 "Dos categorías intentan usar la misma carpeta física.");
         }
+    }
+
+    private static int CleanupTrackedOrphanFolders(
+        AppSettings settings,
+        string destinationRoot,
+        bool deleteEmpty,
+        CancellationToken cancellationToken)
+    {
+        settings.OrphanedCategoryFolders ??= [];
+
+        var deletedCount = 0;
+        var retained =
+            new List<string>();
+
+        foreach (var trackedPath in
+                 settings.OrphanedCategoryFolders
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string normalized;
+
+            try
+            {
+                normalized =
+                    NormalizeDirectoryPath(
+                        trackedPath);
+            }
+            catch
+            {
+                continue;
+            }
+
+            // Una carpeta registrada solo se administra mientras siga siendo
+            // hija directa del destino con el que se está trabajando.
+            if (!IsDirectChildOfRoot(
+                    normalized,
+                    destinationRoot))
+            {
+                retained.Add(trackedPath);
+                continue;
+            }
+
+            if (!Directory.Exists(normalized))
+            {
+                continue;
+            }
+
+            if (!deleteEmpty)
+            {
+                retained.Add(normalized);
+                continue;
+            }
+
+            try
+            {
+                if (Directory
+                    .EnumerateFileSystemEntries(
+                        normalized)
+                    .Any())
+                {
+                    retained.Add(normalized);
+                    continue;
+                }
+
+                Directory.Delete(
+                    normalized,
+                    recursive: false);
+
+                deletedCount++;
+            }
+            catch
+            {
+                retained.Add(normalized);
+            }
+        }
+
+        settings.OrphanedCategoryFolders =
+            retained
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        return deletedCount;
+    }
+
+    private static void TrackOrphanFolder(
+        AppSettings settings,
+        string path)
+    {
+        var normalized =
+            NormalizeDirectoryPath(path);
+
+        if (!settings.OrphanedCategoryFolders.Contains(
+                normalized,
+                StringComparer.OrdinalIgnoreCase))
+        {
+            settings.OrphanedCategoryFolders.Add(
+                normalized);
+        }
+    }
+
+    private static string BuildAvailableOrphanPath(
+        string destinationRoot,
+        string categoryName)
+    {
+        var baseName =
+            string.IsNullOrWhiteSpace(categoryName)
+                ? "Categoría eliminada"
+                : categoryName.Trim();
+
+        var candidate =
+            Path.Combine(
+                destinationRoot,
+                baseName);
+
+        if (!Directory.Exists(candidate) &&
+            !File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        for (var index = 1; ; index++)
+        {
+            candidate =
+                Path.Combine(
+                    destinationRoot,
+                    $"{baseName} ({index})");
+
+            if (!Directory.Exists(candidate) &&
+                !File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    private static bool IsDirectChildOfRoot(
+        string path,
+        string root)
+    {
+        var normalizedPath =
+            NormalizeDirectoryPath(path);
+        var normalizedRoot =
+            NormalizeDirectoryPath(root);
+
+        var parent =
+            Path.GetDirectoryName(
+                normalizedPath);
+
+        return !string.IsNullOrWhiteSpace(parent) &&
+               NormalizeDirectoryPath(parent).Equals(
+                   normalizedRoot,
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private static void RollBackMoves(
@@ -409,4 +726,14 @@ public sealed class CategoryFolderSyncService
         string Source,
         string Target,
         string Temporary);
+
+    private sealed record DeletedFolderMove(
+        string CategoryId,
+        string CategoryName,
+        string Source,
+        string Temporary);
+
+    private sealed record PreservedDeletedFolderMove(
+        DeletedFolderMove Deleted,
+        string Target);
 }
