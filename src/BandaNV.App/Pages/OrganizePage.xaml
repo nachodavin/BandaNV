@@ -558,7 +558,6 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Métricas -->
@@ -816,7 +815,12 @@
             <Grid
                 Grid.Row="2"
                 ColumnSpacing="14"
+                RowSpacing="14"
                 MinHeight="300">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.55*" />
                     <ColumnDefinition Width="0.95*" />
@@ -1093,8 +1097,44 @@
                     </Grid>
                 </Border>
 
+                <Grid
+                    Grid.Row="1"
+                    Grid.Column="0">
+                    <TextBlock
+                        x:Name="FooterStatusText"
+                        Text=""
+                        Visibility="Collapsed" />
+
+                    <Button
+                        x:Name="OrganizeButton"
+                        Content="Organizar archivos"
+                        Click="OrganizeButton_Click"
+                        MinHeight="62"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        CornerRadius="14"
+                        Background="{StaticResource BandaAccentBrush}"
+                        Foreground="{StaticResource BandaActionForegroundBrush}"
+                        BorderThickness="0"
+                        FontSize="15"
+                        FontWeight="SemiBold">
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+
                 <Border
                     Grid.Column="1"
+                    Grid.RowSpan="2"
                     CornerRadius="14"
                     Background="{StaticResource BandaCardAltBrush}"
                     BorderBrush="{StaticResource BandaBorderBrush}"
@@ -1102,8 +1142,15 @@
                     Padding="18"
                     VerticalAlignment="Stretch">
                     <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
                         <!-- Estado inicial: resumen general -->
-                        <Grid x:Name="OrganizeSummaryPanel">
+                        <Grid
+                            x:Name="OrganizeSummaryPanel"
+                            Grid.Row="0">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
@@ -1184,6 +1231,7 @@
                         <!-- Estado contextual: detalle del elemento seleccionado -->
                         <Grid
                             x:Name="OrganizeDetailPanel"
+                            Grid.Row="0"
                             Visibility="Collapsed">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -1610,75 +1658,19 @@
                                 </Button>
                             </StackPanel>
                         </Grid>
+
+                        <Button
+                            Grid.Row="1"
+                            Content="Cancelar"
+                            Click="CancelPreviewButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                            Margin="0,14,0,0"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center" />
                     </Grid>
                 </Border>
             </Grid>
 
-            <!-- Barra final de acciones -->
-            <Border
-                Grid.Row="3"
-                Padding="16"
-                CornerRadius="18"
-                Background="{StaticResource BandaCardBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1">
-                <Grid ColumnSpacing="14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Spacing="3" VerticalAlignment="Center">
-                        <TextBlock
-                            Text="Todo queda bajo tu control"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontSize="13"
-                            FontWeight="SemiBold" />
-                        <TextBlock
-                            x:Name="FooterStatusText"
-                            Text="Revisá la vista previa antes de continuar."
-                            Style="{StaticResource BandaMutedTextStyle}" />
-                    </StackPanel>
-
-                    <Button
-                        Grid.Column="1"
-                        Content="Cancelar"
-                        Click="CancelPreviewButton_Click"
-                        Padding="18,10"
-                        MinWidth="100"
-                        CornerRadius="12"
-                        Background="Transparent"
-                        BorderBrush="{StaticResource BandaBorderBrush}"
-                        BorderThickness="1"
-                        Foreground="{StaticResource BandaMutedStrongBrush}" />
-
-                    <Button
-                        x:Name="OrganizeButton"
-                        Grid.Column="2"
-                        Content="Organizar archivos"
-                        Click="OrganizeButton_Click"
-                        Padding="20,10"
-                        MinWidth="190"
-                        CornerRadius="12"
-                        Background="{StaticResource BandaAccentBrush}"
-                        Foreground="{StaticResource BandaActionForegroundBrush}"
-                        BorderThickness="0"
-                        FontWeight="SemiBold">
-                            <Button.Resources>
-                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
-                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
-                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
-                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
-                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
-                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
-                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
-                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
-                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
-                            </Button.Resources>
-                        </Button>
-                </Grid>
-            </Border>
         </Grid>
 
         <!-- Estado de progreso -->
