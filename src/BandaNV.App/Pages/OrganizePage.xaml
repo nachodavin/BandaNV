@@ -840,7 +840,6 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Spacing="3">
@@ -860,8 +859,9 @@
                                             Content="Filtros"
                                             Click="OrganizeFiltersButton_Click"
                                             Padding="16,10"
-                                            MinHeight="44"
+                                            MinHeight="52"
                                             CornerRadius="12"
+                                            VerticalAlignment="Stretch"
                                             Background="{StaticResource BandaCardBrush}"
                                             BorderBrush="{StaticResource BandaBorderBrush}"
                                             BorderThickness="1" />
@@ -997,17 +997,6 @@
                                             </Button.Flyout>
                                         </Button>
 
-                            <Button
-                                Grid.Column="4"
-                                Content="Analizar nuevamente"
-                                Click="AnalyzeAgainButton_Click"
-                                Padding="13,7"
-                                VerticalAlignment="Center"
-                                CornerRadius="10"
-                                Background="Transparent"
-                                BorderBrush="{StaticResource BandaBorderBrush}"
-                                BorderThickness="1"
-                                Foreground="{StaticResource BandaMutedStrongBrush}" />
                         </Grid>
 
                         <Border
