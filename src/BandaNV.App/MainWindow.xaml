@@ -316,7 +316,11 @@
                             Content="×"
                             Click="UpdateModalCloseButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Grid
