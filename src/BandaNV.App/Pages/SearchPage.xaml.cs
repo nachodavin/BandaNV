@@ -1037,7 +1037,6 @@ public sealed partial class SearchPage : Page
             results,
             categoryOrder);
 
-        SearchResultCountText.Text = results.Count.ToString(CultureInfo.CurrentCulture);
         SearchResultsFooterText.Text =
             results.Count == 1
                 ? "1 elemento"
@@ -1103,8 +1102,13 @@ public sealed partial class SearchPage : Page
 
         NoFiltersText.Text =
             statusParts.Count == 0
-                ? "Sin filtros"
+                ? string.Empty
                 : string.Join(" · ", statusParts);
+
+        NoFiltersText.Visibility =
+            statusParts.Count == 0
+                ? Visibility.Collapsed
+                : Visibility.Visible;
 
         FiltersButton.Content =
             hasAdvancedFilters
@@ -1868,7 +1872,7 @@ public sealed partial class SearchPage : Page
 
         SearchOpenFileButton.Content =
             file.IsDirectory
-                ? "Abrir carpeta"
+                ? "Abrir contenido"
                 : "Abrir archivo";
 
         SearchCopyPathButton.Content =
