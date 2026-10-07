@@ -1099,14 +1099,37 @@
 
                 <Grid
                     Grid.Row="1"
-                    Grid.Column="0">
+                    Grid.Column="0"
+                    ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
                     <TextBlock
                         x:Name="FooterStatusText"
+                        Grid.ColumnSpan="2"
                         Text=""
                         Visibility="Collapsed" />
 
                     <Button
+                        Grid.Column="0"
+                        Content="Cancelar"
+                        Click="CancelPreviewButton_Click"
+                        MinHeight="62"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        CornerRadius="14"
+                        Background="Transparent"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1"
+                        FontSize="15"
+                        FontWeight="SemiBold" />
+
+                    <Button
                         x:Name="OrganizeButton"
+                        Grid.Column="1"
                         Content="Organizar archivos"
                         Click="OrganizeButton_Click"
                         MinHeight="62"
@@ -1142,11 +1165,6 @@
                     Padding="18"
                     VerticalAlignment="Stretch">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
                         <!-- Estado inicial: resumen general -->
                         <Grid
                             x:Name="OrganizeSummaryPanel"
@@ -1376,7 +1394,7 @@
                                     Grid.Row="1"
                                     Margin="0,6,0,2"
                                     MinHeight="220"
-                                    MaxHeight="360"
+                                    VerticalAlignment="Stretch"
                                     CornerRadius="12"
                                     Background="{StaticResource BandaNavIconBrush}"
                                     BorderBrush="{StaticResource BandaBorderBrush}"
@@ -1659,14 +1677,6 @@
                             </StackPanel>
                         </Grid>
 
-                        <Button
-                            Grid.Row="1"
-                            Content="Cancelar"
-                            Click="CancelPreviewButton_Click"
-                            Style="{StaticResource BandaPopupSecondaryButtonStyle}"
-                            Margin="0,14,0,0"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Center" />
                     </Grid>
                 </Border>
             </Grid>
