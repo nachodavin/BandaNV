@@ -1204,7 +1204,11 @@
                             Content="×"
                             Click="CloseSearchManageOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Border
@@ -1437,7 +1441,11 @@
                             Content="×"
                             Click="CloseFiltersOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Grid
