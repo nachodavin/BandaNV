@@ -40,7 +40,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         new(StringComparer.OrdinalIgnoreCase);
     private SearchSortField _organizeSortField = SearchSortField.DateModified;
     private SearchSortDirection _organizeSortDirection = SearchSortDirection.Descending;
-    private SearchGroupField _organizeGroupField = SearchGroupField.None;
+    private SearchGroupField _organizeGroupField = SearchGroupField.DateModified;
 
     private SearchDateFilter _pendingOrganizeDateFilter = SearchDateFilter.All;
     private DateTime? _pendingOrganizeSpecificDateFilter;
@@ -107,6 +107,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         FolderDetailFilesList.ItemsSource =
             _organizeFolderViewSource.View;
 
+        LoadSavedViewPreferences();
+
         UpdateOrganizeSortAndGroupSelectorText();
         UpdateOrganizeSortAndGroupOptionHighlights();
         InitializeOrganizeSpecificDateWheels();
@@ -115,6 +117,93 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         LoadCategoryOptions();
         UpdateInitialStateText();
         ShowInitialState();
+    }
+
+    private void LoadSavedViewPreferences()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        _organizeDateFilter =
+            Enum.TryParse<SearchDateFilter>(
+                settings.OrganizeDateFilter,
+                ignoreCase: true,
+                out var dateFilter)
+                ? dateFilter
+                : SearchDateFilter.All;
+
+        _organizeSpecificDateFilter =
+            _organizeDateFilter ==
+                SearchDateFilter.SpecificDate
+                ? settings.OrganizeSpecificDateFilter?.Date
+                : null;
+
+        _organizeSizeFilter =
+            Enum.TryParse<SearchSizeFilter>(
+                settings.OrganizeSizeFilter,
+                ignoreCase: true,
+                out var sizeFilter)
+                ? sizeFilter
+                : SearchSizeFilter.All;
+
+        _organizeExtensionFilters.Clear();
+        _organizeExtensionFilters.UnionWith(
+            settings.OrganizeExtensionFilters ?? []);
+
+        _organizeSortField =
+            Enum.TryParse<SearchSortField>(
+                settings.OrganizeSortField,
+                ignoreCase: true,
+                out var sortField)
+                ? sortField
+                : SearchSortField.DateModified;
+
+        _organizeSortDirection =
+            Enum.TryParse<SearchSortDirection>(
+                settings.OrganizeSortDirection,
+                ignoreCase: true,
+                out var sortDirection)
+                ? sortDirection
+                : SearchSortDirection.Descending;
+
+        _organizeGroupField =
+            Enum.TryParse<SearchGroupField>(
+                settings.OrganizeGroupField,
+                ignoreCase: true,
+                out var groupField)
+                ? groupField
+                : SearchGroupField.DateModified;
+    }
+
+    private async Task PersistViewPreferencesAsync()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        settings.OrganizeDateFilter =
+            _organizeDateFilter.ToString();
+        settings.OrganizeSpecificDateFilter =
+            _organizeDateFilter ==
+                SearchDateFilter.SpecificDate
+                ? _organizeSpecificDateFilter?.Date
+                : null;
+        settings.OrganizeSizeFilter =
+            _organizeSizeFilter.ToString();
+        settings.OrganizeExtensionFilters =
+            _organizeExtensionFilters
+                .OrderBy(
+                    extension => extension,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        settings.OrganizeSortField =
+            _organizeSortField.ToString();
+        settings.OrganizeSortDirection =
+            _organizeSortDirection.ToString();
+        settings.OrganizeGroupField =
+            _organizeGroupField.ToString();
+
+        await global::BandaNV.App.App.Settings.SaveAsync(
+            settings);
     }
 
     private void OrganizePage_Unloaded(
@@ -568,7 +657,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         BuildOrganizeExtensionFilterOptions();
     }
 
-    private void ApplyOrganizeFiltersOverlayButton_Click(
+    private async void ApplyOrganizeFiltersOverlayButton_Click(
         object sender,
         RoutedEventArgs e)
     {
@@ -600,6 +689,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             Visibility.Collapsed;
 
         RefreshPreview();
+        await PersistViewPreferencesAsync();
     }
 
     private void PopulateOrganizeFilterOverlayControls()
@@ -1018,7 +1108,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         BuildOrganizeExtensionFilterOptions();
     }
 
-    private void OrganizeSortFieldOptionButton_Click(
+    private async void OrganizeSortFieldOptionButton_Click(
         object sender,
         RoutedEventArgs e)
     {
@@ -1047,9 +1137,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         OrganizeSortFlyout.Hide();
         RefreshPreview();
+        await PersistViewPreferencesAsync();
     }
 
-    private void OrganizeSortDirectionOptionButton_Click(
+    private async void OrganizeSortDirectionOptionButton_Click(
         object sender,
         RoutedEventArgs e)
     {
@@ -1073,9 +1164,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         OrganizeSortFlyout.Hide();
         RefreshPreview();
+        await PersistViewPreferencesAsync();
     }
 
-    private void OrganizeGroupFieldOptionButton_Click(
+    private async void OrganizeGroupFieldOptionButton_Click(
         object sender,
         RoutedEventArgs e)
     {
@@ -1106,6 +1198,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         OrganizeGroupFlyout.Hide();
         RefreshPreview();
+        await PersistViewPreferencesAsync();
     }
 
     private void UpdatePendingOrganizeFilterLabels()
