@@ -13,11 +13,7 @@
         <DataTemplate x:Key="UnassignedExtensionTemplate" x:DataType="local:UnassignedExtensionSummary">
             <Border
                 Padding="14,12"
-                Margin="0,0,0,8"
-                CornerRadius="12"
-                Background="{StaticResource BandaCardAltBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1">
+                Background="Transparent">
                 <Grid ColumnSpacing="14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="92" />
@@ -663,10 +659,38 @@
                         </Border>
                     </Grid>
 
-                    <ItemsControl
+                    <ListView
                         x:Name="UnassignedExtensionsList"
                         ItemTemplate="{StaticResource UnassignedExtensionTemplate}"
-                        HorizontalContentAlignment="Stretch" />
+                        SelectionMode="Single"
+                        SelectionChanged="UnassignedExtensionsList_SelectionChanged"
+                        Tapped="UnassignedExtensionsList_Tapped"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="0"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled">
+
+                        <ListView.Resources>
+                            <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
+                            <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
+                            <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
+                            <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
+                        </ListView.Resources>
+
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,0,8" />
+                                <Setter Property="CornerRadius" Value="12" />
+                                <Setter Property="Background" Value="{StaticResource BandaCardAltBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderBrush}" />
+                                <Setter Property="BorderThickness" Value="1" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
 
                     <StackPanel
                         x:Name="UnassignedFoldersPanel"
