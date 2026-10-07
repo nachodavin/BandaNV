@@ -905,11 +905,32 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             .OfType<OrganizePreviewFile>()
             .ToList();
 
-    private void FolderDetailButton_Click(
+    private void UnassignedFolderRow_Tapped(
         object sender,
-        RoutedEventArgs e)
+        TappedRoutedEventArgs e)
     {
-        if (sender is not Button { Tag: string itemId })
+        if (e.OriginalSource is DependencyObject origin)
+        {
+            var current = origin;
+
+            while (current is not null &&
+                   !ReferenceEquals(current, sender))
+            {
+                if (current is Button)
+                {
+                    return;
+                }
+
+                current =
+                    VisualTreeHelper.GetParent(
+                        current);
+            }
+        }
+
+        if (sender is not FrameworkElement
+            {
+                Tag: string itemId
+            })
         {
             return;
         }
@@ -931,6 +952,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         ShowOrganizeDetail(
             folder);
+
+        e.Handled =
+            true;
     }
 
     private void ClearOrganizeDetailButton_Click(
@@ -1001,7 +1025,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         OrganizeOpenButton.Content =
             item.IsDirectory
-                ? "Abrir carpeta"
+                ? "Abrir contenido"
                 : "Abrir archivo";
         OrganizeCopyPathButton.Content =
             "Copiar ruta";
@@ -1476,7 +1500,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         OrganizeOpenButton.Content =
             item.IsDirectory
-                ? "Abrir carpeta"
+                ? "Abrir contenido"
                 : "Abrir archivo";
         OrganizeCopyPathButton.Content =
             "Copiar ruta";
