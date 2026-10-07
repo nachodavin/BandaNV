@@ -35,6 +35,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private readonly Stack<string> _folderDetailHistory = new();
     private bool _syncingFolderDetailSelection;
     private bool _syncingUnassignedFolderSelection;
+    private bool _syncingUnassignedExtensionSelection;
 
     private readonly List<OrganizePreviewFile> _managedOrganizeFiles = new();
     private readonly List<OrganizeActionTarget> _managedOrganizeTargets = new();
@@ -872,6 +873,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         SyncUnassignedFolderSelection(
             files);
+        SyncUnassignedExtensionSelection(
+            files);
 
         if (files.Count == 0)
         {
@@ -904,6 +907,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         PreviewFilesList.SelectedItems.Clear();
 
         SyncUnassignedFolderSelection(
+            Array.Empty<OrganizePreviewFile>());
+        SyncUnassignedExtensionSelection(
             Array.Empty<OrganizePreviewFile>());
 
         ShowOrganizeSummary();
@@ -949,6 +954,176 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         PreviewFilesList.SelectedItems
             .OfType<OrganizePreviewFile>()
             .ToList();
+
+    private void UnassignedExtensionsList_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (_syncingUnassignedExtensionSelection ||
+            _isRefreshingPreview ||
+            UnassignedExtensionsList.SelectedItem is not UnassignedExtensionSummary summary)
+        {
+            return;
+        }
+
+        var affectedFiles =
+            _files
+                .Where(file =>
+                    !file.IsDirectory &&
+                    !file.IsClassified &&
+                    file.Extension.Equals(
+                        summary.Extension,
+                        StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        if (affectedFiles.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _syncingUnassignedExtensionSelection =
+                true;
+
+            PreviewFilesList.SelectedItems.Clear();
+
+            foreach (var file in affectedFiles)
+            {
+                PreviewFilesList.SelectedItems.Add(
+                    file);
+            }
+        }
+        finally
+        {
+            _syncingUnassignedExtensionSelection =
+                false;
+        }
+
+        SyncUnassignedFolderSelection(
+            affectedFiles);
+
+        if (affectedFiles.Count == 1)
+        {
+            ShowOrganizeDetail(
+                affectedFiles[0]);
+        }
+        else
+        {
+            ShowMultipleOrganizeDetails(
+                affectedFiles);
+        }
+    }
+
+    private void UnassignedExtensionsList_Tapped(
+        object sender,
+        TappedRoutedEventArgs e)
+    {
+        if (IsTapInsideListViewItem(
+                e.OriginalSource,
+                UnassignedExtensionsList))
+        {
+            return;
+        }
+
+        try
+        {
+            _syncingUnassignedExtensionSelection =
+                true;
+
+            UnassignedExtensionsList.SelectedItem =
+                null;
+            PreviewFilesList.SelectedItems.Clear();
+        }
+        finally
+        {
+            _syncingUnassignedExtensionSelection =
+                false;
+        }
+
+        SyncUnassignedFolderSelection(
+            Array.Empty<OrganizePreviewFile>());
+
+        ShowOrganizeSummary();
+
+        e.Handled =
+            true;
+    }
+
+    private void SyncUnassignedExtensionSelection(
+        IReadOnlyList<OrganizePreviewFile> selectedFiles)
+    {
+        if (_syncingUnassignedExtensionSelection)
+        {
+            return;
+        }
+
+        UnassignedExtensionSummary? selectedSummary =
+            null;
+
+        if (selectedFiles.Count > 0 &&
+            selectedFiles.All(file =>
+                !file.IsDirectory &&
+                !file.IsClassified))
+        {
+            var extension =
+                selectedFiles[0].Extension;
+
+            var sameExtension =
+                selectedFiles.All(file =>
+                    file.Extension.Equals(
+                        extension,
+                        StringComparison.OrdinalIgnoreCase));
+
+            if (sameExtension)
+            {
+                var pendingFiles =
+                    _files
+                        .Where(file =>
+                            !file.IsDirectory &&
+                            !file.IsClassified &&
+                            file.Extension.Equals(
+                                extension,
+                                StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                var selectedIds =
+                    selectedFiles
+                        .Select(file =>
+                            file.ItemId)
+                        .ToHashSet(
+                            StringComparer.Ordinal);
+
+                if (pendingFiles.Count == selectedFiles.Count &&
+                    pendingFiles.All(file =>
+                        selectedIds.Contains(
+                            file.ItemId)))
+                {
+                    selectedSummary =
+                        UnassignedExtensionsList.Items
+                            .OfType<UnassignedExtensionSummary>()
+                            .FirstOrDefault(item =>
+                                item.Extension.Equals(
+                                    extension,
+                                    StringComparison.OrdinalIgnoreCase));
+                }
+            }
+        }
+
+        try
+        {
+            _syncingUnassignedExtensionSelection =
+                true;
+
+            UnassignedExtensionsList.SelectedItem =
+                selectedSummary;
+        }
+        finally
+        {
+            _syncingUnassignedExtensionSelection =
+                false;
+        }
+    }
 
     private void UnassignedFoldersList_SelectionChanged(
         object sender,
@@ -4403,6 +4578,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 : Visibility.Collapsed;
 
         SyncUnassignedFolderSelection(
+            restoredSelection);
+        SyncUnassignedExtensionSelection(
             restoredSelection);
 
         ResolvedAssignmentsList.ItemsSource = null;
