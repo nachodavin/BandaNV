@@ -922,6 +922,9 @@
                             Content="Aplicar filtros"
                             Click="ApplyHistoryFiltersOverlayButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
@@ -1039,6 +1042,9 @@
                             Content="Deshacer ahora"
                             Click="HistoryModalPrimaryButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
