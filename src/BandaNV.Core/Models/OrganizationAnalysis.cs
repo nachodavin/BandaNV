@@ -52,6 +52,11 @@ public sealed record OrganizationAnalysisFile(
     public bool IsDirectory =>
         Kind == OrganizationAnalysisItemKind.Folder;
 
+    public int PhysicalFileCount =>
+        IsDirectory
+            ? Math.Max(0, ContainedFileCount)
+            : 1;
+
     public IReadOnlyList<OrganizationAnalysisFolderFile> FolderContents =>
         FolderFiles ?? [];
 }
@@ -67,6 +72,19 @@ public sealed record OrganizationAnalysisResult(
 
     public int UnclassifiedCount =>
         Files.Count - ClassifiedCount;
+
+    public int TotalPhysicalFileCount =>
+        Files.Sum(file => file.PhysicalFileCount);
+
+    public int ClassifiedPhysicalFileCount =>
+        Files
+            .Where(file => file.IsClassified)
+            .Sum(file => file.PhysicalFileCount);
+
+    public int UnclassifiedPhysicalFileCount =>
+        Files
+            .Where(file => !file.IsClassified)
+            .Sum(file => file.PhysicalFileCount);
 
     public int FolderCount =>
         Files.Count(file => file.IsDirectory);

@@ -1146,18 +1146,18 @@ public sealed partial class CategoriesPage : Page
                     global::BandaNV.App.App.Settings.Current);
 
             UnassignedFilesText.Text =
-                result.UnclassifiedCount.ToString(
+                result.UnclassifiedPhysicalFileCount.ToString(
                     CultureInfo.CurrentCulture);
 
             CategoriesUnassignedDetailText.Text =
-                result.UnclassifiedCount == 0
+                result.UnclassifiedPhysicalFileCount == 0
                     ? "Todo tiene una categoría asignada"
-                    : result.UnclassifiedCount == 1
+                    : result.UnclassifiedPhysicalFileCount == 1
                         ? "1 archivo necesita categoría"
-                        : $"{result.UnclassifiedCount} archivos necesitan categoría";
+                        : $"{result.UnclassifiedPhysicalFileCount} archivos necesitan categoría";
 
             UpdateUnassignedCardState(
-                result.UnclassifiedCount);
+                result.UnclassifiedPhysicalFileCount);
         }
         catch (DirectoryNotFoundException)
         {

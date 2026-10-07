@@ -346,29 +346,29 @@ public sealed partial class HomePage : Page
                     settings);
 
             HomePendingFilesText.Text =
-                result.Files.Count.ToString(
+                result.TotalPhysicalFileCount.ToString(
                     CultureInfo.CurrentCulture);
 
             HomeUnassignedFilesText.Text =
-                result.UnclassifiedCount.ToString(
+                result.UnclassifiedPhysicalFileCount.ToString(
                     CultureInfo.CurrentCulture);
 
             UpdateUnassignedCardState(
-                result.UnclassifiedCount);
+                result.UnclassifiedPhysicalFileCount);
 
             HomePendingDetailText.Text =
-                result.Files.Count == 0
+                result.TotalPhysicalFileCount == 0
                     ? "No hay archivos pendientes"
-                    : result.ClassifiedCount == 1
+                    : result.ClassifiedPhysicalFileCount == 1
                         ? "1 archivo listo para organizar"
-                        : $"{result.ClassifiedCount} archivos listos para organizar";
+                        : $"{result.ClassifiedPhysicalFileCount} archivos listos para organizar";
 
             HomeUnassignedDetailText.Text =
-                result.UnclassifiedCount == 0
+                result.UnclassifiedPhysicalFileCount == 0
                     ? "Todo tiene una categoría asignada"
-                    : result.UnclassifiedCount == 1
+                    : result.UnclassifiedPhysicalFileCount == 1
                         ? "1 archivo necesita categoría"
-                        : $"{result.UnclassifiedCount} archivos necesitan categoría";
+                        : $"{result.UnclassifiedPhysicalFileCount} archivos necesitan categoría";
         }
         catch (DirectoryNotFoundException)
         {
@@ -465,7 +465,11 @@ public sealed partial class HomePage : Page
         IReadOnlyList<IndexedSearchFile> files,
         AppSettings settings)
     {
-        _currentOrganizedFileCount = files.Count;
+        _currentOrganizedFileCount =
+            files.Sum(file =>
+                file.IsDirectory
+                    ? Math.Max(0, file.ContainedFileCount)
+                    : 1);
         _currentOrganizedSize =
             files.Sum(file => file.SizeBytes);
 
@@ -496,11 +500,16 @@ public sealed partial class HomePage : Page
                         ? currentCategory
                         : null;
 
-                var count = group.Count();
+                var count =
+                    group.Sum(file =>
+                        file.IsDirectory
+                            ? Math.Max(0, file.ContainedFileCount)
+                            : 1);
+
                 var percentage =
-                    files.Count == 0
+                    _currentOrganizedFileCount == 0
                         ? 0
-                        : count * 100.0 / files.Count;
+                        : count * 100.0 / _currentOrganizedFileCount;
 
                 return new HomeCategoryUsageItem(
                     group.Key,
@@ -514,6 +523,7 @@ public sealed partial class HomePage : Page
                     group.Sum(file => file.SizeBytes),
                     percentage);
             })
+            .Where(item => item.FileCount > 0)
             .OrderBy(item => item.Order)
             .ThenBy(
                 item => item.Name,
