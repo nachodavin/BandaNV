@@ -112,6 +112,10 @@ internal static class Program
             DefaultSettingsMatchProductDefinitionAsync);
 
         await RunAsync(
+            "Contador de categoría incluye archivos de todas las subcarpetas",
+            CategoryFileCountIsRecursiveAsync);
+
+        await RunAsync(
             "Categoría eliminada con contenido conserva carpeta sin prefijo",
             DeletedCategoryWithContentBecomesTrackedOrphanAsync);
 
@@ -340,6 +344,59 @@ internal static class Program
                 actual.ColorHex,
                 $"El color default de {actual.Name} no coincide.");
         }
+
+        return Task.CompletedTask;
+    }
+
+    private static Task CategoryFileCountIsRecursiveAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        const int order = 1;
+        const string categoryName = "VIDEOS";
+
+        var categoryFolder =
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                order,
+                categoryName);
+
+        var nestedFolder =
+            Path.Combine(
+                categoryFolder,
+                "Proyecto",
+                "Exportaciones");
+
+        Directory.CreateDirectory(
+            nestedFolder);
+
+        WriteFile(
+            Path.Combine(
+                categoryFolder,
+                "raiz.mp4"),
+            "raiz");
+
+        WriteFile(
+            Path.Combine(
+                categoryFolder,
+                "Proyecto",
+                "clip.mp4"),
+            "nivel 1");
+
+        WriteFile(
+            Path.Combine(
+                nestedFolder,
+                "final.mp4"),
+            "nivel 2");
+
+        Equal(
+            3,
+            CategoryService.CountExistingFiles(
+                workspace.Destination,
+                order,
+                categoryName),
+            "El contador debería incluir cada archivo individual aunque esté dentro de subcarpetas.");
 
         return Task.CompletedTask;
     }
