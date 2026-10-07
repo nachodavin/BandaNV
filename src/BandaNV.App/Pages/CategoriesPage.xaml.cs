@@ -809,6 +809,227 @@ public sealed partial class CategoriesPage : Page
             false;
     }
 
+    private void CommitCategoryReorderVisualState(
+        int sourceIndex,
+        int targetIndex)
+    {
+        var visualPositions =
+            new Dictionary<string, Windows.Foundation.Point>(
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var category in
+                 VisibleCategories)
+        {
+            if (CategoryList.ContainerFromItem(
+                    category) is not GridViewItem container)
+            {
+                continue;
+            }
+
+            visualPositions[category.Id] =
+                container
+                    .TransformToVisual(
+                        CategoryList)
+                    .TransformPoint(
+                        new Windows.Foundation.Point(
+                            0,
+                            0));
+        }
+
+        // Capturamos la posición ya animada de cada card y limpiamos las
+        // transformaciones de preview sin permitir un frame intermedio.
+        foreach (var storyboard in
+                 _categoryReorderStoryboards.Values)
+        {
+            try
+            {
+                storyboard.Stop();
+            }
+            catch
+            {
+            }
+        }
+
+        foreach (var pair in
+                 _categoryReorderTransforms)
+        {
+            pair.Key.RenderTransform =
+                null;
+        }
+
+        _categoryReorderStoryboards.Clear();
+        _categoryReorderTransforms.Clear();
+
+        if (_pointerDragContainer is not null)
+        {
+            _pointerDragContainer.RenderTransform =
+                null;
+            _pointerDragContainer.Opacity =
+                1;
+
+            Canvas.SetZIndex(
+                _pointerDragContainer,
+                0);
+        }
+
+        CategoryDropPlaceholder.Visibility =
+            Visibility.Collapsed;
+
+        VisibleCategories.Move(
+            sourceIndex,
+            targetIndex);
+
+        // Forzamos el nuevo layout en el mismo ciclo de UI y luego aplicamos
+        // FLIP: cada container arranca donde se veía antes del Move y anima
+        // suavemente hasta su posición lógica nueva.
+        CategoryList.UpdateLayout();
+
+        foreach (var category in
+                 VisibleCategories)
+        {
+            if (!visualPositions.TryGetValue(
+                    category.Id,
+                    out var previousPoint) ||
+                CategoryList.ContainerFromItem(
+                    category) is not GridViewItem container)
+            {
+                continue;
+            }
+
+            var newPoint =
+                container
+                    .TransformToVisual(
+                        CategoryList)
+                    .TransformPoint(
+                        new Windows.Foundation.Point(
+                            0,
+                            0));
+
+            var deltaX =
+                previousPoint.X -
+                newPoint.X;
+            var deltaY =
+                previousPoint.Y -
+                newPoint.Y;
+
+            if (Math.Abs(deltaX) < 0.5 &&
+                Math.Abs(deltaY) < 0.5)
+            {
+                continue;
+            }
+
+            AnimateCategoryDropContainer(
+                container,
+                deltaX,
+                deltaY);
+        }
+
+        _pointerDraggedCategory =
+            null;
+        _pointerDragCard =
+            null;
+        _pointerDragContainer =
+            null;
+        _pointerDragTranslate =
+            null;
+        _categoryDragSlots.Clear();
+        _categoryDragSourceIndex =
+            -1;
+        _categoryDragPreviewTargetIndex =
+            -1;
+        _pointerDragActive =
+            false;
+    }
+
+    private static void AnimateCategoryDropContainer(
+        GridViewItem container,
+        double fromX,
+        double fromY)
+    {
+        var transform =
+            new TranslateTransform
+            {
+                X = fromX,
+                Y = fromY
+            };
+
+        container.RenderTransform =
+            transform;
+
+        var duration =
+            new Duration(
+                TimeSpan.FromMilliseconds(
+                    155));
+
+        var easing =
+            new CubicEase
+            {
+                EasingMode =
+                    EasingMode.EaseOut
+            };
+
+        var xAnimation =
+            new DoubleAnimation
+            {
+                From = fromX,
+                To = 0,
+                Duration = duration,
+                EnableDependentAnimation = true,
+                EasingFunction = easing
+            };
+
+        var yAnimation =
+            new DoubleAnimation
+            {
+                From = fromY,
+                To = 0,
+                Duration = duration,
+                EnableDependentAnimation = true,
+                EasingFunction =
+                    new CubicEase
+                    {
+                        EasingMode =
+                            EasingMode.EaseOut
+                    }
+            };
+
+        var storyboard =
+            new Storyboard();
+
+        Storyboard.SetTarget(
+            xAnimation,
+            transform);
+        Storyboard.SetTargetProperty(
+            xAnimation,
+            "X");
+
+        Storyboard.SetTarget(
+            yAnimation,
+            transform);
+        Storyboard.SetTargetProperty(
+            yAnimation,
+            "Y");
+
+        storyboard.Children.Add(
+            xAnimation);
+        storyboard.Children.Add(
+            yAnimation);
+
+        storyboard.Completed +=
+            (_, _) =>
+            {
+                if (ReferenceEquals(
+                        container.RenderTransform,
+                        transform))
+                {
+                    container.RenderTransform =
+                        null;
+                }
+            };
+
+        storyboard.Begin();
+    }
+
     private async Task ReorderCategoryToTargetAsync(
         CategoryAdminItem draggedCategory,
         int targetIndex)
@@ -842,10 +1063,7 @@ public sealed partial class CategoriesPage : Page
             return;
         }
 
-        // Reordenamos la colección existente en lugar de vaciarla y
-        // reconstruirla. Así WinUI conserva los mismos containers y no hay
-        // un flash de desaparición/reaparición al soltar la card.
-        VisibleCategories.Move(
+        CommitCategoryReorderVisualState(
             sourceIndex,
             targetIndex);
 
@@ -854,10 +1072,6 @@ public sealed partial class CategoriesPage : Page
             VisibleCategories);
 
         NormalizeCategoryOrder();
-
-        // Las cards ya están visualmente en sus posiciones de destino.
-        // Limpiamos solamente las transformaciones temporales del drag.
-        ResetCategoryPointerDrag();
 
         _isCategoryReorderSaving =
             true;
