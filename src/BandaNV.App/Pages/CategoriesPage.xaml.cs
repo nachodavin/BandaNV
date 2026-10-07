@@ -122,14 +122,12 @@ public sealed partial class CategoriesPage : Page
         CategoryList.CanReorderItems = canReorder;
         CategoryList.AllowDrop = canReorder;
 
-        CategoryResultCountText.Text =
-            results.Count.ToString(CultureInfo.CurrentCulture);
-        CategoryResultCountLabel.Text =
-            results.Count == 1 ? "categoría" : "categorías";
         CategoryFooterCountText.Text =
-            results.Count == 1
-                ? "1 categoría"
-                : $"{results.Count} categorías";
+            string.IsNullOrWhiteSpace(searchText)
+                ? _allCategories.Count == 1
+                    ? "1 categoría"
+                    : $"{_allCategories.Count} categorías"
+                : $"{results.Count} de {_allCategories.Count} categorías";
 
         CategoryList.Visibility =
             results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -202,7 +200,6 @@ public sealed partial class CategoriesPage : Page
     {
         CategoryDetailNameText.Text = category.Name;
         CategoryDetailColorDot.Fill = category.ColorBrush;
-        CategoryDetailOrderText.Text = $"#{category.Order:00}";
         CategoryDetailExtensionCountText.Text =
             category.Extensions.Count.ToString(CultureInfo.CurrentCulture);
         CategoryDetailFileCountText.Text =
@@ -228,7 +225,6 @@ public sealed partial class CategoriesPage : Page
         CategoryDetailNameText.Text = "Seleccioná una categoría";
         CategoryDetailColorDot.Fill =
             (Brush)Application.Current.Resources["BandaMutedBrush"];
-        CategoryDetailOrderText.Text = "—";
         CategoryDetailExtensionCountText.Text = "—";
         CategoryDetailFileCountText.Text = "—";
         CategoryDetailFolderText.Text = "—";
