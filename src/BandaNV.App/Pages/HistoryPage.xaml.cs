@@ -125,14 +125,40 @@ public sealed partial class HistoryPage : Page
                         categoryColors));
             }
 
-            _technicalUndoExecution =
-                technicalUndoRecords
-                    .Select(record =>
-                        BuildHistoryPreview(
-                            record,
-                            categoryColors))
-                    .FirstOrDefault(preview =>
-                        preview.CanUndo);
+            // El panel superior debe representar siempre la última
+            // ejecución realmente candidata a Undo, esté o no visible en
+            // Historial. Antes solo miraba registros técnicos ocultos, por
+            // eso podía mostrar una organización vieja aunque hubiera una
+            // organización visible mucho más reciente.
+            var latestUndoCandidate =
+                records
+                    .Concat(technicalUndoRecords)
+                    .GroupBy(
+                        record => record.ExecutionId,
+                        StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.First())
+                    .Where(record =>
+                        UndoService.SupportsUndo(record) &&
+                        record.Items.Any(item =>
+                            UndoService.IsUndoCandidate(
+                                record,
+                                item)))
+                    .OrderByDescending(record =>
+                        record.StartedAt)
+                    .FirstOrDefault();
+
+            if (latestUndoCandidate is not null)
+            {
+                var latestUndoPreview =
+                    BuildHistoryPreview(
+                        latestUndoCandidate,
+                        categoryColors);
+
+                _technicalUndoExecution =
+                    latestUndoPreview.CanUndo
+                        ? latestUndoPreview
+                        : null;
+            }
         }
         catch
         {
