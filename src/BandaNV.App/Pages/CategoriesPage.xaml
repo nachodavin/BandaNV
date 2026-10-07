@@ -742,8 +742,7 @@
                                         PlaceholderText=".ext o ext"
                                         Background="{StaticResource BandaPopupSurfaceBrush}"
                                         BorderBrush="{StaticResource BandaBorderBrush}"
-                                        BorderThickness="1"
-                                        KeyDown="CategoryExtensionInputTextBox_KeyDown" />
+                                        BorderThickness="1" />
 
                                     <Button
                                         Grid.Column="1"
