@@ -112,7 +112,6 @@
                 <ColumnDefinition Width="2.1*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <TextBox
@@ -124,34 +123,14 @@
                 Padding="14,10"
                 MinHeight="44" />
 
-            <Border
-                Grid.Column="1"
-                Padding="14,0"
-                CornerRadius="12"
-                Background="{StaticResource BandaCardBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1"
-                VerticalAlignment="Stretch">
-                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                    <TextBlock
-                        x:Name="HistoryResultCountText"
-                        Text="0"
-                        Foreground="{StaticResource BandaTextBrush}"
-                        FontWeight="SemiBold" />
-                    <TextBlock
-                        x:Name="HistoryResultCountLabel"
-                        Text="Ejecuciones"
-                        Style="{StaticResource BandaMutedTextStyle}" />
-                </StackPanel>
-            </Border>
-
             <Button
                 x:Name="HistoryFiltersButton"
-                Grid.Column="2"
+                Grid.Column="1"
                 Content="Filtros"
                 Click="HistoryFiltersButton_Click"
                 Padding="16,10"
-                MinHeight="44"
+                MinHeight="52"
+                VerticalAlignment="Stretch"
                 CornerRadius="12"
                 Background="{StaticResource BandaCardBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
@@ -160,9 +139,9 @@
 
             <Button
                 x:Name="HistorySortSelectorButton"
-                Grid.Column="3"
+                Grid.Column="2"
                 Width="190"
-                MinHeight="44"
+                MinHeight="52"
                 Style="{StaticResource BandaSelectorButtonStyle}">
                 <Grid ColumnSpacing="10">
                     <Grid.ColumnDefinitions>
@@ -294,8 +273,6 @@
                 <Grid Padding="18,14" ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -314,31 +291,26 @@
                         Grid.Column="1"
                         Padding="12,6"
                         CornerRadius="14"
-                        Background="{StaticResource BandaNavIconBrush}">
+                        Background="{StaticResource BandaNavIconBrush}"
+                        Visibility="Collapsed">
                         <TextBlock
                             x:Name="HistoryActiveFilterText"
-                            Text="Sin filtros"
-                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                            FontSize="13" />
-                    </Border>
-
-                    <Border Grid.Column="2" Padding="12,6" CornerRadius="14" Background="{StaticResource BandaNavIconBrush}">
-                        <TextBlock
-                            x:Name="HistoryActiveSortText"
-                            Text="Fecha · más reciente"
+                            Text=""
                             Foreground="{StaticResource BandaMutedStrongBrush}"
                             FontSize="13" />
                     </Border>
 
                     <Button
                         x:Name="HistoryClearFiltersButton"
-                        Grid.Column="4"
+                        Grid.Column="2"
                         Content="Limpiar filtros"
                         Click="HistoryClearFiltersButton_Click"
                         Background="Transparent"
                         BorderThickness="0"
                         Foreground="{StaticResource BandaMutedBrush}"
-                        Padding="10,6" />
+                        Padding="10,6"
+                        IsEnabled="False"
+                        Visibility="Collapsed" />
                 </Grid>
 
                 <Grid
