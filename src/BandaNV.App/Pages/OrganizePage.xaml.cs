@@ -1964,10 +1964,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             if (nestedItems.Count == 0)
             {
-                ShowOrganizeDetail(
-                    _folderDetailRoot!,
-                    preserveFolderContext:
-                        true);
+                ShowCurrentOrganizeFolderDetails();
                 return;
             }
 
@@ -2023,10 +2020,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         if (IsOrganizeFolderNavigationActive)
         {
-            ShowOrganizeDetail(
-                _folderDetailRoot!,
-                preserveFolderContext:
-                    true);
+            ShowCurrentOrganizeFolderDetails();
 
             e.Handled =
                 true;
@@ -2953,6 +2947,53 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         return null;
     }
 
+    private void ShowCurrentOrganizeFolderDetails()
+    {
+        if (_folderDetailRoot is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _folderDetailCurrentRelativePath))
+        {
+            ShowOrganizeDetail(
+                _folderDetailRoot,
+                preserveFolderContext:
+                    true);
+
+            OrganizeOpenButton.Content =
+                "Abrir carpeta";
+            return;
+        }
+
+        var currentFolder =
+            _folderDetailRoot.FolderContents
+                .FirstOrDefault(item =>
+                    item.IsDirectory &&
+                    item.RelativePath.Equals(
+                        _folderDetailCurrentRelativePath,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (currentFolder is null)
+        {
+            ShowOrganizeDetail(
+                _folderDetailRoot,
+                preserveFolderContext:
+                    true);
+
+            OrganizeOpenButton.Content =
+                "Abrir carpeta";
+            return;
+        }
+
+        ShowFolderContentItemDetails(
+            currentFolder);
+
+        OrganizeOpenButton.Content =
+            "Abrir carpeta";
+    }
+
     private void ShowFolderContentItemDetails(
         FolderContentPreviewItem item)
     {
@@ -3238,6 +3279,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         _syncingFolderDetailSelection =
             true;
+
+        var wasRefreshingPreview =
+            _isRefreshingPreview;
+
         _isRefreshingPreview =
             true;
 
@@ -3252,7 +3297,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         finally
         {
             _isRefreshingPreview =
-                false;
+                wasRefreshingPreview;
             _syncingFolderDetailSelection =
                 false;
         }
@@ -3265,6 +3310,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     {
         _syncingFolderDetailSelection =
             true;
+
+        var wasRefreshingPreview =
+            _isRefreshingPreview;
+
         _isRefreshingPreview =
             true;
 
@@ -3290,7 +3339,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         finally
         {
             _isRefreshingPreview =
-                false;
+                wasRefreshingPreview;
             _syncingFolderDetailSelection =
                 false;
         }
@@ -3339,10 +3388,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         RefreshFolderDetailView();
 
-        ShowOrganizeDetail(
-            folder,
-            preserveFolderContext:
-                true);
+        ShowCurrentOrganizeFolderDetails();
     }
 
     private void NavigateIntoOrganizeFolder(
@@ -3362,10 +3408,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         RefreshFolderDetailView();
 
-        ShowOrganizeDetail(
-            _folderDetailRoot,
-            preserveFolderContext:
-                true);
+        ShowCurrentOrganizeFolderDetails();
     }
 
     private void OrganizeFolderNavigationBackButton_Click(
@@ -3390,10 +3433,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             RefreshFolderDetailView();
 
-            ShowOrganizeDetail(
-                _folderDetailRoot,
-                preserveFolderContext:
-                    true);
+            ShowCurrentOrganizeFolderDetails();
             return;
         }
 
@@ -3492,6 +3532,20 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 .ToList();
         }
 
+        if (IsOrganizeFolderNavigationActive)
+        {
+            var currentFolder =
+                GetCurrentOrganizeFolderActionTarget();
+
+            if (currentFolder is not null)
+            {
+                return
+                [
+                    currentFolder
+                ];
+            }
+        }
+
         return GetSelectedOrganizeFiles()
             .Select(file =>
                 new OrganizeActionTarget(
@@ -3507,12 +3561,57 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             .ToList();
     }
 
+    private OrganizeActionTarget? GetCurrentOrganizeFolderActionTarget()
+    {
+        if (_folderDetailRoot is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _folderDetailCurrentRelativePath))
+        {
+            return new OrganizeActionTarget(
+                _folderDetailRoot.FullPath,
+                _folderDetailRoot.FileName,
+                IsDirectory: true,
+                _folderDetailRoot.SizeBytes,
+                _folderDetailRoot.ModifiedAt,
+                _folderDetailRoot.CategoryName,
+                _folderDetailRoot.ExtensionDisplay,
+                _folderDetailRoot,
+                IsRootItem: true);
+        }
+
+        var item =
+            _folderDetailRoot.FolderContents
+                .FirstOrDefault(candidate =>
+                    candidate.IsDirectory &&
+                    candidate.RelativePath.Equals(
+                        _folderDetailCurrentRelativePath,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (item is null)
+        {
+            return null;
+        }
+
+        return new OrganizeActionTarget(
+            GetFolderContentFullPath(
+                item),
+            item.FileName,
+            IsDirectory: true,
+            item.SizeBytes,
+            item.ModifiedAt,
+            item.CategoryName,
+            item.ExtensionDisplay,
+            _folderDetailRoot,
+            IsRootItem: false);
+    }
+
     private List<OrganizePreviewFile> GetCategoryAssignmentFiles()
     {
-        var nestedItems =
-            GetSelectedFolderContentItems();
-
-        if (nestedItems.Count > 0 &&
+        if (IsOrganizeFolderNavigationActive &&
             _folderDetailRoot is not null)
         {
             return
@@ -3555,8 +3654,17 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             if (nestedItems.Count == 0)
             {
-                ShowOrganizeActionStatus(
-                    "Ya estás viendo el contenido de esta carpeta.");
+                var currentFolder =
+                    GetCurrentOrganizeFolderActionTarget();
+
+                if (currentFolder is not null)
+                {
+                    OpenOrganizePath(
+                        currentFolder.FullPath,
+                        isDirectory:
+                            true);
+                }
+
                 return;
             }
         }
@@ -3744,7 +3852,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 : null;
 
         var isNestedSelection =
-            GetSelectedFolderContentItems().Count > 0 &&
+            IsOrganizeFolderNavigationActive &&
             _folderDetailRoot is not null;
 
         OrganizeManageTitleText.Text =
@@ -4730,6 +4838,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         _syncingFolderDetailSelection =
             true;
+
+        var wasRefreshingPreview =
+            _isRefreshingPreview;
+
         _isRefreshingPreview =
             true;
 
@@ -4746,7 +4858,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         finally
         {
             _isRefreshingPreview =
-                false;
+                wasRefreshingPreview;
             _syncingFolderDetailSelection =
                 false;
         }
@@ -4774,10 +4886,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         }
         else
         {
-            ShowOrganizeDetail(
-                root,
-                preserveFolderContext:
-                    true);
+            ShowCurrentOrganizeFolderDetails();
         }
 
         return true;

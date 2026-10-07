@@ -1893,8 +1893,36 @@ public sealed partial class SearchPage : Page
                 item.ActionTarget)
             .ToList();
 
-    private List<SearchFileResult> GetSelectedSearchFiles() =>
-        GetSelectedMainSearchFiles();
+    private List<SearchFileResult> GetSelectedSearchFiles()
+    {
+        var selected =
+            GetSelectedMainSearchFiles();
+
+        if (selected.Count > 0)
+        {
+            return selected;
+        }
+
+        if (IsSearchFolderNavigationActive &&
+            _selectedSearchFolder is not null)
+        {
+            return
+            [
+                GetCurrentSearchFolderTarget()
+            ];
+        }
+
+        return [];
+    }
+
+    private bool IsCurrentSearchFolder(
+        SearchFileResult file) =>
+        IsSearchFolderNavigationActive &&
+        _selectedSearchFolder is not null &&
+        GetCurrentSearchFolderTarget()
+            .FilePath.Equals(
+                file.FilePath,
+                StringComparison.OrdinalIgnoreCase);
 
     private void UpdateSearchSelectionDetails()
     {
@@ -1975,7 +2003,10 @@ public sealed partial class SearchPage : Page
 
         SearchOpenFileButton.Content =
             file.IsDirectory
-                ? "Abrir contenido"
+                ? IsCurrentSearchFolder(
+                    file)
+                    ? "Abrir carpeta"
+                    : "Abrir contenido"
                 : "Abrir archivo";
 
         SearchCopyPathButton.Content =
@@ -2606,7 +2637,9 @@ public sealed partial class SearchPage : Page
             return;
         }
 
-        if (file.IsDirectory)
+        if (file.IsDirectory &&
+            !IsCurrentSearchFolder(
+                file))
         {
             NavigateIntoSearchFolder(
                 file);
