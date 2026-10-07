@@ -1339,6 +1339,9 @@
                             Content="Guardar"
                             Click="SearchManagePrimaryButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
@@ -1358,7 +1361,11 @@
                             Content="Eliminar"
                             Click="SearchManageDangerButton_Click"
                             Style="{StaticResource BandaPopupDangerButtonStyle}"
-                            Visibility="Collapsed" />
+                            Visibility="Collapsed">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
@@ -1844,6 +1851,9 @@
                             Click="ApplyFiltersOverlayButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}"
                             MinWidth="126">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
