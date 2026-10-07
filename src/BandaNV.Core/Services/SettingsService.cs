@@ -155,6 +155,42 @@ public sealed class SettingsService
         settings.HistoryRetention =
             NormalizeHistoryRetention(settings.HistoryRetention);
 
+        settings.SearchDateFilter =
+            NormalizeViewDateFilter(settings.SearchDateFilter);
+        settings.SearchSizeFilter =
+            NormalizeViewSizeFilter(settings.SearchSizeFilter);
+        settings.SearchSortField =
+            NormalizeViewSortField(settings.SearchSortField);
+        settings.SearchSortDirection =
+            NormalizeViewSortDirection(settings.SearchSortDirection);
+        settings.SearchGroupField =
+            NormalizeViewGroupField(settings.SearchGroupField);
+
+        settings.OrganizeDateFilter =
+            NormalizeViewDateFilter(settings.OrganizeDateFilter);
+        settings.OrganizeSizeFilter =
+            NormalizeViewSizeFilter(settings.OrganizeSizeFilter);
+        settings.OrganizeSortField =
+            NormalizeViewSortField(settings.OrganizeSortField);
+        settings.OrganizeSortDirection =
+            NormalizeViewSortDirection(settings.OrganizeSortDirection);
+        settings.OrganizeGroupField =
+            NormalizeViewGroupField(settings.OrganizeGroupField);
+
+        settings.HistoryTypeFilter =
+            NormalizeHistoryTypeFilter(settings.HistoryTypeFilter);
+        settings.HistoryUndoFilter =
+            NormalizeHistoryUndoFilter(settings.HistoryUndoFilter);
+        settings.HistoryOriginFilter =
+            settings.HistoryOriginFilter?.Trim() ?? string.Empty;
+        settings.HistorySortMode =
+            NormalizeHistorySortMode(settings.HistorySortMode);
+
+        settings.SearchExtensionFilters =
+            NormalizeViewExtensions(settings.SearchExtensionFilters);
+        settings.OrganizeExtensionFilters =
+            NormalizeViewExtensions(settings.OrganizeExtensionFilters);
+
         settings.SourceFolder =
             settings.SourceFolder?.Trim() ?? string.Empty;
         settings.DestinationFolder =
@@ -276,6 +312,106 @@ public sealed class SettingsService
             "Siempre" => "Siempre",
             _ => "Siempre"
         };
+
+    private static string NormalizeViewDateFilter(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Today" => "Today",
+            "Last7Days" => "Last7Days",
+            "Last30Days" => "Last30Days",
+            "SpecificDate" => "SpecificDate",
+            _ => "All"
+        };
+
+    private static string NormalizeViewSizeFilter(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Under100Mb" => "Under100Mb",
+            "From100To500Mb" => "From100To500Mb",
+            "From500MbTo1Gb" => "From500MbTo1Gb",
+            "From1To5Gb" => "From1To5Gb",
+            "From5To20Gb" => "From5To20Gb",
+            "Over20Gb" => "Over20Gb",
+            _ => "All"
+        };
+
+    private static string NormalizeViewSortField(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Name" => "Name",
+            "Size" => "Size",
+            "Category" => "Category",
+            "Extension" => "Extension",
+            _ => "DateModified"
+        };
+
+    private static string NormalizeViewSortDirection(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Ascending" => "Ascending",
+            _ => "Descending"
+        };
+
+    private static string NormalizeViewGroupField(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "None" => "None",
+            "Name" => "Name",
+            "Size" => "Size",
+            "Category" => "Category",
+            "Extension" => "Extension",
+            _ => "DateModified"
+        };
+
+    private static string NormalizeHistoryTypeFilter(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Organize" => "Organize",
+            "OrganizeRename" => "OrganizeRename",
+            "OrganizeDelete" => "OrganizeDelete",
+            "Search" => "Search",
+            "SearchCategory" => "SearchCategory",
+            "SearchRename" => "SearchRename",
+            "SearchDelete" => "SearchDelete",
+            "Undo" => "Undo",
+            _ => "All"
+        };
+
+    private static string NormalizeHistoryUndoFilter(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Reversible" => "Reversible",
+            "NotReversible" => "NotReversible",
+            _ => "All"
+        };
+
+    private static string NormalizeHistorySortMode(
+        string? value) =>
+        value?.Trim() switch
+        {
+            "Oldest" => "Oldest",
+            "FilesDescending" => "FilesDescending",
+            "FilesAscending" => "FilesAscending",
+            "SizeDescending" => "SizeDescending",
+            "SizeAscending" => "SizeAscending",
+            _ => "Newest"
+        };
+
+    private static List<string> NormalizeViewExtensions(
+        IEnumerable<string>? values) =>
+        (values ?? [])
+            .Select(NormalizeExtension)
+            .Where(extension => extension.Length > 1)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(extension => extension, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private static string NormalizeHex(string? value, string fallback)
     {
