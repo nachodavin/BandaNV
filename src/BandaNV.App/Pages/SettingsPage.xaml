@@ -1272,7 +1272,11 @@
                             Grid.Column="2"
                             Content="Confirmar"
                             Click="SettingsConfirmDangerButton_Click"
-                            Style="{StaticResource BandaPopupDangerButtonStyle}" />
+                            Style="{StaticResource BandaPopupDangerButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
