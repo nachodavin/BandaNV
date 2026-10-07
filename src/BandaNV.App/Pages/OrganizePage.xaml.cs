@@ -5186,16 +5186,39 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         var settings =
             global::BandaNV.App.App.Settings.Current;
 
+        var hasSource =
+            !string.IsNullOrWhiteSpace(
+                settings.SourceFolder);
+        var hasDestination =
+            !string.IsNullOrWhiteSpace(
+                settings.DestinationFolder);
+
         var source =
-            string.IsNullOrWhiteSpace(
-                settings.SourceFolder)
-                ? "Sin configurar"
-                : settings.SourceFolder;
+            hasSource
+                ? settings.SourceFolder
+                : "Sin configurar";
 
         AnalyzeButton.Content =
             settings.PreviewBeforeOrganize
                 ? "Analizar archivos"
                 : "Organizar archivos";
+
+        AnalyzeButton.IsEnabled =
+            hasSource &&
+            hasDestination;
+
+        if (!hasSource ||
+            !hasDestination)
+        {
+            InitialAnalysisDescriptionText.Text =
+                !hasSource && !hasDestination
+                    ? "Configurá una carpeta de origen y una carpeta de destino para comenzar."
+                    : !hasSource
+                        ? "Configurá una carpeta de origen para comenzar."
+                        : "Configurá una carpeta de destino para comenzar.";
+
+            return;
+        }
 
         InitialAnalysisDescriptionText.Text =
             settings.PreviewBeforeOrganize
