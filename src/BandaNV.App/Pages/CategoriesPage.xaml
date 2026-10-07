@@ -371,6 +371,11 @@
                                                                 <StackPanel Spacing="2">
                                                                     <Button
                                                                         Tag="{x:Bind Id}"
+                                                                        Content="Editar categoría"
+                                                                        Click="EditCategoryButton_Click"
+                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                                    <Button
+                                                                        Tag="{x:Bind Id}"
                                                                         Content="Gestionar extensiones"
                                                                         Click="ManageExtensionsButton_Click"
                                                                         Style="{StaticResource BandaPopupOptionButtonStyle}" />
@@ -431,32 +436,12 @@
                                             </StackPanel>
 
                                             <Grid
-                                                Grid.Row="2"
-                                                ColumnSpacing="12">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <StackPanel
-                                                    Orientation="Horizontal"
-                                                    Spacing="7"
-                                                    VerticalAlignment="Center">
-                                                    <TextBlock
-                                                        Text="{x:Bind FileCountDisplayText}"
-                                                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                        FontSize="12"
-                                                        VerticalAlignment="Center" />
-                                                </StackPanel>
-
-                                                <Button
-                                                    Grid.Column="1"
-                                                    Tag="{x:Bind Id}"
-                                                    Content="Editar"
-                                                    Click="EditCategoryButton_Click"
-                                                    Style="{StaticResource BandaPopupSecondaryButtonStyle}"
-                                                    Padding="14,7"
-                                                    MinWidth="84" />
+                                                Grid.Row="2">
+                                                <TextBlock
+                                                    Text="{x:Bind FileCountDisplayText}"
+                                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                    FontSize="12"
+                                                    VerticalAlignment="Center" />
                                             </Grid>
                                         </Grid>
                                     </Grid>
