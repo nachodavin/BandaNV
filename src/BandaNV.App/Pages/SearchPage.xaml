@@ -313,7 +313,6 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <TextBox
@@ -325,45 +324,22 @@
                 Padding="14,10"
                 MinHeight="44" />
 
-            <Border
-                Grid.Column="1"
-                Padding="14,0"
-                CornerRadius="12"
-                Background="{StaticResource BandaCardBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1"
-                VerticalAlignment="Stretch">
-
-                <StackPanel
-                    Orientation="Horizontal"
-                    Spacing="5"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        x:Name="SearchResultCountText"
-                        Text="0"
-                        Foreground="{StaticResource BandaTextBrush}"
-                        FontWeight="SemiBold" />
-                    <TextBlock
-                        Text="Elementos"
-                        Style="{StaticResource BandaMutedTextStyle}" />
-                </StackPanel>
-            </Border>
-
             <Button
                 x:Name="FiltersButton"
-                Grid.Column="2"
+                Grid.Column="1"
                 Content="Filtros"
                 Click="FiltersButton_Click"
                 Padding="16,10"
-                MinHeight="44"
+                MinHeight="52"
                 CornerRadius="12"
+                VerticalAlignment="Stretch"
                 Background="{StaticResource BandaCardBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
                 BorderThickness="1" />
 
             <Button
                 x:Name="SortSelectorButton"
-                Grid.Column="3"
+                Grid.Column="2"
                 Width="215"
                 MinHeight="52"
                 Style="{StaticResource BandaSelectorButtonStyle}">
@@ -430,7 +406,7 @@
 
             <Button
                 x:Name="GroupSelectorButton"
-                Grid.Column="4"
+                Grid.Column="3"
                 Width="205"
                 MinHeight="52"
                 Style="{StaticResource BandaSelectorButtonStyle}">
@@ -551,11 +527,12 @@
                     <TextBlock
                         x:Name="NoFiltersText"
                         Grid.Column="2"
-                        Text="Sin filtros"
+                        Text=""
                         Foreground="{StaticResource BandaMutedStrongBrush}"
                         FontSize="13"
                         VerticalAlignment="Center"
-                        Margin="2,0,0,0" />
+                        Margin="2,0,0,0"
+                        Visibility="Collapsed" />
 
                     <Button
                         x:Name="ClearFiltersButton"
