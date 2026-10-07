@@ -184,14 +184,6 @@ public sealed class OrganizationExecutionService
                     GetProgressMessage(item)));
             }
 
-            if (settings.DeleteEmptyFolders)
-            {
-                record.EmptyDirectoriesDeleted =
-                    DeleteEmptySourceDirectories(
-                        sourceRoot,
-                        destinationRoot);
-            }
-
             record.FinishedAt = DateTime.Now;
             record.Status = record.Items.Any(item =>
                     item.Status is OrganizationExecutionItemStatus.Error or
@@ -1728,51 +1720,6 @@ public sealed class OrganizationExecutionService
         {
             TryDelete(tempDestination);
         }
-    }
-
-    private static int DeleteEmptySourceDirectories(
-        string sourceRoot,
-        string destinationRoot)
-    {
-        var deleted = 0;
-
-        IEnumerable<string> directories;
-        try
-        {
-            directories = Directory
-                .EnumerateDirectories(
-                    sourceRoot,
-                    "*",
-                    SearchOption.AllDirectories)
-                .OrderByDescending(path => path.Length)
-                .ToList();
-        }
-        catch
-        {
-            return 0;
-        }
-
-        foreach (var directory in directories)
-        {
-            if (IsSameOrInside(directory, destinationRoot))
-            {
-                continue;
-            }
-
-            try
-            {
-                if (!Directory.EnumerateFileSystemEntries(directory).Any())
-                {
-                    Directory.Delete(directory, recursive: false);
-                    deleted++;
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        return deleted;
     }
 
     private static async Task PersistRecordAsync(
