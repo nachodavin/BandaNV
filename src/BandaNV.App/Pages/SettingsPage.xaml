@@ -210,7 +210,7 @@
                                                 <TextBlock Text="CARPETA DE ORIGEN" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
                                                 <TextBlock
                                                     x:Name="SourceFolderText"
-                                                    Text="C:\Users\Usuario\Downloads"
+                                                    Text="No seleccionada"
                                                     Foreground="{StaticResource BandaTextBrush}"
                                                     FontSize="13"
                                                     TextTrimming="CharacterEllipsis" />
@@ -242,7 +242,7 @@
                                                 <TextBlock Text="DESTINO" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
                                                 <TextBlock
                                                     x:Name="DestinationFolderText"
-                                                    Text="C:\Users\Usuario\Downloads\ORGANIZADO"
+                                                    Text="No seleccionada"
                                                     Foreground="{StaticResource BandaTextBrush}"
                                                     FontSize="13"
                                                     TextTrimming="CharacterEllipsis" />
@@ -699,7 +699,7 @@
                                             <TextBlock Text="Detectar carpetas completas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                             <TextBlock Text="Detectar cada carpeta como una sola unidad, incluyendo su contenido y subcarpetas, y conservar su estructura interna al moverla." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
-                                        <ToggleSwitch x:Name="OrganizeFoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
+                                        <ToggleSwitch x:Name="OrganizeFoldersToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                     <Grid>
@@ -712,6 +712,18 @@
                                             <TextBlock Text="Crear automáticamente la carpeta de cada categoría." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="CreateFoldersToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="Eliminar carpetas de categorías sin uso" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Elimina carpetas vacías de categorías eliminadas que BandaNV pueda identificar con seguridad." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ToggleSwitch x:Name="DeleteUnusedCategoryFoldersToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
                                 </StackPanel>
