@@ -209,7 +209,7 @@ public sealed partial class HistoryPage : Page
                 reversibleFileCount,
             UndoBadgeText =
                 isUndo
-                    ? "Registro Undo"
+                    ? "Registro de deshacer"
                     : !UndoService.SupportsUndo(
                         record)
                         ? isSearch
@@ -1021,13 +1021,10 @@ public sealed partial class HistoryPage : Page
 
     private void UpdateHistoryToolState(int resultCount, string searchText)
     {
-        HistoryResultCountText.Text = resultCount.ToString(CultureInfo.CurrentCulture);
-        HistoryResultCountLabel.Text = resultCount == 1 ? "ejecución" : "ejecuciones";
         HistoryFooterCountText.Text =
             resultCount == 1 ? "1 resultado" : $"{resultCount} resultados";
 
         HistorySortValueText.Text = GetHistorySortDisplayName(_sortMode);
-        HistoryActiveSortText.Text = GetHistorySortDisplayName(_sortMode);
 
         var filterParts = new List<string>();
 
@@ -1064,8 +1061,13 @@ public sealed partial class HistoryPage : Page
 
         HistoryActiveFilterText.Text =
             filterParts.Count == 0
-                ? "Sin filtros"
+                ? string.Empty
                 : string.Join(" · ", filterParts);
+
+        HistoryActiveFilterChip.Visibility =
+            hasAnyFilter
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
         HistoryFiltersButton.Content =
             hasAdvancedFilters
@@ -1081,6 +1083,10 @@ public sealed partial class HistoryPage : Page
                 hasAdvancedFilters ? "BandaAccentBrush" : "BandaTextBrush"];
 
         HistoryClearFiltersButton.IsEnabled = hasAnyFilter;
+        HistoryClearFiltersButton.Visibility =
+            hasAnyFilter
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
     private void ClearExecutionDetails()
