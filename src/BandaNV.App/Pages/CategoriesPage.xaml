@@ -245,6 +245,12 @@
                             </ItemsPanelTemplate>
                         </GridView.ItemsPanel>
 
+                        <!-- El reordenamiento usa animación propia; evitamos el
+                             refresh/fade automático del GridView al mover items. -->
+                        <GridView.ItemContainerTransitions>
+                            <TransitionCollection />
+                        </GridView.ItemContainerTransitions>
+
                         <GridView.ItemContainerStyle>
                             <Style TargetType="GridViewItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
