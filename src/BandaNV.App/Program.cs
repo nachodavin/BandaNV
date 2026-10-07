@@ -37,7 +37,7 @@ public static class Program
             };
 
         Application.Start(
-            _ =>
+            initializationCallbackParams =>
             {
                 var context =
                     new DispatcherQueueSynchronizationContext(
