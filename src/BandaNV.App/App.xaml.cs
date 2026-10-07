@@ -56,11 +56,16 @@ public partial class App : Application
 
         try
         {
+            var trackedOrphansBefore =
+                Settings.Current.OrphanedCategoryFolders.Count;
+
             var deletedUnusedCategoryFolders =
                 await CategoryFolders.CleanupUnusedCategoryFoldersAsync(
                     Settings.Current);
 
-            if (deletedUnusedCategoryFolders > 0)
+            if (deletedUnusedCategoryFolders > 0 ||
+                Settings.Current.OrphanedCategoryFolders.Count !=
+                    trackedOrphansBefore)
             {
                 await Settings.SaveAsync(
                     Settings.Current);
