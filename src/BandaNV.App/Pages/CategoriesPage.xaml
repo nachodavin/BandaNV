@@ -664,7 +664,11 @@
                             Content="×"
                             Click="CloseCategoryEditorButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Border
@@ -921,7 +925,11 @@
                             Content="×"
                             Click="CloseDeleteCategoryButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Border
