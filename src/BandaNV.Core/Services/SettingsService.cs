@@ -89,7 +89,21 @@ public sealed class SettingsService
 
     public async Task ResetAsync(CancellationToken cancellationToken = default)
     {
-        await SaveAsync(AppSettings.CreateDefault(), cancellationToken);
+        var defaults = AppSettings.CreateDefault();
+
+        defaults.Categories = Current.Categories
+            .Select(category => new CategorySettings(
+                category.Id,
+                category.Name,
+                category.Extensions,
+                category.Order,
+                category.ColorHex))
+            .ToList();
+
+        defaults.OrphanedCategoryFolders =
+            Current.OrphanedCategoryFolders.ToList();
+
+        await SaveAsync(defaults, cancellationToken);
     }
 
     public async Task UpdateCategoriesAsync(
@@ -140,6 +154,19 @@ public sealed class SettingsService
                 settings.UnknownExtensionBehavior);
         settings.HistoryRetention =
             NormalizeHistoryRetention(settings.HistoryRetention);
+
+        settings.SourceFolder =
+            settings.SourceFolder?.Trim() ?? string.Empty;
+        settings.DestinationFolder =
+            settings.DestinationFolder?.Trim() ?? string.Empty;
+
+        settings.OrphanedCategoryFolders ??= [];
+        settings.OrphanedCategoryFolders =
+            settings.OrphanedCategoryFolders
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
         settings.Categories ??= [];
 
