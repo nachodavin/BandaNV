@@ -49,7 +49,7 @@ public sealed partial class SearchPage : Page
         new(StringComparer.OrdinalIgnoreCase);
     private SearchSortField _sortField = SearchSortField.DateModified;
     private SearchSortDirection _sortDirection = SearchSortDirection.Descending;
-    private SearchGroupField _groupField = SearchGroupField.None;
+    private SearchGroupField _groupField = SearchGroupField.DateModified;
 
     private SearchDateFilter _pendingDateFilter = SearchDateFilter.All;
     private DateTime? _pendingSpecificDateFilter;
@@ -71,11 +71,98 @@ public sealed partial class SearchPage : Page
         _searchResultsViewSource.Source = VisibleSearchResults;
         SearchResultsList.ItemsSource = _searchResultsViewSource.View;
 
+        LoadSavedViewPreferences();
+
         UpdateSortAndGroupSelectorText();
         UpdateSortAndGroupOptionHighlights();
         InitializeSpecificDateWheels();
 
         Loaded += SearchPage_Loaded;
+    }
+
+    private void LoadSavedViewPreferences()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        _dateFilter =
+            Enum.TryParse<SearchDateFilter>(
+                settings.SearchDateFilter,
+                ignoreCase: true,
+                out var dateFilter)
+                ? dateFilter
+                : SearchDateFilter.All;
+
+        _specificDateFilter =
+            _dateFilter == SearchDateFilter.SpecificDate
+                ? settings.SearchSpecificDateFilter?.Date
+                : null;
+
+        _sizeFilter =
+            Enum.TryParse<SearchSizeFilter>(
+                settings.SearchSizeFilter,
+                ignoreCase: true,
+                out var sizeFilter)
+                ? sizeFilter
+                : SearchSizeFilter.All;
+
+        _extensionFilters.Clear();
+        _extensionFilters.UnionWith(
+            settings.SearchExtensionFilters ?? []);
+
+        _sortField =
+            Enum.TryParse<SearchSortField>(
+                settings.SearchSortField,
+                ignoreCase: true,
+                out var sortField)
+                ? sortField
+                : SearchSortField.DateModified;
+
+        _sortDirection =
+            Enum.TryParse<SearchSortDirection>(
+                settings.SearchSortDirection,
+                ignoreCase: true,
+                out var sortDirection)
+                ? sortDirection
+                : SearchSortDirection.Descending;
+
+        _groupField =
+            Enum.TryParse<SearchGroupField>(
+                settings.SearchGroupField,
+                ignoreCase: true,
+                out var groupField)
+                ? groupField
+                : SearchGroupField.DateModified;
+    }
+
+    private async Task PersistViewPreferencesAsync()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        settings.SearchDateFilter =
+            _dateFilter.ToString();
+        settings.SearchSpecificDateFilter =
+            _dateFilter == SearchDateFilter.SpecificDate
+                ? _specificDateFilter?.Date
+                : null;
+        settings.SearchSizeFilter =
+            _sizeFilter.ToString();
+        settings.SearchExtensionFilters =
+            _extensionFilters
+                .OrderBy(
+                    extension => extension,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        settings.SearchSortField =
+            _sortField.ToString();
+        settings.SearchSortDirection =
+            _sortDirection.ToString();
+        settings.SearchGroupField =
+            _groupField.ToString();
+
+        await global::BandaNV.App.App.Settings.SaveAsync(
+            settings);
     }
 
     private async void SearchPage_Loaded(object sender, RoutedEventArgs e)
@@ -338,7 +425,7 @@ public sealed partial class SearchPage : Page
         BuildExtensionFilterOptions();
     }
 
-    private void ApplyFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    private async void ApplyFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
     {
         if (_pendingDateFilter == SearchDateFilter.SpecificDate &&
             !_pendingSpecificDateFilter.HasValue)
@@ -359,6 +446,7 @@ public sealed partial class SearchPage : Page
 
         FiltersOverlay.Visibility = Visibility.Collapsed;
         RefreshSearchResults();
+        await PersistViewPreferencesAsync();
     }
 
     private void PopulateFilterOverlayControls()
@@ -637,7 +725,7 @@ public sealed partial class SearchPage : Page
         BuildExtensionFilterOptions();
     }
 
-    private void SortFieldOptionButton_Click(object sender, RoutedEventArgs e)
+    private async void SortFieldOptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string sortKey })
         {
@@ -657,9 +745,10 @@ public sealed partial class SearchPage : Page
         UpdateSortAndGroupOptionHighlights();
         SortFlyout.Hide();
         RefreshSearchResults();
+        await PersistViewPreferencesAsync();
     }
 
-    private void SortDirectionOptionButton_Click(object sender, RoutedEventArgs e)
+    private async void SortDirectionOptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string directionKey })
         {
@@ -676,9 +765,10 @@ public sealed partial class SearchPage : Page
         UpdateSortAndGroupOptionHighlights();
         SortFlyout.Hide();
         RefreshSearchResults();
+        await PersistViewPreferencesAsync();
     }
 
-    private void GroupFieldOptionButton_Click(object sender, RoutedEventArgs e)
+    private async void GroupFieldOptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string groupKey })
         {
@@ -699,6 +789,7 @@ public sealed partial class SearchPage : Page
         UpdateSortAndGroupOptionHighlights();
         GroupFlyout.Hide();
         RefreshSearchResults();
+        await PersistViewPreferencesAsync();
     }
 
     private void UpdatePendingFilterLabels()
@@ -917,7 +1008,7 @@ public sealed partial class SearchPage : Page
             ? "Asc."
             : "Desc.";
 
-    private void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
+    private async void ClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
         _selectedCategoryNames.Clear();
         _dateFilter = SearchDateFilter.All;
@@ -934,6 +1025,8 @@ public sealed partial class SearchPage : Page
         {
             RefreshSearchResults();
         }
+
+        await PersistViewPreferencesAsync();
     }
 
     private void RefreshSearchResults()
