@@ -16,7 +16,6 @@ public sealed partial class CategoriesPage : Page
 
     public ObservableCollection<CategoryAdminItem> VisibleCategories { get; } = new();
 
-    private CategoryAdminItem? _selectedCategory;
     private CategoryAdminItem? _editorCategory;
     private CategoryAdminItem? _pendingDeleteCategory;
     private CategoryEditorMode _editorMode = CategoryEditorMode.Create;
@@ -35,7 +34,6 @@ public sealed partial class CategoriesPage : Page
         LoadPersistentCategories();
         RefreshCategoryList();
         UpdateCategoryMetrics();
-        ClearCategoryDetails();
 
         Loaded += CategoriesPage_Loaded;
         Unloaded += CategoriesPage_Unloaded;
@@ -89,13 +87,16 @@ public sealed partial class CategoriesPage : Page
         RefreshCategoryList();
     }
 
-    private void RefreshCategoryList(CategoryAdminItem? preferredSelection = null)
+    private void RefreshCategoryList()
     {
-        var selected = preferredSelection ?? _selectedCategory;
-        var searchText = CategorySearchBox?.Text?.Trim() ?? string.Empty;
+        var searchText =
+            CategorySearchBox?.Text?.Trim() ??
+            string.Empty;
 
-        IEnumerable<CategoryAdminItem> query = _allCategories
-            .OrderBy(category => category.Order);
+        IEnumerable<CategoryAdminItem> query =
+            _allCategories
+                .OrderBy(category =>
+                    category.Order);
 
         if (!string.IsNullOrWhiteSpace(searchText))
         {
@@ -109,18 +110,25 @@ public sealed partial class CategoriesPage : Page
                         StringComparison.CurrentCultureIgnoreCase)));
         }
 
-        var results = query.ToList();
+        var results =
+            query.ToList();
 
         VisibleCategories.Clear();
+
         foreach (var category in results)
         {
             VisibleCategories.Add(category);
         }
 
-        var canReorder = string.IsNullOrWhiteSpace(searchText);
-        CategoryList.CanDragItems = canReorder;
-        CategoryList.CanReorderItems = canReorder;
-        CategoryList.AllowDrop = canReorder;
+        var canReorder =
+            string.IsNullOrWhiteSpace(searchText);
+
+        CategoryList.CanDragItems =
+            canReorder;
+        CategoryList.CanReorderItems =
+            canReorder;
+        CategoryList.AllowDrop =
+            canReorder;
 
         CategoryFooterCountText.Text =
             string.IsNullOrWhiteSpace(searchText)
@@ -130,50 +138,65 @@ public sealed partial class CategoriesPage : Page
                 : $"{results.Count} de {_allCategories.Count} categorías";
 
         CategoryList.Visibility =
-            results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        CategoriesEmptyStatePanel.Visibility =
-            results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            results.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
-        if (selected is not null && results.Contains(selected))
-        {
-            CategoryList.SelectedItem = selected;
-        }
-        else
-        {
-            CategoryList.SelectedItem = null;
-            _selectedCategory = null;
-            ClearCategoryDetails();
-        }
+        CategoriesEmptyStatePanel.Visibility =
+            results.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
-    private void CategoryList_SelectionChanged(
+    private void CategoryList_SizeChanged(
         object sender,
-        SelectionChangedEventArgs e)
+        SizeChangedEventArgs e)
     {
-        if (CategoryList.SelectedItem is not CategoryAdminItem category)
+        if (CategoryList.ItemsPanelRoot is not
+            ItemsWrapGrid wrapGrid)
         {
-            _selectedCategory = null;
-            ClearCategoryDetails();
             return;
         }
 
-        _selectedCategory = category;
-        ShowCategoryDetails(category);
+        var availableWidth =
+            Math.Max(
+                320,
+                e.NewSize.Width);
+
+        var columns =
+            availableWidth >= 1240
+                ? 3
+                : availableWidth >= 790
+                    ? 2
+                    : 1;
+
+        const double spacing = 12;
+
+        wrapGrid.ItemWidth =
+            Math.Max(
+                300,
+                (availableWidth -
+                 (spacing * columns)) /
+                columns);
     }
 
     private async void CategoryList_DragItemsCompleted(
         ListViewBase sender,
         DragItemsCompletedEventArgs args)
     {
-        if (!string.IsNullOrWhiteSpace(CategorySearchBox.Text))
+        if (!string.IsNullOrWhiteSpace(
+                CategorySearchBox.Text))
         {
             return;
         }
 
-        var reordered = VisibleCategories.ToList();
+        var reordered =
+            VisibleCategories.ToList();
 
         _allCategories.Clear();
-        _allCategories.AddRange(reordered);
+        _allCategories.AddRange(
+            reordered);
+
         NormalizeCategoryOrder();
 
         if (!await PersistCategoriesAsync())
@@ -183,7 +206,7 @@ public sealed partial class CategoriesPage : Page
         }
 
         RefreshDerivedCategoryData();
-        RefreshCategoryList(_selectedCategory);
+        RefreshCategoryList();
         UpdateCategoryMetrics();
         _ = RefreshUnassignedFilesMetricAsync();
     }
@@ -194,84 +217,6 @@ public sealed partial class CategoriesPage : Page
         {
             _allCategories[index].Order = index + 1;
         }
-    }
-
-    private void ShowCategoryDetails(CategoryAdminItem category)
-    {
-        CategoryDetailNameText.Text = category.Name;
-        CategoryDetailColorDot.Fill = category.ColorBrush;
-        CategoryDetailExtensionCountText.Text =
-            category.Extensions.Count.ToString(CultureInfo.CurrentCulture);
-        CategoryDetailFileCountText.Text =
-            category.FileCount.ToString(CultureInfo.CurrentCulture);
-        CategoryDetailFolderText.Text =
-            string.IsNullOrWhiteSpace(category.FolderPath)
-                ? "Sin destino configurado"
-                : category.FolderPath;
-
-        BuildCategoryDetailExtensionBadges(category);
-
-        EditCategoryButton.IsEnabled = true;
-        ManageExtensionsButton.IsEnabled = true;
-        DuplicateCategoryButton.IsEnabled = true;
-        DeleteCategoryButton.IsEnabled = true;
-
-        CategoryDetailStatusText.Text =
-            "Arrastrá una fila desde el indicador ⋮⋮ para cambiar el orden global.";
-        CategoryDetailStatusText.Foreground =
-            (Brush)Application.Current.Resources["BandaMutedBrush"];
-        CategoryDetailStatusText.Visibility = Visibility.Visible;
-    }
-
-    private void ClearCategoryDetails()
-    {
-        CategoryDetailNameText.Text = "Seleccioná una categoría";
-        CategoryDetailColorDot.Fill =
-            (Brush)Application.Current.Resources["BandaMutedBrush"];
-        CategoryDetailExtensionCountText.Text = "—";
-        CategoryDetailFileCountText.Text = "—";
-        CategoryDetailFolderText.Text = "—";
-        CategoryDetailExtensionsPanel.Children.Clear();
-
-        EditCategoryButton.IsEnabled = false;
-        ManageExtensionsButton.IsEnabled = false;
-        DuplicateCategoryButton.IsEnabled = false;
-        DeleteCategoryButton.IsEnabled = false;
-
-        CategoryDetailStatusText.Text =
-            "Seleccioná una categoría para ver y administrar su configuración.";
-        CategoryDetailStatusText.Visibility = Visibility.Visible;
-    }
-
-    private void BuildCategoryDetailExtensionBadges(CategoryAdminItem category)
-    {
-        CategoryDetailExtensionsPanel.Children.Clear();
-
-        foreach (var extension in category.Extensions)
-        {
-            CategoryDetailExtensionsPanel.Children.Add(
-                CreateExtensionBadge(extension));
-        }
-    }
-
-    private Border CreateExtensionBadge(string extension)
-    {
-        return new Border
-        {
-            Padding = new Thickness(8, 5, 8, 5),
-            CornerRadius = new CornerRadius(9),
-            Background =
-                (Brush)Application.Current.Resources["BandaAccentSoftBrush"],
-            Child = new TextBlock
-            {
-                Text = extension,
-                Foreground =
-                    (Brush)Application.Current.Resources["BandaAccentBrush"],
-                FontSize = 12,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
     }
 
     private void UpdateCategoryMetrics()
@@ -539,9 +484,32 @@ public sealed partial class CategoriesPage : Page
             []);
     }
 
-    private void EditCategoryButton_Click(object sender, RoutedEventArgs e)
+    private CategoryAdminItem? ResolveCategoryFromActionSender(
+        object sender)
     {
-        if (_selectedCategory is not { } category)
+        if (sender is not FrameworkElement
+            {
+                Tag: string categoryId
+            })
+        {
+            return null;
+        }
+
+        return _allCategories.FirstOrDefault(category =>
+            category.Id.Equals(
+                categoryId,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void EditCategoryButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var category =
+            ResolveCategoryFromActionSender(
+                sender);
+
+        if (category is null)
         {
             return;
         }
@@ -553,9 +521,15 @@ public sealed partial class CategoriesPage : Page
             category.Extensions);
     }
 
-    private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e)
+    private void ManageExtensionsButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        if (_selectedCategory is not { } category)
+        var category =
+            ResolveCategoryFromActionSender(
+                sender);
+
+        if (category is null)
         {
             return;
         }
@@ -567,14 +541,22 @@ public sealed partial class CategoriesPage : Page
             category.Extensions);
     }
 
-    private void DuplicateCategoryButton_Click(object sender, RoutedEventArgs e)
+    private void DuplicateCategoryButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        if (_selectedCategory is not { } category)
+        var category =
+            ResolveCategoryFromActionSender(
+                sender);
+
+        if (category is null)
         {
             return;
         }
 
-        var copyName = BuildUniqueCategoryName($"{category.Name} COPIA");
+        var copyName =
+            BuildUniqueCategoryName(
+                $"{category.Name} COPIA");
 
         OpenCategoryEditor(
             CategoryEditorMode.Duplicate,
@@ -622,6 +604,19 @@ public sealed partial class CategoriesPage : Page
         CategoryEditorNameTextBox.Text = name;
         CategoryEditorNameTextBox.IsReadOnly =
             mode == CategoryEditorMode.Extensions;
+
+        CategoryEditorFolderSection.Visibility =
+            category is null
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+        CategoryEditorFolderText.Text =
+            category is null
+                ? string.Empty
+                : string.IsNullOrWhiteSpace(
+                    category.FolderPath)
+                    ? "Sin destino configurado"
+                    : category.FolderPath;
 
         _editorCategoryId =
             mode is CategoryEditorMode.Create or CategoryEditorMode.Duplicate
@@ -1071,13 +1066,9 @@ public sealed partial class CategoriesPage : Page
         RefreshDerivedCategoryData();
 
         CloseCategoryEditor();
-        RefreshCategoryList(savedCategory);
+        RefreshCategoryList();
         UpdateCategoryMetrics();
         _ = RefreshUnassignedFilesMetricAsync();
-
-        _selectedCategory = savedCategory;
-        CategoryList.SelectedItem = savedCategory;
-        ShowCategoryDetails(savedCategory);
     }
 
     private void ShowCategoryEditorValidation(string message)
@@ -1108,9 +1099,15 @@ public sealed partial class CategoriesPage : Page
         _editorCategoryId = string.Empty;
     }
 
-    private void DeleteCategoryButton_Click(object sender, RoutedEventArgs e)
+    private void DeleteCategoryButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
-        if (_selectedCategory is not { } category)
+        var category =
+            ResolveCategoryFromActionSender(
+                sender);
+
+        if (category is null)
         {
             return;
         }
@@ -1136,7 +1133,6 @@ public sealed partial class CategoriesPage : Page
         }
 
         _allCategories.Remove(category);
-        _selectedCategory = null;
 
         NormalizeCategoryOrder();
 
@@ -1153,7 +1149,6 @@ public sealed partial class CategoriesPage : Page
         RefreshCategoryList();
         UpdateCategoryMetrics();
         _ = RefreshUnassignedFilesMetricAsync();
-        ClearCategoryDetails();
     }
 
     private void DeleteCategoryBackdrop_Tapped(
@@ -1205,51 +1200,51 @@ public sealed partial class CategoriesPage : Page
 
             if (!sync.Success)
             {
-                CategoryDetailStatusText.Text =
+                CategoryStatusText.Text =
                     sync.ErrorMessage ??
                     "No se pudieron sincronizar las carpetas físicas.";
-                CategoryDetailStatusText.Foreground =
+                CategoryStatusText.Foreground =
                     (Brush)Application.Current.Resources["BandaDangerBrush"];
-                CategoryDetailStatusText.Visibility = Visibility.Visible;
+                CategoryStatusText.Visibility = Visibility.Visible;
                 return false;
             }
 
             await global::BandaNV.App.App.Categories.SaveAllAsync(
                 nextCategories);
 
-            CategoryDetailStatusText.Foreground =
+            CategoryStatusText.Foreground =
                 (Brush)Application.Current.Resources["BandaMutedBrush"];
 
             if (sync.PreservedDeletedFolders > 0)
             {
-                CategoryDetailStatusText.Text =
+                CategoryStatusText.Text =
                     sync.PreservedDeletedFolders == 1
-                        ? "La categoría se eliminó, pero su carpeta con archivos se conservó intacta."
-                        : $"{sync.PreservedDeletedFolders} carpetas eliminadas lógicamente se conservaron porque contienen archivos.";
-                CategoryDetailStatusText.Visibility = Visibility.Visible;
+                        ? "La categoría se eliminó y su carpeta se conservó fuera del sistema activo."
+                        : $"{sync.PreservedDeletedFolders} carpetas de categorías eliminadas se conservaron fuera del sistema activo.";
+                CategoryStatusText.Visibility = Visibility.Visible;
             }
             else if (sync.Deferred)
             {
-                CategoryDetailStatusText.Text =
+                CategoryStatusText.Text =
                     "Configuración guardada. La sincronización física queda pendiente hasta que exista la carpeta destino.";
-                CategoryDetailStatusText.Visibility = Visibility.Visible;
+                CategoryStatusText.Visibility = Visibility.Visible;
             }
             else
             {
-                CategoryDetailStatusText.Text =
+                CategoryStatusText.Text =
                     "Configuración y carpetas físicas sincronizadas.";
-                CategoryDetailStatusText.Visibility = Visibility.Visible;
+                CategoryStatusText.Visibility = Visibility.Visible;
             }
 
             return true;
         }
         catch (Exception ex)
         {
-            CategoryDetailStatusText.Text =
+            CategoryStatusText.Text =
                 $"No se pudo completar la sincronización: {ex.Message}";
-            CategoryDetailStatusText.Foreground =
+            CategoryStatusText.Foreground =
                 (Brush)Application.Current.Resources["BandaDangerBrush"];
-            CategoryDetailStatusText.Visibility = Visibility.Visible;
+            CategoryStatusText.Visibility = Visibility.Visible;
             return false;
         }
     }
@@ -1260,13 +1255,12 @@ public sealed partial class CategoriesPage : Page
         RefreshCategoryList();
         UpdateCategoryMetrics();
         _ = RefreshUnassignedFilesMetricAsync();
-        ClearCategoryDetails();
 
-        CategoryDetailStatusText.Text =
+        CategoryStatusText.Text =
             "No se aplicaron los cambios. La configuración anterior se mantuvo.";
-        CategoryDetailStatusText.Foreground =
+        CategoryStatusText.Foreground =
             (Brush)Application.Current.Resources["BandaDangerBrush"];
-        CategoryDetailStatusText.Visibility = Visibility.Visible;
+        CategoryStatusText.Visibility = Visibility.Visible;
     }
 }
 
