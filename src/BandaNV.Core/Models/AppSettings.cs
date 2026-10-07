@@ -2,7 +2,7 @@ namespace BandaNV.Core.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -33,6 +33,30 @@ public sealed class AppSettings
     public bool SaveOrganizeHistory { get; set; } = true;
     public bool SaveSearchHistory { get; set; } = true;
     public string HistoryRetention { get; set; } = "Siempre";
+
+    // Preferencias de visualización persistentes.
+    // Filtros arrancan desactivados; orden y agrupación siguen el criterio
+    // general definido para BandaNV.
+    public string SearchDateFilter { get; set; } = "All";
+    public DateTime? SearchSpecificDateFilter { get; set; }
+    public string SearchSizeFilter { get; set; } = "All";
+    public List<string> SearchExtensionFilters { get; set; } = [];
+    public string SearchSortField { get; set; } = "DateModified";
+    public string SearchSortDirection { get; set; } = "Descending";
+    public string SearchGroupField { get; set; } = "DateModified";
+
+    public string OrganizeDateFilter { get; set; } = "All";
+    public DateTime? OrganizeSpecificDateFilter { get; set; }
+    public string OrganizeSizeFilter { get; set; } = "All";
+    public List<string> OrganizeExtensionFilters { get; set; } = [];
+    public string OrganizeSortField { get; set; } = "DateModified";
+    public string OrganizeSortDirection { get; set; } = "Descending";
+    public string OrganizeGroupField { get; set; } = "DateModified";
+
+    public string HistoryTypeFilter { get; set; } = "All";
+    public string HistoryUndoFilter { get; set; } = "All";
+    public string HistoryOriginFilter { get; set; } = string.Empty;
+    public string HistorySortMode { get; set; } = "Newest";
 
     public List<CategorySettings> Categories { get; set; } = CreateDefaultCategories();
 
