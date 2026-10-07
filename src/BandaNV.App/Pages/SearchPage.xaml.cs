@@ -251,10 +251,16 @@ public sealed partial class SearchPage : Page
 
         _selectedCategoryNames.RemoveWhere(name => !validCategoryNames.Contains(name));
 
+        var destinationRoot =
+            global::BandaNV.App.App.Settings.Current.DestinationFolder;
+
         foreach (var category in orderedCategories)
         {
-            var fileCount = _allFiles.Count(file =>
-                file.Category.Equals(category.Name, StringComparison.CurrentCultureIgnoreCase));
+            var fileCount =
+                CategoryService.CountExistingFiles(
+                    destinationRoot,
+                    category.Order,
+                    category.Name);
 
             _allCategoryCards.Add(new SearchCategorySummary(
                 category.Name,
