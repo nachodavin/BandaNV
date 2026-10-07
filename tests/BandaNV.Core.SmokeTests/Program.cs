@@ -227,6 +227,73 @@ internal static class Program
             settings.HistoryRetention,
             "La conservación de historial debería ser Siempre.");
 
+        Equal(
+            "All",
+            settings.SearchDateFilter,
+            "Buscar debería iniciar sin filtro de fecha.");
+        Equal(
+            "All",
+            settings.SearchSizeFilter,
+            "Buscar debería iniciar sin filtro de tamaño.");
+        Equal(
+            0,
+            settings.SearchExtensionFilters.Count,
+            "Buscar debería iniciar sin filtros de extensión.");
+        Equal(
+            "DateModified",
+            settings.SearchSortField,
+            "Buscar debería ordenar por fecha de modificación.");
+        Equal(
+            "Descending",
+            settings.SearchSortDirection,
+            "Buscar debería ordenar en forma descendente.");
+        Equal(
+            "DateModified",
+            settings.SearchGroupField,
+            "Buscar debería agrupar por fecha de modificación.");
+
+        Equal(
+            "All",
+            settings.OrganizeDateFilter,
+            "Organizar debería iniciar sin filtro de fecha.");
+        Equal(
+            "All",
+            settings.OrganizeSizeFilter,
+            "Organizar debería iniciar sin filtro de tamaño.");
+        Equal(
+            0,
+            settings.OrganizeExtensionFilters.Count,
+            "Organizar debería iniciar sin filtros de extensión.");
+        Equal(
+            "DateModified",
+            settings.OrganizeSortField,
+            "Organizar debería ordenar por fecha de modificación.");
+        Equal(
+            "Descending",
+            settings.OrganizeSortDirection,
+            "Organizar debería ordenar en forma descendente.");
+        Equal(
+            "DateModified",
+            settings.OrganizeGroupField,
+            "Organizar debería agrupar por fecha de modificación.");
+
+        Equal(
+            "All",
+            settings.HistoryTypeFilter,
+            "Historial debería iniciar sin filtro de tipo.");
+        Equal(
+            "All",
+            settings.HistoryUndoFilter,
+            "Historial debería iniciar sin filtro de deshacer.");
+        Equal(
+            string.Empty,
+            settings.HistoryOriginFilter,
+            "Historial debería iniciar sin filtro de origen.");
+        Equal(
+            "Newest",
+            settings.HistorySortMode,
+            "Historial debería mostrar primero lo más reciente.");
+
         var expectedCategories =
             new[]
             {
