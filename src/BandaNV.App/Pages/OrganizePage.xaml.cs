@@ -33,6 +33,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private string _folderDetailCurrentRelativePath = string.Empty;
     private readonly Stack<string> _folderDetailHistory = new();
     private bool _syncingFolderDetailSelection;
+    private bool _syncingUnassignedFolderSelection;
 
     private readonly List<OrganizePreviewFile> _managedOrganizeFiles = new();
     private readonly List<OrganizeActionTarget> _managedOrganizeTargets = new();
@@ -850,6 +851,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         var files =
             GetSelectedOrganizeFiles();
 
+        SyncUnassignedFolderSelection(
+            files);
+
         if (files.Count == 0)
         {
             ShowOrganizeSummary();
@@ -905,56 +909,65 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             .OfType<OrganizePreviewFile>()
             .ToList();
 
-    private void UnassignedFolderRow_Tapped(
+    private void UnassignedFoldersList_SelectionChanged(
         object sender,
-        TappedRoutedEventArgs e)
+        SelectionChangedEventArgs e)
     {
-        if (e.OriginalSource is DependencyObject origin)
-        {
-            var current = origin;
-
-            while (current is not null &&
-                   !ReferenceEquals(current, sender))
-            {
-                if (current is Button)
-                {
-                    return;
-                }
-
-                current =
-                    VisualTreeHelper.GetParent(
-                        current);
-            }
-        }
-
-        if (sender is not FrameworkElement
-            {
-                Tag: string itemId
-            })
-        {
-            return;
-        }
-
-        var folder =
-            _files.FirstOrDefault(item =>
-                item.ItemId.Equals(
-                    itemId,
-                    StringComparison.Ordinal));
-
-        if (folder is null ||
+        if (_syncingUnassignedFolderSelection ||
+            _isRefreshingPreview ||
+            UnassignedFoldersList.SelectedItem is not OrganizePreviewFile folder ||
             !folder.IsDirectory)
         {
             return;
         }
 
-        PreviewFilesList.SelectedItem =
-            folder;
+        try
+        {
+            _syncingUnassignedFolderSelection =
+                true;
+
+            PreviewFilesList.SelectedItems.Clear();
+            PreviewFilesList.SelectedItem =
+                folder;
+        }
+        finally
+        {
+            _syncingUnassignedFolderSelection =
+                false;
+        }
 
         ShowOrganizeDetail(
             folder);
+    }
 
-        e.Handled =
-            true;
+    private void SyncUnassignedFolderSelection(
+        IReadOnlyList<OrganizePreviewFile> selectedFiles)
+    {
+        if (_syncingUnassignedFolderSelection)
+        {
+            return;
+        }
+
+        var selectedFolder =
+            selectedFiles.Count == 1 &&
+            selectedFiles[0].IsDirectory &&
+            !selectedFiles[0].IsClassified
+                ? selectedFiles[0]
+                : null;
+
+        try
+        {
+            _syncingUnassignedFolderSelection =
+                true;
+
+            UnassignedFoldersList.SelectedItem =
+                selectedFolder;
+        }
+        finally
+        {
+            _syncingUnassignedFolderSelection =
+                false;
+        }
     }
 
     private void ClearOrganizeDetailButton_Click(
@@ -4316,6 +4329,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             unclassifiedFolders.Count > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+        SyncUnassignedFolderSelection(
+            restoredSelection);
 
         ResolvedAssignmentsList.ItemsSource = null;
         ResolvedAssignmentsList.ItemsSource = _resolvedAssignments
