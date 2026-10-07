@@ -2,13 +2,12 @@ namespace BandaNV.Core.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-    public string SourceFolder { get; set; } = GetDefaultSourceFolder();
-    public string DestinationFolder { get; set; } =
-        Path.Combine(GetDefaultSourceFolder(), "ORGANIZADO");
+    public string SourceFolder { get; set; } = string.Empty;
+    public string DestinationFolder { get; set; } = string.Empty;
 
     public string StartupPage { get; set; } = "Inicio";
     public string CloseBehavior { get; set; } = "Cerrar BandaNV";
@@ -20,8 +19,9 @@ public sealed class AppSettings
     public string SecondaryColor { get; set; } = "#4FE0C6";
 
     public bool PreviewBeforeOrganize { get; set; } = true;
-    public bool OrganizeFoldersAsUnits { get; set; }
+    public bool OrganizeFoldersAsUnits { get; set; } = true;
     public bool CreateFolders { get; set; } = true;
+    public bool DeleteUnusedCategoryFolders { get; set; } = true;
 
     public string ConflictBehavior { get; set; } = "Preguntar";
     public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
@@ -36,12 +36,11 @@ public sealed class AppSettings
 
     public List<CategorySettings> Categories { get; set; } = CreateDefaultCategories();
 
-    public static AppSettings CreateDefault() => new();
+    // Metadato interno: permite reconocer con certeza carpetas que
+    // pertenecieron a categorías eliminadas sin tocar carpetas ajenas.
+    public List<string> OrphanedCategoryFolders { get; set; } = [];
 
-    private static string GetDefaultSourceFolder() =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "Downloads");
+    public static AppSettings CreateDefault() => new();
 
     private static List<CategorySettings> CreateDefaultCategories() =>
     [
