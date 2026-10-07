@@ -1977,7 +1977,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
             PreviewFilesList.SelectedItems.Clear();
 
-            foreach (var file in affectedFiles)
+            foreach (var file in affectedFiles.Where(
+                         VisibleOrganizePreviewFiles.Contains))
             {
                 PreviewFilesList.SelectedItems.Add(
                     file);
@@ -2132,8 +2133,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 true;
 
             PreviewFilesList.SelectedItems.Clear();
-            PreviewFilesList.SelectedItem =
-                folder;
+
+            if (VisibleOrganizePreviewFiles.Contains(
+                    folder))
+            {
+                PreviewFilesList.SelectedItem =
+                    folder;
+            }
         }
         finally
         {
