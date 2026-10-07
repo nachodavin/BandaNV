@@ -323,7 +323,11 @@ public sealed partial class CategoriesPage : Page
         {
             UnassignedFilesText.Text = "—";
             CategoriesUnassignedDetailText.Text =
-                "La carpeta de origen no está disponible";
+                string.IsNullOrWhiteSpace(
+                    global::BandaNV.App.App.Settings.Current
+                        .SourceFolder)
+                    ? "Configurá una carpeta de origen"
+                    : "La carpeta de origen no está disponible";
             UpdateUnassignedCardState(0);
         }
         catch
@@ -1106,7 +1110,8 @@ public sealed partial class CategoriesPage : Page
         DeleteCategoryBodyText.Text =
             $"¿Eliminar la categoría {category.Name}? " +
             $"Sus {category.Extensions.Count} extensiones pasarán a quedar sin categoría. " +
-            $"Los {category.FileCount} archivos ya organizados no se eliminan de la PC.";
+            $"Los {category.FileCount} archivos ya organizados no se eliminan de la PC. " +
+            $"Si la carpeta física se conserva, BandaNV quitará su prefijo numérico para dejar claro que ya no es una categoría activa.";
 
         DeleteCategoryOverlay.Visibility = Visibility.Visible;
     }
