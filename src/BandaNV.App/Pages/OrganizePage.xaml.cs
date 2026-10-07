@@ -1,7 +1,9 @@
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
+using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using System.Globalization;
@@ -12,7 +14,45 @@ namespace BandaNV.App.Pages;
 
 public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 {
+    private const double OrganizeDateWheelItemHeight = 36d;
+
     private readonly List<OrganizePreviewFile> _files = new();
+
+    public ObservableCollection<OrganizePreviewFile> VisibleOrganizePreviewFiles { get; } = new();
+    public ObservableCollection<OrganizePreviewGroup> GroupedOrganizePreviewFiles { get; } = new();
+    public ObservableCollection<FolderContentPreviewItem> VisibleOrganizeFolderItems { get; } = new();
+    public ObservableCollection<OrganizeFolderContentGroup> GroupedOrganizeFolderItems { get; } = new();
+
+    private readonly CollectionViewSource _organizePreviewViewSource = new()
+    {
+        ItemsPath = new PropertyPath(nameof(OrganizePreviewGroup.Items))
+    };
+
+    private readonly CollectionViewSource _organizeFolderViewSource = new()
+    {
+        ItemsPath = new PropertyPath(nameof(OrganizeFolderContentGroup.Items))
+    };
+
+    private SearchDateFilter _organizeDateFilter = SearchDateFilter.All;
+    private DateTime? _organizeSpecificDateFilter;
+    private SearchSizeFilter _organizeSizeFilter = SearchSizeFilter.All;
+    private readonly HashSet<string> _organizeExtensionFilters =
+        new(StringComparer.OrdinalIgnoreCase);
+    private SearchSortField _organizeSortField = SearchSortField.DateModified;
+    private SearchSortDirection _organizeSortDirection = SearchSortDirection.Descending;
+    private SearchGroupField _organizeGroupField = SearchGroupField.None;
+
+    private SearchDateFilter _pendingOrganizeDateFilter = SearchDateFilter.All;
+    private DateTime? _pendingOrganizeSpecificDateFilter;
+    private SearchSizeFilter _pendingOrganizeSizeFilter = SearchSizeFilter.All;
+    private readonly HashSet<string> _pendingOrganizeExtensionFilters =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly List<int> _organizeDateWheelYears = new();
+    private bool _isUpdatingOrganizeDateWheels;
+    private int _organizeWheelDay = 1;
+    private int _organizeWheelMonth = 1;
+    private int _organizeWheelYear = DateTime.Today.Year;
     private readonly List<OrganizeCategoryOption> _categories = new();
     private readonly Dictionary<string, OrganizeCategoryOption> _rememberedAssignments =
         new(StringComparer.OrdinalIgnoreCase);
@@ -56,6 +96,21 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     public OrganizePage()
     {
         InitializeComponent();
+
+        _organizePreviewViewSource.Source =
+            VisibleOrganizePreviewFiles;
+        PreviewFilesList.ItemsSource =
+            _organizePreviewViewSource.View;
+
+        _organizeFolderViewSource.Source =
+            VisibleOrganizeFolderItems;
+        FolderDetailFilesList.ItemsSource =
+            _organizeFolderViewSource.View;
+
+        UpdateOrganizeSortAndGroupSelectorText();
+        UpdateOrganizeSortAndGroupOptionHighlights();
+        InitializeOrganizeSpecificDateWheels();
+
         Unloaded += OrganizePage_Unloaded;
         LoadCategoryOptions();
         UpdateInitialStateText();
@@ -469,6 +524,941 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         LoadCategoryOptions();
         UpdateInitialStateText();
         ShowInitialState();
+    }
+
+    private void OrganizeFiltersButton_Click(object sender, RoutedEventArgs e)
+    {
+        PopulateOrganizeFilterOverlayControls();
+        OrganizeFiltersOverlay.Visibility =
+            Visibility.Visible;
+    }
+
+    private void CloseOrganizeFiltersOverlayButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        OrganizeFiltersOverlay.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void OrganizeFiltersBackdrop_Tapped(
+        object sender,
+        TappedRoutedEventArgs e)
+    {
+        OrganizeFiltersOverlay.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void ResetOrganizeFiltersOverlayButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        _pendingOrganizeDateFilter =
+            SearchDateFilter.All;
+        _pendingOrganizeSpecificDateFilter =
+            null;
+        _pendingOrganizeSizeFilter =
+            SearchSizeFilter.All;
+        _pendingOrganizeExtensionFilters.Clear();
+
+        OrganizeSpecificDateWheelPanel.Visibility =
+            Visibility.Collapsed;
+
+        UpdatePendingOrganizeFilterLabels();
+        BuildOrganizeExtensionFilterOptions();
+    }
+
+    private void ApplyOrganizeFiltersOverlayButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_pendingOrganizeDateFilter ==
+                SearchDateFilter.SpecificDate &&
+            !_pendingOrganizeSpecificDateFilter.HasValue)
+        {
+            _pendingOrganizeSpecificDateFilter =
+                DateTime.Today;
+        }
+
+        _organizeDateFilter =
+            _pendingOrganizeDateFilter;
+
+        _organizeSpecificDateFilter =
+            _pendingOrganizeDateFilter ==
+                SearchDateFilter.SpecificDate
+                ? _pendingOrganizeSpecificDateFilter?.Date
+                : null;
+
+        _organizeSizeFilter =
+            _pendingOrganizeSizeFilter;
+
+        _organizeExtensionFilters.Clear();
+        _organizeExtensionFilters.UnionWith(
+            _pendingOrganizeExtensionFilters);
+
+        OrganizeFiltersOverlay.Visibility =
+            Visibility.Collapsed;
+
+        RefreshPreview();
+    }
+
+    private void PopulateOrganizeFilterOverlayControls()
+    {
+        _pendingOrganizeDateFilter =
+            _organizeDateFilter;
+        _pendingOrganizeSpecificDateFilter =
+            _organizeSpecificDateFilter;
+        _pendingOrganizeSizeFilter =
+            _organizeSizeFilter;
+
+        _pendingOrganizeExtensionFilters.Clear();
+        _pendingOrganizeExtensionFilters.UnionWith(
+            _organizeExtensionFilters);
+
+        OrganizeSpecificDateWheelPanel.Visibility =
+            _pendingOrganizeDateFilter ==
+                SearchDateFilter.SpecificDate
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        if (_pendingOrganizeDateFilter ==
+            SearchDateFilter.SpecificDate)
+        {
+            var selectedDate =
+                _pendingOrganizeSpecificDateFilter ??
+                DateTime.Today;
+
+            _pendingOrganizeSpecificDateFilter =
+                selectedDate.Date;
+
+            SetOrganizeSpecificDateWheel(
+                selectedDate);
+            QueueOrganizeSpecificDateWheelSync();
+        }
+
+        UpdatePendingOrganizeFilterLabels();
+        BuildOrganizeExtensionFilterOptions();
+    }
+
+    private void OrganizeDateFilterOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string filterKey } ||
+            !Enum.TryParse<SearchDateFilter>(
+                filterKey,
+                out var parsedFilter))
+        {
+            return;
+        }
+
+        _pendingOrganizeDateFilter =
+            parsedFilter;
+
+        if (parsedFilter ==
+            SearchDateFilter.SpecificDate)
+        {
+            var selectedDate =
+                DateTime.Today;
+
+            _pendingOrganizeSpecificDateFilter =
+                selectedDate.Date;
+            OrganizeSpecificDateWheelPanel.Visibility =
+                Visibility.Visible;
+
+            SetOrganizeSpecificDateWheel(
+                selectedDate);
+            QueueOrganizeSpecificDateWheelSync();
+        }
+        else
+        {
+            OrganizeSpecificDateWheelPanel.Visibility =
+                Visibility.Collapsed;
+        }
+
+        OrganizeDateFilterValueText.Text =
+            GetOrganizeDateFilterDisplayName(
+                parsedFilter,
+                _pendingOrganizeSpecificDateFilter);
+
+        OrganizeDateFilterFlyout.Hide();
+    }
+
+    private void OrganizeSpecificDateTodayButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        _pendingOrganizeDateFilter =
+            SearchDateFilter.SpecificDate;
+        _pendingOrganizeSpecificDateFilter =
+            DateTime.Today;
+
+        OrganizeSpecificDateWheelPanel.Visibility =
+            Visibility.Visible;
+
+        SetOrganizeSpecificDateWheel(
+            DateTime.Today);
+
+        OrganizeDateFilterValueText.Text =
+            GetOrganizeDateFilterDisplayName(
+                SearchDateFilter.SpecificDate,
+                _pendingOrganizeSpecificDateFilter);
+
+        QueueOrganizeSpecificDateWheelSync();
+    }
+
+    private void OrganizeDateWheelScrollViewer_ViewChanged(
+        object sender,
+        ScrollViewerViewChangedEventArgs e)
+    {
+        if (_isUpdatingOrganizeDateWheels ||
+            e.IsIntermediate ||
+            sender is not ScrollViewer
+            {
+                Tag: string wheelName
+            } scrollViewer)
+        {
+            return;
+        }
+
+        var itemCount =
+            wheelName switch
+            {
+                "Day" =>
+                    DateTime.DaysInMonth(
+                        _organizeWheelYear,
+                        _organizeWheelMonth),
+                "Month" =>
+                    12,
+                "Year" =>
+                    _organizeDateWheelYears.Count,
+                _ =>
+                    0
+            };
+
+        if (itemCount <= 0)
+        {
+            return;
+        }
+
+        var index =
+            Math.Clamp(
+                (int)Math.Round(
+                    scrollViewer.VerticalOffset /
+                    OrganizeDateWheelItemHeight),
+                0,
+                itemCount - 1);
+
+        _isUpdatingOrganizeDateWheels =
+            true;
+
+        scrollViewer.ChangeView(
+            null,
+            index * OrganizeDateWheelItemHeight,
+            null,
+            true);
+
+        _isUpdatingOrganizeDateWheels =
+            false;
+
+        var rebuildDays =
+            false;
+
+        switch (wheelName)
+        {
+            case "Day":
+                _organizeWheelDay =
+                    index + 1;
+                break;
+
+            case "Month":
+                _organizeWheelMonth =
+                    index + 1;
+                rebuildDays =
+                    true;
+                break;
+
+            case "Year":
+                _organizeWheelYear =
+                    _organizeDateWheelYears[index];
+                rebuildDays =
+                    true;
+                break;
+        }
+
+        if (rebuildDays)
+        {
+            var daysInMonth =
+                DateTime.DaysInMonth(
+                    _organizeWheelYear,
+                    _organizeWheelMonth);
+
+            _organizeWheelDay =
+                Math.Min(
+                    _organizeWheelDay,
+                    daysInMonth);
+
+            RebuildOrganizeDayWheelItems();
+            QueueOrganizeSpecificDateWheelSync();
+        }
+
+        _pendingOrganizeSpecificDateFilter =
+            new DateTime(
+                _organizeWheelYear,
+                _organizeWheelMonth,
+                _organizeWheelDay);
+
+        OrganizeDateFilterValueText.Text =
+            GetOrganizeDateFilterDisplayName(
+                SearchDateFilter.SpecificDate,
+                _pendingOrganizeSpecificDateFilter);
+    }
+
+    private void InitializeOrganizeSpecificDateWheels()
+    {
+        var culture =
+            CultureInfo.GetCultureInfo(
+                "es-AR");
+
+        OrganizeMonthWheelItems.ItemsSource =
+            Enumerable.Range(
+                    1,
+                    12)
+                .Select(month =>
+                    culture.TextInfo.ToTitleCase(
+                        culture.DateTimeFormat
+                            .GetMonthName(
+                                month)))
+                .ToList();
+
+        const int firstYear =
+            1900;
+
+        var lastYear =
+            DateTime.Today.Year + 20;
+
+        _organizeDateWheelYears.Clear();
+        _organizeDateWheelYears.AddRange(
+            Enumerable.Range(
+                firstYear,
+                (lastYear - firstYear) + 1));
+
+        OrganizeYearWheelItems.ItemsSource =
+            _organizeDateWheelYears
+                .Select(year =>
+                    year.ToString(
+                        CultureInfo.InvariantCulture))
+                .ToList();
+
+        SetOrganizeSpecificDateWheel(
+            DateTime.Today);
+    }
+
+    private void SetOrganizeSpecificDateWheel(
+        DateTime date)
+    {
+        var minYear =
+            _organizeDateWheelYears.First();
+        var maxYear =
+            _organizeDateWheelYears.Last();
+
+        _organizeWheelYear =
+            Math.Clamp(
+                date.Year,
+                minYear,
+                maxYear);
+
+        _organizeWheelMonth =
+            Math.Clamp(
+                date.Month,
+                1,
+                12);
+
+        var daysInMonth =
+            DateTime.DaysInMonth(
+                _organizeWheelYear,
+                _organizeWheelMonth);
+
+        _organizeWheelDay =
+            Math.Clamp(
+                date.Day,
+                1,
+                daysInMonth);
+
+        RebuildOrganizeDayWheelItems();
+    }
+
+    private void RebuildOrganizeDayWheelItems()
+    {
+        var daysInMonth =
+            DateTime.DaysInMonth(
+                _organizeWheelYear,
+                _organizeWheelMonth);
+
+        OrganizeDayWheelItems.ItemsSource =
+            Enumerable.Range(
+                    1,
+                    daysInMonth)
+                .Select(day =>
+                    day.ToString(
+                        "00",
+                        CultureInfo.InvariantCulture))
+                .ToList();
+    }
+
+    private void QueueOrganizeSpecificDateWheelSync()
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            OrganizeSpecificDateWheelPanel.UpdateLayout();
+            OrganizeDayWheelScrollViewer.UpdateLayout();
+            OrganizeMonthWheelScrollViewer.UpdateLayout();
+            OrganizeYearWheelScrollViewer.UpdateLayout();
+
+            SyncOrganizeSpecificDateWheelOffsets();
+
+            DispatcherQueue.TryEnqueue(
+                SyncOrganizeSpecificDateWheelOffsets);
+        });
+    }
+
+    private void SyncOrganizeSpecificDateWheelOffsets()
+    {
+        if (OrganizeSpecificDateWheelPanel.Visibility !=
+            Visibility.Visible)
+        {
+            return;
+        }
+
+        _isUpdatingOrganizeDateWheels =
+            true;
+
+        OrganizeDayWheelScrollViewer.ChangeView(
+            null,
+            (_organizeWheelDay - 1) *
+                OrganizeDateWheelItemHeight,
+            null,
+            true);
+
+        OrganizeMonthWheelScrollViewer.ChangeView(
+            null,
+            (_organizeWheelMonth - 1) *
+                OrganizeDateWheelItemHeight,
+            null,
+            true);
+
+        var yearIndex =
+            _organizeDateWheelYears.IndexOf(
+                _organizeWheelYear);
+
+        OrganizeYearWheelScrollViewer.ChangeView(
+            null,
+            Math.Max(
+                0,
+                yearIndex) *
+                OrganizeDateWheelItemHeight,
+            null,
+            true);
+
+        _isUpdatingOrganizeDateWheels =
+            false;
+    }
+
+    private void OrganizeSizeFilterOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string filterKey } ||
+            !Enum.TryParse<SearchSizeFilter>(
+                filterKey,
+                out var parsedFilter))
+        {
+            return;
+        }
+
+        _pendingOrganizeSizeFilter =
+            parsedFilter;
+
+        OrganizeSizeFilterValueText.Text =
+            GetOrganizeSizeFilterDisplayName(
+                parsedFilter);
+
+        OrganizeSizeFilterFlyout.Hide();
+    }
+
+    private void OrganizeExtensionFilterOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button
+            {
+                Tag: string extensionKey
+            })
+        {
+            return;
+        }
+
+        if (extensionKey.Equals(
+                "All",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            _pendingOrganizeExtensionFilters.Clear();
+        }
+        else if (!_pendingOrganizeExtensionFilters.Add(
+                     extensionKey))
+        {
+            _pendingOrganizeExtensionFilters.Remove(
+                extensionKey);
+        }
+
+        OrganizeExtensionFilterValueText.Text =
+            GetOrganizeExtensionFilterDisplayName(
+                _pendingOrganizeExtensionFilters);
+
+        BuildOrganizeExtensionFilterOptions();
+    }
+
+    private void OrganizeSortFieldOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string sortKey })
+        {
+            return;
+        }
+
+        _organizeSortField =
+            sortKey switch
+            {
+                "Name" =>
+                    SearchSortField.Name,
+                "Size" =>
+                    SearchSortField.Size,
+                "Category" =>
+                    SearchSortField.Category,
+                "Extension" =>
+                    SearchSortField.Extension,
+                _ =>
+                    SearchSortField.DateModified
+            };
+
+        UpdateOrganizeSortAndGroupSelectorText();
+        UpdateOrganizeSortAndGroupOptionHighlights();
+
+        OrganizeSortFlyout.Hide();
+        RefreshPreview();
+    }
+
+    private void OrganizeSortDirectionOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button
+            {
+                Tag: string directionKey
+            })
+        {
+            return;
+        }
+
+        _organizeSortDirection =
+            directionKey.Equals(
+                "Ascending",
+                StringComparison.OrdinalIgnoreCase)
+                ? SearchSortDirection.Ascending
+                : SearchSortDirection.Descending;
+
+        UpdateOrganizeSortAndGroupSelectorText();
+        UpdateOrganizeSortAndGroupOptionHighlights();
+
+        OrganizeSortFlyout.Hide();
+        RefreshPreview();
+    }
+
+    private void OrganizeGroupFieldOptionButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string groupKey })
+        {
+            return;
+        }
+
+        _organizeGroupField =
+            groupKey switch
+            {
+                "Name" =>
+                    SearchGroupField.Name,
+                "DateModified" =>
+                    SearchGroupField.DateModified,
+                "Size" =>
+                    SearchGroupField.Size,
+                "Category" =>
+                    SearchGroupField.Category,
+                "Extension" =>
+                    SearchGroupField.Extension,
+                _ =>
+                    SearchGroupField.None
+            };
+
+        UpdateOrganizeSortAndGroupSelectorText();
+        UpdateOrganizeSortAndGroupOptionHighlights();
+
+        OrganizeGroupFlyout.Hide();
+        RefreshPreview();
+    }
+
+    private void UpdatePendingOrganizeFilterLabels()
+    {
+        OrganizeDateFilterValueText.Text =
+            GetOrganizeDateFilterDisplayName(
+                _pendingOrganizeDateFilter,
+                _pendingOrganizeSpecificDateFilter);
+
+        OrganizeSizeFilterValueText.Text =
+            GetOrganizeSizeFilterDisplayName(
+                _pendingOrganizeSizeFilter);
+
+        OrganizeExtensionFilterValueText.Text =
+            GetOrganizeExtensionFilterDisplayName(
+                _pendingOrganizeExtensionFilters);
+    }
+
+    private void BuildOrganizeExtensionFilterOptions()
+    {
+        OrganizeExtensionFilterOptionsPanel.Children.Clear();
+
+        OrganizeExtensionFilterOptionsPanel.Children.Add(
+            new TextBlock
+            {
+                Text =
+                    "EXTENSIÓN",
+                Margin =
+                    new Thickness(
+                        10,
+                        6,
+                        10,
+                        4),
+                Foreground =
+                    GetBrush(
+                        "BandaMutedStrongBrush"),
+                FontSize =
+                    11,
+                FontWeight =
+                    Microsoft.UI.Text.FontWeights.SemiBold
+            });
+
+        var options =
+            new List<string>
+            {
+                "All"
+            };
+
+        options.AddRange(
+            _files
+                .SelectMany(file =>
+                    file.IsDirectory
+                        ? file.FolderContents
+                            .Where(item =>
+                                !item.IsDirectory)
+                            .Select(item =>
+                                item.Extension.ToLowerInvariant())
+                        : new[]
+                        {
+                            file.Extension.ToLowerInvariant()
+                        })
+                .Where(extension =>
+                    !string.IsNullOrWhiteSpace(
+                        extension))
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(
+                    extension =>
+                        extension,
+                    StringComparer.OrdinalIgnoreCase));
+
+        foreach (var option in options)
+        {
+            var isSelected =
+                option.Equals(
+                    "All",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? _pendingOrganizeExtensionFilters.Count == 0
+                    : _pendingOrganizeExtensionFilters.Contains(
+                        option);
+
+            var button =
+                new Button
+                {
+                    Tag =
+                        option,
+                    Content =
+                        option.Equals(
+                            "All",
+                            StringComparison.OrdinalIgnoreCase)
+                            ? "Todas las extensiones"
+                            : option,
+                    Style =
+                        (Style)Application.Current.Resources[
+                            "BandaPopupOptionButtonStyle"]
+                };
+
+            if (isSelected)
+            {
+                button.Background =
+                    GetBrush(
+                        "BandaAccentSoftBrush");
+
+                button.Foreground =
+                    GetBrush(
+                        "BandaAccentBrush");
+            }
+
+            button.Click +=
+                OrganizeExtensionFilterOptionButton_Click;
+
+            OrganizeExtensionFilterOptionsPanel.Children.Add(
+                button);
+        }
+    }
+
+    private static string GetOrganizeDateFilterDisplayName(
+        SearchDateFilter filter,
+        DateTime? specificDate = null) =>
+        filter switch
+        {
+            SearchDateFilter.Today =>
+                "Hoy",
+            SearchDateFilter.Last7Days =>
+                "Últimos 7 días",
+            SearchDateFilter.Last30Days =>
+                "Últimos 30 días",
+            SearchDateFilter.SpecificDate
+                when specificDate.HasValue =>
+                    specificDate.Value.ToString(
+                        "dd/MM/yyyy",
+                        CultureInfo.GetCultureInfo(
+                            "es-AR")),
+            SearchDateFilter.SpecificDate =>
+                "Fecha específica",
+            _ =>
+                "Cualquier fecha"
+        };
+
+    private static string GetOrganizeSizeFilterDisplayName(
+        SearchSizeFilter filter) =>
+        filter switch
+        {
+            SearchSizeFilter.Under100Mb =>
+                "Menos de 100 MB",
+            SearchSizeFilter.From100To500Mb =>
+                "100 MB a 500 MB",
+            SearchSizeFilter.From500MbTo1Gb =>
+                "500 MB a 1 GB",
+            SearchSizeFilter.From1To5Gb =>
+                "1 GB a 5 GB",
+            SearchSizeFilter.From5To20Gb =>
+                "5 GB a 20 GB",
+            SearchSizeFilter.Over20Gb =>
+                "Más de 20 GB",
+            _ =>
+                "Cualquier tamaño"
+        };
+
+    private static string GetOrganizeExtensionFilterDisplayName(
+        IReadOnlyCollection<string> extensions)
+    {
+        if (extensions.Count == 0)
+        {
+            return "Todas las extensiones";
+        }
+
+        var ordered =
+            extensions
+                .OrderBy(
+                    extension =>
+                        extension,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(extension =>
+                    extension.ToLowerInvariant())
+                .ToList();
+
+        return ordered.Count <= 2
+            ? string.Join(
+                " · ",
+                ordered)
+            : $"{ordered.Count} extensiones seleccionadas";
+    }
+
+    private void UpdateOrganizeSortAndGroupSelectorText()
+    {
+        OrganizeSortValueText.Text =
+            $"{GetOrganizeSortFieldDisplayName(_organizeSortField)} · {GetOrganizeDirectionShortDisplayName(_organizeSortDirection)}";
+
+        OrganizeGroupValueText.Text =
+            _organizeGroupField ==
+                SearchGroupField.None
+                ? "Ninguno"
+                : GetOrganizeGroupFieldDisplayName(
+                    _organizeGroupField);
+    }
+
+    private void UpdateOrganizeSortAndGroupOptionHighlights()
+    {
+        SetOrganizePopupOptionSelected(
+            OrganizeSortNameOptionButton,
+            _organizeSortField ==
+                SearchSortField.Name);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeSortDateOptionButton,
+            _organizeSortField ==
+                SearchSortField.DateModified);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeSortSizeOptionButton,
+            _organizeSortField ==
+                SearchSortField.Size);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeSortCategoryOptionButton,
+            _organizeSortField ==
+                SearchSortField.Category);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeSortExtensionOptionButton,
+            _organizeSortField ==
+                SearchSortField.Extension);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeSortAscendingOptionButton,
+            _organizeSortDirection ==
+                SearchSortDirection.Ascending);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeSortDescendingOptionButton,
+            _organizeSortDirection ==
+                SearchSortDirection.Descending);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeGroupNoneOptionButton,
+            _organizeGroupField ==
+                SearchGroupField.None);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeGroupNameOptionButton,
+            _organizeGroupField ==
+                SearchGroupField.Name);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeGroupDateOptionButton,
+            _organizeGroupField ==
+                SearchGroupField.DateModified);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeGroupSizeOptionButton,
+            _organizeGroupField ==
+                SearchGroupField.Size);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeGroupCategoryOptionButton,
+            _organizeGroupField ==
+                SearchGroupField.Category);
+
+        SetOrganizePopupOptionSelected(
+            OrganizeGroupExtensionOptionButton,
+            _organizeGroupField ==
+                SearchGroupField.Extension);
+    }
+
+    private void SetOrganizePopupOptionSelected(
+        Button button,
+        bool isSelected)
+    {
+        button.Background =
+            isSelected
+                ? GetBrush(
+                    "BandaAccentSoftBrush")
+                : new SolidColorBrush(
+                    Microsoft.UI.Colors.Transparent);
+
+        button.Foreground =
+            GetBrush(
+                isSelected
+                    ? "BandaAccentBrush"
+                    : "BandaTextBrush");
+    }
+
+    private static string GetOrganizeSortFieldDisplayName(
+        SearchSortField field) =>
+        field switch
+        {
+            SearchSortField.Name =>
+                "Nombre",
+            SearchSortField.Size =>
+                "Tamaño",
+            SearchSortField.Category =>
+                "Categoría",
+            SearchSortField.Extension =>
+                "Extensión",
+            _ =>
+                "Fecha de modificación"
+        };
+
+    private static string GetOrganizeGroupFieldDisplayName(
+        SearchGroupField field) =>
+        field switch
+        {
+            SearchGroupField.Name =>
+                "Nombre",
+            SearchGroupField.DateModified =>
+                "Fecha de modificación",
+            SearchGroupField.Size =>
+                "Tamaño",
+            SearchGroupField.Category =>
+                "Categoría",
+            SearchGroupField.Extension =>
+                "Extensión",
+            _ =>
+                "Ninguno"
+        };
+
+    private static string GetOrganizeDirectionShortDisplayName(
+        SearchSortDirection direction) =>
+        direction ==
+            SearchSortDirection.Ascending
+            ? "Asc."
+            : "Desc.";
+
+    private void UpdateOrganizeFiltersButtonVisual()
+    {
+        var activeFilterCount =
+            (_organizeDateFilter != SearchDateFilter.All
+                ? 1
+                : 0) +
+            (_organizeSizeFilter != SearchSizeFilter.All
+                ? 1
+                : 0) +
+            (_organizeExtensionFilters.Count > 0
+                ? 1
+                : 0);
+
+        OrganizeFiltersButton.Content =
+            activeFilterCount > 0
+                ? $"Filtros ({activeFilterCount})"
+                : "Filtros";
+
+        OrganizeFiltersButton.Background =
+            GetBrush(
+                activeFilterCount > 0
+                    ? "BandaAccentSoftBrush"
+                    : "BandaCardBrush");
+
+        OrganizeFiltersButton.Foreground =
+            GetBrush(
+                activeFilterCount > 0
+                    ? "BandaAccentBrush"
+                    : "BandaTextBrush");
     }
 
     private void AssignExtensionButton_Click(object sender, RoutedEventArgs e)
@@ -921,8 +1911,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         KeyboardAccelerator sender,
         Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
     {
-        foreach (var file in PreviewFilesList.Items
-                     .OfType<OrganizePreviewFile>())
+        foreach (var file in VisibleOrganizePreviewFiles)
         {
             if (!PreviewFilesList.SelectedItems.Contains(
                     file))
@@ -1689,8 +2678,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         KeyboardAccelerator sender,
         KeyboardAcceleratorInvokedEventArgs args)
     {
-        foreach (var item in FolderDetailFilesList.Items
-                     .OfType<FolderContentPreviewItem>())
+        foreach (var item in VisibleOrganizeFolderItems)
         {
             if (!FolderDetailFilesList.SelectedItems.Contains(
                     item))
@@ -1961,19 +2949,20 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
+        var categoryOrder =
+            GetOrganizeCategoryOrder();
+
         var visibleItems =
-            _folderDetailRoot.FolderContents
-                .Where(item =>
-                    GetParentRelativePath(
-                        item.RelativePath)
-                        .Equals(
-                            currentPath,
-                            StringComparison.OrdinalIgnoreCase))
-                .OrderBy(item => item.IsDirectory ? 0 : 1)
-                .ThenBy(
-                    item => item.FileName,
-                    StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
+            SortOrganizeFolderItems(
+                ApplyOrganizeFilters(
+                    _folderDetailRoot.FolderContents
+                        .Where(item =>
+                            GetParentRelativePath(
+                                item.RelativePath)
+                                .Equals(
+                                    currentPath,
+                                    StringComparison.OrdinalIgnoreCase))),
+                categoryOrder);
 
         var visibleFolderCount =
             visibleItems.Count(item =>
@@ -1998,8 +2987,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         try
         {
             FolderDetailFilesList.SelectedItems.Clear();
-            FolderDetailFilesList.ItemsSource =
-                visibleItems;
+
+            ApplyOrganizeFolderView(
+                visibleItems,
+                categoryOrder);
         }
         finally
         {
@@ -2019,6 +3010,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         try
         {
             FolderDetailFilesList.SelectedItems.Clear();
+            VisibleOrganizeFolderItems.Clear();
+            GroupedOrganizeFolderItems.Clear();
+            _organizeFolderViewSource.Source =
+                null;
             FolderDetailFilesList.ItemsSource =
                 null;
         }
@@ -4428,6 +5423,1089 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         }
     }
 
+    private IReadOnlyDictionary<string, int> GetOrganizeCategoryOrder() =>
+        _categories
+            .GroupBy(
+                category =>
+                    category.Name,
+                StringComparer.CurrentCultureIgnoreCase)
+            .ToDictionary(
+                group =>
+                    group.Key,
+                group =>
+                    group.Min(category =>
+                        category.Order),
+                StringComparer.CurrentCultureIgnoreCase);
+
+    private IEnumerable<OrganizePreviewFile> ApplyOrganizeFilters(
+        IEnumerable<OrganizePreviewFile> source)
+    {
+        var query =
+            source;
+
+        if (_organizeExtensionFilters.Count > 0)
+        {
+            query =
+                query.Where(
+                    MatchesOrganizeExtensionFilter);
+        }
+
+        var now =
+            DateTime.Now;
+
+        query =
+            _organizeDateFilter switch
+            {
+                SearchDateFilter.Today =>
+                    query.Where(file =>
+                        file.ModifiedAt >= now.Date &&
+                        file.ModifiedAt <
+                            now.Date.AddDays(
+                                1)),
+
+                SearchDateFilter.Last7Days =>
+                    query.Where(file =>
+                        file.ModifiedAt >=
+                            now.AddDays(
+                                -7)),
+
+                SearchDateFilter.Last30Days =>
+                    query.Where(file =>
+                        file.ModifiedAt >=
+                            now.AddDays(
+                                -30)),
+
+                SearchDateFilter.SpecificDate
+                    when _organizeSpecificDateFilter.HasValue =>
+                        query.Where(file =>
+                            file.ModifiedAt >=
+                                _organizeSpecificDateFilter.Value.Date &&
+                            file.ModifiedAt <
+                                _organizeSpecificDateFilter.Value.Date.AddDays(
+                                    1)),
+
+                _ =>
+                    query
+            };
+
+        const long megabyte =
+            1024L * 1024L;
+
+        const long gigabyte =
+            1024L * megabyte;
+
+        query =
+            _organizeSizeFilter switch
+            {
+                SearchSizeFilter.Under100Mb =>
+                    query.Where(file =>
+                        file.SizeBytes <
+                            100 * megabyte),
+
+                SearchSizeFilter.From100To500Mb =>
+                    query.Where(file =>
+                        file.SizeBytes >=
+                            100 * megabyte &&
+                        file.SizeBytes <
+                            500 * megabyte),
+
+                SearchSizeFilter.From500MbTo1Gb =>
+                    query.Where(file =>
+                        file.SizeBytes >=
+                            500 * megabyte &&
+                        file.SizeBytes <
+                            gigabyte),
+
+                SearchSizeFilter.From1To5Gb =>
+                    query.Where(file =>
+                        file.SizeBytes >=
+                            gigabyte &&
+                        file.SizeBytes <
+                            5 * gigabyte),
+
+                SearchSizeFilter.From5To20Gb =>
+                    query.Where(file =>
+                        file.SizeBytes >=
+                            5 * gigabyte &&
+                        file.SizeBytes <
+                            20 * gigabyte),
+
+                SearchSizeFilter.Over20Gb =>
+                    query.Where(file =>
+                        file.SizeBytes >=
+                            20 * gigabyte),
+
+                _ =>
+                    query
+            };
+
+        return query;
+    }
+
+    private IEnumerable<FolderContentPreviewItem> ApplyOrganizeFilters(
+        IEnumerable<FolderContentPreviewItem> source)
+    {
+        var query =
+            source;
+
+        if (_organizeExtensionFilters.Count > 0)
+        {
+            query =
+                query.Where(
+                    MatchesOrganizeFolderExtensionFilter);
+        }
+
+        var now =
+            DateTime.Now;
+
+        query =
+            _organizeDateFilter switch
+            {
+                SearchDateFilter.Today =>
+                    query.Where(item =>
+                        item.ModifiedAt >= now.Date &&
+                        item.ModifiedAt <
+                            now.Date.AddDays(
+                                1)),
+
+                SearchDateFilter.Last7Days =>
+                    query.Where(item =>
+                        item.ModifiedAt >=
+                            now.AddDays(
+                                -7)),
+
+                SearchDateFilter.Last30Days =>
+                    query.Where(item =>
+                        item.ModifiedAt >=
+                            now.AddDays(
+                                -30)),
+
+                SearchDateFilter.SpecificDate
+                    when _organizeSpecificDateFilter.HasValue =>
+                        query.Where(item =>
+                            item.ModifiedAt >=
+                                _organizeSpecificDateFilter.Value.Date &&
+                            item.ModifiedAt <
+                                _organizeSpecificDateFilter.Value.Date.AddDays(
+                                    1)),
+
+                _ =>
+                    query
+            };
+
+        const long megabyte =
+            1024L * 1024L;
+
+        const long gigabyte =
+            1024L * megabyte;
+
+        query =
+            _organizeSizeFilter switch
+            {
+                SearchSizeFilter.Under100Mb =>
+                    query.Where(item =>
+                        item.SizeBytes <
+                            100 * megabyte),
+
+                SearchSizeFilter.From100To500Mb =>
+                    query.Where(item =>
+                        item.SizeBytes >=
+                            100 * megabyte &&
+                        item.SizeBytes <
+                            500 * megabyte),
+
+                SearchSizeFilter.From500MbTo1Gb =>
+                    query.Where(item =>
+                        item.SizeBytes >=
+                            500 * megabyte &&
+                        item.SizeBytes <
+                            gigabyte),
+
+                SearchSizeFilter.From1To5Gb =>
+                    query.Where(item =>
+                        item.SizeBytes >=
+                            gigabyte &&
+                        item.SizeBytes <
+                            5 * gigabyte),
+
+                SearchSizeFilter.From5To20Gb =>
+                    query.Where(item =>
+                        item.SizeBytes >=
+                            5 * gigabyte &&
+                        item.SizeBytes <
+                            20 * gigabyte),
+
+                SearchSizeFilter.Over20Gb =>
+                    query.Where(item =>
+                        item.SizeBytes >=
+                            20 * gigabyte),
+
+                _ =>
+                    query
+            };
+
+        return query;
+    }
+
+    private bool MatchesOrganizeExtensionFilter(
+        OrganizePreviewFile file)
+    {
+        if (_organizeExtensionFilters.Count == 0)
+        {
+            return true;
+        }
+
+        if (!file.IsDirectory)
+        {
+            return _organizeExtensionFilters.Contains(
+                file.Extension);
+        }
+
+        return file.FolderContents.Any(item =>
+            !item.IsDirectory &&
+            _organizeExtensionFilters.Contains(
+                item.Extension));
+    }
+
+    private bool MatchesOrganizeFolderExtensionFilter(
+        FolderContentPreviewItem item)
+    {
+        if (_organizeExtensionFilters.Count == 0)
+        {
+            return true;
+        }
+
+        if (!item.IsDirectory)
+        {
+            return _organizeExtensionFilters.Contains(
+                item.Extension);
+        }
+
+        if (_folderDetailRoot is null)
+        {
+            return false;
+        }
+
+        var prefix =
+            item.RelativePath.TrimEnd(
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar) +
+            Path.DirectorySeparatorChar;
+
+        return _folderDetailRoot.FolderContents.Any(child =>
+            !child.IsDirectory &&
+            child.RelativePath.StartsWith(
+                prefix,
+                StringComparison.OrdinalIgnoreCase) &&
+            _organizeExtensionFilters.Contains(
+                child.Extension));
+    }
+
+    private List<OrganizePreviewFile> SortOrganizePreviewFiles(
+        IEnumerable<OrganizePreviewFile> source,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        IOrderedEnumerable<OrganizePreviewFile> ordered =
+            _organizeSortField switch
+            {
+                SearchSortField.Name =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenByDescending(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Size =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenBy(file =>
+                                file.SizeBytes)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenByDescending(file =>
+                                file.SizeBytes)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Category =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenBy(file =>
+                                GetOrganizeCategorySortOrder(
+                                    file.CategoryName,
+                                    categoryOrder,
+                                    descending:
+                                        false))
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenByDescending(file =>
+                                GetOrganizeCategorySortOrder(
+                                    file.CategoryName,
+                                    categoryOrder,
+                                    descending:
+                                        true))
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Extension =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenBy(
+                                file =>
+                                    GetOrganizeSortableExtension(
+                                        file),
+                                StringComparer.CurrentCultureIgnoreCase)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenByDescending(
+                                file =>
+                                    GetOrganizeSortableExtension(
+                                        file),
+                                StringComparer.CurrentCultureIgnoreCase)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                _ =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenBy(file =>
+                                file.ModifiedAt)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(file =>
+                                file.IsDirectory)
+                            .ThenByDescending(file =>
+                                file.ModifiedAt)
+                            .ThenBy(
+                                file =>
+                                    file.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+            };
+
+        return ordered.ToList();
+    }
+
+    private List<FolderContentPreviewItem> SortOrganizeFolderItems(
+        IEnumerable<FolderContentPreviewItem> source,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        IOrderedEnumerable<FolderContentPreviewItem> ordered =
+            _organizeSortField switch
+            {
+                SearchSortField.Name =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenByDescending(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Size =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenBy(item =>
+                                item.SizeBytes)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenByDescending(item =>
+                                item.SizeBytes)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Category =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenBy(item =>
+                                GetOrganizeCategorySortOrder(
+                                    item.CategoryName,
+                                    categoryOrder,
+                                    descending:
+                                        false))
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenByDescending(item =>
+                                GetOrganizeCategorySortOrder(
+                                    item.CategoryName,
+                                    categoryOrder,
+                                    descending:
+                                        true))
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                SearchSortField.Extension =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenBy(
+                                item =>
+                                    GetOrganizeSortableExtension(
+                                        item),
+                                StringComparer.CurrentCultureIgnoreCase)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenByDescending(
+                                item =>
+                                    GetOrganizeSortableExtension(
+                                        item),
+                                StringComparer.CurrentCultureIgnoreCase)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase),
+
+                _ =>
+                    _organizeSortDirection ==
+                        SearchSortDirection.Ascending
+                        ? source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenBy(item =>
+                                item.ModifiedAt)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+                        : source
+                            .OrderByDescending(item =>
+                                item.IsDirectory)
+                            .ThenByDescending(item =>
+                                item.ModifiedAt)
+                            .ThenBy(
+                                item =>
+                                    item.FileName,
+                                StringComparer.CurrentCultureIgnoreCase)
+            };
+
+        return ordered.ToList();
+    }
+
+    private static int GetOrganizeCategorySortOrder(
+        string? categoryName,
+        IReadOnlyDictionary<string, int> categoryOrder,
+        bool descending)
+    {
+        if (!string.IsNullOrWhiteSpace(
+                categoryName) &&
+            categoryOrder.TryGetValue(
+                categoryName,
+                out var order))
+        {
+            return order;
+        }
+
+        return descending
+            ? int.MinValue
+            : int.MaxValue;
+    }
+
+    private static string GetOrganizeSortableExtension(
+        OrganizePreviewFile file) =>
+        file.IsDirectory
+            ? string.Empty
+            : Path.GetExtension(
+                file.FileName);
+
+    private static string GetOrganizeSortableExtension(
+        FolderContentPreviewItem item) =>
+        item.IsDirectory
+            ? string.Empty
+            : Path.GetExtension(
+                item.FileName);
+
+    private void ApplyOrganizePreviewView(
+        IReadOnlyList<OrganizePreviewFile> results,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        VisibleOrganizePreviewFiles.Clear();
+
+        foreach (var item in results)
+        {
+            VisibleOrganizePreviewFiles.Add(
+                item);
+        }
+
+        _organizePreviewViewSource.Source =
+            null;
+
+        if (_organizeGroupField ==
+            SearchGroupField.None)
+        {
+            GroupedOrganizePreviewFiles.Clear();
+
+            _organizePreviewViewSource.IsSourceGrouped =
+                false;
+
+            _organizePreviewViewSource.Source =
+                VisibleOrganizePreviewFiles;
+        }
+        else
+        {
+            BuildOrganizePreviewGroups(
+                results,
+                categoryOrder);
+
+            _organizePreviewViewSource.IsSourceGrouped =
+                true;
+
+            _organizePreviewViewSource.Source =
+                GroupedOrganizePreviewFiles;
+        }
+
+        PreviewFilesList.ItemsSource =
+            _organizePreviewViewSource.View;
+    }
+
+    private void ApplyOrganizeFolderView(
+        IReadOnlyList<FolderContentPreviewItem> results,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        VisibleOrganizeFolderItems.Clear();
+
+        foreach (var item in results)
+        {
+            VisibleOrganizeFolderItems.Add(
+                item);
+        }
+
+        _organizeFolderViewSource.Source =
+            null;
+
+        if (_organizeGroupField ==
+            SearchGroupField.None)
+        {
+            GroupedOrganizeFolderItems.Clear();
+
+            _organizeFolderViewSource.IsSourceGrouped =
+                false;
+
+            _organizeFolderViewSource.Source =
+                VisibleOrganizeFolderItems;
+        }
+        else
+        {
+            BuildOrganizeFolderGroups(
+                results,
+                categoryOrder);
+
+            _organizeFolderViewSource.IsSourceGrouped =
+                true;
+
+            _organizeFolderViewSource.Source =
+                GroupedOrganizeFolderItems;
+        }
+
+        FolderDetailFilesList.ItemsSource =
+            _organizeFolderViewSource.View;
+    }
+
+    private void BuildOrganizePreviewGroups(
+        IReadOnlyList<OrganizePreviewFile> results,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        GroupedOrganizePreviewFiles.Clear();
+
+        var now =
+            DateTime.Now;
+
+        var groups =
+            results.GroupBy(file =>
+                GetOrganizePreviewGroupDescriptor(
+                    file,
+                    now,
+                    categoryOrder));
+
+        var orderedGroups =
+            _organizeSortDirection ==
+                SearchSortDirection.Ascending
+                ? groups
+                    .OrderBy(group =>
+                        group.Key.Order)
+                    .ThenBy(
+                        group =>
+                            group.Key.Label,
+                        StringComparer.CurrentCultureIgnoreCase)
+                : groups
+                    .OrderByDescending(group =>
+                        group.Key.Order)
+                    .ThenByDescending(
+                        group =>
+                            group.Key.Label,
+                        StringComparer.CurrentCultureIgnoreCase);
+
+        foreach (var group in orderedGroups)
+        {
+            GroupedOrganizePreviewFiles.Add(
+                new OrganizePreviewGroup(
+                    group.Key.Label,
+                    group.ToList()));
+        }
+    }
+
+    private void BuildOrganizeFolderGroups(
+        IReadOnlyList<FolderContentPreviewItem> results,
+        IReadOnlyDictionary<string, int> categoryOrder)
+    {
+        GroupedOrganizeFolderItems.Clear();
+
+        var now =
+            DateTime.Now;
+
+        var groups =
+            results.GroupBy(item =>
+                GetOrganizeFolderGroupDescriptor(
+                    item,
+                    now,
+                    categoryOrder));
+
+        var orderedGroups =
+            _organizeSortDirection ==
+                SearchSortDirection.Ascending
+                ? groups
+                    .OrderBy(group =>
+                        group.Key.Order)
+                    .ThenBy(
+                        group =>
+                            group.Key.Label,
+                        StringComparer.CurrentCultureIgnoreCase)
+                : groups
+                    .OrderByDescending(group =>
+                        group.Key.Order)
+                    .ThenByDescending(
+                        group =>
+                            group.Key.Label,
+                        StringComparer.CurrentCultureIgnoreCase);
+
+        foreach (var group in orderedGroups)
+        {
+            GroupedOrganizeFolderItems.Add(
+                new OrganizeFolderContentGroup(
+                    group.Key.Label,
+                    group.ToList()));
+        }
+    }
+
+    private OrganizeGroupDescriptor GetOrganizePreviewGroupDescriptor(
+        OrganizePreviewFile file,
+        DateTime now,
+        IReadOnlyDictionary<string, int> categoryOrder) =>
+        _organizeGroupField switch
+        {
+            SearchGroupField.Name =>
+                GetOrganizeNameGroupDescriptor(
+                    file.FileName),
+
+            SearchGroupField.DateModified =>
+                GetOrganizeDateGroupDescriptor(
+                    file.ModifiedAt,
+                    now),
+
+            SearchGroupField.Size =>
+                GetOrganizeSizeGroupDescriptor(
+                    file.SizeBytes,
+                    file.IsDirectory),
+
+            SearchGroupField.Category =>
+                new OrganizeGroupDescriptor(
+                    file.CategoryName ??
+                        "Sin asignar",
+                    GetOrganizeCategorySortOrder(
+                        file.CategoryName,
+                        categoryOrder,
+                        descending:
+                            false)),
+
+            SearchGroupField.Extension =>
+                file.IsDirectory
+                    ? new OrganizeGroupDescriptor(
+                        "Carpeta de archivos",
+                        0)
+                    : new OrganizeGroupDescriptor(
+                        string.IsNullOrWhiteSpace(
+                            Path.GetExtension(
+                                file.FileName))
+                            ? "Sin extensión"
+                            : Path.GetExtension(
+                                    file.FileName)
+                                .ToUpperInvariant(),
+                        1),
+
+            _ =>
+                new OrganizeGroupDescriptor(
+                    "Elementos",
+                    0)
+        };
+
+    private OrganizeGroupDescriptor GetOrganizeFolderGroupDescriptor(
+        FolderContentPreviewItem item,
+        DateTime now,
+        IReadOnlyDictionary<string, int> categoryOrder) =>
+        _organizeGroupField switch
+        {
+            SearchGroupField.Name =>
+                GetOrganizeNameGroupDescriptor(
+                    item.FileName),
+
+            SearchGroupField.DateModified =>
+                GetOrganizeDateGroupDescriptor(
+                    item.ModifiedAt,
+                    now),
+
+            SearchGroupField.Size =>
+                GetOrganizeSizeGroupDescriptor(
+                    item.SizeBytes,
+                    item.IsDirectory),
+
+            SearchGroupField.Category =>
+                new OrganizeGroupDescriptor(
+                    item.CategoryDisplay,
+                    GetOrganizeCategorySortOrder(
+                        item.CategoryName,
+                        categoryOrder,
+                        descending:
+                            false)),
+
+            SearchGroupField.Extension =>
+                item.IsDirectory
+                    ? new OrganizeGroupDescriptor(
+                        "Carpeta de archivos",
+                        0)
+                    : new OrganizeGroupDescriptor(
+                        string.IsNullOrWhiteSpace(
+                            Path.GetExtension(
+                                item.FileName))
+                            ? "Sin extensión"
+                            : Path.GetExtension(
+                                    item.FileName)
+                                .ToUpperInvariant(),
+                        1),
+
+            _ =>
+                new OrganizeGroupDescriptor(
+                    "Elementos",
+                    0)
+        };
+
+    private static OrganizeGroupDescriptor GetOrganizeNameGroupDescriptor(
+        string name)
+    {
+        if (string.IsNullOrWhiteSpace(
+                name))
+        {
+            return new OrganizeGroupDescriptor(
+                "Otros",
+                4);
+        }
+
+        var normalized =
+            name.Trim()
+                .Normalize(
+                    System.Text.NormalizationForm.FormD);
+
+        var first =
+            char.ToUpperInvariant(
+                normalized[0]);
+
+        if (char.IsDigit(
+                first))
+        {
+            return new OrganizeGroupDescriptor(
+                "0–9",
+                0);
+        }
+
+        if (first is >= 'A' and <= 'H')
+        {
+            return new OrganizeGroupDescriptor(
+                "A–H",
+                1);
+        }
+
+        if (first is >= 'I' and <= 'P')
+        {
+            return new OrganizeGroupDescriptor(
+                "I–P",
+                2);
+        }
+
+        if (first is >= 'Q' and <= 'Z')
+        {
+            return new OrganizeGroupDescriptor(
+                "Q–Z",
+                3);
+        }
+
+        return new OrganizeGroupDescriptor(
+            "Otros",
+            4);
+    }
+
+    private static OrganizeGroupDescriptor GetOrganizeDateGroupDescriptor(
+        DateTime modifiedAt,
+        DateTime now)
+    {
+        var date =
+            modifiedAt.Date;
+
+        var today =
+            now.Date;
+
+        if (date >= today)
+        {
+            return new OrganizeGroupDescriptor(
+                "Hoy",
+                7);
+        }
+
+        if (date >= today.AddDays(
+                -1))
+        {
+            return new OrganizeGroupDescriptor(
+                "Ayer",
+                6);
+        }
+
+        var weekStart =
+            GetOrganizeStartOfWeek(
+                today);
+
+        if (date >= weekStart)
+        {
+            return new OrganizeGroupDescriptor(
+                "A principios de esta semana",
+                5);
+        }
+
+        var lastWeekStart =
+            weekStart.AddDays(
+                -7);
+
+        if (date >= lastWeekStart)
+        {
+            return new OrganizeGroupDescriptor(
+                "La semana pasada",
+                4);
+        }
+
+        var monthStart =
+            new DateTime(
+                today.Year,
+                today.Month,
+                1);
+
+        if (date >= monthStart)
+        {
+            return new OrganizeGroupDescriptor(
+                "A principios de este mes",
+                3);
+        }
+
+        var lastMonthStart =
+            monthStart.AddMonths(
+                -1);
+
+        if (date >= lastMonthStart)
+        {
+            return new OrganizeGroupDescriptor(
+                "El mes pasado",
+                2);
+        }
+
+        var yearStart =
+            new DateTime(
+                today.Year,
+                1,
+                1);
+
+        if (date >= yearStart)
+        {
+            return new OrganizeGroupDescriptor(
+                "A principios de este año",
+                1);
+        }
+
+        return new OrganizeGroupDescriptor(
+            "Hace mucho tiempo",
+            0);
+    }
+
+    private static DateTime GetOrganizeStartOfWeek(
+        DateTime date)
+    {
+        var firstDayOfWeek =
+            CultureInfo.CurrentCulture
+                .DateTimeFormat
+                .FirstDayOfWeek;
+
+        var difference =
+            (7 +
+             ((int)date.DayOfWeek -
+              (int)firstDayOfWeek)) %
+            7;
+
+        return date.AddDays(
+            -difference);
+    }
+
+    private static OrganizeGroupDescriptor GetOrganizeSizeGroupDescriptor(
+        long sizeBytes,
+        bool isDirectory)
+    {
+        if (isDirectory)
+        {
+            return new OrganizeGroupDescriptor(
+                "Sin especificar",
+                0);
+        }
+
+        if (sizeBytes == 0)
+        {
+            return new OrganizeGroupDescriptor(
+                "Vacío",
+                1);
+        }
+
+        const long kilobyte =
+            1024L;
+
+        const long megabyte =
+            1024L * kilobyte;
+
+        const long gigabyte =
+            1024L * megabyte;
+
+        if (sizeBytes <
+            16 * kilobyte)
+        {
+            return new OrganizeGroupDescriptor(
+                "Muy pequeño",
+                2);
+        }
+
+        if (sizeBytes <
+            megabyte)
+        {
+            return new OrganizeGroupDescriptor(
+                "Pequeño",
+                3);
+        }
+
+        if (sizeBytes <
+            128 * megabyte)
+        {
+            return new OrganizeGroupDescriptor(
+                "Mediano",
+                4);
+        }
+
+        if (sizeBytes <
+            gigabyte)
+        {
+            return new OrganizeGroupDescriptor(
+                "Grande",
+                5);
+        }
+
+        if (sizeBytes <
+            4 * gigabyte)
+        {
+            return new OrganizeGroupDescriptor(
+                "Muy grande",
+                6);
+        }
+
+        return new OrganizeGroupDescriptor(
+            "Gigantesco",
+            7);
+    }
+
+    private sealed record OrganizeGroupDescriptor(
+        string Label,
+        int Order);
+
     private void RefreshPreview()
     {
         var classifiedFiles =
@@ -4519,39 +6597,60 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 .ToHashSet(
                     StringComparer.Ordinal);
 
-        var orderedPreviewFiles =
-            _files
-                .OrderBy(file => file.IsClassified ? 0 : 1)
-                .ThenBy(file => file.IsDirectory ? 0 : 1)
-                .ThenBy(file => file.CategoryOrder ?? int.MaxValue)
-                .ThenBy(file => file.FileName, StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
+        var categoryOrder =
+            GetOrganizeCategoryOrder();
 
-        _isRefreshingPreview = true;
+        var visiblePreviewFiles =
+            SortOrganizePreviewFiles(
+                ApplyOrganizeFilters(
+                    _files),
+                categoryOrder);
 
-        PreviewFilesList.ItemsSource =
-            null;
-        PreviewFilesList.ItemsSource =
-            orderedPreviewFiles;
-        PreviewFilesList.SelectedItems.Clear();
+        _isRefreshingPreview =
+            true;
 
-        foreach (var item in orderedPreviewFiles.Where(item =>
-                     selectedItemIds.Contains(
-                         item.ItemId)))
+        try
         {
-            PreviewFilesList.SelectedItems.Add(
-                item);
+            PreviewFilesList.SelectedItems.Clear();
+
+            ApplyOrganizePreviewView(
+                visiblePreviewFiles,
+                categoryOrder);
+
+            foreach (var item in visiblePreviewFiles.Where(item =>
+                         selectedItemIds.Contains(
+                             item.ItemId)))
+            {
+                PreviewFilesList.SelectedItems.Add(
+                    item);
+            }
+        }
+        finally
+        {
+            _isRefreshingPreview =
+                false;
         }
 
-        _isRefreshingPreview = false;
+        UpdateOrganizeFiltersButtonVisual();
 
         var restoredSelection =
             GetSelectedOrganizeFiles();
 
         if (restoredSelection.Count == 1)
         {
+            var selected =
+                restoredSelection[0];
+
+            var preserveFolderContext =
+                selected.IsDirectory &&
+                _folderDetailRoot is not null &&
+                _folderDetailRoot.FullPath.Equals(
+                    selected.FullPath,
+                    StringComparison.OrdinalIgnoreCase);
+
             ShowOrganizeDetail(
-                restoredSelection[0]);
+                selected,
+                preserveFolderContext);
         }
         else if (restoredSelection.Count > 1)
         {
@@ -4828,6 +6927,48 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         string ExtensionDisplay,
         OrganizePreviewFile RootPreviewFile,
         bool IsRootItem);
+}
+
+public sealed class OrganizePreviewGroup
+{
+    public OrganizePreviewGroup(
+        string name,
+        IReadOnlyList<OrganizePreviewFile> items)
+    {
+        Name =
+            name;
+
+        Items =
+            new ObservableCollection<OrganizePreviewFile>(
+                items);
+    }
+
+    public string Name { get; }
+    public ObservableCollection<OrganizePreviewFile> Items { get; }
+
+    public string HeaderText =>
+        $"{Name} ({Items.Count})";
+}
+
+public sealed class OrganizeFolderContentGroup
+{
+    public OrganizeFolderContentGroup(
+        string name,
+        IReadOnlyList<FolderContentPreviewItem> items)
+    {
+        Name =
+            name;
+
+        Items =
+            new ObservableCollection<FolderContentPreviewItem>(
+                items);
+    }
+
+    public string Name { get; }
+    public ObservableCollection<FolderContentPreviewItem> Items { get; }
+
+    public string HeaderText =>
+        $"{Name} ({Items.Count})";
 }
 
 public enum OrganizeManageMode
