@@ -543,7 +543,8 @@
                         BorderThickness="0"
                         Foreground="{StaticResource BandaMutedBrush}"
                         Padding="10,6"
-                        IsEnabled="False" />
+                        IsEnabled="False"
+                        Visibility="Collapsed" />
                 </Grid>
 
                 <!-- Resultados + detalle del archivo seleccionado -->
