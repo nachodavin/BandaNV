@@ -1113,7 +1113,7 @@
                         Visibility="Collapsed" />
 
                     <Button
-                        Grid.Column="0"
+                        Grid.Column="1"
                         Content="Cancelar"
                         Click="CancelPreviewButton_Click"
                         MinHeight="62"
@@ -1129,7 +1129,7 @@
 
                     <Button
                         x:Name="OrganizeButton"
-                        Grid.Column="1"
+                        Grid.Column="0"
                         Content="Organizar archivos"
                         Click="OrganizeButton_Click"
                         MinHeight="62"
