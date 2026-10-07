@@ -696,8 +696,8 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Spacing="3">
-                                            <TextBlock Text="Organizar carpetas completas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Clasificar cada carpeta como una sola unidad usando todo su contenido, incluidas sus subcarpetas, y conservar su estructura interna al moverla." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="Detectar carpetas completas" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="Detectar cada carpeta como una sola unidad, incluyendo su contenido y subcarpetas, y conservar su estructura interna al moverla." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ToggleSwitch x:Name="OrganizeFoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
@@ -898,7 +898,9 @@
                                         <ToggleSwitch x:Name="SaveSearchHistoryToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
-                                    <StackPanel Spacing="7">
+                                    <StackPanel
+                                        x:Name="HistoryRetentionRow"
+                                        Spacing="7">
                                         <TextBlock Text="CONSERVAR HISTORIAL" Style="{StaticResource BandaLabelTextStyle}" FontSize="11" />
                                         <Button Style="{StaticResource BandaSelectorButtonStyle}">
                                             <Grid ColumnSpacing="8">
