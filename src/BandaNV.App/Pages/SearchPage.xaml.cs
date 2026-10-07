@@ -1057,11 +1057,26 @@ public sealed partial class SearchPage : Page
 
         if (results.Count == 0)
         {
-            EmptyStateTitle.Text = "No hay elementos que coincidan";
-            EmptyStateDescription.Text =
-                _selectedCategoryNames.Count > 0 || !string.IsNullOrWhiteSpace(searchText)
-                    ? "Probá cambiando las categorías seleccionadas o el texto de búsqueda."
-                    : "Todavía no hay elementos para mostrar.";
+            var hasDestination =
+                !string.IsNullOrWhiteSpace(
+                    global::BandaNV.App.App.Settings.Current
+                        .DestinationFolder);
+
+            if (!hasDestination)
+            {
+                EmptyStateTitle.Text =
+                    "Configurá una carpeta de destino";
+                EmptyStateDescription.Text =
+                    "Buscar mostrará acá los elementos organizados cuando definas el destino en Configuración.";
+            }
+            else
+            {
+                EmptyStateTitle.Text = "No hay elementos que coincidan";
+                EmptyStateDescription.Text =
+                    _selectedCategoryNames.Count > 0 || !string.IsNullOrWhiteSpace(searchText)
+                        ? "Probá cambiando las categorías seleccionadas o el texto de búsqueda."
+                        : "Todavía no hay elementos para mostrar.";
+            }
         }
 
         var selectedInOrder = _allCategoryCards
