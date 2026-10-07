@@ -6,6 +6,8 @@ namespace BandaNV.App;
 
 public partial class App : Application
 {
+    private static int _bringToFrontPending;
+
     public static MainWindow? MainWindowInstance { get; private set; }
 
     public static SettingsService Settings { get; } = new();
@@ -26,6 +28,23 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+    }
+
+    public static void HandleRedirectedActivation()
+    {
+        var window =
+            MainWindowInstance;
+
+        if (window is null)
+        {
+            Interlocked.Exchange(
+                ref _bringToFrontPending,
+                1);
+            return;
+        }
+
+        window.DispatcherQueue.TryEnqueue(
+            window.BringToFront);
     }
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
@@ -72,6 +91,13 @@ public partial class App : Application
 
         MainWindowInstance = new MainWindow();
         MainWindowInstance.Activate();
+
+        if (Interlocked.Exchange(
+                ref _bringToFrontPending,
+                0) == 1)
+        {
+            MainWindowInstance.BringToFront();
+        }
 
         try
         {
