@@ -176,7 +176,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBox
@@ -188,30 +187,9 @@
                     Padding="14,10"
                     MinHeight="44" />
 
-                <Border
-                    Grid.Column="1"
-                    Padding="14,0"
-                    CornerRadius="12"
-                    Background="{StaticResource BandaCardBrush}"
-                    BorderBrush="{StaticResource BandaBorderBrush}"
-                    BorderThickness="1"
-                    VerticalAlignment="Stretch">
-                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                        <TextBlock
-                            x:Name="CategoryResultCountText"
-                            Text="0"
-                            Foreground="{StaticResource BandaTextBrush}"
-                            FontWeight="SemiBold" />
-                        <TextBlock
-                            x:Name="CategoryResultCountLabel"
-                            Text="Categorías"
-                            Style="{StaticResource BandaMutedTextStyle}" />
-                    </StackPanel>
-                </Border>
-
                 <Button
                     x:Name="NewCategoryButton"
-                    Grid.Column="2"
+                    Grid.Column="1"
                     Content="+ Nueva categoría"
                     Click="NewCategoryButton_Click"
                     Style="{StaticResource BandaPopupPrimaryButtonStyle}"
@@ -272,16 +250,14 @@
                                     ColumnSpacing="14">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="0.22*" />
-                                        <ColumnDefinition Width="0.55*" />
                                         <ColumnDefinition Width="1.35*" />
-                                        <ColumnDefinition Width="2.35*" />
+                                        <ColumnDefinition Width="2.9*" />
                                         <ColumnDefinition Width="0.75*" />
                                     </Grid.ColumnDefinitions>
 
-                                    <TextBlock Grid.Column="1" Text="ORDEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="2" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="3" Text="EXTENSIONES" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="4" Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="EXTENSIONES" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="3" Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                 </Grid>
 
                                 <Grid Grid.Row="1" MinHeight="330">
@@ -319,9 +295,8 @@
                                                 <Grid Padding="10,0" ColumnSpacing="14">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="0.22*" />
-                                                        <ColumnDefinition Width="0.55*" />
                                                         <ColumnDefinition Width="1.35*" />
-                                                        <ColumnDefinition Width="2.35*" />
+                                                        <ColumnDefinition Width="2.9*" />
                                                         <ColumnDefinition Width="0.75*" />
                                                     </Grid.ColumnDefinitions>
 
@@ -332,16 +307,8 @@
                                                         VerticalAlignment="Center"
                                                         ToolTipService.ToolTip="Arrastrá para cambiar el orden" />
 
-                                                    <TextBlock
-                                                        Grid.Column="1"
-                                                        Text="{x:Bind OrderText}"
-                                                        Foreground="{StaticResource BandaAccentBrush}"
-                                                        FontSize="13"
-                                                        FontWeight="SemiBold"
-                                                        VerticalAlignment="Center" />
-
                                                     <StackPanel
-                                                        Grid.Column="2"
+                                                        Grid.Column="1"
                                                         Orientation="Horizontal"
                                                         Spacing="8"
                                                         VerticalAlignment="Center">
@@ -360,7 +327,7 @@
                                                     </StackPanel>
 
                                                     <TextBlock
-                                                        Grid.Column="3"
+                                                        Grid.Column="2"
                                                         Text="{x:Bind ExtensionsSummary}"
                                                         Foreground="{StaticResource BandaMutedStrongBrush}"
                                                         FontSize="13"
@@ -368,7 +335,7 @@
                                                         TextTrimming="CharacterEllipsis" />
 
                                                     <TextBlock
-                                                        Grid.Column="4"
+                                                        Grid.Column="3"
                                                         Text="{x:Bind FileCountText}"
                                                         Foreground="{StaticResource BandaMutedStrongBrush}"
                                                         FontSize="13"
@@ -448,19 +415,6 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <Border
-                                        Grid.Column="1"
-                                        Padding="9,5"
-                                        CornerRadius="10"
-                                        Background="{StaticResource BandaAccentSoftBrush}"
-                                        VerticalAlignment="Top">
-                                        <TextBlock
-                                            x:Name="CategoryDetailOrderText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaAccentBrush}"
-                                            FontSize="12"
-                                            FontWeight="SemiBold" />
-                                    </Border>
                                 </Grid>
 
                                 <Grid
@@ -577,7 +531,7 @@
 
                                         <Button
                                             x:Name="ManageExtensionsButton"
-                                            Content="Extensiones"
+                                            Content="Gestionar extensiones"
                                             Click="ManageExtensionsButton_Click"
                                             Style="{StaticResource BandaPopupSecondaryButtonStyle}"
                                             HorizontalAlignment="Stretch"
