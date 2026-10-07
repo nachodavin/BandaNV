@@ -22,7 +22,6 @@ public sealed class AppSettings
     public bool PreviewBeforeOrganize { get; set; } = true;
     public bool OrganizeFoldersAsUnits { get; set; }
     public bool CreateFolders { get; set; } = true;
-    public bool DeleteEmptyFolders { get; set; }
 
     public string ConflictBehavior { get; set; } = "Preguntar";
     public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
