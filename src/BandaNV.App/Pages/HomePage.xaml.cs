@@ -315,6 +315,25 @@ public sealed partial class HomePage : Page
     {
         HomePendingFilesText.Text = "—";
         HomeUnassignedFilesText.Text = "—";
+
+        if (string.IsNullOrWhiteSpace(
+                settings.SourceFolder) ||
+            string.IsNullOrWhiteSpace(
+                settings.DestinationFolder))
+        {
+            UpdateUnassignedCardState(0);
+
+            HomePendingDetailText.Text =
+                string.IsNullOrWhiteSpace(settings.SourceFolder)
+                    ? "Configurá una carpeta de origen"
+                    : "Configurá una carpeta de destino";
+
+            HomeUnassignedDetailText.Text =
+                "Completá las ubicaciones para analizar el origen";
+
+            return;
+        }
+
         HomePendingDetailText.Text =
             "Analizando origen...";
         HomeUnassignedDetailText.Text =
