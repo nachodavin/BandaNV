@@ -250,6 +250,77 @@
             </Grid>
         </DataTemplate>
 
+        <DataTemplate x:Key="ResolvedExtensionTemplate" x:DataType="local:ResolvedExtensionAssignment">
+            <Border
+                Padding="14,12"
+                Margin="0,0,0,8"
+                CornerRadius="12"
+                Background="{StaticResource BandaAccentFaintBrush}"
+                BorderBrush="{StaticResource BandaBorderBrush}"
+                BorderThickness="1">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="92" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Padding="10,5"
+                        CornerRadius="10"
+                        Background="{StaticResource BandaAccentSoftBrush}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind Extension}"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="14"
+                            FontWeight="SemiBold" />
+                    </Border>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind FilesText}"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center" />
+
+                    <StackPanel
+                        Grid.Column="2"
+                        Spacing="2"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            Text="{x:Bind DestinationText}"
+                            Foreground="{StaticResource BandaAccentBrush}"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Text="{x:Bind PersistenceText}"
+                            Foreground="{StaticResource BandaMutedBrush}"
+                            FontSize="12"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="3"
+                        Tag="{x:Bind Extension}"
+                        Content="Revertir"
+                        Click="RevertExtensionAssignmentButton_Click"
+                        Padding="14,8"
+                        MinWidth="88"
+                        CornerRadius="10"
+                        Background="Transparent"
+                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
         <DataTemplate x:Key="PreviewFileTemplate" x:DataType="local:OrganizePreviewFile">
             <Grid Padding="12,10" ColumnSpacing="14">
                 <Grid.ColumnDefinitions>
