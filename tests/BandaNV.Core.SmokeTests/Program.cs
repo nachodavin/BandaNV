@@ -107,6 +107,22 @@ internal static class Program
             "Reanálisis actualiza carpeta tras un borrado interno externo",
             ReanalysisDetectsNestedDeleteAsync);
 
+        await RunAsync(
+            "Defaults oficiales arrancan sin rutas y con flujo seguro activo",
+            DefaultSettingsMatchProductDefinitionAsync);
+
+        await RunAsync(
+            "Categoría eliminada con contenido conserva carpeta sin prefijo",
+            DeletedCategoryWithContentBecomesTrackedOrphanAsync);
+
+        await RunAsync(
+            "Categoría eliminada vacía se borra cuando la limpieza está activa",
+            EmptyDeletedCategoryIsRemovedAsync);
+
+        await RunAsync(
+            "Carpeta huérfana vacía se conserva en Off y se limpia al activar",
+            OrphanFolderRespectsCleanupToggleAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -117,6 +133,386 @@ internal static class Program
             ? 0
             : 1;
     }
+
+    private static Task DefaultSettingsMatchProductDefinitionAsync()
+    {
+        var settings =
+            AppSettings.CreateDefault();
+
+        Equal(
+            string.Empty,
+            settings.SourceFolder,
+            "El origen default debería quedar sin seleccionar.");
+
+        Equal(
+            string.Empty,
+            settings.DestinationFolder,
+            "El destino default debería quedar sin seleccionar.");
+
+        Equal(
+            "Inicio",
+            settings.StartupPage,
+            "La página inicial default debería ser Inicio.");
+
+        Equal(
+            "Cerrar BandaNV",
+            settings.CloseBehavior,
+            "Cerrar debería finalizar BandaNV por defecto.");
+
+        True(
+            !settings.StartWithWindows,
+            "Iniciar con Windows debería venir desactivado.");
+
+        True(
+            settings.AutoUpdate,
+            "El aviso de actualización debería venir activado.");
+
+        Equal(
+            "Oscuro",
+            settings.Theme,
+            "El tema default debería ser Oscuro.");
+
+        Equal(
+            "#123A34",
+            settings.PrimaryColor,
+            "El color primario default no coincide.");
+
+        Equal(
+            "#4FE0C6",
+            settings.SecondaryColor,
+            "El color secundario default no coincide.");
+
+        True(
+            settings.PreviewBeforeOrganize,
+            "La vista previa debería venir activada.");
+
+        True(
+            settings.OrganizeFoldersAsUnits,
+            "Detectar carpetas completas debería venir activado.");
+
+        True(
+            settings.CreateFolders,
+            "Crear carpetas faltantes debería venir activado.");
+
+        True(
+            settings.DeleteUnusedCategoryFolders,
+            "Eliminar carpetas de categorías sin uso debería venir activado.");
+
+        Equal(
+            "Preguntar",
+            settings.ConflictBehavior,
+            "Los conflictos deberían preguntar por defecto.");
+
+        Equal(
+            "Preguntar en la vista previa",
+            settings.UnknownExtensionBehavior,
+            "Las extensiones sin categoría deberían preguntar en la vista previa.");
+
+        True(
+            settings.UseRecycleBin,
+            "La Papelera debería venir activada.");
+
+        True(
+            settings.ConfirmDestructiveActions,
+            "Las confirmaciones destructivas deberían venir activadas.");
+
+        True(
+            settings.SaveHistory &&
+            settings.SaveOrganizeHistory &&
+            settings.SaveSearchHistory,
+            "El historial y sus acciones deberían venir activados.");
+
+        Equal(
+            "Siempre",
+            settings.HistoryRetention,
+            "La conservación de historial debería ser Siempre.");
+
+        return Task.CompletedTask;
+    }
+
+    private static async Task DeletedCategoryWithContentBecomesTrackedOrphanAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var settings =
+            CreateCategorySyncSettings(
+                workspace,
+                deleteUnusedFolders:
+                    true);
+
+        var previous =
+            CreateTwoCategorySet();
+
+        var next =
+            new List<CategorySettings>
+            {
+                new(
+                    previous[1].Id,
+                    previous[1].Name,
+                    previous[1].Extensions,
+                    1,
+                    previous[1].ColorHex)
+            };
+
+        var deletedFolder =
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                previous[0].Order,
+                previous[0].Name);
+
+        var survivingFolder =
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                previous[1].Order,
+                previous[1].Name);
+
+        Directory.CreateDirectory(
+            deletedFolder);
+        Directory.CreateDirectory(
+            survivingFolder);
+
+        WriteFile(
+            Path.Combine(
+                deletedFolder,
+                "conservar.txt"),
+            "dato");
+
+        var result =
+            await new CategoryFolderSyncService()
+                .SynchronizeAsync(
+                    settings,
+                    previous,
+                    next);
+
+        True(
+            result.Success,
+            result.ErrorMessage ??
+            "La sincronización debería completarse.");
+
+        var orphanFolder =
+            Path.Combine(
+                workspace.Destination,
+                previous[0].Name);
+
+        True(
+            Directory.Exists(orphanFolder),
+            "La carpeta con contenido debería conservarse sin prefijo numérico.");
+
+        True(
+            File.Exists(
+                Path.Combine(
+                    orphanFolder,
+                    "conservar.txt")),
+            "El contenido de la categoría eliminada debería conservarse.");
+
+        True(
+            !Directory.Exists(deletedFolder),
+            "La carpeta numerada eliminada ya no debería quedar activa.");
+
+        True(
+            Directory.Exists(
+                CategoryService.GetFolderPath(
+                    workspace.Destination,
+                    1,
+                    previous[1].Name)),
+            "La categoría restante debería ocupar su nuevo orden.");
+
+        True(
+            settings.OrphanedCategoryFolders.Any(path =>
+                Path.GetFullPath(path).Equals(
+                    Path.GetFullPath(orphanFolder),
+                    StringComparison.OrdinalIgnoreCase)),
+            "La carpeta conservada debería quedar registrada como huérfana segura.");
+    }
+
+    private static async Task EmptyDeletedCategoryIsRemovedAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var settings =
+            CreateCategorySyncSettings(
+                workspace,
+                deleteUnusedFolders:
+                    true);
+
+        var previous =
+            CreateTwoCategorySet();
+
+        var next =
+            new List<CategorySettings>
+            {
+                new(
+                    previous[1].Id,
+                    previous[1].Name,
+                    previous[1].Extensions,
+                    1,
+                    previous[1].ColorHex)
+            };
+
+        var deletedFolder =
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                previous[0].Order,
+                previous[0].Name);
+
+        Directory.CreateDirectory(
+            deletedFolder);
+        Directory.CreateDirectory(
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                previous[1].Order,
+                previous[1].Name));
+
+        var result =
+            await new CategoryFolderSyncService()
+                .SynchronizeAsync(
+                    settings,
+                    previous,
+                    next);
+
+        True(
+            result.Success,
+            result.ErrorMessage ??
+            "La sincronización debería completarse.");
+
+        True(
+            !Directory.Exists(deletedFolder),
+            "La carpeta numerada vacía debería eliminarse.");
+
+        True(
+            !Directory.Exists(
+                Path.Combine(
+                    workspace.Destination,
+                    previous[0].Name)),
+            "No debería quedar una carpeta huérfana vacía.");
+
+        True(
+            settings.OrphanedCategoryFolders.Count == 0,
+            "No debería registrarse una carpeta que ya fue eliminada.");
+    }
+
+    private static async Task OrphanFolderRespectsCleanupToggleAsync()
+    {
+        using var workspace =
+            TestWorkspace.Create();
+
+        var settings =
+            CreateCategorySyncSettings(
+                workspace,
+                deleteUnusedFolders:
+                    false);
+
+        var previous =
+            CreateTwoCategorySet();
+
+        var next =
+            new List<CategorySettings>
+            {
+                new(
+                    previous[1].Id,
+                    previous[1].Name,
+                    previous[1].Extensions,
+                    1,
+                    previous[1].ColorHex)
+            };
+
+        Directory.CreateDirectory(
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                previous[0].Order,
+                previous[0].Name));
+
+        Directory.CreateDirectory(
+            CategoryService.GetFolderPath(
+                workspace.Destination,
+                previous[1].Order,
+                previous[1].Name));
+
+        var service =
+            new CategoryFolderSyncService();
+
+        var result =
+            await service.SynchronizeAsync(
+                settings,
+                previous,
+                next);
+
+        True(
+            result.Success,
+            result.ErrorMessage ??
+            "La sincronización debería completarse.");
+
+        var orphanFolder =
+            Path.Combine(
+                workspace.Destination,
+                previous[0].Name);
+
+        True(
+            Directory.Exists(orphanFolder),
+            "Con la limpieza desactivada, la carpeta vacía debería conservarse.");
+
+        True(
+            settings.OrphanedCategoryFolders.Count == 1,
+            "La carpeta conservada debería quedar registrada.");
+
+        settings.DeleteUnusedCategoryFolders =
+            true;
+
+        var deleted =
+            await service.CleanupUnusedCategoryFoldersAsync(
+                settings);
+
+        Equal(
+            1,
+            deleted,
+            "Al activar la limpieza debería eliminarse la carpeta huérfana vacía.");
+
+        True(
+            !Directory.Exists(orphanFolder),
+            "La carpeta huérfana ya no debería existir.");
+
+        Equal(
+            0,
+            settings.OrphanedCategoryFolders.Count,
+            "El registro huérfano debería limpiarse junto con la carpeta.");
+    }
+
+    private static AppSettings CreateCategorySyncSettings(
+        TestWorkspace workspace,
+        bool deleteUnusedFolders)
+    {
+        var settings =
+            AppSettings.CreateDefault();
+
+        settings.SourceFolder =
+            workspace.Source;
+        settings.DestinationFolder =
+            workspace.Destination;
+        settings.CreateFolders =
+            true;
+        settings.DeleteUnusedCategoryFolders =
+            deleteUnusedFolders;
+
+        return settings;
+    }
+
+    private static List<CategorySettings> CreateTwoCategorySet() =>
+    [
+        new(
+            "test-a",
+            "AUDIO",
+            [".mp3"],
+            1,
+            "#4FE0C6"),
+        new(
+            "test-b",
+            "VIDEOS",
+            [".mp4"],
+            2,
+            "#4FE0C6")
+    ];
 
     private static async Task RunAsync(
         string name,
