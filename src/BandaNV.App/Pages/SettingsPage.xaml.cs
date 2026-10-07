@@ -629,7 +629,6 @@ public sealed partial class SettingsPage : Page
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
-            DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
             RecycleBin = RecycleBinToggle.IsOn,
@@ -664,7 +663,6 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = backup.PreviewBeforeOrganize;
         OrganizeFoldersToggle.IsOn = backup.OrganizeFoldersAsUnits;
         CreateFoldersToggle.IsOn = backup.CreateFolders;
-        DeleteEmptyFoldersToggle.IsOn = backup.DeleteEmptyFolders;
         ConflictBehaviorValueText.Text = backup.ConflictBehavior;
         UnknownExtensionBehaviorValueText.Text = backup.UnknownExtensionBehavior;
         RecycleBinToggle.IsOn = backup.RecycleBin;
@@ -981,7 +979,6 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = true;
         OrganizeFoldersToggle.IsOn = false;
         CreateFoldersToggle.IsOn = true;
-        DeleteEmptyFoldersToggle.IsOn = false;
 
         ConflictBehaviorValueText.Text = "Preguntar";
         UnknownExtensionBehaviorValueText.Text = "Preguntar en la vista previa";
@@ -1030,7 +1027,6 @@ public sealed partial class SettingsPage : Page
         PreviewBeforeOrganizeToggle.IsOn = settings.PreviewBeforeOrganize;
         OrganizeFoldersToggle.IsOn = settings.OrganizeFoldersAsUnits;
         CreateFoldersToggle.IsOn = settings.CreateFolders;
-        DeleteEmptyFoldersToggle.IsOn = settings.DeleteEmptyFolders;
 
         ConflictBehaviorValueText.Text = settings.ConflictBehavior;
         UnknownExtensionBehaviorValueText.Text = settings.UnknownExtensionBehavior;
@@ -1082,7 +1078,6 @@ public sealed partial class SettingsPage : Page
             PreviewBeforeOrganize = PreviewBeforeOrganizeToggle.IsOn,
             OrganizeFoldersAsUnits = OrganizeFoldersToggle.IsOn,
             CreateFolders = CreateFoldersToggle.IsOn,
-            DeleteEmptyFolders = DeleteEmptyFoldersToggle.IsOn,
             ConflictBehavior = ConflictBehaviorValueText.Text,
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
             UseRecycleBin = RecycleBinToggle.IsOn,
@@ -1214,7 +1209,6 @@ internal sealed class SettingsBackupModel
     public bool PreviewBeforeOrganize { get; set; } = true;
     public bool OrganizeFoldersAsUnits { get; set; }
     public bool CreateFolders { get; set; } = true;
-    public bool DeleteEmptyFolders { get; set; }
 
     public string ConflictBehavior { get; set; } = "Preguntar";
     public string UnknownExtensionBehavior { get; set; } = "Preguntar en la vista previa";
