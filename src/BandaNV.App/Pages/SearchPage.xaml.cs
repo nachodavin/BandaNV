@@ -177,6 +177,8 @@ public sealed partial class SearchPage : Page
         _scanCts?.Dispose();
         _scanCts = new CancellationTokenSource();
 
+        ResetSearchFolderNavigationState();
+
         _allFiles.Clear();
         LoadCategories(GetCurrentCategories());
         RefreshSearchResults();
@@ -1037,7 +1039,11 @@ public sealed partial class SearchPage : Page
 
     private void RefreshSearchResults()
     {
-        IEnumerable<SearchFileResult> query = _allFiles;
+        IEnumerable<SearchFileResult> query =
+            IsSearchFolderNavigationActive
+                ? GetCurrentSearchFolderItems()
+                    .Select(item => item.ActionTarget)
+                : _allFiles;
 
         if (_selectedCategoryNames.Count > 0)
         {
@@ -1411,7 +1417,15 @@ public sealed partial class SearchPage : Page
             return;
         }
 
-        OpenSearchFile(file);
+        if (file.IsDirectory)
+        {
+            NavigateIntoSearchFolder(file);
+        }
+        else
+        {
+            OpenSearchFile(file);
+        }
+
         e.Handled = true;
     }
 
@@ -1879,43 +1893,31 @@ public sealed partial class SearchPage : Page
                 item.ActionTarget)
             .ToList();
 
-    private List<SearchFileResult> GetSelectedSearchFiles()
-    {
-        if (SearchFolderContentsPanel.Visibility ==
-                Visibility.Visible)
-        {
-            var nested =
-                GetSelectedFolderContentFiles();
-
-            if (nested.Count > 0)
-            {
-                return nested;
-            }
-
-            if (_selectedSearchFolder is not null &&
-                !string.IsNullOrWhiteSpace(
-                    _searchFolderCurrentRelativePath))
-            {
-                return
-                [
-                    GetCurrentSearchFolderTarget()
-                ];
-            }
-        }
-
-        return GetSelectedMainSearchFiles();
-    }
+    private List<SearchFileResult> GetSelectedSearchFiles() =>
+        GetSelectedMainSearchFiles();
 
     private void UpdateSearchSelectionDetails()
     {
-        ResetFolderContentSelection(
-            hidePanel: true);
-
         var selectedFiles =
             GetSelectedMainSearchFiles();
 
         if (selectedFiles.Count == 0)
         {
+            if (IsSearchFolderNavigationActive)
+            {
+                var currentFolder =
+                    GetCurrentSearchFolderTarget();
+
+                _selectedSearchFile =
+                    currentFolder;
+
+                ShowSearchFileDetails(
+                    currentFolder,
+                    preserveFolderContext:
+                        true);
+                return;
+            }
+
             _selectedSearchFile =
                 null;
 
@@ -1945,27 +1947,10 @@ public sealed partial class SearchPage : Page
         SearchFileResult file,
         bool preserveFolderContext = false)
     {
-        if (!preserveFolderContext)
-        {
-            if (file.IsDirectory)
-            {
-                ShowFolderContentsInPanel(
-                    file);
-            }
-            else
-            {
-                ResetFolderContentSelection(
-                    hidePanel: true);
-            }
-        }
-
         SearchDetailTitleText.Text =
-            preserveFolderContext &&
-            _selectedSearchFolder is not null
-                ? "Detalle del archivo"
-                : file.IsDirectory
-                    ? "Detalle de la carpeta"
-                    : "Detalle del archivo";
+            file.IsDirectory
+                ? "Detalle de la carpeta"
+                : "Detalle del archivo";
 
         SearchDetailFileNameText.Text =
             file.Name;
@@ -2028,12 +2013,6 @@ public sealed partial class SearchPage : Page
         IReadOnlyList<SearchFileResult> files,
         bool preserveFolderContext = false)
     {
-        if (!preserveFolderContext)
-        {
-            ResetFolderContentSelection(
-                hidePanel: true);
-        }
-
         var categoryCount =
             files
                 .Select(file =>
@@ -2128,6 +2107,30 @@ public sealed partial class SearchPage : Page
             Visibility.Visible;
     }
 
+    private bool IsSearchFolderNavigationActive =>
+        _selectedSearchFolder is not null &&
+        SearchFolderNavigationBar.Visibility ==
+            Visibility.Visible;
+
+    private IEnumerable<SearchFolderContentItem> GetCurrentSearchFolderItems()
+    {
+        if (_selectedSearchFolder is null)
+        {
+            return [];
+        }
+
+        var currentPath =
+            _searchFolderCurrentRelativePath;
+
+        return _selectedSearchFolder.FolderContents
+            .Where(item =>
+                GetSearchFolderParentRelativePath(
+                    item.RelativePath)
+                    .Equals(
+                        currentPath,
+                        StringComparison.OrdinalIgnoreCase));
+    }
+
     private void ShowFolderContentsInPanel(
         SearchFileResult folder)
     {
@@ -2138,10 +2141,60 @@ public sealed partial class SearchPage : Page
             string.Empty;
         _searchFolderHistory.Clear();
 
-        RefreshSearchFolderContentView();
+        SearchFolderNavigationBar.Visibility =
+            Visibility.Visible;
 
         SearchFolderContentsPanel.Visibility =
-            Visibility.Visible;
+            Visibility.Collapsed;
+
+        RefreshSearchFolderContentView();
+    }
+
+    private void NavigateIntoSearchFolder(
+        SearchFileResult folder)
+    {
+        if (!folder.IsDirectory)
+        {
+            OpenSearchFile(
+                folder);
+            return;
+        }
+
+        if (!IsSearchFolderNavigationActive ||
+            _selectedSearchFolder is null)
+        {
+            ShowFolderContentsInPanel(
+                folder);
+            return;
+        }
+
+        var currentFolder =
+            GetCurrentSearchFolderTarget();
+
+        if (currentFolder.FilePath.Equals(
+                folder.FilePath,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var nestedFolder =
+            _selectedSearchFolder.FolderContents
+                .FirstOrDefault(item =>
+                    item.IsDirectory &&
+                    item.ActionTarget.FilePath.Equals(
+                        folder.FilePath,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (nestedFolder is null)
+        {
+            return;
+        }
+
+        _searchFolderCurrentRelativePath =
+            nestedFolder.RelativePath;
+
+        RefreshSearchFolderContentView();
     }
 
     private void RefreshSearchFolderContentView()
@@ -2151,72 +2204,79 @@ public sealed partial class SearchPage : Page
             return;
         }
 
-        var currentPath =
-            _searchFolderCurrentRelativePath;
+        SearchFolderNavigationBar.Visibility =
+            Visibility.Visible;
 
-        var visibleItems =
-            _selectedSearchFolder.FolderContents
-                .Where(item =>
-                    GetSearchFolderParentRelativePath(
-                        item.RelativePath)
-                        .Equals(
-                            currentPath,
-                            StringComparison.OrdinalIgnoreCase))
-                .OrderBy(item =>
-                    item.IsDirectory
-                        ? 0
-                        : 1)
-                .ThenBy(
-                    item =>
-                        item.Name,
-                    StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
+        var pathParts =
+            new List<string>
+            {
+                "Buscar",
+                _selectedSearchFolder.Name
+            };
 
-        var visibleFolderCount =
-            visibleItems.Count(item =>
-                item.IsDirectory);
-
-        var visibleFileCount =
-            visibleItems.Count -
-            visibleFolderCount;
-
-        SearchFolderContentsTitleText.Text =
-            visibleFolderCount == 0
-                ? visibleFileCount == 1
-                    ? "CONTENIDO · 1 ARCHIVO"
-                    : $"CONTENIDO · {visibleFileCount} ARCHIVOS"
-                : visibleItems.Count == 1
-                    ? "CONTENIDO · 1 ELEMENTO"
-                    : $"CONTENIDO · {visibleItems.Count} ELEMENTOS";
-
-        SearchFolderContentsPathText.Text =
-            string.IsNullOrWhiteSpace(
-                currentPath)
-                ? "· Raíz"
-                : $"· {currentPath}";
-
-        SearchFolderContentsBackButton.Visibility =
-            _searchFolderHistory.Count > 0
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
-        _syncingFolderContentSelection =
-            true;
-
-        try
+        if (!string.IsNullOrWhiteSpace(
+                _searchFolderCurrentRelativePath))
         {
-            SearchFolderContentList.SelectedItems.Clear();
-            SearchFolderContentList.ItemsSource =
-                visibleItems;
-        }
-        finally
-        {
-            _syncingFolderContentSelection =
-                false;
+            pathParts.AddRange(
+                _searchFolderCurrentRelativePath.Split(
+                    [
+                        System.IO.Path.DirectorySeparatorChar,
+                        System.IO.Path.AltDirectorySeparatorChar
+                    ],
+                    StringSplitOptions.RemoveEmptyEntries));
         }
 
-        SearchFolderContentsSelectionText.Text =
-            "Seleccioná para gestionar";
+        SearchFolderNavigationPathText.Text =
+            string.Join(
+                "  ›  ",
+                pathParts);
+
+        RefreshSearchResults();
+    }
+
+    private void ResetSearchFolderNavigationState()
+    {
+        _selectedSearchFolder =
+            null;
+        _searchFolderCurrentRelativePath =
+            string.Empty;
+        _searchFolderHistory.Clear();
+
+        SearchFolderNavigationBar.Visibility =
+            Visibility.Collapsed;
+        SearchFolderNavigationPathText.Text =
+            "Buscar";
+
+        SearchFolderContentsPanel.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void ExitSearchFolderNavigation(
+        SearchFileResult? folderToReselect = null)
+    {
+        var targetPath =
+            folderToReselect?.FilePath;
+
+        ResetSearchFolderNavigationState();
+        RefreshSearchResults();
+
+        if (string.IsNullOrWhiteSpace(
+                targetPath))
+        {
+            return;
+        }
+
+        var target =
+            VisibleSearchResults.FirstOrDefault(file =>
+                file.FilePath.Equals(
+                    targetPath,
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (target is not null)
+        {
+            SearchResultsList.SelectedItem =
+                target;
+        }
     }
 
     private void ResetFolderContentSelection(
@@ -2243,24 +2303,8 @@ public sealed partial class SearchPage : Page
 
         if (hidePanel)
         {
-            _selectedSearchFolder =
-                null;
-
-            _searchFolderCurrentRelativePath =
-                string.Empty;
-            _searchFolderHistory.Clear();
-
             SearchFolderContentsPanel.Visibility =
                 Visibility.Collapsed;
-
-            SearchFolderContentsTitleText.Text =
-                "CONTENIDO";
-            SearchFolderContentsPathText.Text =
-                string.Empty;
-            SearchFolderContentsBackButton.Visibility =
-                Visibility.Collapsed;
-            SearchFolderContentsSelectionText.Text =
-                "Seleccioná para gestionar";
         }
     }
 
@@ -2397,27 +2441,25 @@ public sealed partial class SearchPage : Page
         object sender,
         RoutedEventArgs e)
     {
-        if (_selectedSearchFolder is null ||
-            _searchFolderHistory.Count == 0)
+        if (!IsSearchFolderNavigationActive ||
+            _selectedSearchFolder is null)
         {
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(
+                _searchFolderCurrentRelativePath))
+        {
+            ExitSearchFolderNavigation(
+                _selectedSearchFolder);
+            return;
+        }
+
         _searchFolderCurrentRelativePath =
-            _searchFolderHistory.Pop();
+            GetSearchFolderParentRelativePath(
+                _searchFolderCurrentRelativePath);
 
         RefreshSearchFolderContentView();
-
-        var currentFolder =
-            GetCurrentSearchFolderTarget();
-
-        _selectedSearchFile =
-            currentFolder;
-
-        ShowSearchFileDetails(
-            currentFolder,
-            preserveFolderContext:
-                true);
     }
 
     private void SearchFolderContentSelectAllAccelerator_Invoked(
@@ -2499,9 +2541,6 @@ public sealed partial class SearchPage : Page
 
     private void ClearSearchFileDetails()
     {
-        ResetFolderContentSelection(
-            hidePanel: true);
-
         SearchDetailTitleText.Text =
             "Detalle del elemento";
 
@@ -2564,6 +2603,13 @@ public sealed partial class SearchPage : Page
     {
         if (_selectedSearchFile is not { } file)
         {
+            return;
+        }
+
+        if (file.IsDirectory)
+        {
+            NavigateIntoSearchFolder(
+                file);
             return;
         }
 

@@ -568,11 +568,46 @@
 
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="48" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
                             <Grid
+                                x:Name="SearchFolderNavigationBar"
+                                Grid.Row="0"
+                                Visibility="Collapsed"
+                                Padding="12,8"
+                                ColumnSpacing="10"
+                                Background="{StaticResource BandaCardAltBrush}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button
+                                    Content="← Volver"
+                                    Click="SearchFolderContentsBackButton_Click"
+                                    Padding="10,5"
+                                    CornerRadius="8"
+                                    Background="Transparent"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}" />
+
+                                <TextBlock
+                                    x:Name="SearchFolderNavigationPathText"
+                                    Grid.Column="1"
+                                    Text="Buscar"
+                                    Foreground="{StaticResource BandaTextBrush}"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    TextTrimming="CharacterEllipsis"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+
+                            <Grid
+                                Grid.Row="1"
                                 Padding="16,0"
                                 ColumnSpacing="14">
                                 <Grid.ColumnDefinitions>
@@ -588,7 +623,7 @@
                                 <TextBlock Grid.Column="3" Text="FECHA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                             </Grid>
 
-                            <Grid Grid.Row="1" MinHeight="330">
+                            <Grid Grid.Row="2" MinHeight="330">
                                 <ListView
                                     x:Name="SearchResultsList"
                                     ItemTemplate="{StaticResource SearchResultTemplate}"
