@@ -297,14 +297,14 @@ internal static class Program
         var expectedCategories =
             new[]
             {
-                ("RAR", new[] { ".zip", ".rar", ".7z" }),
-                ("INSTALLERS", new[] { ".exe", ".msi", ".bat" }),
-                ("DOCUMENTS", new[] { ".pdf", ".docx", ".xlsx", ".txt" }),
-                ("IMAGES", new[] { ".jpg", ".jpeg", ".png", ".webp", ".avif" }),
-                ("GIF", new[] { ".gif" }),
-                ("VIDEOS", new[] { ".mp4", ".mkv", ".mov", ".avi" }),
-                ("AUDIO", new[] { ".mp3", ".wav", ".flac", ".aac", ".ogg" }),
-                ("EDITABLES", new[] { ".ai", ".psd", ".eps" })
+                ("RAR", new[] { ".7z", ".rar", ".zip" }, "#874ADE"),
+                ("INSTALADORES", new[] { ".bat", ".exe", ".msi" }, "#59EBA9"),
+                ("DOCUMENTOS", new[] { ".docx", ".pdf", ".txt", ".xlsx" }, "#FFFFFF"),
+                ("IMAGENES", new[] { ".avif", ".jpeg", ".jpg", ".png", ".webp" }, "#33B2EB"),
+                ("GIF", new[] { ".gif" }, "#33B2EB"),
+                ("VIDEOS", new[] { ".avi", ".mkv", ".mov", ".mp4" }, "#FF0000"),
+                ("AUDIO", new[] { ".aac", ".flac", ".mp3", ".ogg", ".wav" }, "#FF0000"),
+                ("EDITABLES", new[] { ".ai", ".eps", ".psd" }, "#FF7C35")
             };
 
         Equal(
@@ -334,6 +334,11 @@ internal static class Program
                     actual.Extensions,
                     StringComparer.OrdinalIgnoreCase),
                 $"Las extensiones default de {actual.Name} no coinciden.");
+
+            Equal(
+                expected.Item3,
+                actual.ColorHex,
+                $"El color default de {actual.Name} no coincide.");
         }
 
         return Task.CompletedTask;
