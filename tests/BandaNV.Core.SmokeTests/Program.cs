@@ -20,7 +20,7 @@ internal static class Program
         Console.WriteLine();
 
         await RunAsync(
-            "Carpeta profunda de una categoría se mantiene como una unidad",
+            "Carpeta profunda se mantiene como unidad y requiere asignación manual",
             DeepSingleCategoryFolderAsync);
 
         await RunAsync(
@@ -179,10 +179,9 @@ internal static class Program
             result.Files.Count,
             "Las subcarpetas no deberían convertirse en unidades independientes.");
 
-        Equal(
-            "IMAGES",
-            folder.CategoryName,
-            "La carpeta debería inferirse como IMAGES.");
+        True(
+            !folder.IsClassified,
+            "Una carpeta completa siempre debería requerir asignación manual.");
 
         Equal(
             2,
