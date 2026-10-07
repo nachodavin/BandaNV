@@ -73,6 +73,12 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private OrganizePreviewFile? _folderDetailRoot;
     private string _folderDetailCurrentRelativePath = string.Empty;
     private readonly Stack<string> _folderDetailHistory = new();
+
+    private bool IsOrganizeFolderNavigationActive =>
+        _folderDetailRoot is not null &&
+        OrganizeFolderNavigationBar.Visibility ==
+            Visibility.Visible;
+
     private bool _syncingFolderDetailSelection;
     private bool _syncingUnassignedFolderSelection;
     private bool _syncingUnassignedExtensionSelection;
@@ -1951,6 +1957,32 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return;
         }
 
+        if (IsOrganizeFolderNavigationActive)
+        {
+            var nestedItems =
+                GetSelectedFolderContentItems();
+
+            if (nestedItems.Count == 0)
+            {
+                ShowOrganizeDetail(
+                    _folderDetailRoot!,
+                    preserveFolderContext:
+                        true);
+                return;
+            }
+
+            if (nestedItems.Count == 1)
+            {
+                ShowFolderContentItemDetails(
+                    nestedItems[0]);
+                return;
+            }
+
+            ShowMultipleFolderContentDetails(
+                nestedItems);
+            return;
+        }
+
         var files =
             GetSelectedOrganizeFiles();
 
@@ -1989,6 +2021,18 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         PreviewFilesList.SelectedItems.Clear();
 
+        if (IsOrganizeFolderNavigationActive)
+        {
+            ShowOrganizeDetail(
+                _folderDetailRoot!,
+                preserveFolderContext:
+                    true);
+
+            e.Handled =
+                true;
+            return;
+        }
+
         SyncUnassignedFolderSelection(
             Array.Empty<OrganizePreviewFile>());
         SyncUnassignedExtensionSelection(
@@ -2000,10 +2044,87 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             true;
     }
 
+    private void PreviewFilesList_DoubleTapped(
+        object sender,
+        DoubleTappedRoutedEventArgs e)
+    {
+        var current =
+            e.OriginalSource as DependencyObject;
+
+        while (current is not null &&
+               current != PreviewFilesList)
+        {
+            if (current is FrameworkElement element)
+            {
+                if (element.DataContext is FolderContentPreviewItem nestedItem)
+                {
+                    if (nestedItem.IsDirectory)
+                    {
+                        NavigateIntoOrganizeFolder(
+                            nestedItem);
+                    }
+                    else
+                    {
+                        OpenOrganizePath(
+                            GetFolderContentFullPath(
+                                nestedItem),
+                            isDirectory:
+                                false);
+                    }
+
+                    e.Handled =
+                        true;
+                    return;
+                }
+
+                if (element.DataContext is OrganizePreviewFile rootItem)
+                {
+                    if (rootItem.IsDirectory)
+                    {
+                        OpenOrganizeFolderNavigation(
+                            rootItem);
+                    }
+                    else
+                    {
+                        OpenOrganizePath(
+                            rootItem.FullPath,
+                            isDirectory:
+                                false);
+                    }
+
+                    e.Handled =
+                        true;
+                    return;
+                }
+            }
+
+            current =
+                VisualTreeHelper.GetParent(
+                    current);
+        }
+    }
+
     private void PreviewSelectAllAccelerator_Invoked(
         KeyboardAccelerator sender,
         Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
     {
+        if (IsOrganizeFolderNavigationActive)
+        {
+            foreach (var item in VisibleOrganizeFolderItems)
+            {
+                if (!PreviewFilesList.SelectedItems.Contains(
+                        item))
+                {
+                    PreviewFilesList.SelectedItems.Add(
+                        item);
+                }
+            }
+
+            args.Handled =
+                true;
+            return;
+        }
+
         foreach (var file in VisibleOrganizePreviewFiles)
         {
             if (!PreviewFilesList.SelectedItems.Contains(
@@ -2427,17 +2548,25 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDeleteButton.IsEnabled =
             true;
 
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Collapsed;
+
         if (!item.IsDirectory)
         {
-            OrganizeFolderContentsPanel.Visibility =
-                Visibility.Collapsed;
+            if (!preserveFolderContext)
+            {
+                ResetFolderDetailNavigation();
+            }
 
-            ResetFolderDetailNavigation();
             return;
         }
 
-        if (!preserveFolderContext ||
-            _folderDetailRoot is null ||
+        if (!preserveFolderContext)
+        {
+            return;
+        }
+
+        if (_folderDetailRoot is null ||
             !_folderDetailRoot.FullPath.Equals(
                 item.FullPath,
                 StringComparison.OrdinalIgnoreCase))
@@ -2449,7 +2578,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             _folderDetailHistory.Clear();
         }
 
-        OrganizeFolderContentsPanel.Visibility =
+        OrganizeFolderNavigationBar.Visibility =
             Visibility.Visible;
 
         RefreshFolderDetailView();
@@ -2792,9 +2921,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     }
 
     private List<FolderContentPreviewItem> GetSelectedFolderContentItems() =>
-        FolderDetailFilesList.SelectedItems
-            .OfType<FolderContentPreviewItem>()
-            .ToList();
+        IsOrganizeFolderNavigationActive
+            ? PreviewFilesList.SelectedItems
+                .OfType<FolderContentPreviewItem>()
+                .ToList()
+            : [];
 
     private FolderContentPreviewItem? GetFolderContentItemFromEventSource(
         object? source)
@@ -2835,7 +2966,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDetailPanel.Visibility =
             Visibility.Visible;
         OrganizeFolderContentsPanel.Visibility =
-            Visibility.Visible;
+            Visibility.Collapsed;
 
         OrganizeDetailTitleText.Text =
             item.IsDirectory
@@ -2914,7 +3045,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDetailPanel.Visibility =
             Visibility.Visible;
         OrganizeFolderContentsPanel.Visibility =
-            Visibility.Visible;
+            Visibility.Collapsed;
 
         var categories =
             items
@@ -3037,6 +3168,33 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         var currentPath =
             _folderDetailCurrentRelativePath;
 
+        var pathParts =
+            new List<string>
+            {
+                "Organizar",
+                _folderDetailRoot.FileName
+            };
+
+        if (!string.IsNullOrWhiteSpace(
+                currentPath))
+        {
+            pathParts.AddRange(
+                currentPath.Split(
+                    [
+                        Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar
+                    ],
+                    StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        OrganizeFolderNavigationPathText.Text =
+            string.Join(
+                "  ›  ",
+                pathParts);
+
+        OrganizeFolderNavigationBar.Visibility =
+            Visibility.Visible;
+
         FolderDetailPathText.Text =
             string.IsNullOrWhiteSpace(
                 currentPath)
@@ -3044,9 +3202,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 : $"· {currentPath}";
 
         FolderDetailBackButton.Visibility =
-            _folderDetailHistory.Count > 0
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            Visibility.Visible;
 
         var categoryOrder =
             GetOrganizeCategoryOrder();
@@ -3082,10 +3238,12 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         _syncingFolderDetailSelection =
             true;
+        _isRefreshingPreview =
+            true;
 
         try
         {
-            FolderDetailFilesList.SelectedItems.Clear();
+            PreviewFilesList.SelectedItems.Clear();
 
             ApplyOrganizeFolderView(
                 visibleItems,
@@ -3093,6 +3251,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         }
         finally
         {
+            _isRefreshingPreview =
+                false;
             _syncingFolderDetailSelection =
                 false;
         }
@@ -3105,19 +3265,32 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     {
         _syncingFolderDetailSelection =
             true;
+        _isRefreshingPreview =
+            true;
 
         try
         {
-            FolderDetailFilesList.SelectedItems.Clear();
+            PreviewFilesList.SelectedItems.Clear();
             VisibleOrganizeFolderItems.Clear();
             GroupedOrganizeFolderItems.Clear();
             _organizeFolderViewSource.Source =
                 null;
+
+            PreviewFilesList.ItemTemplate =
+                (DataTemplate)Resources[
+                    "PreviewFileTemplate"];
+
+            PreviewFilesList.ItemsSource =
+                _organizePreviewViewSource.View;
+
+            FolderDetailFilesList.SelectedItems.Clear();
             FolderDetailFilesList.ItemsSource =
                 null;
         }
         finally
         {
+            _isRefreshingPreview =
+                false;
             _syncingFolderDetailSelection =
                 false;
         }
@@ -3128,6 +3301,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             string.Empty;
         _folderDetailHistory.Clear();
 
+        OrganizeFolderNavigationBar.Visibility =
+            Visibility.Collapsed;
+        OrganizeFolderNavigationPathText.Text =
+            "Organizar";
+
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Collapsed;
         OrganizeFolderContentsTitleText.Text =
             "CONTENIDO";
         FolderDetailPathText.Text =
@@ -3136,6 +3316,142 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             "Seleccioná para gestionar";
         FolderDetailBackButton.Visibility =
             Visibility.Collapsed;
+    }
+
+    private void OpenOrganizeFolderNavigation(
+        OrganizePreviewFile folder)
+    {
+        if (!folder.IsDirectory)
+        {
+            return;
+        }
+
+        _folderDetailRoot =
+            folder;
+        _folderDetailCurrentRelativePath =
+            string.Empty;
+        _folderDetailHistory.Clear();
+
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Collapsed;
+        OrganizeFolderNavigationBar.Visibility =
+            Visibility.Visible;
+
+        RefreshFolderDetailView();
+
+        ShowOrganizeDetail(
+            folder,
+            preserveFolderContext:
+                true);
+    }
+
+    private void NavigateIntoOrganizeFolder(
+        FolderContentPreviewItem folder)
+    {
+        if (_folderDetailRoot is null ||
+            !folder.IsDirectory)
+        {
+            return;
+        }
+
+        _folderDetailHistory.Push(
+            _folderDetailCurrentRelativePath);
+
+        _folderDetailCurrentRelativePath =
+            folder.RelativePath;
+
+        RefreshFolderDetailView();
+
+        ShowOrganizeDetail(
+            _folderDetailRoot,
+            preserveFolderContext:
+                true);
+    }
+
+    private void OrganizeFolderNavigationBackButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (!IsOrganizeFolderNavigationActive ||
+            _folderDetailRoot is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                _folderDetailCurrentRelativePath))
+        {
+            _folderDetailCurrentRelativePath =
+                GetParentRelativePath(
+                    _folderDetailCurrentRelativePath);
+
+            RebuildFolderDetailHistory(
+                _folderDetailCurrentRelativePath);
+
+            RefreshFolderDetailView();
+
+            ShowOrganizeDetail(
+                _folderDetailRoot,
+                preserveFolderContext:
+                    true);
+            return;
+        }
+
+        var root =
+            _folderDetailRoot;
+
+        ResetFolderDetailNavigation();
+
+        if (VisibleOrganizePreviewFiles.Contains(
+                root))
+        {
+            PreviewFilesList.SelectedItem =
+                root;
+        }
+
+        ShowOrganizeDetail(
+            root);
+    }
+
+    private void OpenOrganizePath(
+        string path,
+        bool isDirectory)
+    {
+        if (!OrganizationEntrySafety.Exists(
+                path))
+        {
+            ShowOrganizeActionStatus(
+                "El elemento ya no existe.",
+                isError:
+                    true);
+            return;
+        }
+
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName =
+                        path,
+                    UseShellExecute =
+                        true
+                });
+
+            ShowOrganizeActionStatus(
+                isDirectory
+                    ? "Carpeta abierta."
+                    : "Archivo abierto.");
+        }
+        catch
+        {
+            ShowOrganizeActionStatus(
+                isDirectory
+                    ? "No se pudo abrir la carpeta."
+                    : "No se pudo abrir el archivo.",
+                isError:
+                    true);
+        }
     }
 
     private string GetFolderContentFullPath(
@@ -3224,6 +3540,40 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         object sender,
         RoutedEventArgs e)
     {
+        if (IsOrganizeFolderNavigationActive)
+        {
+            var nestedItems =
+                GetSelectedFolderContentItems();
+
+            if (nestedItems.Count == 1 &&
+                nestedItems[0].IsDirectory)
+            {
+                NavigateIntoOrganizeFolder(
+                    nestedItems[0]);
+                return;
+            }
+
+            if (nestedItems.Count == 0)
+            {
+                ShowOrganizeActionStatus(
+                    "Ya estás viendo el contenido de esta carpeta.");
+                return;
+            }
+        }
+        else
+        {
+            var rootFiles =
+                GetSelectedOrganizeFiles();
+
+            if (rootFiles.Count == 1 &&
+                rootFiles[0].IsDirectory)
+            {
+                OpenOrganizeFolderNavigation(
+                    rootFiles[0]);
+                return;
+            }
+        }
+
         var targets =
             GetActiveOrganizeActionTargets();
 
@@ -4167,7 +4517,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private OrganizeFolderDetailState? CaptureFolderDetailState()
     {
         if (_folderDetailRoot is null ||
-            OrganizeFolderContentsPanel.Visibility !=
+            OrganizeFolderNavigationBar.Visibility !=
                 Visibility.Visible)
         {
             return null;
@@ -4341,23 +4691,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             return false;
         }
 
-        _isRefreshingPreview =
-            true;
-
-        try
-        {
-            PreviewFilesList.SelectedItems.Clear();
-            PreviewFilesList.SelectedItems.Add(
-                root);
-        }
-        finally
-        {
-            _isRefreshingPreview =
-                false;
-        }
-
-        ShowOrganizeDetail(
-            root);
+        _folderDetailRoot =
+            root;
 
         var currentRelativePath =
             ResolveExistingFolderDetailRelativePath(
@@ -4370,6 +4705,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RebuildFolderDetailHistory(
             currentRelativePath);
 
+        OrganizeFolderNavigationBar.Visibility =
+            Visibility.Visible;
+        OrganizeFolderContentsPanel.Visibility =
+            Visibility.Collapsed;
+
         RefreshFolderDetailView();
 
         var requestedEntries =
@@ -4379,7 +4719,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                     StringComparer.OrdinalIgnoreCase);
 
         var selected =
-            FolderDetailFilesList.Items
+            PreviewFilesList.Items
                 .OfType<FolderContentPreviewItem>()
                 .Where(item =>
                     requestedEntries.Contains(
@@ -4390,19 +4730,23 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         _syncingFolderDetailSelection =
             true;
+        _isRefreshingPreview =
+            true;
 
         try
         {
-            FolderDetailFilesList.SelectedItems.Clear();
+            PreviewFilesList.SelectedItems.Clear();
 
             foreach (var item in selected)
             {
-                FolderDetailFilesList.SelectedItems.Add(
+                PreviewFilesList.SelectedItems.Add(
                     item);
             }
         }
         finally
         {
+            _isRefreshingPreview =
+                false;
             _syncingFolderDetailSelection =
                 false;
         }
@@ -6157,6 +6501,10 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 GroupedOrganizePreviewFiles;
         }
 
+        PreviewFilesList.ItemTemplate =
+            (DataTemplate)Resources[
+                "PreviewFileTemplate"];
+
         PreviewFilesList.ItemsSource =
             _organizePreviewViewSource.View;
     }
@@ -6200,7 +6548,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
                 GroupedOrganizeFolderItems;
         }
 
-        FolderDetailFilesList.ItemsSource =
+        PreviewFilesList.ItemTemplate =
+            (DataTemplate)Resources[
+                "OrganizeSideFolderContentTemplate"];
+
+        PreviewFilesList.ItemsSource =
             _organizeFolderViewSource.View;
     }
 
@@ -6711,6 +7063,9 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             assignment.UpdateActiveFileCount(activeCount);
         }
 
+        var folderNavigationState =
+            CaptureFolderDetailState();
+
         var selectedItemIds =
             PreviewFilesList.SelectedItems
                 .OfType<OrganizePreviewFile>()
@@ -6755,33 +7110,37 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         UpdateOrganizeFiltersButtonVisual();
 
-        var restoredSelection =
-            GetSelectedOrganizeFiles();
+        List<OrganizePreviewFile> restoredSelection;
 
-        if (restoredSelection.Count == 1)
+        if (folderNavigationState is not null &&
+            RestoreFolderDetailState(
+                folderNavigationState) &&
+            _folderDetailRoot is not null)
         {
-            var selected =
-                restoredSelection[0];
-
-            var preserveFolderContext =
-                selected.IsDirectory &&
-                _folderDetailRoot is not null &&
-                _folderDetailRoot.FullPath.Equals(
-                    selected.FullPath,
-                    StringComparison.OrdinalIgnoreCase);
-
-            ShowOrganizeDetail(
-                selected,
-                preserveFolderContext);
-        }
-        else if (restoredSelection.Count > 1)
-        {
-            ShowMultipleOrganizeDetails(
-                restoredSelection);
+            restoredSelection =
+            [
+                _folderDetailRoot
+            ];
         }
         else
         {
-            ShowOrganizeSummary();
+            restoredSelection =
+                GetSelectedOrganizeFiles();
+
+            if (restoredSelection.Count == 1)
+            {
+                ShowOrganizeDetail(
+                    restoredSelection[0]);
+            }
+            else if (restoredSelection.Count > 1)
+            {
+                ShowMultipleOrganizeDetails(
+                    restoredSelection);
+            }
+            else
+            {
+                ShowOrganizeSummary();
+            }
         }
 
         UnassignedExtensionsList.ItemsSource = null;

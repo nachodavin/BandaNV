@@ -202,29 +202,34 @@
         </DataTemplate>
 
         <DataTemplate x:Key="OrganizeSideFolderContentTemplate" x:DataType="local:FolderContentPreviewItem">
-            <Grid
-                Padding="10,9"
-                ColumnSpacing="10">
+            <Grid Padding="12,10" ColumnSpacing="14">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.15*" />
-                    <ColumnDefinition Width="0.75*" />
+                    <ColumnDefinition Width="2.1*" />
+                    <ColumnDefinition Width="1.05*" />
                     <ColumnDefinition Width="0.8*" />
-                    <ColumnDefinition Width="1.35*" />
+                    <ColumnDefinition Width="1.25*" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock
-                    Text="{x:Bind FileName}"
-                    Foreground="{StaticResource BandaTextBrush}"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    TextTrimming="CharacterEllipsis"
-                    VerticalAlignment="Center" />
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock
+                        Text="{x:Bind FileName}"
+                        Foreground="{StaticResource BandaTextBrush}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Text="{x:Bind ExtensionDisplay}"
+                        Foreground="{StaticResource BandaMutedBrush}"
+                        FontSize="11"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
 
                 <TextBlock
                     Grid.Column="1"
-                    Text="{x:Bind ExtensionDisplay}"
+                    Text="{x:Bind CategoryDisplay}"
                     Foreground="{StaticResource BandaMutedStrongBrush}"
-                    FontSize="11"
+                    FontSize="13"
+                    FontWeight="SemiBold"
                     TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Center" />
 
@@ -232,89 +237,17 @@
                     Grid.Column="2"
                     Text="{x:Bind SizeDisplay}"
                     Foreground="{StaticResource BandaMutedStrongBrush}"
-                    FontSize="11"
-                    TextTrimming="CharacterEllipsis"
+                    FontSize="13"
                     VerticalAlignment="Center" />
 
                 <TextBlock
                     Grid.Column="3"
                     Text="{x:Bind ModifiedDisplay}"
-                    Foreground="{StaticResource BandaMutedBrush}"
-                    FontSize="11"
+                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                    FontSize="13"
                     TextTrimming="CharacterEllipsis"
                     VerticalAlignment="Center" />
             </Grid>
-        </DataTemplate>
-
-        <DataTemplate x:Key="ResolvedExtensionTemplate" x:DataType="local:ResolvedExtensionAssignment">
-            <Border
-                Padding="14,12"
-                Margin="0,0,0,8"
-                CornerRadius="12"
-                Background="{StaticResource BandaAccentFaintBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1">
-                <Grid ColumnSpacing="14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="92" />
-                        <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Border
-                        Padding="10,5"
-                        CornerRadius="10"
-                        Background="{StaticResource BandaAccentSoftBrush}"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center">
-                        <TextBlock
-                            Text="{x:Bind Extension}"
-                            Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="14"
-                            FontWeight="SemiBold" />
-                    </Border>
-
-                    <TextBlock
-                        Grid.Column="1"
-                        Text="{x:Bind FilesText}"
-                        Foreground="{StaticResource BandaTextBrush}"
-                        FontSize="13"
-                        FontWeight="SemiBold"
-                        VerticalAlignment="Center" />
-
-                    <StackPanel
-                        Grid.Column="2"
-                        Spacing="2"
-                        VerticalAlignment="Center">
-                        <TextBlock
-                            Text="{x:Bind DestinationText}"
-                            Foreground="{StaticResource BandaAccentBrush}"
-                            FontSize="13"
-                            FontWeight="SemiBold"
-                            TextTrimming="CharacterEllipsis" />
-                        <TextBlock
-                            Text="{x:Bind PersistenceText}"
-                            Foreground="{StaticResource BandaMutedBrush}"
-                            FontSize="12"
-                            TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-
-                    <Button
-                        Grid.Column="3"
-                        Tag="{x:Bind Extension}"
-                        Content="Revertir"
-                        Click="RevertExtensionAssignmentButton_Click"
-                        Padding="14,8"
-                        MinWidth="88"
-                        CornerRadius="10"
-                        Background="Transparent"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                        BorderBrush="{StaticResource BandaBorderBrush}"
-                        BorderThickness="1"
-                        VerticalAlignment="Center" />
-                </Grid>
-            </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="PreviewFileTemplate" x:DataType="local:OrganizePreviewFile">
@@ -835,6 +768,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
@@ -1003,8 +937,49 @@
 
                         </Grid>
 
-                        <Border
+                        <Grid
+                            x:Name="OrganizeFolderNavigationBar"
                             Grid.Row="1"
+                            Visibility="Collapsed"
+                            Padding="12,8"
+                            ColumnSpacing="10"
+                            Background="{StaticResource BandaCardAltBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button
+                                Content="← Volver"
+                                Click="OrganizeFolderNavigationBackButton_Click"
+                                Padding="10,5"
+                                CornerRadius="8"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource BandaBorderBrush}"
+                                BorderThickness="1"
+                                Foreground="{StaticResource BandaMutedStrongBrush}" />
+
+                            <TextBlock
+                                x:Name="OrganizeFolderNavigationPathText"
+                                Grid.Column="1"
+                                Text="Organizar"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Navegación de carpeta"
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="11"
+                                VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Border
+                            Grid.Row="2"
                             Background="{StaticResource BandaCardAltBrush}"
                             BorderBrush="{StaticResource BandaBorderBrush}"
                             BorderThickness="0,1,0,1">
@@ -1028,13 +1003,14 @@
 
                         <ListView
                             x:Name="PreviewFilesList"
-                            Grid.Row="2"
+                            Grid.Row="3"
                             ItemTemplate="{StaticResource PreviewFileTemplate}"
                             SelectionMode="Extended"
                             IsMultiSelectCheckBoxEnabled="False"
                             KeyboardAcceleratorPlacementMode="Hidden"
                             SelectionChanged="PreviewFilesList_SelectionChanged"
                             Tapped="PreviewFilesList_Tapped"
+                            DoubleTapped="PreviewFilesList_DoubleTapped"
                             HorizontalContentAlignment="Stretch"
                             Background="Transparent"
                             BorderThickness="0"
@@ -1045,7 +1021,7 @@
                             <ListView.GroupStyle>
                                 <GroupStyle>
                                     <GroupStyle.HeaderTemplate>
-                                        <DataTemplate x:DataType="local:OrganizePreviewGroup">
+                                        <DataTemplate>
                                             <Grid
                                                 Padding="12,12,12,7"
                                                 ColumnSpacing="10">
@@ -1054,7 +1030,7 @@
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock
-                                                    Text="{x:Bind HeaderText}"
+                                                    Text="{Binding HeaderText}"
                                                     Foreground="{StaticResource BandaTextBrush}"
                                                     FontSize="13"
                                                     FontWeight="SemiBold"
