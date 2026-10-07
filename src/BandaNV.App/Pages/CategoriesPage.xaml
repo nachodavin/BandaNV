@@ -288,7 +288,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <TextBlock
-                                                Text="{x:Bind OrderText}"
+                                                Text="{x:Bind OrderText, Mode=OneWay}"
                                                 Foreground="{x:Bind ColorBrush}"
                                                 FontSize="12"
                                                 FontWeight="SemiBold"
