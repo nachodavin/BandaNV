@@ -65,7 +65,7 @@
                     </Grid.RowDefinitions>
                     <TextBlock Text="ELEMENTOS ORGANIZADOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                     <TextBlock x:Name="HistoryTotalFilesText" Grid.Row="1" Text="0" Foreground="{StaticResource BandaTextBrush}" FontSize="30" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <TextBlock Grid.Row="2" Text="Movimientos históricos" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                    <TextBlock x:Name="HistoryTotalFilesDetailText" Grid.Row="2" Text="0 archivos físicos involucrados" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                 </Grid>
             </Border>
 
@@ -339,11 +339,12 @@
 
                             <Grid Padding="16,0" ColumnSpacing="18">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="1.22*" />
-                                    <ColumnDefinition Width="1.05*" />
-                                    <ColumnDefinition Width="1.45*" />
-                                    <ColumnDefinition Width="1.45*" />
-                                    <ColumnDefinition Width="0.62*" />
+                                    <ColumnDefinition Width="1.15*" />
+                                    <ColumnDefinition Width="0.95*" />
+                                    <ColumnDefinition Width="1.25*" />
+                                    <ColumnDefinition Width="1.25*" />
+                                    <ColumnDefinition Width="0.58*" />
+                                    <ColumnDefinition Width="0.58*" />
                                     <ColumnDefinition Width="0.7*" />
                                 </Grid.ColumnDefinitions>
 
@@ -352,7 +353,8 @@
                                 <TextBlock Grid.Column="2" Text="ORIGEN" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="3" Text="DESTINO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="4" Text="ELEMENTOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="5" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="5" Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="6" Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                             </Grid>
 
                             <ListView
@@ -394,11 +396,12 @@
                                     <DataTemplate x:DataType="local:HistoryExecutionPreview">
                                         <Grid Padding="10,0" ColumnSpacing="18">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.22*" />
-                                                <ColumnDefinition Width="1.05*" />
-                                                <ColumnDefinition Width="1.45*" />
-                                                <ColumnDefinition Width="1.45*" />
-                                                <ColumnDefinition Width="0.62*" />
+                                                <ColumnDefinition Width="1.15*" />
+                                                <ColumnDefinition Width="0.95*" />
+                                                <ColumnDefinition Width="1.25*" />
+                                                <ColumnDefinition Width="1.25*" />
+                                                <ColumnDefinition Width="0.58*" />
+                                                <ColumnDefinition Width="0.58*" />
                                                 <ColumnDefinition Width="0.7*" />
                                             </Grid.ColumnDefinitions>
 
@@ -407,7 +410,8 @@
                                             <TextBlock Grid.Column="2" Text="{x:Bind OriginShort}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="3" Text="{x:Bind DestinationShort}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="4" Text="{x:Bind FileCountText}" Foreground="{StaticResource BandaTextBrush}" FontSize="13" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="5" Text="{x:Bind SizeText}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="5" Text="{x:Bind PhysicalFileCountText}" Foreground="{StaticResource BandaTextBrush}" FontSize="13" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="6" Text="{x:Bind SizeText}" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
                                         </Grid>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
@@ -480,6 +484,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
 
                                     <Border Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
@@ -490,6 +495,13 @@
                                     </Border>
 
                                     <Border Grid.Column="1" Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
+                                            <TextBlock x:Name="DetailPhysicalFileCountText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="21" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Column="2" Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="TAMAÑO" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" />
                                             <TextBlock x:Name="DetailSizeText" Text="—" Foreground="{StaticResource BandaTextBrush}" FontSize="21" FontWeight="SemiBold" />

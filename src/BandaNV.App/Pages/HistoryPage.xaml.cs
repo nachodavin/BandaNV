@@ -228,6 +228,12 @@ public sealed partial class HistoryPage : Page
                 record) &&
             reversibleFileCount > 0;
 
+        var physicalFileCount =
+            displayedItems.Sum(item =>
+                item.IsDirectory
+                    ? Math.Max(0, item.ContainedFileCount)
+                    : 1);
+
         var files =
             displayedItems
                 .Select(item =>
@@ -279,6 +285,11 @@ public sealed partial class HistoryPage : Page
                 displayedItems.Count,
             FileCountText =
                 displayedItems.Count.ToString(
+                    CultureInfo.CurrentCulture),
+            PhysicalFileCount =
+                physicalFileCount,
+            PhysicalFileCountText =
+                physicalFileCount.ToString(
                     CultureInfo.CurrentCulture),
             SizeText =
                 FormatHistoryBytes(
@@ -362,11 +373,20 @@ public sealed partial class HistoryPage : Page
                     StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        var totalFiles =
+        var totalElements =
             organizationExecutions.Sum(execution => execution.FileCount);
 
+        var totalPhysicalFiles =
+            organizationExecutions.Sum(execution =>
+                execution.PhysicalFileCount);
+
         HistoryTotalFilesText.Text =
-            totalFiles.ToString(CultureInfo.CurrentCulture);
+            totalElements.ToString(CultureInfo.CurrentCulture);
+
+        HistoryTotalFilesDetailText.Text =
+            totalPhysicalFiles == 1
+                ? "1 archivo físico involucrado"
+                : $"{totalPhysicalFiles.ToString(CultureInfo.CurrentCulture)} archivos físicos involucrados";
 
         var totalBytes =
             organizationExecutions.Sum(execution =>
@@ -400,7 +420,9 @@ public sealed partial class HistoryPage : Page
                     CultureInfo.GetCultureInfo("es-AR"));
 
         HistoryLastOrganizationDetailText.Text =
-            $"{lastOrganization.FileCountText} elementos · {lastOrganization.SizeText}";
+            $"{lastOrganization.FileCountText} elemento{(lastOrganization.FileCount == 1 ? string.Empty : "s")} · " +
+            $"{lastOrganization.PhysicalFileCountText} archivo{(lastOrganization.PhysicalFileCount == 1 ? string.Empty : "s")} · " +
+            lastOrganization.SizeText;
     }
 
     private static bool IsItemCurrentlyReversible(
@@ -649,6 +671,7 @@ public sealed partial class HistoryPage : Page
                 : "ELEMENTOS DE LA EJECUCIÓN";
         DetailDateText.Text = $"{execution.DateTimeText} · {execution.Type}";
         DetailFileCountText.Text = execution.FileCountText;
+        DetailPhysicalFileCountText.Text = execution.PhysicalFileCountText;
         DetailSizeText.Text = execution.SizeText;
         DetailOriginText.Text = execution.Origin;
         DetailDestinationText.Text = execution.Destination;
@@ -678,8 +701,14 @@ public sealed partial class HistoryPage : Page
 
     private void ShowMultipleExecutionDetails(IReadOnlyList<HistoryExecutionPreview> executions)
     {
-        var totalFiles = executions.Sum(execution => execution.FileCount);
-        var totalBytes = executions.Sum(execution => ParseSizeBytes(execution.SizeText));
+        var totalElements =
+            executions.Sum(execution => execution.FileCount);
+
+        var totalPhysicalFiles =
+            executions.Sum(execution => execution.PhysicalFileCount);
+
+        var totalBytes =
+            executions.Sum(execution => ParseSizeBytes(execution.SizeText));
 
         var originCount = executions
             .Select(execution => execution.Origin)
@@ -696,7 +725,10 @@ public sealed partial class HistoryPage : Page
         DetailTitleText.Text = "Selección múltiple";
         DetailFilesSectionTitleText.Text = "ELEMENTOS DE LAS EJECUCIONES";
         DetailDateText.Text = $"{executions.Count} ejecuciones seleccionadas";
-        DetailFileCountText.Text = totalFiles.ToString(CultureInfo.CurrentCulture);
+        DetailFileCountText.Text =
+            totalElements.ToString(CultureInfo.CurrentCulture);
+        DetailPhysicalFileCountText.Text =
+            totalPhysicalFiles.ToString(CultureInfo.CurrentCulture);
         DetailSizeText.Text = FormatHistoryBytes(totalBytes);
         DetailOriginText.Text =
             originCount == 1
@@ -1180,6 +1212,7 @@ public sealed partial class HistoryPage : Page
         DetailFilesSectionTitleText.Text = "ELEMENTOS DE LA EJECUCIÓN";
         DetailDateText.Text = "—";
         DetailFileCountText.Text = "—";
+        DetailPhysicalFileCountText.Text = "—";
         DetailSizeText.Text = "—";
         DetailOriginText.Text = "—";
         DetailDestinationText.Text = "—";
@@ -1507,6 +1540,8 @@ public sealed class HistoryExecutionPreview
 
     public int FileCount { get; set; }
     public string FileCountText { get; set; } = string.Empty;
+    public int PhysicalFileCount { get; set; }
+    public string PhysicalFileCountText { get; set; } = string.Empty;
     public string SizeText { get; set; } = string.Empty;
     public bool CanUndo { get; set; }
     public int ReversibleFileCount { get; set; }
