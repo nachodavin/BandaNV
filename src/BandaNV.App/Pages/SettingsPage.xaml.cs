@@ -748,9 +748,19 @@ public sealed partial class SettingsPage : Page
         OpenSettingsConfirmation(
             SettingsConfirmMode.ResetSettings,
             "Restablecer configuración",
-            "Volver a los valores iniciales",
-            "Se restablecerán las preferencias visibles de esta maqueta. Las categorías y los archivos organizados no se eliminan.",
+            "Volver a las preferencias predeterminadas",
+            "Se restablecerán las preferencias de BandaNV a sus valores predeterminados. No se eliminarán categorías, historial, logs ni archivos organizados.",
             "Restablecer");
+    }
+
+    private void ClearAppDataButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenSettingsConfirmation(
+            SettingsConfirmMode.ClearAppData,
+            "Borrar datos de BandaNV",
+            "Eliminar los datos guardados por la aplicación",
+            "Se restaurarán las categorías y sus extensiones a los valores iniciales y se eliminarán el historial, los logs y los backups de seguridad que puedan borrarse de forma segura. Tus preferencias y los archivos que BandaNV ya organizó no se modificarán. Los registros técnicos necesarios para Deshacer pueden conservarse por seguridad. Esta acción no se puede deshacer.",
+            "Borrar datos");
     }
 
     private async void CheckUpdatesButton_Click(
@@ -944,7 +954,51 @@ public sealed partial class SettingsPage : Page
             case SettingsConfirmMode.ResetSettings:
                 ResetVisibleSettingsToDefaults();
                 CloseSettingsConfirmation();
-                ShowSettingsFeedback("Configuración visible restablecida a sus valores iniciales.");
+                ShowSettingsFeedback("Configuración restablecida a sus valores predeterminados.");
+                break;
+
+            case SettingsConfirmMode.ClearAppData:
+                SettingsConfirmDangerButton.IsEnabled = false;
+                SettingsConfirmSecondaryButton.IsEnabled = false;
+
+                try
+                {
+                    var historyResult =
+                        await global::BandaNV.App.App.History.ClearAsync();
+
+                    var defaultCategories =
+                        AppSettings.CreateDefault().Categories;
+
+                    await global::BandaNV.App.App.Settings.UpdateCategoriesAsync(
+                        defaultCategories);
+
+                    CloseSettingsConfirmation();
+
+                    var message =
+                        $"Datos de BandaNV borrados: categorías y extensiones restauradas, " +
+                        $"{historyResult.DeletedExecutions} ejecuciones, " +
+                        $"{historyResult.DeletedLogs} logs y " +
+                        $"{historyResult.DeletedBackupDirectories} carpetas de backup eliminadas.";
+
+                    if (historyResult.ProtectedExecutions > 0)
+                    {
+                        message +=
+                            $" {historyResult.ProtectedExecutions} registro{(historyResult.ProtectedExecutions == 1 ? string.Empty : "s")} técnico{(historyResult.ProtectedExecutions == 1 ? string.Empty : "s")} se conservó{(historyResult.ProtectedExecutions == 1 ? string.Empty : "aron")} por seguridad.";
+                    }
+
+                    ShowSettingsFeedback(message);
+                }
+                catch (Exception ex)
+                {
+                    CloseSettingsConfirmation();
+                    ShowSettingsFeedback(
+                        $"No se pudieron borrar todos los datos de BandaNV: {ex.Message}");
+                }
+                finally
+                {
+                    SettingsConfirmDangerButton.IsEnabled = true;
+                    SettingsConfirmSecondaryButton.IsEnabled = true;
+                }
                 break;
 
             default:
@@ -1180,7 +1234,8 @@ internal enum SettingsConfirmMode
 {
     None,
     ClearHistory,
-    ResetSettings
+    ResetSettings,
+    ClearAppData
 }
 
 internal sealed class SettingsBackupModel
