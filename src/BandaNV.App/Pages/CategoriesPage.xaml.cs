@@ -844,7 +844,7 @@ public sealed partial class CategoriesPage : Page
 
     private void AddCategoryExtensionButton_Click(object sender, RoutedEventArgs e)
     {
-        AddExtensionsFromEditorInput();
+        TryAddExtensionsFromEditorInput();
     }
 
     private void CategoryExtensionInputTextBox_KeyDown(
@@ -856,17 +856,17 @@ public sealed partial class CategoriesPage : Page
             return;
         }
 
-        AddExtensionsFromEditorInput();
+        TryAddExtensionsFromEditorInput();
         e.Handled = true;
     }
 
-    private void AddExtensionsFromEditorInput()
+    private bool TryAddExtensionsFromEditorInput()
     {
         var input = CategoryExtensionInputTextBox.Text?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(input))
         {
-            return;
+            return true;
         }
 
         var values = input.Split(
@@ -885,7 +885,7 @@ public sealed partial class CategoriesPage : Page
                 CategoryEditorValidationText.Text =
                     $"“{value}” no parece una extensión válida.";
                 CategoryEditorValidationText.Visibility = Visibility.Visible;
-                return;
+                return false;
             }
 
             if (_editorExtensions.Contains(
@@ -899,12 +899,15 @@ public sealed partial class CategoriesPage : Page
             addedAny = true;
         }
 
+        CategoryEditorValidationText.Visibility = Visibility.Collapsed;
+        CategoryExtensionInputTextBox.Text = string.Empty;
+
         if (addedAny)
         {
-            CategoryEditorValidationText.Visibility = Visibility.Collapsed;
-            CategoryExtensionInputTextBox.Text = string.Empty;
             BuildCategoryEditorExtensionBadges();
         }
+
+        return true;
     }
 
     private static string NormalizeExtension(string value)
@@ -953,6 +956,14 @@ public sealed partial class CategoriesPage : Page
     private async void SaveCategoryEditorButton_Click(object sender, RoutedEventArgs e)
     {
         CategoryEditorValidationText.Visibility = Visibility.Collapsed;
+
+        // Si el usuario escribió una extensión y fue directo a Guardar,
+        // también la incorporamos. Antes era obligatorio pulsar Agregar
+        // o Enter y el texto pendiente se perdía silenciosamente.
+        if (!TryAddExtensionsFromEditorInput())
+        {
+            return;
+        }
 
         var name = CategoryEditorNameTextBox.Text?.Trim().ToUpperInvariant() ??
                    string.Empty;
