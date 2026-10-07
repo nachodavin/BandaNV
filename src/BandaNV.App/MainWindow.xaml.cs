@@ -171,6 +171,36 @@ public sealed partial class MainWindow : Window
             });
     }
 
+    public void BringToFront()
+    {
+        _trayIconService?.Hide();
+
+        try
+        {
+            _appWindow?.Show();
+
+            if (_appWindow?.Presenter is OverlappedPresenter presenter &&
+                presenter.State ==
+                    OverlappedPresenterState.Minimized)
+            {
+                presenter.Restore(
+                    activateWindow: true);
+            }
+
+            Activate();
+        }
+        catch
+        {
+            try
+            {
+                Activate();
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private void ContentFrame_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         SyncCurrentPageToViewport(e.NewSize.Width);
