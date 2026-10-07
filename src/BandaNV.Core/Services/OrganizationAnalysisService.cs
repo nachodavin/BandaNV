@@ -437,26 +437,14 @@ public sealed class OrganizationAnalysisService
             }
         }
 
+        // Las carpetas completas siempre requieren una decisión manual
+        // en la vista previa. El análisis interno se conserva únicamente
+        // para informar su contenido y ayudar al usuario a decidir.
         CategorySettings? inferredCategory =
             null;
 
-        if (!scanIncomplete &&
-            recognizedFiles == totalFiles &&
-            detectedCategories.Count == 1)
-        {
-            inferredCategory =
-                detectedCategories.Values.First();
-        }
-
         var destinationPath =
-            inferredCategory is null
-                ? null
-                : Path.Combine(
-                    destination,
-                    CategoryService.GetFolderName(
-                        inferredCategory.Order,
-                        inferredCategory.Name),
-                    directory.Name);
+            (string?)null;
 
         var hasDestinationConflict =
             HasDestinationConflict(
