@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Globalization;
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
@@ -840,26 +842,22 @@ public sealed partial class CategoriesPage : Page
             return;
         }
 
-        var reordered =
-            VisibleCategories.ToList();
-
-        reordered.RemoveAt(
-            sourceIndex);
-
-        reordered.Insert(
-            targetIndex,
-            draggedCategory);
+        // Reordenamos la colección existente en lugar de vaciarla y
+        // reconstruirla. Así WinUI conserva los mismos containers y no hay
+        // un flash de desaparición/reaparición al soltar la card.
+        VisibleCategories.Move(
+            sourceIndex,
+            targetIndex);
 
         _allCategories.Clear();
         _allCategories.AddRange(
-            reordered);
+            VisibleCategories);
 
         NormalizeCategoryOrder();
 
-        // Actualizamos el grid de inmediato: visualmente la card cae en
-        // el hueco ya abierto y no espera a que termine la sincronización.
+        // Las cards ya están visualmente en sus posiciones de destino.
+        // Limpiamos solamente las transformaciones temporales del drag.
         ResetCategoryPointerDrag();
-        RefreshCategoryList();
 
         _isCategoryReorderSaving =
             true;
@@ -876,7 +874,6 @@ public sealed partial class CategoriesPage : Page
             }
 
             RefreshDerivedCategoryData();
-            RefreshCategoryList();
             UpdateCategoryMetrics();
             _ = RefreshUnassignedFilesMetricAsync();
 
@@ -1943,7 +1940,7 @@ public enum CategoryEditorMode
     Duplicate
 }
 
-public sealed class CategoryAdminItem
+public sealed class CategoryAdminItem : INotifyPropertyChanged
 {
     public CategoryAdminItem(
         string id,
@@ -1991,10 +1988,31 @@ public sealed class CategoryAdminItem
             ColorHex,
             0x66);
 
+    private int _order;
+
     public List<string> Extensions { get; private set; }
-    public int Order { get; set; }
+
+    public int Order
+    {
+        get => _order;
+        set
+        {
+            if (_order == value)
+            {
+                return;
+            }
+
+            _order = value;
+            OnPropertyChanged();
+            OnPropertyChanged(
+                nameof(OrderText));
+        }
+    }
+
     public int FileCount { get; private set; }
     public string FolderPath { get; private set; }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public string OrderText =>
         Order.ToString(
@@ -2133,6 +2151,13 @@ public sealed class CategoryAdminItem
             Extensions,
             Order,
             ColorHex);
+
+    private void OnPropertyChanged(
+        [CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(
+                propertyName));
 }
 
 public sealed class CategoryExtensionChip
