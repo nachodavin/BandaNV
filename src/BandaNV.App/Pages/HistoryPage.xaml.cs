@@ -214,14 +214,25 @@ public sealed partial class HistoryPage : Page
             GetHistoryExecutionTypeDisplayName(
                 record);
 
-        var reversibleFileCount =
+        var reversibleItems =
             UndoService.SupportsUndo(
                 record)
-                ? undoCandidates.Count(item =>
-                    IsItemCurrentlyReversible(
-                        record,
-                        item))
-                : 0;
+                ? undoCandidates
+                    .Where(item =>
+                        IsItemCurrentlyReversible(
+                            record,
+                            item))
+                    .ToList()
+                : [];
+
+        var reversibleFileCount =
+            reversibleItems.Count;
+
+        var reversiblePhysicalFileCount =
+            reversibleItems.Sum(item =>
+                item.IsDirectory
+                    ? Math.Max(0, item.ContainedFileCount)
+                    : 1);
 
         var canUndo =
             UndoService.SupportsUndo(
@@ -299,6 +310,8 @@ public sealed partial class HistoryPage : Page
                 canUndo,
             ReversibleFileCount =
                 reversibleFileCount,
+            ReversiblePhysicalFileCount =
+                reversiblePhysicalFileCount,
             UndoBadgeText =
                 isUndo
                     ? "Registro de deshacer"
@@ -351,7 +364,9 @@ public sealed partial class HistoryPage : Page
                 : "organización";
 
         TechnicalUndoText.Text =
-            $"{execution.DateTimeText} · {execution.Type} · {execution.ReversibleFileCount} elemento{(execution.ReversibleFileCount == 1 ? string.Empty : "s")} reversible{(execution.ReversibleFileCount == 1 ? string.Empty : "s")}";
+            $"{execution.DateTimeText} · {execution.Type} · " +
+            $"{execution.ReversibleFileCount} elemento{(execution.ReversibleFileCount == 1 ? string.Empty : "s")} · " +
+            $"{execution.ReversiblePhysicalFileCount} archivo{(execution.ReversiblePhysicalFileCount == 1 ? " reversible" : "s reversibles")}";
 
         TechnicalUndoButton.Content =
             actionLabel.Equals(
@@ -1545,6 +1560,7 @@ public sealed class HistoryExecutionPreview
     public string SizeText { get; set; } = string.Empty;
     public bool CanUndo { get; set; }
     public int ReversibleFileCount { get; set; }
+    public int ReversiblePhysicalFileCount { get; set; }
     public string UndoBadgeText { get; set; } = string.Empty;
     public IReadOnlyList<HistoryFilePreview> Files { get; set; } = [];
 }
