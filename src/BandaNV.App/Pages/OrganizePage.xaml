@@ -1877,7 +1877,11 @@
                             Content="×"
                             Click="CloseOrganizeFiltersOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Grid
@@ -2373,7 +2377,11 @@
                             Content="×"
                             Click="CloseAssignmentOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <StackPanel Grid.Row="1" Spacing="12">
@@ -2587,7 +2595,11 @@
                             Content="×"
                             Click="CloseOrganizeManageOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <Border
@@ -2814,7 +2826,11 @@
                             Content="×"
                             Click="CloseConflictOverlayButton_Click"
                             Style="{StaticResource BandaPopupCloseButtonStyle}"
-                            VerticalAlignment="Top" />
+                            VerticalAlignment="Top">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Escape" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
 
                     <StackPanel Grid.Row="1" Spacing="12">
