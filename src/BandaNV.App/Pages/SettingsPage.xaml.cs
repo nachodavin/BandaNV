@@ -1294,7 +1294,7 @@ public sealed partial class SettingsPage : Page
         target.SearchSizeFilter =
             source.SearchSizeFilter;
         target.SearchExtensionFilters =
-            source.SearchExtensionFilters.ToList();
+            source.SearchExtensionFilters?.ToList() ?? [];
         target.SearchSortField =
             source.SearchSortField;
         target.SearchSortDirection =
@@ -1309,7 +1309,7 @@ public sealed partial class SettingsPage : Page
         target.OrganizeSizeFilter =
             source.OrganizeSizeFilter;
         target.OrganizeExtensionFilters =
-            source.OrganizeExtensionFilters.ToList();
+            source.OrganizeExtensionFilters?.ToList() ?? [];
         target.OrganizeSortField =
             source.OrganizeSortField;
         target.OrganizeSortDirection =
