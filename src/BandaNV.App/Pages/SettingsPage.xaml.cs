@@ -697,6 +697,9 @@ public sealed partial class SettingsPage : Page
 
     private SettingsBackupModel CaptureSettingsBackup()
     {
+        var current =
+            global::BandaNV.App.App.Settings.Current;
+
         return new SettingsBackupModel
         {
             CreatedAt = DateTime.Now,
@@ -721,6 +724,28 @@ public sealed partial class SettingsPage : Page
             SaveOrganizeHistory = SaveOrganizeHistoryToggle.IsOn,
             SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
             HistoryRetention = HistoryRetentionValueText.Text,
+
+            SearchDateFilter = current.SearchDateFilter,
+            SearchSpecificDateFilter = current.SearchSpecificDateFilter,
+            SearchSizeFilter = current.SearchSizeFilter,
+            SearchExtensionFilters = current.SearchExtensionFilters.ToList(),
+            SearchSortField = current.SearchSortField,
+            SearchSortDirection = current.SearchSortDirection,
+            SearchGroupField = current.SearchGroupField,
+
+            OrganizeDateFilter = current.OrganizeDateFilter,
+            OrganizeSpecificDateFilter = current.OrganizeSpecificDateFilter,
+            OrganizeSizeFilter = current.OrganizeSizeFilter,
+            OrganizeExtensionFilters = current.OrganizeExtensionFilters.ToList(),
+            OrganizeSortField = current.OrganizeSortField,
+            OrganizeSortDirection = current.OrganizeSortDirection,
+            OrganizeGroupField = current.OrganizeGroupField,
+
+            HistoryTypeFilter = current.HistoryTypeFilter,
+            HistoryUndoFilter = current.HistoryUndoFilter,
+            HistoryOriginFilter = current.HistoryOriginFilter,
+            HistorySortMode = current.HistorySortMode,
+
             Categories = global::BandaNV.App.App.Settings.Current.Categories
                 .Select(category => new CategorySettings(
                     category.Id,
@@ -774,6 +799,10 @@ public sealed partial class SettingsPage : Page
                         category.ColorHex))
                     .ToList();
         }
+
+        ApplyViewPreferencesBackup(
+            backup,
+            global::BandaNV.App.App.Settings.Current);
 
         var defaultPrimary =
             Windows.UI.Color.FromArgb(255, 0x12, 0x3A, 0x34);
@@ -1144,6 +1173,10 @@ public sealed partial class SettingsPage : Page
             .SyncUpdateStartupNoticeToggle(
                 defaults.AutoUpdate);
 
+        CopyViewPreferences(
+            defaults,
+            global::BandaNV.App.App.Settings.Current);
+
         UpdateAppearancePreview();
         QueuePersistSettings();
     }
@@ -1204,8 +1237,9 @@ public sealed partial class SettingsPage : Page
 
     private AppSettings CapturePersistentSettings()
     {
-        return new AppSettings
-        {
+        var snapshot =
+            new AppSettings
+            {
             SchemaVersion = AppSettings.CurrentSchemaVersion,
             SourceFolder = GetConfiguredFolderPath(SourceFolderText),
             DestinationFolder = GetConfiguredFolderPath(DestinationFolderText),
@@ -1240,7 +1274,101 @@ public sealed partial class SettingsPage : Page
                 global::BandaNV.App.App.Settings.Current
                     .OrphanedCategoryFolders
                     .ToList()
-        };
+            };
+
+        CopyViewPreferences(
+            global::BandaNV.App.App.Settings.Current,
+            snapshot);
+
+        return snapshot;
+    }
+
+    private static void CopyViewPreferences(
+        AppSettings source,
+        AppSettings target)
+    {
+        target.SearchDateFilter =
+            source.SearchDateFilter;
+        target.SearchSpecificDateFilter =
+            source.SearchSpecificDateFilter;
+        target.SearchSizeFilter =
+            source.SearchSizeFilter;
+        target.SearchExtensionFilters =
+            source.SearchExtensionFilters.ToList();
+        target.SearchSortField =
+            source.SearchSortField;
+        target.SearchSortDirection =
+            source.SearchSortDirection;
+        target.SearchGroupField =
+            source.SearchGroupField;
+
+        target.OrganizeDateFilter =
+            source.OrganizeDateFilter;
+        target.OrganizeSpecificDateFilter =
+            source.OrganizeSpecificDateFilter;
+        target.OrganizeSizeFilter =
+            source.OrganizeSizeFilter;
+        target.OrganizeExtensionFilters =
+            source.OrganizeExtensionFilters.ToList();
+        target.OrganizeSortField =
+            source.OrganizeSortField;
+        target.OrganizeSortDirection =
+            source.OrganizeSortDirection;
+        target.OrganizeGroupField =
+            source.OrganizeGroupField;
+
+        target.HistoryTypeFilter =
+            source.HistoryTypeFilter;
+        target.HistoryUndoFilter =
+            source.HistoryUndoFilter;
+        target.HistoryOriginFilter =
+            source.HistoryOriginFilter;
+        target.HistorySortMode =
+            source.HistorySortMode;
+    }
+
+    private static void ApplyViewPreferencesBackup(
+        SettingsBackupModel source,
+        AppSettings target)
+    {
+        target.SearchDateFilter =
+            source.SearchDateFilter;
+        target.SearchSpecificDateFilter =
+            source.SearchSpecificDateFilter;
+        target.SearchSizeFilter =
+            source.SearchSizeFilter;
+        target.SearchExtensionFilters =
+            source.SearchExtensionFilters.ToList();
+        target.SearchSortField =
+            source.SearchSortField;
+        target.SearchSortDirection =
+            source.SearchSortDirection;
+        target.SearchGroupField =
+            source.SearchGroupField;
+
+        target.OrganizeDateFilter =
+            source.OrganizeDateFilter;
+        target.OrganizeSpecificDateFilter =
+            source.OrganizeSpecificDateFilter;
+        target.OrganizeSizeFilter =
+            source.OrganizeSizeFilter;
+        target.OrganizeExtensionFilters =
+            source.OrganizeExtensionFilters.ToList();
+        target.OrganizeSortField =
+            source.OrganizeSortField;
+        target.OrganizeSortDirection =
+            source.OrganizeSortDirection;
+        target.OrganizeGroupField =
+            source.OrganizeGroupField;
+
+        target.HistoryTypeFilter =
+            source.HistoryTypeFilter;
+        target.HistoryUndoFilter =
+            source.HistoryUndoFilter;
+        target.HistoryOriginFilter =
+            source.HistoryOriginFilter;
+        target.HistorySortMode =
+            source.HistorySortMode;
     }
 
     private void QueuePersistSettings()
@@ -1368,6 +1496,27 @@ internal sealed class SettingsBackupModel
     public bool SaveOrganizeHistory { get; set; } = true;
     public bool SaveSearchHistory { get; set; } = true;
     public string HistoryRetention { get; set; } = "Siempre";
+
+    public string SearchDateFilter { get; set; } = "All";
+    public DateTime? SearchSpecificDateFilter { get; set; }
+    public string SearchSizeFilter { get; set; } = "All";
+    public List<string> SearchExtensionFilters { get; set; } = [];
+    public string SearchSortField { get; set; } = "DateModified";
+    public string SearchSortDirection { get; set; } = "Descending";
+    public string SearchGroupField { get; set; } = "DateModified";
+
+    public string OrganizeDateFilter { get; set; } = "All";
+    public DateTime? OrganizeSpecificDateFilter { get; set; }
+    public string OrganizeSizeFilter { get; set; } = "All";
+    public List<string> OrganizeExtensionFilters { get; set; } = [];
+    public string OrganizeSortField { get; set; } = "DateModified";
+    public string OrganizeSortDirection { get; set; } = "Descending";
+    public string OrganizeGroupField { get; set; } = "DateModified";
+
+    public string HistoryTypeFilter { get; set; } = "All";
+    public string HistoryUndoFilter { get; set; } = "All";
+    public string HistoryOriginFilter { get; set; } = string.Empty;
+    public string HistorySortMode { get; set; } = "Newest";
 
     public List<CategorySettings> Categories { get; set; } = [];
 }
