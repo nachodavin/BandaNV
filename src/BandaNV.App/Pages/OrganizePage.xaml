@@ -73,6 +73,8 @@
 
         <DataTemplate x:Key="UnassignedFolderTemplate" x:DataType="local:OrganizePreviewFile">
             <Border
+                Tag="{x:Bind ItemId}"
+                Tapped="UnassignedFolderRow_Tapped"
                 Padding="14,12"
                 Margin="0,0,0,8"
                 CornerRadius="12"
@@ -83,7 +85,6 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="92" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
@@ -119,19 +120,6 @@
 
                     <Button
                         Grid.Column="2"
-                        Tag="{x:Bind ItemId}"
-                        Content="Ver contenido"
-                        Click="FolderDetailButton_Click"
-                        Padding="14,8"
-                        MinWidth="96"
-                        CornerRadius="10"
-                        Background="Transparent"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                        BorderBrush="{StaticResource BandaBorderBrush}"
-                        BorderThickness="1" />
-
-                    <Button
-                        Grid.Column="3"
                         Tag="{x:Bind ItemId}"
                         Content="Asignar"
                         Click="PreviewCategorySelectorButton_Click"
@@ -1257,15 +1245,12 @@
                                 Spacing="8"
                                 Margin="0,16,0,0">
                                 <Button
-                                    x:Name="OrganizeOpenButton"
-                                    Content="Abrir archivo"
-                                    Click="OrganizeOpenButton_Click"
-                                    FontSize="14"
+                                    x:Name="OrganizeChangeCategoryButton"
+                                    Content="Cambiar categoría"
+                                    Click="OrganizeChangeCategoryButton_Click"
+                                    Style="{StaticResource BandaPopupPrimaryButtonStyle}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
-                                    Padding="14,10"
-                                    CornerRadius="12"
-                                    FontWeight="SemiBold"
                                     IsEnabled="False">
                                     <Button.Resources>
                                         <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
@@ -1286,18 +1271,18 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Button
-                                        x:Name="OrganizeOpenLocationButton"
-                                        Content="Abrir ubicación"
-                                        Click="OrganizeOpenLocationButton_Click"
+                                        x:Name="OrganizeOpenButton"
+                                        Content="Abrir archivo"
+                                        Click="OrganizeOpenButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Center"
                                         IsEnabled="False" />
                                     <Button
-                                        x:Name="OrganizeCopyPathButton"
+                                        x:Name="OrganizeOpenLocationButton"
                                         Grid.Column="1"
-                                        Content="Copiar ruta"
-                                        Click="OrganizeCopyPathButton_Click"
+                                        Content="Abrir ubicación"
+                                        Click="OrganizeOpenLocationButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Center"
@@ -1310,9 +1295,9 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Button
-                                        x:Name="OrganizeChangeCategoryButton"
-                                        Content="Cambiar categoría"
-                                        Click="OrganizeChangeCategoryButton_Click"
+                                        x:Name="OrganizeCopyPathButton"
+                                        Content="Copiar ruta"
+                                        Click="OrganizeCopyPathButton_Click"
                                         Style="{StaticResource BandaPopupSecondaryButtonStyle}"
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Center"
