@@ -15,7 +15,10 @@ public sealed partial class CategoriesPage : Page
     private readonly List<string> _editorExtensions = new();
     private CategoryAdminItem? _pointerDraggedCategory;
     private FrameworkElement? _pointerDragCard;
+    private GridViewItem? _pointerDragContainer;
+    private TranslateTransform? _pointerDragTranslate;
     private Windows.Foundation.Point _pointerDragStart;
+    private Windows.Foundation.Point _pointerDragOriginTopLeft;
     private bool _pointerDragActive;
     private bool _isCategoryReorderSaving;
 
@@ -262,15 +265,20 @@ public sealed partial class CategoriesPage : Page
             (Math.Abs(deltaX) >= 6 ||
              Math.Abs(deltaY) >= 6))
         {
-            _pointerDragActive =
-                true;
-            _pointerDragCard.Opacity =
-                0.72;
+            BeginCategoryPointerDragVisual();
         }
 
         if (!_pointerDragActive)
         {
             return;
+        }
+
+        if (_pointerDragTranslate is not null)
+        {
+            _pointerDragTranslate.X =
+                deltaX;
+            _pointerDragTranslate.Y =
+                deltaY;
         }
 
         var sourceIndex =
@@ -285,6 +293,10 @@ public sealed partial class CategoriesPage : Page
             NormalizeCategoryDropIndex(
                 sourceIndex,
                 insertionIndex);
+
+        UpdateCategoryDropPlaceholder(
+            targetIndex,
+            _pointerDraggedCategory);
 
         CategoryStatusText.Text =
             targetIndex == sourceIndex
@@ -398,17 +410,146 @@ public sealed partial class CategoriesPage : Page
             Visibility.Visible;
     }
 
+    private void BeginCategoryPointerDragVisual()
+    {
+        if (_pointerDraggedCategory is null ||
+            _pointerDragCard is null)
+        {
+            return;
+        }
+
+        _pointerDragContainer =
+            CategoryList.ContainerFromItem(
+                _pointerDraggedCategory) as GridViewItem;
+
+        if (_pointerDragContainer is null)
+        {
+            return;
+        }
+
+        _pointerDragOriginTopLeft =
+            _pointerDragContainer
+                .TransformToVisual(
+                    CategoryList)
+                .TransformPoint(
+                    new Windows.Foundation.Point(
+                        0,
+                        0));
+
+        _pointerDragTranslate =
+            new TranslateTransform();
+
+        _pointerDragContainer.RenderTransform =
+            _pointerDragTranslate;
+        _pointerDragContainer.RenderTransformOrigin =
+            new Windows.Foundation.Point(
+                0.5,
+                0.5);
+        _pointerDragContainer.Opacity =
+            0.94;
+
+        Canvas.SetZIndex(
+            _pointerDragContainer,
+            100);
+
+        _pointerDragActive =
+            true;
+
+        var sourceIndex =
+            VisibleCategories.IndexOf(
+                _pointerDraggedCategory);
+
+        if (sourceIndex >= 0)
+        {
+            UpdateCategoryDropPlaceholder(
+                sourceIndex,
+                _pointerDraggedCategory);
+        }
+    }
+
+    private void UpdateCategoryDropPlaceholder(
+        int targetIndex,
+        CategoryAdminItem category)
+    {
+        if (targetIndex < 0 ||
+            targetIndex >= VisibleCategories.Count)
+        {
+            CategoryDropPlaceholder.Visibility =
+                Visibility.Collapsed;
+            return;
+        }
+
+        if (CategoryList.ContainerFromIndex(
+                targetIndex) is not GridViewItem targetContainer)
+        {
+            CategoryDropPlaceholder.Visibility =
+                Visibility.Collapsed;
+            return;
+        }
+
+        var targetItem =
+            VisibleCategories[targetIndex];
+
+        var topLeft =
+            ReferenceEquals(
+                    targetItem,
+                    _pointerDraggedCategory)
+                ? _pointerDragOriginTopLeft
+                : targetContainer
+                    .TransformToVisual(
+                        CategoryList)
+                    .TransformPoint(
+                        new Windows.Foundation.Point(
+                            0,
+                            0));
+
+        CategoryDropPlaceholder.Width =
+            targetContainer.ActualWidth;
+        CategoryDropPlaceholder.Height =
+            targetContainer.ActualHeight;
+        CategoryDropPlaceholder.BorderBrush =
+            category.ColorBrush;
+
+        CategoryDropPlaceholderText.Foreground =
+            category.ColorBrush;
+        CategoryDropPlaceholderText.Text =
+            $"SOLTAR ACÁ · {(targetIndex + 1).ToString("00", CultureInfo.InvariantCulture)}";
+
+        Canvas.SetLeft(
+            CategoryDropPlaceholder,
+            topLeft.X);
+        Canvas.SetTop(
+            CategoryDropPlaceholder,
+            topLeft.Y);
+
+        CategoryDropPlaceholder.Visibility =
+            Visibility.Visible;
+    }
+
     private void ResetCategoryPointerDrag()
     {
-        if (_pointerDragCard is not null)
+        if (_pointerDragContainer is not null)
         {
-            _pointerDragCard.Opacity =
+            _pointerDragContainer.RenderTransform =
+                null;
+            _pointerDragContainer.Opacity =
                 1;
+
+            Canvas.SetZIndex(
+                _pointerDragContainer,
+                0);
         }
+
+        CategoryDropPlaceholder.Visibility =
+            Visibility.Collapsed;
 
         _pointerDraggedCategory =
             null;
         _pointerDragCard =
+            null;
+        _pointerDragContainer =
+            null;
+        _pointerDragTranslate =
             null;
         _pointerDragActive =
             false;
@@ -544,14 +685,22 @@ public sealed partial class CategoriesPage : Page
                 continue;
             }
 
+            var item =
+                VisibleCategories[index];
+
             var topLeft =
-                container
-                    .TransformToVisual(
-                        CategoryList)
-                    .TransformPoint(
-                        new Windows.Foundation.Point(
-                            0,
-                            0));
+                ReferenceEquals(
+                        item,
+                        _pointerDraggedCategory) &&
+                    _pointerDragActive
+                    ? _pointerDragOriginTopLeft
+                    : container
+                        .TransformToVisual(
+                            CategoryList)
+                        .TransformPoint(
+                            new Windows.Foundation.Point(
+                                0,
+                                0));
 
             var centerX =
                 topLeft.X +
