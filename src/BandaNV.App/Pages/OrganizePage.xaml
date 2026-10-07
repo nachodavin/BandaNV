@@ -10,6 +10,19 @@
         <SolidColorBrush x:Key="OrganizeWarningSoftBrush" Color="#24F2B85B" />
         <SolidColorBrush x:Key="OrganizeSuccessSoftBrush" Color="#244FE0C6" />
 
+        <DataTemplate x:Key="OrganizeDateWheelItemTemplate">
+            <Grid Height="36">
+                <TextBlock
+                    Text="{Binding}"
+                    Foreground="{StaticResource BandaTextBrush}"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    TextAlignment="Center"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+
         <DataTemplate x:Key="UnassignedExtensionTemplate" x:DataType="local:UnassignedExtensionSummary">
             <Border
                 Padding="14,12"
@@ -825,6 +838,9 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Spacing="3">
@@ -838,8 +854,151 @@
                                     Style="{StaticResource BandaMutedTextStyle}" />
                             </StackPanel>
 
+                                        <Button
+                                            x:Name="OrganizeFiltersButton"
+                                            Grid.Column="1"
+                                            Content="Filtros"
+                                            Click="OrganizeOrganizeFiltersButton_Click"
+                                            Padding="16,10"
+                                            MinHeight="44"
+                                            CornerRadius="12"
+                                            Background="{StaticResource BandaCardBrush}"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="1" />
+                            
+                                        <Button
+                                            x:Name="OrganizeSortSelectorButton"
+                                            Grid.Column="2"
+                                            Width="215"
+                                            MinHeight="52"
+                                            Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Spacing="1" VerticalAlignment="Center">
+                                                    <TextBlock
+                                                        Text="ORDENAR POR"
+                                                        Foreground="{StaticResource BandaMutedBrush}"
+                                                        FontSize="10"
+                                                        FontWeight="SemiBold" />
+                                                    <TextBlock
+                                                        x:Name="OrganizeSortValueText"
+                                                        Text="Fecha de modificación · Desc."
+                                                        Foreground="{StaticResource BandaTextBrush}"
+                                                        FontSize="13"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Text="⌄"
+                                                    Foreground="{StaticResource BandaAccentBrush}"
+                                                    FontSize="14"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
+                            
+                                            <Button.Flyout>
+                                                <Flyout
+                                                    x:Name="OrganizeSortFlyout"
+                                                    Placement="BottomEdgeAlignedLeft"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border
+                                                        Width="215"
+                                                        Padding="8"
+                                                        CornerRadius="16"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock
+                                                                Text="ORDENAR POR"
+                                                                Margin="10,6,10,4"
+                                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                                FontSize="11"
+                                                                FontWeight="SemiBold" />
+                                                            <Button x:Name="OrganizeSortNameOptionButton" Tag="Name" Content="Nombre" Click="OrganizeSortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeSortDateOptionButton" Tag="DateModified" Content="Fecha de modificación" Click="OrganizeSortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeSortSizeOptionButton" Tag="Size" Content="Tamaño" Click="OrganizeSortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeSortCategoryOptionButton" Tag="Category" Content="Categoría" Click="OrganizeSortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeSortExtensionOptionButton" Tag="Extension" Content="Extensión" Click="OrganizeSortFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            
+                                                            <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="8,6" />
+                            
+                                                            <Button x:Name="OrganizeSortAscendingOptionButton" Tag="Ascending" Content="Ascendente" Click="OrganizeSortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeSortDescendingOptionButton" Tag="Descending" Content="Descendente" Click="OrganizeSortDirectionOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+                            
+                                        <Button
+                                            x:Name="OrganizeGroupSelectorButton"
+                                            Grid.Column="3"
+                                            Width="205"
+                                            MinHeight="52"
+                                            Style="{StaticResource BandaSelectorButtonStyle}">
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Spacing="1" VerticalAlignment="Center">
+                                                    <TextBlock
+                                                        Text="AGRUPAR POR"
+                                                        Foreground="{StaticResource BandaMutedBrush}"
+                                                        FontSize="10"
+                                                        FontWeight="SemiBold" />
+                                                    <TextBlock
+                                                        x:Name="OrganizeGroupValueText"
+                                                        Text="Ninguno"
+                                                        Foreground="{StaticResource BandaTextBrush}"
+                                                        FontSize="13"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Text="⌄"
+                                                    Foreground="{StaticResource BandaAccentBrush}"
+                                                    FontSize="14"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
+                            
+                                            <Button.Flyout>
+                                                <Flyout
+                                                    x:Name="OrganizeGroupFlyout"
+                                                    Placement="BottomEdgeAlignedLeft"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                    <Border
+                                                        Width="205"
+                                                        Padding="8"
+                                                        CornerRadius="16"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+                                                        <StackPanel Spacing="2">
+                                                            <TextBlock
+                                                                Text="AGRUPAR POR"
+                                                                Margin="10,6,10,4"
+                                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                                FontSize="11"
+                                                                FontWeight="SemiBold" />
+                                                            <Button x:Name="OrganizeGroupNoneOptionButton" Tag="None" Content="(Ninguno)" Click="OrganizeGroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeGroupNameOptionButton" Tag="Name" Content="Nombre" Click="OrganizeGroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeGroupDateOptionButton" Tag="DateModified" Content="Fecha de modificación" Click="OrganizeGroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeGroupSizeOptionButton" Tag="Size" Content="Tamaño" Click="OrganizeGroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeGroupCategoryOptionButton" Tag="Category" Content="Categoría" Click="OrganizeGroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                            <Button x:Name="OrganizeGroupExtensionOptionButton" Tag="Extension" Content="Extensión" Click="OrganizeGroupFieldOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Flyout>
+                                            </Button.Flyout>
+                                        </Button>
+
                             <Button
-                                Grid.Column="1"
+                                Grid.Column="4"
                                 Content="Analizar nuevamente"
                                 Click="AnalyzeAgainButton_Click"
                                 Padding="13,7"
@@ -889,6 +1048,34 @@
                             Padding="6,6,6,8"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                            <ListView.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate x:DataType="local:OrganizePreviewGroup">
+                                            <Grid
+                                                Padding="12,12,12,7"
+                                                ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Text="{x:Bind HeaderText}"
+                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                    FontSize="13"
+                                                    FontWeight="SemiBold"
+                                                    VerticalAlignment="Center" />
+                                                <Rectangle
+                                                    Grid.Column="1"
+                                                    Height="1"
+                                                    Fill="{StaticResource BandaBorderBrush}"
+                                                    VerticalAlignment="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </ListView.GroupStyle>
 
                             <ListView.Resources>
                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
@@ -1275,6 +1462,34 @@
                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                             ScrollViewer.VerticalScrollBarVisibility="Auto">
 
+                                            <ListView.GroupStyle>
+                                                <GroupStyle>
+                                                    <GroupStyle.HeaderTemplate>
+                                                        <DataTemplate x:DataType="local:OrganizeFolderContentGroup">
+                                                            <Grid
+                                                                Padding="10,10,10,6"
+                                                                ColumnSpacing="8">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock
+                                                                    Text="{x:Bind HeaderText}"
+                                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                                    FontSize="11"
+                                                                    FontWeight="SemiBold"
+                                                                    VerticalAlignment="Center" />
+                                                                <Rectangle
+                                                                    Grid.Column="1"
+                                                                    Height="1"
+                                                                    Fill="{StaticResource BandaBorderBrush}"
+                                                                    VerticalAlignment="Center" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </GroupStyle.HeaderTemplate>
+                                                </GroupStyle>
+                                            </ListView.GroupStyle>
+
                                             <ListView.Resources>
                                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
                                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
@@ -1603,6 +1818,503 @@
                 </StackPanel>
             </Border>
         </Grid>
+        </Grid>
+
+        <!-- Popup BandaNV: filtros de Organizar -->
+        <Grid
+            x:Name="OrganizeFiltersOverlay"
+            Canvas.ZIndex="100"
+            Visibility="Collapsed">
+
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="OrganizeFiltersBackdrop_Tapped" />
+
+            <Border
+                Width="620"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <Grid RowSpacing="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <TextBlock
+                                Text="≡"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                Text="Filtrar elementos"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="22"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="Los filtros se aplican tanto a la vista previa como al contenido de las carpetas."
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="13"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CloseOrganizeFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Grid
+                        Grid.Row="1"
+                        ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Padding="16"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaCardBrush}"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="8">
+                                <TextBlock
+                                    Text="FECHA DE MODIFICACIÓN"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12"
+                                    FontWeight="SemiBold" />
+                                <Button
+                                    x:Name="OrganizeDateFilterSelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="OrganizeDateFilterValueText"
+                                            Text="Cualquier fecha"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="⌄"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="OrganizeDateFilterFlyout"
+                                            Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="245"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="FECHA DE MODIFICACIÓN" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                    <Button Tag="All" Content="Cualquier fecha" Click="OrganizeDateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Today" Content="Hoy" Click="OrganizeDateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Last7Days" Content="Últimos 7 días" Click="OrganizeDateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Last30Days" Content="Últimos 30 días" Click="OrganizeDateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Border Height="1" Margin="8,5" Background="{StaticResource BandaBorderBrush}" />
+                                                    <Button Tag="SpecificDate" Content="Elegir fecha específica…" Click="OrganizeDateFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+
+                                <Border
+                                    x:Name="OrganizeSpecificDateWheelPanel"
+                                    Padding="12"
+                                    CornerRadius="11"
+                                    Background="{StaticResource BandaCardAltBrush}"
+                                    BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                    BorderThickness="1"
+                                    Visibility="Collapsed">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnSpacing="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="0.8*" />
+                                                <ColumnDefinition Width="1.55*" />
+                                                <ColumnDefinition Width="1*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock
+                                                Text="DÍA"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="MES"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="AÑO"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextAlignment="Center" />
+                                        </Grid>
+
+                                        <Grid Height="180">
+                                            <Border
+                                                Height="36"
+                                                Margin="2,0"
+                                                VerticalAlignment="Center"
+                                                CornerRadius="9"
+                                                Background="{StaticResource BandaAccentSoftBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1"
+                                                IsHitTestVisible="False" />
+
+                                            <Grid ColumnSpacing="6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="0.8*" />
+                                                    <ColumnDefinition Width="1.55*" />
+                                                    <ColumnDefinition Width="1*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <ScrollViewer
+                                                    x:Name="OrganizeDayWheelScrollViewer"
+                                                    Tag="Day"
+                                                    ViewChanged="OrganizeDateWheelScrollViewer_ViewChanged"
+                                                    VerticalScrollMode="Enabled"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                    HorizontalScrollMode="Disabled"
+                                                    HorizontalScrollBarVisibility="Hidden">
+                                                    <StackPanel>
+                                                        <Border Height="72" />
+                                                        <ItemsControl
+                                                            x:Name="OrganizeDayWheelItems"
+                                                            ItemTemplate="{StaticResource OrganizeDateWheelItemTemplate}" />
+                                                        <Border Height="72" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+
+                                                <ScrollViewer
+                                                    x:Name="OrganizeMonthWheelScrollViewer"
+                                                    Grid.Column="1"
+                                                    Tag="Month"
+                                                    ViewChanged="OrganizeDateWheelScrollViewer_ViewChanged"
+                                                    VerticalScrollMode="Enabled"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                    HorizontalScrollMode="Disabled"
+                                                    HorizontalScrollBarVisibility="Hidden">
+                                                    <StackPanel>
+                                                        <Border Height="72" />
+                                                        <ItemsControl
+                                                            x:Name="OrganizeMonthWheelItems"
+                                                            ItemTemplate="{StaticResource OrganizeDateWheelItemTemplate}" />
+                                                        <Border Height="72" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+
+                                                <ScrollViewer
+                                                    x:Name="OrganizeYearWheelScrollViewer"
+                                                    Grid.Column="2"
+                                                    Tag="Year"
+                                                    ViewChanged="OrganizeDateWheelScrollViewer_ViewChanged"
+                                                    VerticalScrollMode="Enabled"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                    HorizontalScrollMode="Disabled"
+                                                    HorizontalScrollBarVisibility="Hidden">
+                                                    <StackPanel>
+                                                        <Border Height="72" />
+                                                        <ItemsControl
+                                                            x:Name="OrganizeYearWheelItems"
+                                                            ItemTemplate="{StaticResource OrganizeDateWheelItemTemplate}" />
+                                                        <Border Height="72" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+
+                                            <Border
+                                                Height="52"
+                                                VerticalAlignment="Top"
+                                                IsHitTestVisible="False">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#F20C1418" Offset="0" />
+                                                        <GradientStop Color="#000C1418" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <Border
+                                                Height="52"
+                                                VerticalAlignment="Bottom"
+                                                IsHitTestVisible="False">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#000C1418" Offset="0" />
+                                                        <GradientStop Color="#F20C1418" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                            </Border>
+                                        </Grid>
+
+                                        <Button
+                                            Content="Hoy"
+                                            Click="OrganizeSpecificDateTodayButton_Click"
+                                            HorizontalAlignment="Right"
+                                            Padding="10,5"
+                                            CornerRadius="9"
+                                            Background="Transparent"
+                                            BorderBrush="{StaticResource BandaBorderBrush}"
+                                            BorderThickness="1"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="11" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="16"
+                            CornerRadius="16"
+                            Background="{StaticResource BandaCardBrush}"
+                            BorderBrush="{StaticResource BandaBorderBrush}"
+                            BorderThickness="1">
+                            <StackPanel Spacing="8">
+                                <TextBlock
+                                    Text="TAMAÑO"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12"
+                                    FontWeight="SemiBold" />
+                                <Button
+                                    x:Name="OrganizeSizeFilterSelectorButton"
+                                    Style="{StaticResource BandaSelectorButtonStyle}">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            x:Name="OrganizeSizeFilterValueText"
+                                            Text="Cualquier tamaño"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="13"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="⌄"
+                                            Foreground="{StaticResource BandaAccentBrush}"
+                                            FontSize="14"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <Button.Flyout>
+                                        <Flyout
+                                            x:Name="OrganizeSizeFilterFlyout"
+                                            Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                            <Border
+                                                Width="245"
+                                                Padding="8"
+                                                CornerRadius="16"
+                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                BorderThickness="1">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="TAMAÑO" Margin="10,6,10,4" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                    <Button Tag="All" Content="Cualquier tamaño" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Under100Mb" Content="Menos de 100 MB" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From100To500Mb" Content="100 MB a 500 MB" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From500MbTo1Gb" Content="500 MB a 1 GB" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From1To5Gb" Content="1 GB a 5 GB" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="From5To20Gb" Content="5 GB a 20 GB" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    <Button Tag="Over20Gb" Content="Más de 20 GB" Click="OrganizeSizeFilterOptionButton_Click" Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border
+                        Grid.Row="2"
+                        Padding="16"
+                        CornerRadius="16"
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1">
+                        <Grid ColumnSpacing="18">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.45*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="4" VerticalAlignment="Center">
+                                <TextBlock
+                                    Text="EXTENSIÓN"
+                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                    FontSize="12"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    Text="Seleccioná uno o varios formatos presentes en los elementos detectados."
+                                    Foreground="{StaticResource BandaMutedBrush}"
+                                    FontSize="12"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Button
+                                x:Name="OrganizeExtensionFilterSelectorButton"
+                                Grid.Column="1"
+                                Style="{StaticResource BandaSelectorButtonStyle}">
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        x:Name="OrganizeExtensionFilterValueText"
+                                        Text="Todas las extensiones"
+                                        Foreground="{StaticResource BandaTextBrush}"
+                                        FontSize="13"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="⌄"
+                                        Foreground="{StaticResource BandaAccentBrush}"
+                                        FontSize="14"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Button.Flyout>
+                                    <Flyout
+                                        x:Name="OrganizeExtensionFilterFlyout"
+                                        Placement="BottomEdgeAlignedLeft"
+                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                        <Border
+                                            Width="245"
+                                            MaxHeight="330"
+                                            Padding="8"
+                                            CornerRadius="16"
+                                            Background="{StaticResource BandaPopupSurfaceBrush}"
+                                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                            BorderThickness="1">
+                                            <Grid
+                                                Padding="0,0,12,0">
+                                                <ScrollViewer
+                                                    Margin="0,4,0,4"
+                                                    VerticalScrollBarVisibility="Auto"
+                                                    HorizontalScrollBarVisibility="Disabled">
+                                                    <StackPanel
+                                                        x:Name="OrganizeExtensionFilterOptionsPanel"
+                                                        Margin="0,0,12,0"
+                                                        Spacing="2" />
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Grid
+                        Grid.Row="3"
+                        Margin="0,2,0,0"
+                        ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+                            <Border
+                                Width="8"
+                                Height="8"
+                                CornerRadius="4"
+                                Background="{StaticResource BandaAccentBrush}" />
+                            <TextBlock
+                                Text="Los cambios se aplican al confirmar."
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="12"
+                                VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="Restablecer"
+                            Click="ResetOrganizeFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupGhostButtonStyle}"
+                            MinWidth="108" />
+
+                        <Button
+                            Grid.Column="2"
+                            Content="Cancelar"
+                            Click="CloseOrganizeFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+
+                        <Button
+                            Grid.Column="3"
+                            Content="Aplicar filtros"
+                            Click="ApplyOrganizeFiltersOverlayButton_Click"
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}"
+                            MinWidth="126">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+                                <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+                                <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
+                            </Button.Resources>
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- Modal global BandaNV para asignación manual -->
