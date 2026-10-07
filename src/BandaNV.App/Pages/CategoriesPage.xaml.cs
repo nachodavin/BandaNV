@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 
 namespace BandaNV.App.Pages;
 
@@ -13,12 +14,17 @@ public sealed partial class CategoriesPage : Page
 {
     private readonly List<CategoryAdminItem> _allCategories = new();
     private readonly List<string> _editorExtensions = new();
+    private readonly List<Windows.Foundation.Rect> _categoryDragSlots = new();
+    private readonly Dictionary<GridViewItem, TranslateTransform> _categoryReorderTransforms = new();
+    private readonly Dictionary<GridViewItem, Storyboard> _categoryReorderStoryboards = new();
+
     private CategoryAdminItem? _pointerDraggedCategory;
     private FrameworkElement? _pointerDragCard;
     private GridViewItem? _pointerDragContainer;
     private TranslateTransform? _pointerDragTranslate;
     private Windows.Foundation.Point _pointerDragStart;
-    private Windows.Foundation.Point _pointerDragOriginTopLeft;
+    private int _categoryDragSourceIndex = -1;
+    private int _categoryDragPreviewTargetIndex = -1;
     private bool _pointerDragActive;
     private bool _isCategoryReorderSaving;
 
@@ -223,6 +229,11 @@ public sealed partial class CategoriesPage : Page
             point.Position;
         _pointerDragActive =
             false;
+        _categoryDragSourceIndex =
+            VisibleCategories.IndexOf(
+                category);
+        _categoryDragPreviewTargetIndex =
+            _categoryDragSourceIndex;
 
         card.CapturePointer(
             e.Pointer);
@@ -281,25 +292,18 @@ public sealed partial class CategoriesPage : Page
                 deltaY;
         }
 
-        var sourceIndex =
-            VisibleCategories.IndexOf(
-                _pointerDraggedCategory);
-
-        var insertionIndex =
-            GetCategoryDropInsertionIndex(
+        var targetIndex =
+            GetCategoryDropTargetIndex(
                 point.Position);
 
-        var targetIndex =
-            NormalizeCategoryDropIndex(
-                sourceIndex,
-                insertionIndex);
-
-        UpdateCategoryDropPlaceholder(
+        UpdateCategoryReorderPreview(
+            _categoryDragSourceIndex,
             targetIndex,
             _pointerDraggedCategory);
 
         CategoryStatusText.Text =
-            targetIndex == sourceIndex
+            targetIndex ==
+                _categoryDragSourceIndex
                 ? "Soltá para mantener esta posición."
                 : $"Soltá para mover la categoría a la posición {(targetIndex + 1).ToString("00", CultureInfo.InvariantCulture)}.";
 
@@ -330,14 +334,15 @@ public sealed partial class CategoriesPage : Page
             _pointerDraggedCategory;
         var wasDragging =
             _pointerDragActive;
-        var pointer =
-            e.GetCurrentPoint(
-                CategoryList)
-                .Position;
+        var targetIndex =
+            _categoryDragPreviewTargetIndex;
         var card =
             _pointerDragCard;
 
-        ResetCategoryPointerDrag();
+        // Evita que PointerCaptureLost interprete la liberación normal
+        // como una cancelación del reordenamiento.
+        _pointerDragCard =
+            null;
 
         try
         {
@@ -353,14 +358,15 @@ public sealed partial class CategoriesPage : Page
 
         if (!wasDragging)
         {
+            ResetCategoryPointerDrag();
             CategoryStatusText.Text =
                 "Arrastrá las cards para cambiar el orden global.";
             return;
         }
 
-        await ReorderCategoryFromPointerAsync(
+        await ReorderCategoryToTargetAsync(
             draggedCategory,
-            pointer);
+            targetIndex);
     }
 
     private void CategoryCard_PointerCanceled(
@@ -413,7 +419,8 @@ public sealed partial class CategoriesPage : Page
     private void BeginCategoryPointerDragVisual()
     {
         if (_pointerDraggedCategory is null ||
-            _pointerDragCard is null)
+            _pointerDragCard is null ||
+            _categoryDragSourceIndex < 0)
         {
             return;
         }
@@ -427,14 +434,13 @@ public sealed partial class CategoriesPage : Page
             return;
         }
 
-        _pointerDragOriginTopLeft =
-            _pointerDragContainer
-                .TransformToVisual(
-                    CategoryList)
-                .TransformPoint(
-                    new Windows.Foundation.Point(
-                        0,
-                        0));
+        CaptureCategoryDragSlots();
+
+        if (_categoryDragSlots.Count !=
+            VisibleCategories.Count)
+        {
+            return;
+        }
 
         _pointerDragTranslate =
             new TranslateTransform();
@@ -446,7 +452,7 @@ public sealed partial class CategoriesPage : Page
                 0.5,
                 0.5);
         _pointerDragContainer.Opacity =
-            0.94;
+            0.97;
 
         Canvas.SetZIndex(
             _pointerDragContainer,
@@ -455,47 +461,29 @@ public sealed partial class CategoriesPage : Page
         _pointerDragActive =
             true;
 
-        var sourceIndex =
-            VisibleCategories.IndexOf(
-                _pointerDraggedCategory);
-
-        if (sourceIndex >= 0)
-        {
-            UpdateCategoryDropPlaceholder(
-                sourceIndex,
-                _pointerDraggedCategory);
-        }
+        UpdateCategoryReorderPreview(
+            _categoryDragSourceIndex,
+            _categoryDragSourceIndex,
+            _pointerDraggedCategory);
     }
 
-    private void UpdateCategoryDropPlaceholder(
-        int targetIndex,
-        CategoryAdminItem category)
+    private void CaptureCategoryDragSlots()
     {
-        if (targetIndex < 0 ||
-            targetIndex >= VisibleCategories.Count)
+        _categoryDragSlots.Clear();
+
+        for (var index = 0;
+             index < VisibleCategories.Count;
+             index++)
         {
-            CategoryDropPlaceholder.Visibility =
-                Visibility.Collapsed;
-            return;
-        }
+            if (CategoryList.ContainerFromIndex(
+                    index) is not GridViewItem container)
+            {
+                _categoryDragSlots.Clear();
+                return;
+            }
 
-        if (CategoryList.ContainerFromIndex(
-                targetIndex) is not GridViewItem targetContainer)
-        {
-            CategoryDropPlaceholder.Visibility =
-                Visibility.Collapsed;
-            return;
-        }
-
-        var targetItem =
-            VisibleCategories[targetIndex];
-
-        var topLeft =
-            ReferenceEquals(
-                    targetItem,
-                    _pointerDraggedCategory)
-                ? _pointerDragOriginTopLeft
-                : targetContainer
+            var topLeft =
+                container
                     .TransformToVisual(
                         CategoryList)
                     .TransformPoint(
@@ -503,31 +491,290 @@ public sealed partial class CategoriesPage : Page
                             0,
                             0));
 
+            _categoryDragSlots.Add(
+                new Windows.Foundation.Rect(
+                    topLeft.X,
+                    topLeft.Y,
+                    container.ActualWidth,
+                    container.ActualHeight));
+        }
+    }
+
+    private int GetCategoryDropTargetIndex(
+        Windows.Foundation.Point pointer)
+    {
+        if (_categoryDragSlots.Count == 0)
+        {
+            return Math.Max(
+                0,
+                _categoryDragSourceIndex);
+        }
+
+        var nearestIndex =
+            Math.Max(
+                0,
+                _categoryDragSourceIndex);
+        var nearestDistance =
+            double.MaxValue;
+
+        for (var index = 0;
+             index < _categoryDragSlots.Count;
+             index++)
+        {
+            var slot =
+                _categoryDragSlots[index];
+
+            var centerX =
+                slot.X +
+                (slot.Width / 2);
+            var centerY =
+                slot.Y +
+                (slot.Height / 2);
+
+            var deltaX =
+                pointer.X -
+                centerX;
+            var deltaY =
+                pointer.Y -
+                centerY;
+            var distance =
+                (deltaX * deltaX) +
+                (deltaY * deltaY);
+
+            if (distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            nearestDistance =
+                distance;
+            nearestIndex =
+                index;
+        }
+
+        return Math.Clamp(
+            nearestIndex,
+            0,
+            VisibleCategories.Count - 1);
+    }
+
+    private void UpdateCategoryReorderPreview(
+        int sourceIndex,
+        int targetIndex,
+        CategoryAdminItem category)
+    {
+        if (sourceIndex < 0 ||
+            targetIndex < 0 ||
+            sourceIndex >= _categoryDragSlots.Count ||
+            targetIndex >= _categoryDragSlots.Count)
+        {
+            return;
+        }
+
+        if (_categoryDragPreviewTargetIndex ==
+                targetIndex &&
+            CategoryDropPlaceholder.Visibility ==
+                Visibility.Visible)
+        {
+            return;
+        }
+
+        _categoryDragPreviewTargetIndex =
+            targetIndex;
+
+        for (var index = 0;
+             index < VisibleCategories.Count;
+             index++)
+        {
+            if (index == sourceIndex ||
+                CategoryList.ContainerFromIndex(
+                    index) is not GridViewItem container)
+            {
+                continue;
+            }
+
+            var destinationSlot =
+                index;
+
+            if (targetIndex > sourceIndex &&
+                index > sourceIndex &&
+                index <= targetIndex)
+            {
+                destinationSlot =
+                    index - 1;
+            }
+            else if (targetIndex < sourceIndex &&
+                     index >= targetIndex &&
+                     index < sourceIndex)
+            {
+                destinationSlot =
+                    index + 1;
+            }
+
+            var sourceRect =
+                _categoryDragSlots[index];
+            var destinationRect =
+                _categoryDragSlots[destinationSlot];
+
+            AnimateCategoryPreviewContainer(
+                container,
+                destinationRect.X -
+                    sourceRect.X,
+                destinationRect.Y -
+                    sourceRect.Y);
+        }
+
+        var targetSlot =
+            _categoryDragSlots[targetIndex];
+
         CategoryDropPlaceholder.Width =
-            targetContainer.ActualWidth;
+            targetSlot.Width;
         CategoryDropPlaceholder.Height =
-            targetContainer.ActualHeight;
+            targetSlot.Height;
         CategoryDropPlaceholder.BorderBrush =
             category.ColorBrush;
-
-        CategoryDropPlaceholderText.Foreground =
-            category.ColorBrush;
-        CategoryDropPlaceholderText.Text =
-            $"SOLTAR ACÁ · {(targetIndex + 1).ToString("00", CultureInfo.InvariantCulture)}";
+        CategoryDropPlaceholder.Background =
+            category.ColorSoftBrush;
 
         Canvas.SetLeft(
             CategoryDropPlaceholder,
-            topLeft.X);
+            targetSlot.X);
         Canvas.SetTop(
             CategoryDropPlaceholder,
-            topLeft.Y);
+            targetSlot.Y);
 
         CategoryDropPlaceholder.Visibility =
             Visibility.Visible;
     }
 
+    private void AnimateCategoryPreviewContainer(
+        GridViewItem container,
+        double targetX,
+        double targetY)
+    {
+        if (!_categoryReorderTransforms.TryGetValue(
+                container,
+                out var transform))
+        {
+            transform =
+                new TranslateTransform();
+
+            _categoryReorderTransforms[container] =
+                transform;
+            container.RenderTransform =
+                transform;
+        }
+
+        var currentX =
+            transform.X;
+        var currentY =
+            transform.Y;
+
+        if (_categoryReorderStoryboards.TryGetValue(
+                container,
+                out var runningStoryboard))
+        {
+            try
+            {
+                runningStoryboard.Stop();
+            }
+            catch
+            {
+            }
+
+            transform.X =
+                currentX;
+            transform.Y =
+                currentY;
+        }
+
+        var duration =
+            new Duration(
+                TimeSpan.FromMilliseconds(
+                    145));
+
+        var storyboard =
+            new Storyboard();
+
+        var xAnimation =
+            new DoubleAnimation
+            {
+                From = currentX,
+                To = targetX,
+                Duration = duration,
+                EnableDependentAnimation = true,
+                EasingFunction =
+                    new CubicEase
+                    {
+                        EasingMode =
+                            EasingMode.EaseOut
+                    }
+            };
+
+        var yAnimation =
+            new DoubleAnimation
+            {
+                From = currentY,
+                To = targetY,
+                Duration = duration,
+                EnableDependentAnimation = true,
+                EasingFunction =
+                    new CubicEase
+                    {
+                        EasingMode =
+                            EasingMode.EaseOut
+                    }
+            };
+
+        Storyboard.SetTarget(
+            xAnimation,
+            transform);
+        Storyboard.SetTargetProperty(
+            xAnimation,
+            "X");
+
+        Storyboard.SetTarget(
+            yAnimation,
+            transform);
+        Storyboard.SetTargetProperty(
+            yAnimation,
+            "Y");
+
+        storyboard.Children.Add(
+            xAnimation);
+        storyboard.Children.Add(
+            yAnimation);
+
+        _categoryReorderStoryboards[container] =
+            storyboard;
+
+        storyboard.Begin();
+    }
+
     private void ResetCategoryPointerDrag()
     {
+        foreach (var storyboard in
+                 _categoryReorderStoryboards.Values)
+        {
+            try
+            {
+                storyboard.Stop();
+            }
+            catch
+            {
+            }
+        }
+
+        foreach (var pair in
+                 _categoryReorderTransforms)
+        {
+            pair.Key.RenderTransform =
+                null;
+        }
+
+        _categoryReorderStoryboards.Clear();
+        _categoryReorderTransforms.Clear();
+
         if (_pointerDragContainer is not null)
         {
             _pointerDragContainer.RenderTransform =
@@ -551,18 +798,24 @@ public sealed partial class CategoriesPage : Page
             null;
         _pointerDragTranslate =
             null;
+        _categoryDragSlots.Clear();
+        _categoryDragSourceIndex =
+            -1;
+        _categoryDragPreviewTargetIndex =
+            -1;
         _pointerDragActive =
             false;
     }
 
-    private async Task ReorderCategoryFromPointerAsync(
+    private async Task ReorderCategoryToTargetAsync(
         CategoryAdminItem draggedCategory,
-        Windows.Foundation.Point pointer)
+        int targetIndex)
     {
         if (_isCategoryReorderSaving ||
             !string.IsNullOrWhiteSpace(
                 CategorySearchBox.Text))
         {
+            ResetCategoryPointerDrag();
             return;
         }
 
@@ -570,22 +823,18 @@ public sealed partial class CategoriesPage : Page
             VisibleCategories.IndexOf(
                 draggedCategory);
 
-        if (sourceIndex < 0)
+        if (sourceIndex < 0 ||
+            targetIndex < 0 ||
+            targetIndex >=
+                VisibleCategories.Count)
         {
+            ResetCategoryPointerDrag();
             return;
         }
 
-        var insertionIndex =
-            GetCategoryDropInsertionIndex(
-                pointer);
-
-        var targetIndex =
-            NormalizeCategoryDropIndex(
-                sourceIndex,
-                insertionIndex);
-
         if (sourceIndex == targetIndex)
         {
+            ResetCategoryPointerDrag();
             CategoryStatusText.Text =
                 "Arrastrá las cards para cambiar el orden global.";
             return;
@@ -606,6 +855,11 @@ public sealed partial class CategoriesPage : Page
             reordered);
 
         NormalizeCategoryOrder();
+
+        // Actualizamos el grid de inmediato: visualmente la card cae en
+        // el hueco ya abierto y no espera a que termine la sincronización.
+        ResetCategoryPointerDrag();
+        RefreshCategoryList();
 
         _isCategoryReorderSaving =
             true;
@@ -639,104 +893,6 @@ public sealed partial class CategoriesPage : Page
             _isCategoryReorderSaving =
                 false;
         }
-    }
-
-    private static int NormalizeCategoryDropIndex(
-        int sourceIndex,
-        int insertionIndex)
-    {
-        if (sourceIndex < 0)
-        {
-            return sourceIndex;
-        }
-
-        if (sourceIndex < insertionIndex)
-        {
-            insertionIndex--;
-        }
-
-        return Math.Max(
-            0,
-            insertionIndex);
-    }
-
-    private int GetCategoryDropInsertionIndex(
-        Windows.Foundation.Point pointer)
-    {
-        if (VisibleCategories.Count == 0)
-        {
-            return 0;
-        }
-
-        var nearestIndex =
-            0;
-        var nearestDistance =
-            double.MaxValue;
-        var placeAfter =
-            false;
-
-        for (var index = 0;
-             index < VisibleCategories.Count;
-             index++)
-        {
-            if (CategoryList.ContainerFromIndex(
-                    index) is not GridViewItem container)
-            {
-                continue;
-            }
-
-            var item =
-                VisibleCategories[index];
-
-            var topLeft =
-                ReferenceEquals(
-                        item,
-                        _pointerDraggedCategory) &&
-                    _pointerDragActive
-                    ? _pointerDragOriginTopLeft
-                    : container
-                        .TransformToVisual(
-                            CategoryList)
-                        .TransformPoint(
-                            new Windows.Foundation.Point(
-                                0,
-                                0));
-
-            var centerX =
-                topLeft.X +
-                (container.ActualWidth / 2);
-            var centerY =
-                topLeft.Y +
-                (container.ActualHeight / 2);
-
-            var deltaX =
-                pointer.X -
-                centerX;
-            var deltaY =
-                pointer.Y -
-                centerY;
-            var distance =
-                (deltaX * deltaX) +
-                (deltaY * deltaY);
-
-            if (distance >= nearestDistance)
-            {
-                continue;
-            }
-
-            nearestDistance =
-                distance;
-            nearestIndex =
-                index;
-            placeAfter =
-                pointer.X >= centerX;
-        }
-
-        return Math.Clamp(
-            nearestIndex +
-            (placeAfter ? 1 : 0),
-            0,
-            VisibleCategories.Count);
     }
 
     private void NormalizeCategoryOrder()
