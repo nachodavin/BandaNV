@@ -68,14 +68,14 @@ public sealed class AppSettings
 
     private static List<CategorySettings> CreateDefaultCategories() =>
     [
-        new("e23da338-8a04-4e80-9817-2d893289fd20", "RAR", [".zip", ".rar", ".7z"], 1),
-        new("b22602bb-9ddb-4ab3-94a8-841c58a59122", "INSTALLERS", [".exe", ".msi", ".bat"], 2),
-        new("888c6178-64fd-41ae-b4bb-353c59ec6800", "DOCUMENTS", [".pdf", ".docx", ".xlsx", ".txt"], 3),
-        new("bdc43575-b4c8-4217-a8fb-2d82643a179f", "IMAGES", [".jpg", ".jpeg", ".png", ".webp", ".avif"], 4),
-        new("3858f918-8138-461c-8e92-280859530182", "GIF", [".gif"], 5),
-        new("bb23b55f-d2a8-4ffd-bf77-56ed1228a257", "VIDEOS", [".mp4", ".mkv", ".mov", ".avi"], 6),
-        new("56d8273d-789e-4f68-9ad4-3bb0c5345560", "AUDIO", [".mp3", ".wav", ".flac", ".aac", ".ogg"], 7),
-        new("83c6e756-3a14-44dc-bbbc-ab5475cb338e", "EDITABLES", [".ai", ".psd", ".eps"], 8)
+        new("e23da338-8a04-4e80-9817-2d893289fd20", "RAR", [".7z", ".rar", ".zip"], 1, "#874ADE"),
+        new("b22602bb-9ddb-4ab3-94a8-841c58a59122", "INSTALADORES", [".bat", ".exe", ".msi"], 2, "#59EBA9"),
+        new("888c6178-64fd-41ae-b4bb-353c59ec6800", "DOCUMENTOS", [".docx", ".pdf", ".txt", ".xlsx"], 3, "#FFFFFF"),
+        new("bdc43575-b4c8-4217-a8fb-2d82643a179f", "IMAGENES", [".avif", ".jpeg", ".jpg", ".png", ".webp"], 4, "#33B2EB"),
+        new("3858f918-8138-461c-8e92-280859530182", "GIF", [".gif"], 5, "#33B2EB"),
+        new("bb23b55f-d2a8-4ffd-bf77-56ed1228a257", "VIDEOS", [".avi", ".mkv", ".mov", ".mp4"], 6, "#FF0000"),
+        new("56d8273d-789e-4f68-9ad4-3bb0c5345560", "AUDIO", [".aac", ".flac", ".mp3", ".ogg", ".wav"], 7, "#FF0000"),
+        new("83c6e756-3a14-44dc-bbbc-ab5475cb338e", "EDITABLES", [".ai", ".eps", ".psd"], 8, "#FF7C35")
     ];
 }
 
