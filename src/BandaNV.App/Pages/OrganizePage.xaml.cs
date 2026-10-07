@@ -871,6 +871,28 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             files);
     }
 
+    private void PreviewFilesList_Tapped(
+        object sender,
+        TappedRoutedEventArgs e)
+    {
+        if (IsTapInsideListViewItem(
+                e.OriginalSource,
+                PreviewFilesList))
+        {
+            return;
+        }
+
+        PreviewFilesList.SelectedItems.Clear();
+
+        SyncUnassignedFolderSelection(
+            Array.Empty<OrganizePreviewFile>());
+
+        ShowOrganizeSummary();
+
+        e.Handled =
+            true;
+    }
+
     private void PreviewSelectAllAccelerator_Invoked(
         KeyboardAccelerator sender,
         Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
@@ -938,6 +960,65 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         ShowOrganizeDetail(
             folder);
+    }
+
+    private void UnassignedFoldersList_Tapped(
+        object sender,
+        TappedRoutedEventArgs e)
+    {
+        if (IsTapInsideListViewItem(
+                e.OriginalSource,
+                UnassignedFoldersList))
+        {
+            return;
+        }
+
+        try
+        {
+            _syncingUnassignedFolderSelection =
+                true;
+
+            UnassignedFoldersList.SelectedItem =
+                null;
+            PreviewFilesList.SelectedItems.Clear();
+        }
+        finally
+        {
+            _syncingUnassignedFolderSelection =
+                false;
+        }
+
+        ShowOrganizeSummary();
+
+        e.Handled =
+            true;
+    }
+
+    private static bool IsTapInsideListViewItem(
+        object? originalSource,
+        ListView owner)
+    {
+        if (originalSource is not DependencyObject current)
+        {
+            return false;
+        }
+
+        while (current is not null &&
+               !ReferenceEquals(
+                   current,
+                   owner))
+        {
+            if (current is ListViewItem)
+            {
+                return true;
+            }
+
+            current =
+                VisualTreeHelper.GetParent(
+                    current);
+        }
+
+        return false;
     }
 
     private void SyncUnassignedFolderSelection(
