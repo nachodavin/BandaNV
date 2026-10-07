@@ -164,11 +164,13 @@ public sealed partial class CategoriesPage : Page
                 e.NewSize.Width);
 
         var columns =
-            availableWidth >= 1240
-                ? 3
-                : availableWidth >= 790
-                    ? 2
-                    : 1;
+            availableWidth >= 1320
+                ? 4
+                : availableWidth >= 920
+                    ? 3
+                    : availableWidth >= 620
+                        ? 2
+                        : 1;
 
         const double spacing = 12;
 
@@ -1330,6 +1332,13 @@ public sealed class CategoryAdminItem
         Extensions.Count == 1
             ? "1 extensión"
             : $"{Extensions.Count.ToString(CultureInfo.CurrentCulture)} extensiones";
+
+    public string ExtensionsDisplayText =>
+        Extensions.Count == 0
+            ? "Sin extensiones"
+            : string.Join(
+                " · ",
+                Extensions);
 
     public IReadOnlyList<CategoryExtensionChip> ExtensionChips
     {
