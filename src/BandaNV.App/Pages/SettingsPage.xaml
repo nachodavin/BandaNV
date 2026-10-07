@@ -714,17 +714,6 @@
                                         <ToggleSwitch x:Name="CreateFoldersToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="3">
-                                            <TextBlock Text="Eliminar carpetas vacías" Foreground="{StaticResource BandaTextBrush}" FontSize="14" FontWeight="SemiBold" />
-                                            <TextBlock Text="Limpiar directorios que queden vacíos después de mover." Style="{StaticResource BandaMutedTextStyle}" FontSize="12" />
-                                        </StackPanel>
-                                        <ToggleSwitch x:Name="DeleteEmptyFoldersToggle" Grid.Column="1" IsOn="False" Toggled="GenericSettingToggle_Toggled" />
-                                    </Grid>
                                 </StackPanel>
                             </Border>
 
