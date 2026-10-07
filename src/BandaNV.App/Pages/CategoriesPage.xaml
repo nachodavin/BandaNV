@@ -402,7 +402,7 @@
                         </GridView.ItemTemplate>
                     </GridView>
 
-                    <!-- Indicador visual del hueco de destino durante el reordenamiento -->
+                    <!-- Hueco visual de destino: las demás cards se reacomodan alrededor. -->
                     <Canvas
                         x:Name="CategoryDragVisualLayer"
                         Canvas.ZIndex="20"
@@ -412,20 +412,8 @@
                             x:Name="CategoryDropPlaceholder"
                             Visibility="Collapsed"
                             CornerRadius="18"
-                            Background="{StaticResource BandaBackgroundBrush}"
                             BorderThickness="2"
-                            Opacity="0.96">
-
-                            <Grid>
-                                <TextBlock
-                                    x:Name="CategoryDropPlaceholderText"
-                                    Text="SOLTAR ACÁ"
-                                    FontSize="12"
-                                    FontWeight="SemiBold"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                            Opacity="0.42" />
                     </Canvas>
 
                     <StackPanel
