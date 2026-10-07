@@ -51,13 +51,7 @@ public sealed class AppSettings
         new("3858f918-8138-461c-8e92-280859530182", "GIF", [".gif"], 5),
         new("bb23b55f-d2a8-4ffd-bf77-56ed1228a257", "VIDEOS", [".mp4", ".mkv", ".mov", ".avi"], 6),
         new("56d8273d-789e-4f68-9ad4-3bb0c5345560", "AUDIO", [".mp3", ".wav", ".flac", ".aac", ".ogg"], 7),
-        new("6de73ae0-6205-431f-8b6e-99ea743deacb", "FONTS", [".ttf", ".otf", ".woff", ".woff2"], 8),
-        new("83c6e756-3a14-44dc-bbbc-ab5475cb338e", "DESIGN", [".ai", ".psd", ".indd", ".fig"], 9),
-        new("fa573f41-f83d-4187-9bde-00a526c11971", "CODE", [".cs", ".ps1", ".js", ".json"], 10),
-        new("2bbd45ab-373c-493a-9941-c56ce55cc4aa", "BACKUPS", [".bak", ".backup"], 11),
-        new("65807868-819c-41b5-a879-40f4f79c12b0", "PROJECTS", [".sln", ".slnx", ".csproj"], 12),
-        new("47a084a6-4bff-4389-95c0-9db56c213c10", "TEXTURES", [".tga", ".dds", ".exr"], 13),
-        new("aecb244f-7586-4bfc-b19b-f1cadf78b8fb", "PACKAGES", [".nupkg", ".appx", ".msix"], 14)
+        new("83c6e756-3a14-44dc-bbbc-ab5475cb338e", "EDITABLES", [".ai", ".psd", ".eps"], 8)
     ];
 }
 
