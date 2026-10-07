@@ -204,7 +204,10 @@ public sealed partial class CategoriesPage : Page
             category.Extensions.Count.ToString(CultureInfo.CurrentCulture);
         CategoryDetailFileCountText.Text =
             category.FileCount.ToString(CultureInfo.CurrentCulture);
-        CategoryDetailFolderText.Text = category.FolderPath;
+        CategoryDetailFolderText.Text =
+            string.IsNullOrWhiteSpace(category.FolderPath)
+                ? "Sin destino configurado"
+                : category.FolderPath;
 
         BuildCategoryDetailExtensionBadges(category);
 
