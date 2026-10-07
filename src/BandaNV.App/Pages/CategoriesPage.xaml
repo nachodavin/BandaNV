@@ -224,13 +224,9 @@
                         x:Name="CategoryList"
                         ItemsSource="{x:Bind VisibleCategories, Mode=OneWay}"
                         SelectionMode="None"
-                        CanDragItems="True"
+                        CanDragItems="False"
                         CanReorderItems="False"
-                        AllowDrop="True"
-                        DragItemsStarting="CategoryList_DragItemsStarting"
-                        DragOver="CategoryList_DragOver"
-                        Drop="CategoryList_Drop"
-                        DragItemsCompleted="CategoryList_DragItemsCompleted"
+                        AllowDrop="False"
                         SizeChanged="CategoryList_SizeChanged"
                         HorizontalContentAlignment="Stretch"
                         VerticalContentAlignment="Stretch"
@@ -262,12 +258,18 @@
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="local:CategoryAdminItem">
                                 <Border
+                                    Tag="{x:Bind Id}"
                                     MinHeight="158"
                                     Padding="18"
                                     CornerRadius="18"
                                     Background="{x:Bind ColorSoftBrush}"
                                     BorderBrush="{x:Bind ColorBrush}"
-                                    BorderThickness="1">
+                                    BorderThickness="1"
+                                    PointerPressed="CategoryCard_PointerPressed"
+                                    PointerMoved="CategoryCard_PointerMoved"
+                                    PointerReleased="CategoryCard_PointerReleased"
+                                    PointerCanceled="CategoryCard_PointerCanceled"
+                                    PointerCaptureLost="CategoryCard_PointerCaptureLost">
 
                                     <Grid RowSpacing="3">
                                         <Grid.RowDefinitions>
