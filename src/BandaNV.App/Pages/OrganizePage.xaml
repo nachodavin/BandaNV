@@ -2291,6 +2291,9 @@
                             Click="ApplyOrganizeFiltersOverlayButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}"
                             MinWidth="126">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
@@ -2498,6 +2501,9 @@
                             Content="Guardar asignación"
                             Click="SaveAssignmentOverlayButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
@@ -2714,6 +2720,9 @@
                             Content="Guardar"
                             Click="OrganizeManagePrimaryButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
@@ -2733,7 +2742,11 @@
                             Content="Eliminar"
                             Click="OrganizeManageDangerButton_Click"
                             Style="{StaticResource BandaPopupDangerButtonStyle}"
-                            Visibility="Collapsed" />
+                            Visibility="Collapsed">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
@@ -2907,6 +2920,9 @@
                             Content="Reemplazar"
                             Click="ConflictReplaceButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
