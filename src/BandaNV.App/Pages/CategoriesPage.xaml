@@ -209,109 +209,121 @@
                         </Button>
             </Grid>
 
-            <!-- Lista + detalle -->
-            <Border
+            <!-- Grid visual de categorías -->
+            <Grid
                 Grid.Row="3"
-                Style="{StaticResource BandaCardStyle}"
-                Padding="0"
-                MinHeight="430">
+                RowSpacing="10">
 
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                    <Grid
-                        Margin="14,14,14,12"
-                        ColumnSpacing="12">
+                <Grid MinHeight="430">
+                    <GridView
+                        x:Name="CategoryList"
+                        ItemsSource="{x:Bind VisibleCategories, Mode=OneWay}"
+                        SelectionMode="Single"
+                        CanDragItems="True"
+                        CanReorderItems="True"
+                        AllowDrop="True"
+                        DragItemsCompleted="CategoryList_DragItemsCompleted"
+                        SizeChanged="CategoryList_SizeChanged"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        Padding="0">
 
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.72*" />
-                            <ColumnDefinition Width="0.78*" />
-                        </Grid.ColumnDefinitions>
+                        <GridView.Resources>
+                            <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="Transparent" />
+                            <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
+                        </GridView.Resources>
 
-                        <!-- Lista -->
-                        <Border
-                            Grid.Column="0"
-                            CornerRadius="14"
-                            Background="{StaticResource BandaCardAltBrush}"
-                            BorderBrush="{StaticResource BandaBorderBrush}"
-                            BorderThickness="1">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
 
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="48" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
+                        <GridView.ItemContainerStyle>
+                            <Style TargetType="GridViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,12,12" />
+                                <Setter Property="MinHeight" Value="220" />
+                            </Style>
+                        </GridView.ItemContainerStyle>
 
-                                <Grid
-                                    Padding="14,0"
-                                    ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0.22*" />
-                                        <ColumnDefinition Width="1.35*" />
-                                        <ColumnDefinition Width="2.9*" />
-                                        <ColumnDefinition Width="0.75*" />
-                                    </Grid.ColumnDefinitions>
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="local:CategoryAdminItem">
+                                <Border
+                                    MinHeight="220"
+                                    CornerRadius="16"
+                                    Background="{StaticResource BandaCardAltBrush}"
+                                    BorderBrush="{x:Bind ColorBorderBrush}"
+                                    BorderThickness="1">
 
-                                    <TextBlock Grid.Column="1" Text="CATEGORÍA" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="2" Text="EXTENSIONES" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="3" Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="13" VerticalAlignment="Center" />
-                                </Grid>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="4" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="1" MinHeight="330">
-                                    <ListView
-                                        x:Name="CategoryList"
-                                        ItemsSource="{x:Bind VisibleCategories, Mode=OneWay}"
-                                        SelectionMode="Single"
-                                        SelectionChanged="CategoryList_SelectionChanged"
-                                        CanDragItems="True"
-                                        CanReorderItems="True"
-                                        AllowDrop="True"
-                                        DragItemsCompleted="CategoryList_DragItemsCompleted"
-                                        HorizontalContentAlignment="Stretch"
-                                        Padding="8,0,8,8">
+                                        <Border
+                                            Background="{x:Bind ColorBrush}"
+                                            CornerRadius="16,16,0,0" />
 
-                                        <ListView.Resources>
-                                            <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
-                                            <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="{StaticResource BandaSelectionHoverColor}" />
-                                            <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#161F292D" />
-                                            <SolidColorBrush x:Key="ListViewItemForegroundSelected" Color="#F5F8FA" />
-                                        </ListView.Resources>
+                                        <Grid
+                                            Grid.Row="1"
+                                            Padding="18,16,18,16"
+                                            RowSpacing="15">
 
-                                        <ListView.ItemContainerStyle>
-                                            <Style TargetType="ListViewItem">
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                                <Setter Property="Padding" Value="0" />
-                                                <Setter Property="Margin" Value="0,2" />
-                                                <Setter Property="CornerRadius" Value="10" />
-                                                <Setter Property="MinHeight" Value="56" />
-                                            </Style>
-                                        </ListView.ItemContainerStyle>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
 
-                                        <ListView.ItemTemplate>
-                                            <DataTemplate x:DataType="local:CategoryAdminItem">
-                                                <Grid Padding="10,0" ColumnSpacing="14">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="0.22*" />
-                                                        <ColumnDefinition Width="1.35*" />
-                                                        <ColumnDefinition Width="2.9*" />
-                                                        <ColumnDefinition Width="0.75*" />
-                                                    </Grid.ColumnDefinitions>
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
 
-                                                    <TextBlock
-                                                        Text="⋮⋮"
-                                                        Foreground="{StaticResource BandaMutedBrush}"
-                                                        FontSize="15"
-                                                        VerticalAlignment="Center"
-                                                        ToolTipService.ToolTip="Arrastrá para cambiar el orden" />
+                                                <Border
+                                                    Width="48"
+                                                    Height="48"
+                                                    CornerRadius="14"
+                                                    Background="{x:Bind ColorSoftBrush}">
+                                                    <Grid>
+                                                        <TextBlock
+                                                            Text="{x:Bind OrderText}"
+                                                            Foreground="{x:Bind ColorBrush}"
+                                                            FontSize="16"
+                                                            FontWeight="SemiBold"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center" />
+                                                        <TextBlock
+                                                            Text="⋮⋮"
+                                                            Foreground="{StaticResource BandaMutedBrush}"
+                                                            FontSize="10"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Bottom"
+                                                            Margin="0,0,0,2"
+                                                            ToolTipService.ToolTip="Arrastrá la card para cambiar el orden" />
+                                                    </Grid>
+                                                </Border>
 
+                                                <StackPanel
+                                                    Grid.Column="1"
+                                                    Spacing="3"
+                                                    VerticalAlignment="Center">
                                                     <StackPanel
-                                                        Grid.Column="1"
                                                         Orientation="Horizontal"
-                                                        Spacing="8"
-                                                        VerticalAlignment="Center">
+                                                        Spacing="8">
                                                         <Ellipse
                                                             Width="10"
                                                             Height="10"
@@ -320,283 +332,186 @@
                                                         <TextBlock
                                                             Text="{x:Bind Name}"
                                                             Foreground="{StaticResource BandaTextBrush}"
-                                                            FontSize="13"
+                                                            FontSize="16"
                                                             FontWeight="SemiBold"
                                                             VerticalAlignment="Center"
                                                             TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
-
                                                     <TextBlock
-                                                        Grid.Column="2"
-                                                        Text="{x:Bind ExtensionsSummary}"
-                                                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                        FontSize="13"
-                                                        VerticalAlignment="Center"
-                                                        TextTrimming="CharacterEllipsis" />
+                                                        Text="{x:Bind ExtensionCountText}"
+                                                        Foreground="{StaticResource BandaMutedBrush}"
+                                                        FontSize="12" />
+                                                </StackPanel>
 
-                                                    <TextBlock
-                                                        Grid.Column="3"
-                                                        Text="{x:Bind FileCountText}"
-                                                        Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                        FontSize="13"
-                                                        VerticalAlignment="Center" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListView.ItemTemplate>
-                                    </ListView>
+                                                <Button
+                                                    Grid.Column="2"
+                                                    Tag="{x:Bind Id}"
+                                                    Content="⋯"
+                                                    Width="36"
+                                                    Height="36"
+                                                    Padding="0"
+                                                    CornerRadius="10"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                    FontSize="18"
+                                                    ToolTipService.ToolTip="Más acciones">
 
-                                    <StackPanel
-                                        x:Name="CategoriesEmptyStatePanel"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Spacing="8"
-                                        Visibility="Collapsed">
-                                        <TextBlock
-                                            Text="No hay categorías que coincidan"
-                                            Foreground="{StaticResource BandaTextBrush}"
-                                            FontSize="15"
-                                            FontWeight="SemiBold"
-                                            HorizontalAlignment="Center" />
-                                        <TextBlock
-                                            Text="Probá cambiando el texto de búsqueda."
-                                            Style="{StaticResource BandaMutedTextStyle}"
-                                            FontSize="13"
-                                            HorizontalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-                            </Grid>
-                        </Border>
+                                                    <Button.Flyout>
+                                                        <Flyout
+                                                            Placement="BottomEdgeAlignedRight"
+                                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                            <Border
+                                                                Width="230"
+                                                                Padding="8"
+                                                                CornerRadius="14"
+                                                                Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                                BorderThickness="1">
+                                                                <StackPanel Spacing="2">
+                                                                    <Button
+                                                                        Tag="{x:Bind Id}"
+                                                                        Content="Gestionar extensiones"
+                                                                        Click="ManageExtensionsButton_Click"
+                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                                    <Button
+                                                                        Tag="{x:Bind Id}"
+                                                                        Content="Duplicar categoría"
+                                                                        Click="DuplicateCategoryButton_Click"
+                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                                    <Border
+                                                                        Height="1"
+                                                                        Margin="6,4"
+                                                                        Background="{StaticResource BandaBorderBrush}" />
+                                                                    <Button
+                                                                        Tag="{x:Bind Id}"
+                                                                        Content="Eliminar categoría"
+                                                                        Click="DeleteCategoryButton_Click"
+                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}"
+                                                                        Foreground="{StaticResource BandaDangerBrush}" />
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </Flyout>
+                                                    </Button.Flyout>
+                                                </Button>
+                                            </Grid>
 
-                        <!-- Detalle -->
-                        <Border
-                            Grid.Column="1"
-                            CornerRadius="14"
-                            Background="{StaticResource BandaCardAltBrush}"
-                            BorderBrush="{StaticResource BandaBorderBrush}"
-                            BorderThickness="1"
-                            Padding="18">
-
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-
-                                <Grid ColumnSpacing="10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Spacing="4">
-                                        <TextBlock
-                                            Text="Detalle de categoría"
-                                            Foreground="{StaticResource BandaTextBrush}"
-                                            FontSize="18"
-                                            FontWeight="SemiBold" />
-                                        <StackPanel
-                                            Orientation="Horizontal"
-                                            Spacing="8">
-                                            <Ellipse
-                                                x:Name="CategoryDetailColorDot"
-                                                Width="10"
-                                                Height="10"
-                                                Fill="{StaticResource BandaMutedBrush}"
-                                                VerticalAlignment="Center" />
-                                            <TextBlock
-                                                x:Name="CategoryDetailNameText"
-                                                Text="Seleccioná una categoría"
-                                                Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                FontSize="14"
-                                                FontWeight="SemiBold"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                    </StackPanel>
-
-                                </Grid>
-
-                                <Grid
-                                    Grid.Row="1"
-                                    Margin="0,16,0,16"
-                                    ColumnSpacing="10">
-
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
-                                        <StackPanel Spacing="4">
-                                            <TextBlock Text="EXTENSIONES" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                            <TextBlock
-                                                x:Name="CategoryDetailExtensionCountText"
-                                                Text="—"
-                                                Foreground="{StaticResource BandaTextBrush}"
-                                                FontSize="20"
-                                                FontWeight="SemiBold" />
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border Grid.Column="1" Padding="12" CornerRadius="12" Background="{StaticResource BandaNavIconBrush}">
-                                        <StackPanel Spacing="4">
-                                            <TextBlock Text="ARCHIVOS" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                            <TextBlock
-                                                x:Name="CategoryDetailFileCountText"
-                                                Text="—"
-                                                Foreground="{StaticResource BandaTextBrush}"
-                                                FontSize="20"
-                                                FontWeight="SemiBold" />
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-
-                                <StackPanel
-                                    Grid.Row="2"
-                                    Spacing="14">
-
-                                    <StackPanel Spacing="5">
-                                        <TextBlock Text="EXTENSIONES ASIGNADAS" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                        <ScrollViewer
-                                            HorizontalScrollMode="Auto"
-                                            HorizontalScrollBarVisibility="Auto"
-                                            VerticalScrollMode="Disabled"
-                                            VerticalScrollBarVisibility="Disabled">
                                             <StackPanel
-                                                x:Name="CategoryDetailExtensionsPanel"
-                                                Orientation="Horizontal"
-                                                Spacing="6" />
-                                        </ScrollViewer>
-                                    </StackPanel>
+                                                Grid.Row="1"
+                                                Spacing="8">
+                                                <TextBlock
+                                                    Text="EXTENSIONES"
+                                                    Foreground="{StaticResource BandaMutedBrush}"
+                                                    FontSize="10"
+                                                    FontWeight="SemiBold" />
 
-                                    <StackPanel Spacing="5">
-                                        <TextBlock Text="CARPETA RESULTANTE" Style="{StaticResource BandaMutedTextStyle}" FontSize="11" />
-                                        <TextBlock
-                                            x:Name="CategoryDetailFolderText"
-                                            Text="—"
-                                            Foreground="{StaticResource BandaMutedStrongBrush}"
-                                            FontSize="12"
-                                            TextWrapping="Wrap"
-                                            TextTrimming="CharacterEllipsis"
-                                            MaxLines="3" />
-                                    </StackPanel>
+                                                <ItemsControl ItemsSource="{x:Bind ExtensionChips}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel
+                                                                Orientation="Horizontal"
+                                                                Spacing="6" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="local:CategoryExtensionChip">
+                                                            <Border
+                                                                Padding="9,5"
+                                                                CornerRadius="9"
+                                                                Background="{x:Bind BackgroundBrush}">
+                                                                <TextBlock
+                                                                    Text="{x:Bind Text}"
+                                                                    Foreground="{x:Bind ForegroundBrush}"
+                                                                    FontSize="11"
+                                                                    FontWeight="SemiBold" />
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
 
-                                    <TextBlock
-                                        x:Name="CategoryDetailStatusText"
-                                        Text=""
-                                        Foreground="{StaticResource BandaMutedBrush}"
-                                        FontSize="11"
-                                        TextWrapping="Wrap"
-                                        Visibility="Collapsed" />
-                                </StackPanel>
+                                            <Grid
+                                                Grid.Row="2"
+                                                ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
 
-                                <StackPanel
-                                    Grid.Row="3"
-                                    Spacing="8"
-                                    Margin="0,16,0,0">
+                                                <StackPanel
+                                                    Orientation="Horizontal"
+                                                    Spacing="7"
+                                                    VerticalAlignment="Center">
+                                                    <TextBlock
+                                                        Text="{x:Bind FileCountDisplayText}"
+                                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                        FontSize="12"
+                                                        VerticalAlignment="Center" />
+                                                </StackPanel>
 
-                                    <Button
-                                        x:Name="EditCategoryButton"
-                                        Content="Editar categoría"
-                                        Click="EditCategoryButton_Click"
-                                        FontSize="14"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Center"
-                                        Padding="14,10"
-                                        CornerRadius="12"
-                                        FontWeight="SemiBold"
-                                        IsEnabled="False">
-                                        <Button.Resources>
-                                            <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
-                                            <SolidColorBrush x:Key="ButtonForeground" Color="{StaticResource BandaActionForegroundColor}" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource BandaActionForegroundColor}" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource BandaActionForegroundColor}" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource BandaActionBaseColor}" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource BandaActionHoverColor}" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource BandaActionPressedColor}" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#151D262F" />
-                                            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#65747D" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#35424E59" />
-                                        </Button.Resources>
-                                    </Button>
-
-                                    <Grid ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <Button
-                                            x:Name="ManageExtensionsButton"
-                                            Content="Gestionar extensiones"
-                                            Click="ManageExtensionsButton_Click"
-                                            Style="{StaticResource BandaPopupSecondaryButtonStyle}"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Center"
-                                            IsEnabled="False" />
-
-                                        <Button
-                                            x:Name="DuplicateCategoryButton"
-                                            Grid.Column="1"
-                                            Content="Duplicar"
-                                            Click="DuplicateCategoryButton_Click"
-                                            Style="{StaticResource BandaPopupSecondaryButtonStyle}"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Center"
-                                            IsEnabled="False" />
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Tag="{x:Bind Id}"
+                                                    Content="Editar"
+                                                    Click="EditCategoryButton_Click"
+                                                    Style="{StaticResource BandaPopupSecondaryButtonStyle}"
+                                                    Padding="14,7"
+                                                    MinWidth="84" />
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
 
-                                    <Border
-                                        Height="1"
-                                        Margin="0,4,0,2"
-                                        Background="{StaticResource BandaBorderBrush}" />
-
-                                    <Button
-                                        x:Name="DeleteCategoryButton"
-                                        Content="Eliminar categoría"
-                                        Click="DeleteCategoryButton_Click"
-                                        FontSize="14"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Center"
-                                        Padding="14,10"
-                                        CornerRadius="12"
-                                        FontWeight="SemiBold"
-                                        IsEnabled="False">
-                                        <Button.Resources>
-                                            <SolidColorBrush x:Key="ButtonBackground" Color="#FF6F6F" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#FF8585" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D95454" />
-                                            <SolidColorBrush x:Key="ButtonForeground" Color="#190909" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#190909" />
-                                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#190909" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#FF6F6F" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#FF8585" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#D95454" />
-                                            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#151D262F" />
-                                            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#65747D" />
-                                            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#35424E59" />
-                                        </Button.Resources>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </Grid>
-
-                    <Grid
-                        Grid.Row="1"
-                        Padding="18,0,18,16">
+                    <StackPanel
+                        x:Name="CategoriesEmptyStatePanel"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8"
+                        Visibility="Collapsed">
                         <TextBlock
-                            x:Name="CategoryFooterCountText"
-                            Text="0 categorías"
+                            Text="No hay categorías que coincidan"
+                            Foreground="{StaticResource BandaTextBrush}"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center" />
+                        <TextBlock
+                            Text="Probá cambiando el texto de búsqueda."
                             Style="{StaticResource BandaMutedTextStyle}"
                             FontSize="13"
-                            VerticalAlignment="Center" />
-                    </Grid>
+                            HorizontalAlignment="Center" />
+                    </StackPanel>
                 </Grid>
-            </Border>
+
+                <Grid
+                    Grid.Row="1"
+                    ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        x:Name="CategoryFooterCountText"
+                        Text="0 categorías"
+                        Style="{StaticResource BandaMutedTextStyle}"
+                        FontSize="13"
+                        VerticalAlignment="Center" />
+
+                    <TextBlock
+                        x:Name="CategoryStatusText"
+                        Grid.Column="1"
+                        Text="Arrastrá las cards para cambiar el orden global."
+                        Foreground="{StaticResource BandaMutedBrush}"
+                        FontSize="12"
+                        TextAlignment="Right"
+                        TextWrapping="Wrap"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Grid>
         </Grid>
 
         <!-- Editor de categoría -->
@@ -755,6 +670,31 @@
                                         </Button.Flyout>
                                     </Button>
                                 </Grid>
+                            </StackPanel>
+
+                            <StackPanel
+                                x:Name="CategoryEditorFolderSection"
+                                Spacing="7"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    Text="CARPETA RESULTANTE"
+                                    Style="{StaticResource BandaLabelTextStyle}"
+                                    FontSize="11" />
+                                <Border
+                                    Padding="11,9"
+                                    CornerRadius="11"
+                                    Background="{StaticResource BandaPopupSurfaceBrush}"
+                                    BorderBrush="{StaticResource BandaBorderBrush}"
+                                    BorderThickness="1">
+                                    <TextBlock
+                                        x:Name="CategoryEditorFolderText"
+                                        Text=""
+                                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                                        FontSize="12"
+                                        TextWrapping="Wrap"
+                                        TextTrimming="CharacterEllipsis"
+                                        MaxLines="2" />
+                                </Border>
                             </StackPanel>
 
                             <StackPanel Spacing="7">
