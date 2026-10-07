@@ -1565,7 +1565,7 @@
         </Grid>
         </Grid>
 
-        <!-- Modal global BandaNV para asignación de extensiones -->
+        <!-- Modal global BandaNV para asignación manual -->
         <Grid
             x:Name="AssignmentOverlay"
             Canvas.ZIndex="100"
