@@ -22,6 +22,7 @@ public sealed partial class SettingsPage : Page
 
         _isPageReady = false;
         LoadPersistentSettingsIntoUi(global::BandaNV.App.App.Settings.Current);
+        UpdateHistoryDependentVisibility();
         _isPageReady = true;
 
         SetSettingsSection(SettingsSection.General);
@@ -452,8 +453,30 @@ public sealed partial class SettingsPage : Page
                     AutoUpdateToggle.IsOn);
         }
 
+        if (ReferenceEquals(
+                sender,
+                SaveHistoryToggle))
+        {
+            UpdateHistoryDependentVisibility();
+        }
+
         QueuePersistSettings();
         ShowSettingsFeedback("Preferencia actualizada.");
+    }
+
+    private void UpdateHistoryDependentVisibility()
+    {
+        var visibility =
+            SaveHistoryToggle.IsOn
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        SaveOrganizeHistoryRow.Visibility =
+            visibility;
+        SaveSearchHistoryRow.Visibility =
+            visibility;
+        HistoryRetentionRow.Visibility =
+            visibility;
     }
 
     private void OpenLogsFolderButton_Click(object sender, RoutedEventArgs e)
@@ -688,6 +711,7 @@ public sealed partial class SettingsPage : Page
         SecondaryColorPicker.Color = secondaryColor;
         SecondaryColorHexText.Text = ToHex(secondaryColor);
 
+        UpdateHistoryDependentVisibility();
         _isPageReady = true;
 
         ApplyCurrentAppearance();
@@ -970,6 +994,7 @@ public sealed partial class SettingsPage : Page
         SaveSearchHistoryToggle.IsOn = true;
         HistoryRetentionValueText.Text = "Siempre";
 
+        UpdateHistoryDependentVisibility();
         _isPageReady = true;
 
         ApplyCurrentAppearance();
