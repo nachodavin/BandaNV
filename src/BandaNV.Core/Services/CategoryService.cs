@@ -28,10 +28,17 @@ public sealed class CategoryService
     public static string GetFolderPath(
         string destinationRoot,
         int order,
-        string name) =>
-        Path.Combine(
+        string name)
+    {
+        if (string.IsNullOrWhiteSpace(destinationRoot))
+        {
+            return string.Empty;
+        }
+
+        return Path.Combine(
             destinationRoot,
             GetFolderName(order, name));
+    }
 
     public static int CountExistingFiles(
         string destinationRoot,
