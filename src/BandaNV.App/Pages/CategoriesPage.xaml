@@ -838,6 +838,9 @@
                             Content="Guardar categoría"
                             Click="SaveCategoryEditorButton_Click"
                             Style="{StaticResource BandaPopupPrimaryButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="{StaticResource BandaActionBaseColor}" />
                                 <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
@@ -953,7 +956,11 @@
                             Grid.Column="2"
                             Content="Eliminar categoría"
                             Click="ConfirmDeleteCategoryButton_Click"
-                            Style="{StaticResource BandaPopupDangerButtonStyle}" />
+                            Style="{StaticResource BandaPopupDangerButtonStyle}">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" />
+                            </Button.KeyboardAccelerators>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
