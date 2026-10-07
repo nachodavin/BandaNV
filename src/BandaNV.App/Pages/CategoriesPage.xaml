@@ -252,198 +252,145 @@
                                 <Setter Property="VerticalContentAlignment" Value="Stretch" />
                                 <Setter Property="Padding" Value="0" />
                                 <Setter Property="Margin" Value="0,0,12,12" />
-                                <Setter Property="MinHeight" Value="220" />
+                                <Setter Property="MinHeight" Value="158" />
                             </Style>
                         </GridView.ItemContainerStyle>
 
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="local:CategoryAdminItem">
                                 <Border
-                                    MinHeight="220"
-                                    CornerRadius="16"
-                                    Background="{StaticResource BandaCardAltBrush}"
-                                    BorderBrush="{x:Bind ColorBorderBrush}"
+                                    MinHeight="158"
+                                    Padding="18"
+                                    CornerRadius="18"
+                                    Background="{x:Bind ColorSoftBrush}"
+                                    BorderBrush="{x:Bind ColorBrush}"
                                     BorderThickness="1">
 
-                                    <Grid>
+                                    <Grid RowSpacing="3">
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="4" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <Border
-                                            Background="{x:Bind ColorBrush}"
-                                            CornerRadius="16,16,0,0" />
+                                        <Grid ColumnSpacing="9">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                        <Grid
-                                            Grid.Row="1"
-                                            Padding="18,16,18,16"
-                                            RowSpacing="15">
+                                            <TextBlock
+                                                Text="{x:Bind OrderText}"
+                                                Foreground="{x:Bind ColorBrush}"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                VerticalAlignment="Center"
+                                                ToolTipService.ToolTip="Arrastrá la card para cambiar el orden" />
 
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="*" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
+                                            <Ellipse
+                                                Grid.Column="1"
+                                                Width="9"
+                                                Height="9"
+                                                Fill="{x:Bind ColorBrush}"
+                                                VerticalAlignment="Center" />
 
-                                            <Grid ColumnSpacing="12">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{x:Bind Name}"
+                                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                VerticalAlignment="Center"
+                                                TextTrimming="CharacterEllipsis"
+                                                MaxLines="1" />
 
-                                                <Border
-                                                    Width="48"
-                                                    Height="48"
-                                                    CornerRadius="14"
-                                                    Background="{x:Bind ColorSoftBrush}">
-                                                    <Grid>
-                                                        <TextBlock
-                                                            Text="{x:Bind OrderText}"
-                                                            Foreground="{x:Bind ColorBrush}"
-                                                            FontSize="16"
-                                                            FontWeight="SemiBold"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center" />
-                                                        <TextBlock
-                                                            Text="⋮⋮"
-                                                            Foreground="{StaticResource BandaMutedBrush}"
-                                                            FontSize="10"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Bottom"
-                                                            Margin="0,0,0,2"
-                                                            ToolTipService.ToolTip="Arrastrá la card para cambiar el orden" />
-                                                    </Grid>
-                                                </Border>
+                                            <Button
+                                                Grid.Column="3"
+                                                Tag="{x:Bind Id}"
+                                                Content="⋯"
+                                                Width="28"
+                                                Height="28"
+                                                Padding="0"
+                                                Margin="4,-6,-6,0"
+                                                CornerRadius="9"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Foreground="{x:Bind ColorBrush}"
+                                                FontSize="16"
+                                                VerticalAlignment="Top"
+                                                ToolTipService.ToolTip="Más acciones">
 
-                                                <StackPanel
-                                                    Grid.Column="1"
-                                                    Spacing="3"
-                                                    VerticalAlignment="Center">
-                                                    <StackPanel
-                                                        Orientation="Horizontal"
-                                                        Spacing="8">
-                                                        <Ellipse
-                                                            Width="10"
-                                                            Height="10"
-                                                            Fill="{x:Bind ColorBrush}"
-                                                            VerticalAlignment="Center" />
-                                                        <TextBlock
-                                                            Text="{x:Bind Name}"
-                                                            Foreground="{StaticResource BandaTextBrush}"
-                                                            FontSize="16"
-                                                            FontWeight="SemiBold"
-                                                            VerticalAlignment="Center"
-                                                            TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                    <TextBlock
-                                                        Text="{x:Bind ExtensionCountText}"
-                                                        Foreground="{StaticResource BandaMutedBrush}"
-                                                        FontSize="12" />
-                                                </StackPanel>
-
-                                                <Button
-                                                    Grid.Column="2"
-                                                    Tag="{x:Bind Id}"
-                                                    Content="⋯"
-                                                    Width="36"
-                                                    Height="36"
-                                                    Padding="0"
-                                                    CornerRadius="10"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                    FontSize="18"
-                                                    ToolTipService.ToolTip="Más acciones">
-
-                                                    <Button.Flyout>
-                                                        <Flyout
-                                                            Placement="BottomEdgeAlignedRight"
-                                                            FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
-                                                            <Border
-                                                                Width="230"
-                                                                Padding="8"
-                                                                CornerRadius="14"
-                                                                Background="{StaticResource BandaPopupSurfaceBrush}"
-                                                                BorderBrush="{StaticResource BandaBorderStrongBrush}"
-                                                                BorderThickness="1">
-                                                                <StackPanel Spacing="2">
-                                                                    <Button
-                                                                        Tag="{x:Bind Id}"
-                                                                        Content="Editar categoría"
-                                                                        Click="EditCategoryButton_Click"
-                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                                    <Button
-                                                                        Tag="{x:Bind Id}"
-                                                                        Content="Gestionar extensiones"
-                                                                        Click="ManageExtensionsButton_Click"
-                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                                    <Button
-                                                                        Tag="{x:Bind Id}"
-                                                                        Content="Duplicar categoría"
-                                                                        Click="DuplicateCategoryButton_Click"
-                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                                                    <Border
-                                                                        Height="1"
-                                                                        Margin="6,4"
-                                                                        Background="{StaticResource BandaBorderBrush}" />
-                                                                    <Button
-                                                                        Tag="{x:Bind Id}"
-                                                                        Content="Eliminar categoría"
-                                                                        Click="DeleteCategoryButton_Click"
-                                                                        Style="{StaticResource BandaPopupOptionButtonStyle}"
-                                                                        Foreground="{StaticResource BandaDangerBrush}" />
-                                                                </StackPanel>
-                                                            </Border>
-                                                        </Flyout>
-                                                    </Button.Flyout>
-                                                </Button>
-                                            </Grid>
-
-                                            <StackPanel
-                                                Grid.Row="1"
-                                                Spacing="8">
-                                                <TextBlock
-                                                    Text="EXTENSIONES"
-                                                    Foreground="{StaticResource BandaMutedBrush}"
-                                                    FontSize="10"
-                                                    FontWeight="SemiBold" />
-
-                                                <ItemsControl ItemsSource="{x:Bind ExtensionChips}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel
-                                                                Orientation="Horizontal"
-                                                                Spacing="6" />
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="local:CategoryExtensionChip">
-                                                            <Border
-                                                                Padding="9,5"
-                                                                CornerRadius="9"
-                                                                Background="{x:Bind BackgroundBrush}">
-                                                                <TextBlock
-                                                                    Text="{x:Bind Text}"
-                                                                    Foreground="{x:Bind ForegroundBrush}"
-                                                                    FontSize="11"
-                                                                    FontWeight="SemiBold" />
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </StackPanel>
-
-                                            <Grid
-                                                Grid.Row="2">
-                                                <TextBlock
-                                                    Text="{x:Bind FileCountDisplayText}"
-                                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                    FontSize="12"
-                                                    VerticalAlignment="Center" />
-                                            </Grid>
+                                                <Button.Flyout>
+                                                    <Flyout
+                                                        Placement="BottomEdgeAlignedRight"
+                                                        FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                        <Border
+                                                            Width="230"
+                                                            Padding="8"
+                                                            CornerRadius="14"
+                                                            Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                            BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                            BorderThickness="1">
+                                                            <StackPanel Spacing="2">
+                                                                <Button
+                                                                    Tag="{x:Bind Id}"
+                                                                    Content="Editar categoría"
+                                                                    Click="EditCategoryButton_Click"
+                                                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                                <Button
+                                                                    Tag="{x:Bind Id}"
+                                                                    Content="Gestionar extensiones"
+                                                                    Click="ManageExtensionsButton_Click"
+                                                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                                <Button
+                                                                    Tag="{x:Bind Id}"
+                                                                    Content="Duplicar categoría"
+                                                                    Click="DuplicateCategoryButton_Click"
+                                                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                                <Border
+                                                                    Height="1"
+                                                                    Margin="6,4"
+                                                                    Background="{StaticResource BandaBorderBrush}" />
+                                                                <Button
+                                                                    Tag="{x:Bind Id}"
+                                                                    Content="Eliminar categoría"
+                                                                    Click="DeleteCategoryButton_Click"
+                                                                    Style="{StaticResource BandaPopupOptionButtonStyle}"
+                                                                    Foreground="{StaticResource BandaDangerBrush}" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Flyout>
+                                                </Button.Flyout>
+                                            </Button>
                                         </Grid>
+
+                                        <TextBlock
+                                            Grid.Row="1"
+                                            Text="{x:Bind ExtensionsDisplayText}"
+                                            Foreground="{x:Bind ColorBrush}"
+                                            FontSize="13"
+                                            Margin="0,6,0,0"
+                                            TextTrimming="CharacterEllipsis"
+                                            MaxLines="1" />
+
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Text="{x:Bind FileCountText}"
+                                            Foreground="{StaticResource BandaTextBrush}"
+                                            FontSize="30"
+                                            FontWeight="SemiBold"
+                                            Margin="0,6,0,0"
+                                            VerticalAlignment="Center" />
+
+                                        <TextBlock
+                                            Grid.Row="3"
+                                            Text="Elementos"
+                                            Style="{StaticResource BandaMutedTextStyle}"
+                                            FontSize="13"
+                                            Margin="0,2,0,0" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
