@@ -31,7 +31,62 @@ public sealed partial class HistoryPage : Page
     public HistoryPage()
     {
         InitializeComponent();
+        LoadSavedViewPreferences();
         Loaded += HistoryPage_Loaded;
+    }
+
+    private void LoadSavedViewPreferences()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        _typeFilter =
+            Enum.TryParse<HistoryTypeFilter>(
+                settings.HistoryTypeFilter,
+                ignoreCase: true,
+                out var typeFilter)
+                ? typeFilter
+                : HistoryTypeFilter.All;
+
+        _undoFilter =
+            Enum.TryParse<HistoryUndoFilter>(
+                settings.HistoryUndoFilter,
+                ignoreCase: true,
+                out var undoFilter)
+                ? undoFilter
+                : HistoryUndoFilter.All;
+
+        _originFilter =
+            string.IsNullOrWhiteSpace(
+                settings.HistoryOriginFilter)
+                ? null
+                : settings.HistoryOriginFilter.Trim();
+
+        _sortMode =
+            Enum.TryParse<HistorySortMode>(
+                settings.HistorySortMode,
+                ignoreCase: true,
+                out var sortMode)
+                ? sortMode
+                : HistorySortMode.Newest;
+    }
+
+    private async Task PersistViewPreferencesAsync()
+    {
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        settings.HistoryTypeFilter =
+            _typeFilter.ToString();
+        settings.HistoryUndoFilter =
+            _undoFilter.ToString();
+        settings.HistoryOriginFilter =
+            _originFilter ?? string.Empty;
+        settings.HistorySortMode =
+            _sortMode.ToString();
+
+        await global::BandaNV.App.App.Settings.SaveAsync(
+            settings);
     }
 
     private async void HistoryPage_Loaded(object sender, RoutedEventArgs e)
@@ -706,7 +761,7 @@ public sealed partial class HistoryPage : Page
         BuildHistoryOriginOptions();
     }
 
-    private void ApplyHistoryFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
+    private async void ApplyHistoryFiltersOverlayButton_Click(object sender, RoutedEventArgs e)
     {
         _typeFilter = _pendingTypeFilter;
         _undoFilter = _pendingUndoFilter;
@@ -714,6 +769,7 @@ public sealed partial class HistoryPage : Page
 
         CloseHistoryFiltersOverlay();
         RefreshHistoryResults();
+        await PersistViewPreferencesAsync();
     }
 
     private void HistoryTypeOptionButton_Click(object sender, RoutedEventArgs e)
@@ -860,7 +916,7 @@ public sealed partial class HistoryPage : Page
         HistoryFiltersOverlay.Visibility = Visibility.Collapsed;
     }
 
-    private void HistoryClearFiltersButton_Click(object sender, RoutedEventArgs e)
+    private async void HistoryClearFiltersButton_Click(object sender, RoutedEventArgs e)
     {
         _typeFilter = HistoryTypeFilter.All;
         _undoFilter = HistoryUndoFilter.All;
@@ -874,9 +930,11 @@ public sealed partial class HistoryPage : Page
         {
             RefreshHistoryResults();
         }
+
+        await PersistViewPreferencesAsync();
     }
 
-    private void HistorySortOptionButton_Click(object sender, RoutedEventArgs e)
+    private async void HistorySortOptionButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string sortKey })
         {
@@ -896,6 +954,7 @@ public sealed partial class HistoryPage : Page
         HistorySortValueText.Text = GetHistorySortDisplayName(_sortMode);
         HistorySortFlyout.Hide();
         RefreshHistoryResults();
+        await PersistViewPreferencesAsync();
     }
 
     private void RefreshHistoryResults()
