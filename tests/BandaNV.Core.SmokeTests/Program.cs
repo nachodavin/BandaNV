@@ -227,6 +227,48 @@ internal static class Program
             settings.HistoryRetention,
             "La conservación de historial debería ser Siempre.");
 
+        var expectedCategories =
+            new[]
+            {
+                ("RAR", new[] { ".zip", ".rar", ".7z" }),
+                ("INSTALLERS", new[] { ".exe", ".msi", ".bat" }),
+                ("DOCUMENTS", new[] { ".pdf", ".docx", ".xlsx", ".txt" }),
+                ("IMAGES", new[] { ".jpg", ".jpeg", ".png", ".webp", ".avif" }),
+                ("GIF", new[] { ".gif" }),
+                ("VIDEOS", new[] { ".mp4", ".mkv", ".mov", ".avi" }),
+                ("AUDIO", new[] { ".mp3", ".wav", ".flac", ".aac", ".ogg" }),
+                ("EDITABLES", new[] { ".ai", ".psd", ".eps" })
+            };
+
+        Equal(
+            expectedCategories.Length,
+            settings.Categories.Count,
+            "La cantidad de categorías default no coincide.");
+
+        for (var index = 0; index < expectedCategories.Length; index++)
+        {
+            var expected =
+                expectedCategories[index];
+            var actual =
+                settings.Categories[index];
+
+            Equal(
+                index + 1,
+                actual.Order,
+                "El orden default de categorías no coincide.");
+
+            Equal(
+                expected.Item1,
+                actual.Name,
+                "El nombre default de la categoría no coincide.");
+
+            True(
+                expected.Item2.SequenceEqual(
+                    actual.Extensions,
+                    StringComparer.OrdinalIgnoreCase),
+                $"Las extensiones default de {actual.Name} no coinciden.");
+        }
+
         return Task.CompletedTask;
     }
 
