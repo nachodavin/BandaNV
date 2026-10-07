@@ -222,7 +222,7 @@
                         FontSize="14"
                         FontWeight="SemiBold" />
                     <TextBlock
-                        Text="Se conserva como registro técnico de seguridad y no forma parte del historial guardado."
+                        Text="Última ejecución del historial que todavía puede deshacerse."
                         Style="{StaticResource BandaMutedTextStyle}"
                         FontSize="12"
                         TextWrapping="Wrap" />
