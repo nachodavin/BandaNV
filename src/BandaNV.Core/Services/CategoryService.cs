@@ -49,13 +49,22 @@ public sealed class CategoryService
         {
             var folder = GetFolderPath(destinationRoot, order, name);
 
-            return Directory.Exists(folder)
-                ? Directory.EnumerateFiles(
-                        folder,
-                        "*",
-                        SearchOption.TopDirectoryOnly)
-                    .Count()
-                : 0;
+            if (!Directory.Exists(folder))
+            {
+                return 0;
+            }
+
+            return Directory.EnumerateFiles(
+                    folder,
+                    "*",
+                    new EnumerationOptions
+                    {
+                        RecurseSubdirectories = true,
+                        IgnoreInaccessible = true,
+                        ReturnSpecialDirectories = false,
+                        AttributesToSkip = FileAttributes.ReparsePoint
+                    })
+                .Count();
         }
         catch
         {
