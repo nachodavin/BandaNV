@@ -56,6 +56,23 @@ public partial class App : Application
 
         try
         {
+            var deletedUnusedCategoryFolders =
+                await CategoryFolders.CleanupUnusedCategoryFoldersAsync(
+                    Settings.Current);
+
+            if (deletedUnusedCategoryFolders > 0)
+            {
+                await Settings.SaveAsync(
+                    Settings.Current);
+            }
+        }
+        catch
+        {
+            // La limpieza de carpetas huérfanas nunca debe impedir el inicio.
+        }
+
+        try
+        {
             WindowsStartupService.Apply(
                 Settings.Current.StartWithWindows);
         }
