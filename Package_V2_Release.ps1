@@ -8,6 +8,7 @@ try {
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appProject = Join-Path $root 'src\BandaNV.App\BandaNV.App.csproj'
 $updaterProject = Join-Path $root 'src\BandaNV.Updater\BandaNV.Updater.csproj'
+$smokeProject = Join-Path $root 'tests\BandaNV.Core.SmokeTests\BandaNV.Core.SmokeTests.csproj'
 $versionSource = Join-Path $root 'src\BandaNV.Core\Infrastructure\AppVersionInfo.cs'
 $dist = Join-Path $root 'dist-v2'
 
@@ -30,7 +31,7 @@ try {
     Write-Host 'BandaNV v2 - Paquete oficial de Release' -ForegroundColor Cyan
     Write-Host ''
 
-    foreach($required in @($appProject,$updaterProject,$versionSource)) {
+    foreach($required in @($appProject,$updaterProject,$smokeProject,$versionSource)) {
         if(-not (Test-Path -LiteralPath $required -PathType Leaf)) {
             throw "Falta un archivo requerido: $required"
         }
@@ -48,6 +49,38 @@ try {
 
     $version = [string]$Matches['version']
     $tag = 'v' + $version
+
+    # El paquete oficial inicial sólo puede ser v2.0. Las pruebas
+    # experimentales y versiones posteriores requieren un plan específico.
+    if($version -ne '2.0' -or $tag -ne 'v2.0') {
+        throw "La versión detectada ($tag) no corresponde a la Release oficial v2.0."
+    }
+
+    if($versionRaw -notmatch 'public const string Tag = "v2\.0";') {
+        throw 'AppVersionInfo.Tag no coincide con el tag oficial v2.0.'
+    }
+
+    # Evita distribuir accidentalmente código de la build E2E.
+    $productionSources = @(
+        $appProject,
+        (Join-Path $root 'src\BandaNV.Core\BandaNV.Core.csproj'),
+        (Join-Path $root 'src\BandaNV.Core\Services\UpdateService.cs'),
+        (Join-Path $root 'src\BandaNV.App\App.xaml.cs'),
+        (Join-Path $root 'src\BandaNV.App\Program.cs'),
+        (Join-Path $root 'src\BandaNV.App\MainWindow.xaml.cs')
+    )
+    foreach($source in $productionSources) {
+        if(Select-String -LiteralPath $source -Pattern 'BANDANV_UPDATER_E2E_|UseE2EPrereleaseChannel|--test-updates' -Quiet) {
+            throw "Se detectó código E2E no retirado en: $source"
+        }
+    }
+
+    Write-Host 'Ejecutando smoke tests oficiales del motor...' -ForegroundColor DarkCyan
+    & dotnet run --project $smokeProject -c Release
+    if($LASTEXITCODE -ne 0) {
+        throw 'Los smoke tests del motor fallaron: se canceló el paquete oficial.'
+    }
+
     $packageName = "BandaNV_${tag}.zip"
 
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
@@ -166,6 +199,43 @@ Esas carpetas no forman parte del paquete administrado por el updater.
 
     if(-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
         throw 'No se generó el ZIP de Release.'
+    }
+
+    # Revisamos el ZIP final, no sólo los archivos de staging,
+    # antes de declararlo listo para publicar.
+    Add-Type -AssemblyName System.IO.Compression
+    $zip = [IO.Compression.ZipFile]::OpenRead($packagePath)
+    try {
+        $entries = @($zip.Entries | Where-Object { $_.Name })
+        $entryPaths = @($entries | ForEach-Object { $_.FullName.Replace('\','/') })
+        if($entryPaths -notcontains 'BandaNV/BandaNV.exe' -or
+           $entryPaths -notcontains 'BandaNV/NVupdate.exe' -or
+           $entryPaths -notcontains 'BandaNV/bandanv_update_manifest.json') {
+            throw 'El ZIP final no contiene los ejecutables y manifest obligatorios.'
+        }
+
+        foreach($relative in $entryPaths) {
+            if($relative -match '^BandaNV/(config|logs|history)(/|$)' -or
+               $relative -match '(^|/)(TESTER|UPDATER_E2E|Prepare_Updater_E2E|Start_Updater_E2E)') {
+                throw "El ZIP oficial incluye un recurso temporal o portable: $relative"
+            }
+        }
+
+        $manifestEntry = $zip.GetEntry('BandaNV/bandanv_update_manifest.json')
+        $reader = New-Object System.IO.StreamReader($manifestEntry.Open(), [Text.Encoding]::UTF8)
+        try {
+            $packedManifest = $reader.ReadToEnd() | ConvertFrom-Json
+        }
+        finally {
+            $reader.Dispose()
+        }
+        if($packedManifest.Format -ne 'BandaNV.UpdateManifest.v1' -or
+           $packedManifest.Version -ne 'v2.0') {
+            throw 'El manifest interno del ZIP no corresponde a BandaNV v2.0.'
+        }
+    }
+    finally {
+        $zip.Dispose()
     }
 
     $hash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
