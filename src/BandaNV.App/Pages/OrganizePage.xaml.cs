@@ -1997,13 +1997,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             BandaContextMenu.Add(
                 menu,
                 only!.IsDirectory ? "Explorar contenido" : "Abrir archivo",
-                "\\uE8E5",
+                "\uE8E5",
                 OrganizeOpenButton_Click,
                 enabled: OrganizeOpenButton.IsEnabled);
             BandaContextMenu.Add(
                 menu,
                 "Abrir ubicación",
-                "\\uE8B7",
+                "\uE8B7",
                 OrganizeOpenLocationButton_Click,
                 enabled: OrganizeOpenLocationButton.IsEnabled);
             BandaContextMenu.Separator(menu);
@@ -2012,13 +2012,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         BandaContextMenu.Add(
             menu,
             one ? "Copiar ruta" : $"Copiar {targets.Count} rutas",
-            "\\uE8C8",
+            "\uE8C8",
             OrganizeCopyPathButton_Click,
             enabled: OrganizeCopyPathButton.IsEnabled);
         BandaContextMenu.Add(
             menu,
             "Cambiar categoría",
-            "\\uE8EC",
+            "\uE8EC",
             OrganizeChangeCategoryButton_Click,
             enabled: OrganizeChangeCategoryButton.IsEnabled);
 
@@ -2027,7 +2027,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             BandaContextMenu.Add(
                 menu,
                 only!.IsDirectory ? "Renombrar carpeta" : "Renombrar archivo",
-                "\\uE8AC",
+                "\uE8AC",
                 OrganizeRenameButton_Click,
                 enabled: OrganizeRenameButton.IsEnabled);
         }
@@ -2038,7 +2038,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             one
                 ? only!.IsDirectory ? "Eliminar carpeta" : "Eliminar archivo"
                 : $"Eliminar {targets.Count} elementos",
-            "\\uE74D",
+            "\uE74D",
             OrganizeDeleteButton_Click,
             enabled: OrganizeDeleteButton.IsEnabled,
             danger: true);

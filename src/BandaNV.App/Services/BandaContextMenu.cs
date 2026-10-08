@@ -68,7 +68,11 @@ internal static class BandaContextMenu
         {
             if (current is ListViewItem container)
             {
-                if (container.Content is not T item ||
+                var item =
+                    container.Content as T ??
+                    container.DataContext as T;
+
+                if (item is null ||
                     !ReferenceEquals(
                         list.ContainerFromItem(item),
                         container))

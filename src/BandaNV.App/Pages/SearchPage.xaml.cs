@@ -1386,18 +1386,20 @@ public sealed partial class SearchPage : Page
         object sender,
         RightTappedRoutedEventArgs e)
     {
+        // Se descarta primero la selección lateral para que cualquier
+        // cambio de detalle posterior corresponda al listado principal.
+        if (SearchFolderContentList.SelectedItems.Count > 0)
+        {
+            SearchFolderContentList.SelectedItems.Clear();
+        }
+
         if (!BandaContextMenu.SelectForRightClick<SearchFileResult>(
                 SearchResultsList, e.OriginalSource))
         {
             return;
         }
 
-        // Evita arrastrar una selección residual del sublistado lateral.
-        if (SearchFolderContentList.SelectedItems.Count > 0)
-        {
-            SearchFolderContentList.SelectedItems.Clear();
-        }
-
+        UpdateSearchSelectionDetails();
         ShowSearchContextMenu(SearchResultsList, e);
     }
 
@@ -1431,13 +1433,13 @@ public sealed partial class SearchPage : Page
             BandaContextMenu.Add(
                 menu,
                 only!.IsDirectory ? "Explorar contenido" : "Abrir archivo",
-                "\\uE8E5",
+                "\uE8E5",
                 SearchOpenFileButton_Click,
                 enabled: SearchOpenFileButton.IsEnabled);
             BandaContextMenu.Add(
                 menu,
                 "Abrir ubicación",
-                "\\uE8B7",
+                "\uE8B7",
                 SearchOpenLocationButton_Click,
                 enabled: SearchOpenLocationButton.IsEnabled);
             BandaContextMenu.Separator(menu);
@@ -1446,13 +1448,13 @@ public sealed partial class SearchPage : Page
         BandaContextMenu.Add(
             menu,
             one ? "Copiar ruta" : $"Copiar {files.Count} rutas",
-            "\\uE8C8",
+            "\uE8C8",
             SearchCopyPathButton_Click,
             enabled: SearchCopyPathButton.IsEnabled);
         BandaContextMenu.Add(
             menu,
             "Cambiar categoría",
-            "\\uE8EC",
+            "\uE8EC",
             SearchChangeCategoryButton_Click,
             enabled: SearchChangeCategoryButton.IsEnabled);
 
@@ -1461,7 +1463,7 @@ public sealed partial class SearchPage : Page
             BandaContextMenu.Add(
                 menu,
                 only!.IsDirectory ? "Renombrar carpeta" : "Renombrar archivo",
-                "\\uE8AC",
+                "\uE8AC",
                 SearchRenameButton_Click,
                 enabled: SearchRenameButton.IsEnabled);
         }
@@ -1472,7 +1474,7 @@ public sealed partial class SearchPage : Page
             one
                 ? only!.IsDirectory ? "Eliminar carpeta" : "Eliminar archivo"
                 : $"Eliminar {files.Count} elementos",
-            "\\uE74D",
+            "\uE74D",
             SearchDeleteButton_Click,
             enabled: SearchDeleteButton.IsEnabled,
             danger: true);
