@@ -299,6 +299,7 @@ public static class SettingsBackupValidationService
 
         return path.Length <= 1024 &&
                Path.IsPathFullyQualified(path) &&
-               Path.IsPathRooted(path);
+               Path.IsPathRooted(path) &&
+               Path.GetFullPath(path).Length > 0;
     }
 }

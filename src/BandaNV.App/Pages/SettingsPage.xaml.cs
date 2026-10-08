@@ -842,6 +842,16 @@ public sealed partial class SettingsPage : Page
             _pendingSettingsBackup = backup;
             _pendingSettingsBackupName = file.Name;
 
+            var sameDestinationAtPreview = string.Equals(
+                global::BandaNV.App.App.Settings.Current.DestinationFolder
+                    .TrimEnd(
+                        System.IO.Path.DirectorySeparatorChar,
+                        System.IO.Path.AltDirectorySeparatorChar),
+                backup.DestinationFolder.TrimEnd(
+                    System.IO.Path.DirectorySeparatorChar,
+                    System.IO.Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase);
+
             SettingsImportFileText.Text = file.Name;
             SettingsImportSummaryText.Text =
                 $"{backup.Categories.Count} categorías · " +
@@ -849,7 +859,10 @@ public sealed partial class SettingsPage : Page
                     ? "Se conservarán las carpetas protegidas actuales\n"
                     : $"{backup.ProtectedFolders.Count} carpetas protegidas\n") +
                 $"Origen: {(string.IsNullOrWhiteSpace(backup.SourceFolder) ? "Sin seleccionar" : backup.SourceFolder)}\n" +
-                $"Destino: {(string.IsNullOrWhiteSpace(backup.DestinationFolder) ? "Sin seleccionar" : backup.DestinationFolder)}";
+                $"Destino: {(string.IsNullOrWhiteSpace(backup.DestinationFolder) ? "Sin seleccionar" : backup.DestinationFolder)}\n" +
+                (sameDestinationAtPreview
+                    ? "Las carpetas de categorías existentes podrán sincronizarse."
+                    : "Se conservarán las carpetas del destino anterior; no se trasladarán automáticamente.");
 
             SettingsImportOverlay.Visibility = Visibility.Visible;
         }
