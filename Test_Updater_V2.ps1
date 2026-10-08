@@ -1,7 +1,7 @@
-$ErrorActionPreference = 'Stop'
 param(
     [switch]$KeepArtifacts
 )
+$ErrorActionPreference = 'Stop'
 
 # Prueba aislada del motor de instalación/rollback de NVupdate.
 # No usa ni modifica ninguna instalación real de BandaNV.
@@ -281,6 +281,10 @@ if (!string.IsNullOrWhiteSpace(confirmPath) &&
     Invoke-UpdateScenario 'actualizacion-exitosa' 'ok' $false
     Invoke-UpdateScenario 'rollback-por-arranque-fallido' 'fail' $false
     Invoke-UpdateScenario 'paquete-manifest-invalido' 'ok' $true
+
+    # La app simulada confirma y permanece activa unos segundos; damos
+    # tiempo a que salga antes de limpiar los EXE temporales.
+    Start-Sleep -Seconds 4
 
     Write-Host ''
     Write-Host ('Resultado: ' + $passed + ' OK · ' + $failed + ' error(es)') -ForegroundColor Green
