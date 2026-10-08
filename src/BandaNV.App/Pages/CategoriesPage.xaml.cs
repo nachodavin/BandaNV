@@ -172,13 +172,13 @@ public sealed partial class CategoriesPage : Page
         var columns =
             availableWidth >= 1320
                 ? 4
-                : availableWidth >= 920
+                : availableWidth >= 960
                     ? 3
-                    : availableWidth >= 620
+                    : availableWidth >= 640
                         ? 2
                         : 1;
 
-        const double spacing = 12;
+        const double spacing = 20;
 
         wrapGrid.ItemWidth =
             Math.Max(

@@ -257,7 +257,7 @@
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 <Setter Property="VerticalContentAlignment" Value="Stretch" />
                                 <Setter Property="Padding" Value="0" />
-                                <Setter Property="Margin" Value="0,0,12,12" />
+                                <Setter Property="Margin" Value="0,0,20,12" />
                                 <Setter Property="MinHeight" Value="188" />
                             </Style>
                         </GridView.ItemContainerStyle>
