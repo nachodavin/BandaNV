@@ -1088,7 +1088,7 @@
                             Padding="6,6,6,8"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                            RightTapped="PreviewFilesList_RightTapped">
+                            RightTapped="PreviewFilesList_RightTapped">
 
                             <ListView.GroupStyle>
                                 <GroupStyle>

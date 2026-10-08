@@ -635,7 +635,7 @@
                                     DoubleTapped="SearchResultsList_DoubleTapped"
                                     HorizontalContentAlignment="Stretch"
                                     Padding="8,0,8,8"
-                                            RightTapped="SearchResultsList_RightTapped">
+                                    RightTapped="SearchResultsList_RightTapped">
                                     <ListView.KeyboardAccelerators>
                                         <KeyboardAccelerator
                                             Key="A"

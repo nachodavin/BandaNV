@@ -12,13 +12,27 @@ namespace BandaNV.App.Services;
 /// </summary>
 internal static class BandaContextMenu
 {
-    public static MenuFlyout Create() =>
-        new()
+    public static MenuFlyout Create()
+    {
+        var resources = Application.Current.Resources;
+
+        // La apariencia puede cambiar en ejecución: los estados hover
+        // reutilizan los brushes vivos del tema secundario.
+        resources["MenuFlyoutItemBackgroundPointerOver"] =
+            resources["BandaActionHoverBrush"];
+        resources["MenuFlyoutItemBackgroundPressed"] =
+            resources["BandaActionPressedBrush"];
+        resources["MenuFlyoutItemForegroundPointerOver"] =
+            resources["BandaActionForegroundBrush"];
+        resources["MenuFlyoutItemForegroundPressed"] =
+            resources["BandaActionForegroundBrush"];
+
+        return new MenuFlyout
         {
             MenuFlyoutPresenterStyle =
-                (Style)Application.Current.Resources[
-                    "BandaContextMenuPresenterStyle"]
+                (Style)resources["BandaContextMenuPresenterStyle"]
         };
+    }
 
     public static void Add(
         MenuFlyout menu,
@@ -72,10 +86,7 @@ internal static class BandaContextMenu
                     container.Content as T ??
                     container.DataContext as T;
 
-                if (item is null ||
-                    !ReferenceEquals(
-                        list.ContainerFromItem(item),
-                        container))
+                if (item is null)
                 {
                     return false;
                 }
