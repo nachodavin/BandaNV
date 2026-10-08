@@ -851,6 +851,75 @@
                                         </StackPanel>
                                         <ToggleSwitch x:Name="ConfirmDestructiveToggle" Grid.Column="1" IsOn="True" Toggled="GenericSettingToggle_Toggled" />
                                     </Grid>
+
+                                    <Border Height="1" Background="{StaticResource BandaBorderBrush}" />
+
+                                    <StackPanel Spacing="10">
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock
+                                                    Text="Carpetas protegidas"
+                                                    Foreground="{StaticResource BandaTextBrush}"
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold" />
+                                                <TextBlock
+                                                    Text="BandaNV no podrá mover, reemplazar, renombrar ni eliminar estas carpetas o su contenido. También se bloquean acciones sobre carpetas superiores que las afecten."
+                                                    Style="{StaticResource BandaMutedTextStyle}"
+                                                    FontSize="12"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <Button
+                                                Grid.Column="1"
+                                                Content="+ Agregar"
+                                                Click="AddProtectedFolderButton_Click"
+                                                Style="{StaticResource SettingsInlineButtonStyle}"
+                                                VerticalAlignment="Center"
+                                                MinWidth="110" />
+                                        </Grid>
+                                        <TextBlock
+                                            x:Name="ProtectedFoldersEmptyText"
+                                            Text="No hay carpetas protegidas."
+                                            Foreground="{StaticResource BandaMutedBrush}"
+                                            FontSize="12" />
+                                        <ItemsControl x:Name="ProtectedFoldersList">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border
+                                                        Margin="0,0,0,6"
+                                                        Padding="10,8"
+                                                        CornerRadius="10"
+                                                        Background="{StaticResource BandaNavIconBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderBrush}"
+                                                        BorderThickness="1">
+                                                        <Grid ColumnSpacing="10">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock
+                                                                Text="{Binding}"
+                                                                Foreground="{StaticResource BandaTextBrush}"
+                                                                FontSize="12"
+                                                                VerticalAlignment="Center"
+                                                                TextTrimming="CharacterEllipsis"
+                                                                ToolTipService.ToolTip="{Binding}" />
+                                                            <Button
+                                                                Grid.Column="1"
+                                                                Tag="{Binding}"
+                                                                Content="Quitar"
+                                                                Click="RemoveProtectedFolderButton_Click"
+                                                                Style="{StaticResource SettingsInlineButtonStyle}"
+                                                                MinWidth="70" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 

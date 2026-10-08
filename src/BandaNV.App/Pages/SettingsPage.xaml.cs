@@ -3,6 +3,7 @@ using System.Text.Json;
 using BandaNV.App.Services;
 using BandaNV.Core.Infrastructure;
 using BandaNV.Core.Models;
+using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -14,6 +15,7 @@ public sealed partial class SettingsPage : Page
     private SettingsSection _currentSection = SettingsSection.General;
     private SettingsConfirmMode _confirmMode = SettingsConfirmMode.None;
     private const string UnselectedFolderText = "No seleccionada";
+    private readonly List<string> _protectedFolderPaths = [];
     private CancellationTokenSource? _saveDebounceCts;
     private bool _isPageReady;
 
@@ -190,6 +192,123 @@ public sealed partial class SettingsPage : Page
         WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
 
         return await picker.PickSingleFolderAsync();
+    }
+
+    private void RefreshProtectedFoldersList()
+    {
+        ProtectedFoldersList.ItemsSource =
+            _protectedFolderPaths.ToList();
+
+        ProtectedFoldersEmptyText.Visibility =
+            _protectedFolderPaths.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+    }
+
+    private async void AddProtectedFolderButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var folder = await PickFolderAsync();
+        if (folder is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!System.IO.Directory.Exists(folder.Path))
+            {
+                ShowSettingsFeedback(
+                    "La carpeta seleccionada ya no existe.");
+                return;
+            }
+
+            var normalized =
+                ProtectedFolderService.NormalizePath(
+                    folder.Path);
+
+            if (_protectedFolderPaths.Any(path =>
+                    ProtectedFolderService.TryGetProtectedFolder(
+                        new AppSettings { ProtectedFolders = [path] },
+                        normalized,
+                        out var matching) &&
+                    string.Equals(path, matching,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    normalized.StartsWith(
+                        path,
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                ShowSettingsFeedback(
+                    "La carpeta ya está protegida, o pertenece a una carpeta protegida.");
+                return;
+            }
+
+            _protectedFolderPaths.Add(normalized);
+
+            var normalizedPaths =
+                ProtectedFolderService.NormalizePaths(
+                    _protectedFolderPaths);
+
+            _protectedFolderPaths.Clear();
+            _protectedFolderPaths.AddRange(normalizedPaths);
+
+            RefreshProtectedFoldersList();
+            await PersistProtectedFoldersAsync();
+
+            ShowSettingsFeedback(
+                "Carpeta protegida. BandaNV bloqueará cambios en esa ubicación y sus subcarpetas.");
+        }
+        catch (Exception ex)
+        {
+            ShowSettingsFeedback(
+                $"No se pudo proteger la carpeta: {ex.Message}");
+        }
+    }
+
+    private async void RemoveProtectedFolderButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string path })
+        {
+            return;
+        }
+
+        _protectedFolderPaths.RemoveAll(folder =>
+            folder.Equals(
+                path,
+                StringComparison.OrdinalIgnoreCase));
+
+        RefreshProtectedFoldersList();
+
+        try
+        {
+            await PersistProtectedFoldersAsync();
+            ShowSettingsFeedback(
+                "Se quitó la protección de la carpeta.");
+        }
+        catch (Exception ex)
+        {
+            ShowSettingsFeedback(
+                $"No se pudo guardar el cambio: {ex.Message}");
+        }
+    }
+
+    private async Task PersistProtectedFoldersAsync()
+    {
+        _saveDebounceCts?.Cancel();
+        _saveDebounceCts?.Dispose();
+        _saveDebounceCts = null;
+
+        var settings =
+            global::BandaNV.App.App.Settings.Current;
+
+        settings.ProtectedFolders =
+            _protectedFolderPaths.ToList();
+
+        await global::BandaNV.App.App.Settings.SaveAsync(
+            CapturePersistentSettings());
     }
 
     private void StartupPageOptionButton_Click(object sender, RoutedEventArgs e)
@@ -720,6 +839,7 @@ public sealed partial class SettingsPage : Page
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
             RecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructive = ConfirmDestructiveToggle.IsOn,
+            ProtectedFolders = _protectedFolderPaths.ToList(),
             SaveHistory = SaveHistoryToggle.IsOn,
             SaveOrganizeHistory = SaveOrganizeHistoryToggle.IsOn,
             SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
@@ -782,6 +902,12 @@ public sealed partial class SettingsPage : Page
         UnknownExtensionBehaviorValueText.Text = backup.UnknownExtensionBehavior;
         RecycleBinToggle.IsOn = backup.RecycleBin;
         ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
+
+        _protectedFolderPaths.Clear();
+        _protectedFolderPaths.AddRange(
+            ProtectedFolderService.NormalizePaths(
+                backup.ProtectedFolders));
+        RefreshProtectedFoldersList();
         SaveHistoryToggle.IsOn = backup.SaveHistory;
         SaveOrganizeHistoryToggle.IsOn = backup.SaveOrganizeHistory;
         SaveSearchHistoryToggle.IsOn = backup.SaveSearchHistory;
@@ -1149,6 +1275,10 @@ public sealed partial class SettingsPage : Page
             global::BandaNV.App.App.Settings.Current
                 .OrphanedCategoryFolders
                 .ToList();
+        defaults.ProtectedFolders =
+            global::BandaNV.App.App.Settings.Current
+                .ProtectedFolders
+                .ToList();
 
         _isPageReady = false;
 
@@ -1208,6 +1338,12 @@ public sealed partial class SettingsPage : Page
         RecycleBinToggle.IsOn = settings.UseRecycleBin;
         ConfirmDestructiveToggle.IsOn = settings.ConfirmDestructiveActions;
 
+        _protectedFolderPaths.Clear();
+        _protectedFolderPaths.AddRange(
+            ProtectedFolderService.NormalizePaths(
+                settings.ProtectedFolders));
+        RefreshProtectedFoldersList();
+
         SaveHistoryToggle.IsOn = settings.SaveHistory;
         SaveOrganizeHistoryToggle.IsOn = settings.SaveOrganizeHistory;
         SaveSearchHistoryToggle.IsOn = settings.SaveSearchHistory;
@@ -1258,6 +1394,7 @@ public sealed partial class SettingsPage : Page
             UnknownExtensionBehavior = UnknownExtensionBehaviorValueText.Text,
             UseRecycleBin = RecycleBinToggle.IsOn,
             ConfirmDestructiveActions = ConfirmDestructiveToggle.IsOn,
+            ProtectedFolders = _protectedFolderPaths.ToList(),
             SaveHistory = SaveHistoryToggle.IsOn,
             SaveOrganizeHistory = SaveOrganizeHistoryToggle.IsOn,
             SaveSearchHistory = SaveSearchHistoryToggle.IsOn,
@@ -1491,6 +1628,7 @@ internal sealed class SettingsBackupModel
 
     public bool RecycleBin { get; set; } = true;
     public bool ConfirmDestructive { get; set; } = true;
+    public List<string> ProtectedFolders { get; set; } = [];
 
     public bool SaveHistory { get; set; } = true;
     public bool SaveOrganizeHistory { get; set; } = true;
