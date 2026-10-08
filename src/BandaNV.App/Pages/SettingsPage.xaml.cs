@@ -919,11 +919,20 @@ public sealed partial class SettingsPage : Page
         RecycleBinToggle.IsOn = backup.RecycleBin;
         ConfirmDestructiveToggle.IsOn = backup.ConfirmDestructive;
 
-        _protectedFolderPaths.Clear();
-        _protectedFolderPaths.AddRange(
-            ProtectedFolderService.NormalizePaths(
-                backup.ProtectedFolders));
-        RefreshProtectedFoldersList();
+        // Los backups anteriores a esta función no tienen el campo.
+        // No deben desproteger carpetas existentes al importarse.
+        if (backup.ProtectedFolders is not null)
+        {
+            _protectedFolderPaths.Clear();
+            _protectedFolderPaths.AddRange(
+                ProtectedFolderService.NormalizePaths(
+                    backup.ProtectedFolders)
+                .Where(path =>
+                    !ProtectedFolderService.IsProtected(
+                        new AppSettings { ProtectedFolders = [path] },
+                        PortablePaths.RootDirectory)));
+            RefreshProtectedFoldersList();
+        }
 
         global::BandaNV.App.App.Settings.Current.ProtectedFolders =
             _protectedFolderPaths.ToList();
@@ -1647,7 +1656,8 @@ internal sealed class SettingsBackupModel
 
     public bool RecycleBin { get; set; } = true;
     public bool ConfirmDestructive { get; set; } = true;
-    public List<string> ProtectedFolders { get; set; } = [];
+    // Null indica un backup antiguo sin información de protecciones.
+    public List<string>? ProtectedFolders { get; set; }
 
     public bool SaveHistory { get; set; } = true;
     public bool SaveOrganizeHistory { get; set; } = true;
