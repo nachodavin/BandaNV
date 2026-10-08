@@ -18,6 +18,9 @@ public sealed partial class SettingsPage : Page
     private readonly List<string> _protectedFolderPaths = [];
     private CancellationTokenSource? _saveDebounceCts;
     private bool _isPageReady;
+    private SettingsBackupModel? _pendingSettingsBackup;
+    private string _pendingSettingsBackupName = string.Empty;
+    private bool _isSettingsImportRunning;
 
     public SettingsPage()
     {
@@ -745,10 +748,8 @@ public sealed partial class SettingsPage : Page
             return;
         }
 
-        var picker = new Windows.Storage.Pickers.FileSavePicker
-        {
-            SuggestedFileName = $"BandaNV_config_{DateTime.Now:yyyy-MM-dd}"
-        };
+        // Sin nombre sugerido: cada usuario elige cómo nombrar su backup.
+        var picker = new Windows.Storage.Pickers.FileSavePicker();
 
         picker.FileTypeChoices.Add(
             "Configuración BandaNV",
@@ -784,6 +785,11 @@ public sealed partial class SettingsPage : Page
 
     private async void ImportSettingsButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_isSettingsImportRunning)
+        {
+            return;
+        }
+
         var window = global::BandaNV.App.App.MainWindowInstance;
         if (window is null)
         {
@@ -805,28 +811,260 @@ public sealed partial class SettingsPage : Page
         try
         {
             var json = await Windows.Storage.FileIO.ReadTextAsync(file);
-            var backup = JsonSerializer.Deserialize<SettingsBackupModel>(json);
 
-            if (backup is null ||
-                !string.Equals(
-                    backup.Format,
-                    SettingsBackupModel.CurrentFormat,
-                    StringComparison.Ordinal))
+            if (!SettingsBackupValidationService.TryValidate(
+                    json,
+                    out var validationError))
             {
-                ShowSettingsFeedback("El archivo seleccionado no es un backup compatible de BandaNV.");
+                ShowSettingsFeedback(validationError);
                 return;
             }
 
+            var backup = JsonSerializer.Deserialize<SettingsBackupModel>(json);
+            if (backup is null)
+            {
+                ShowSettingsFeedback(
+                    "No se pudo interpretar la configuración del backup.");
+                return;
+            }
+
+            if (backup.ProtectedFolders is not null &&
+                backup.ProtectedFolders.Any(path =>
+                    ProtectedFolderService.IsProtected(
+                        new AppSettings { ProtectedFolders = [path] },
+                        PortablePaths.RootDirectory)))
+            {
+                ShowSettingsFeedback(
+                    "El backup intenta proteger la carpeta portable de BandaNV o una carpeta superior. No se importó.");
+                return;
+            }
+
+            _pendingSettingsBackup = backup;
+            _pendingSettingsBackupName = file.Name;
+
+            SettingsImportFileText.Text = file.Name;
+            SettingsImportSummaryText.Text =
+                $"{backup.Categories.Count} categorías · " +
+                $"{(backup.ProtectedFolders?.Count.ToString() ?? "Protecciones actuales")} carpetas protegidas\n" +
+                $"Origen: {(string.IsNullOrWhiteSpace(backup.SourceFolder) ? "Sin seleccionar" : backup.SourceFolder)}\n" +
+                $"Destino: {(string.IsNullOrWhiteSpace(backup.DestinationFolder) ? "Sin seleccionar" : backup.DestinationFolder)}";
+
+            SettingsImportOverlay.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex)
+        {
+            ShowSettingsFeedback(
+                $"No se pudo leer el backup seleccionado: {ex.Message}");
+        }
+    }
+
+    private void SettingsImportBackdrop_Tapped(
+        object sender,
+        Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        CloseSettingsImportOverlay();
+    }
+
+    private void CancelSettingsImportButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        CloseSettingsImportOverlay();
+    }
+
+    private void CloseSettingsImportOverlay()
+    {
+        if (_isSettingsImportRunning)
+        {
+            return;
+        }
+
+        SettingsImportOverlay.Visibility = Visibility.Collapsed;
+        _pendingSettingsBackup = null;
+        _pendingSettingsBackupName = string.Empty;
+    }
+
+    private async void ConfirmSettingsImportButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_isSettingsImportRunning ||
+            _pendingSettingsBackup is not { } backup)
+        {
+            return;
+        }
+
+        _isSettingsImportRunning = true;
+        SettingsImportConfirmButton.IsEnabled = false;
+        SettingsImportCancelButton.IsEnabled = false;
+
+        var backupName = _pendingSettingsBackupName;
+        var previous = CaptureSettingsBackup();
+        var previousOrphans =
+            global::BandaNV.App.App.Settings.Current
+                .OrphanedCategoryFolders.ToList();
+
+        var applied = false;
+        var foldersSynced = false;
+        var syncDeferred = false;
+
+        // Evitar que un guardado anterior termine escribiendo sobre la
+        // configuración recién importada.
+        _saveDebounceCts?.Cancel();
+        _saveDebounceCts?.Dispose();
+        _saveDebounceCts = null;
+
+        try
+        {
+            var current = global::BandaNV.App.App.Settings.Current;
+
+            var sameDestination = string.Equals(
+                current.DestinationFolder.TrimEnd(
+                    System.IO.Path.DirectorySeparatorChar,
+                    System.IO.Path.AltDirectorySeparatorChar),
+                backup.DestinationFolder.TrimEnd(
+                    System.IO.Path.DirectorySeparatorChar,
+                    System.IO.Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase);
+
+            var categoriesChanged =
+                current.Categories.Count != backup.Categories.Count ||
+                current.Categories.Any(category =>
+                {
+                    var imported = backup.Categories.FirstOrDefault(other =>
+                        other.Id.Equals(
+                            category.Id,
+                            StringComparison.OrdinalIgnoreCase));
+
+                    return imported is null ||
+                           imported.Order != category.Order ||
+                           !imported.Name.Equals(
+                               category.Name,
+                               StringComparison.OrdinalIgnoreCase);
+                });
+
+            var importProtectedFolders =
+                backup.ProtectedFolders is null
+                    ? _protectedFolderPaths.ToList()
+                    : ProtectedFolderService.NormalizePaths(
+                        backup.ProtectedFolders);
+
+            // Cambiar de destino nunca traslada las carpetas del destino
+            // anterior. Sólo se crean carpetas faltantes en el nuevo,
+            // si éste ya existe y la preferencia lo permite.
+            var syncedOrphans = sameDestination
+                ? previousOrphans.ToList()
+                : new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(backup.DestinationFolder) &&
+                (categoriesChanged || !sameDestination))
+            {
+                if (!System.IO.Directory.Exists(backup.DestinationFolder))
+                {
+                    syncDeferred = true;
+                }
+                else
+                {
+                    var syncSettings = new AppSettings
+                    {
+                        DestinationFolder = backup.DestinationFolder,
+                        CreateFolders = backup.CreateFolders,
+                        DeleteUnusedCategoryFolders =
+                            backup.DeleteUnusedCategoryFolders,
+                        ProtectedFolders = importProtectedFolders,
+                        OrphanedCategoryFolders = syncedOrphans
+                    };
+
+                    var previousCategories = sameDestination
+                        ? current.Categories
+                            .Select(category => new CategorySettings(
+                                category.Id,
+                                category.Name,
+                                category.Extensions,
+                                category.Order,
+                                category.ColorHex))
+                            .ToList()
+                        : new List<CategorySettings>();
+
+                    var sync = await global::BandaNV.App.App.CategoryFolders
+                        .SynchronizeAsync(
+                            syncSettings,
+                            previousCategories,
+                            backup.Categories);
+
+                    if (!sync.Success)
+                    {
+                        throw new InvalidOperationException(
+                            sync.ErrorMessage ??
+                            "No se pudo sincronizar las carpetas de categorías.");
+                    }
+
+                    syncedOrphans =
+                        syncSettings.OrphanedCategoryFolders.ToList();
+                    foldersSynced = !sync.Deferred;
+                    syncDeferred = sync.Deferred;
+                }
+            }
+
+            applied = true;
             ApplySettingsBackup(backup);
-            QueuePersistSettings();
+
+            var updatedSettings = CapturePersistentSettings();
+            updatedSettings.OrphanedCategoryFolders = syncedOrphans;
+
+            // El éxito sólo se comunica después de guardar realmente
+            // la configuración portable (no sólo en la interfaz).
+            await global::BandaNV.App.App.Settings.SaveAsync(
+                updatedSettings);
 
             BackupStatusText.Text = "Backup importado";
-            BackupDetailText.Text = $"{file.Name} · configuración aplicada";
-            ShowSettingsFeedback($"Configuración importada desde {file.Name}.");
+            BackupDetailText.Text =
+                $"{backupName} · {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+
+            SettingsImportOverlay.Visibility = Visibility.Collapsed;
+            _pendingSettingsBackup = null;
+            _pendingSettingsBackupName = string.Empty;
+
+            ShowSettingsFeedback(
+                syncDeferred
+                    ? $"Configuración restaurada desde {backupName}. La sincronización de categorías quedó pendiente porque el destino no está disponible."
+                    : $"Configuración restaurada y guardada desde {backupName}.");
         }
-        catch
+        catch (Exception ex)
         {
-            ShowSettingsFeedback("No se pudo importar el backup seleccionado.");
+            var rollbackFailed = false;
+
+            if (applied)
+            {
+                try
+                {
+                    ApplySettingsBackup(previous);
+
+                    var restore = CapturePersistentSettings();
+                    restore.OrphanedCategoryFolders = previousOrphans;
+
+                    await global::BandaNV.App.App.Settings.SaveAsync(
+                        restore);
+                }
+                catch
+                {
+                    rollbackFailed = true;
+                }
+            }
+
+            ShowSettingsFeedback(
+                $"No se pudo completar la importación: {ex.Message}" +
+                (rollbackFailed
+                    ? " Tampoco se pudo restablecer automáticamente la configuración previa."
+                    : foldersSynced
+                        ? " Se restauraron las preferencias anteriores, pero revisá las carpetas físicas de categorías ya sincronizadas."
+                        : " No se importó la nueva configuración."));
+        }
+        finally
+        {
+            _isSettingsImportRunning = false;
+            SettingsImportConfirmButton.IsEnabled = true;
+            SettingsImportCancelButton.IsEnabled = true;
         }
     }
 
