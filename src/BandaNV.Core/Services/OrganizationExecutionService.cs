@@ -63,7 +63,11 @@ public sealed class OrganizationExecutionService
 
         if (settings.CreateFolders)
         {
-            Directory.CreateDirectory(destinationRoot);
+            if (!Directory.Exists(destinationRoot))
+            {
+                ProtectedFolderService.EnsureAllowed(settings, destinationRoot);
+                Directory.CreateDirectory(destinationRoot);
+            }
 
             foreach (var category in settings.Categories
                          .OrderBy(category => category.Order))
@@ -74,7 +78,12 @@ public sealed class OrganizationExecutionService
                     category.Name);
 
                 EnsurePathInsideRoot(categoryFolder, destinationRoot);
-                Directory.CreateDirectory(categoryFolder);
+
+                if (!Directory.Exists(categoryFolder))
+                {
+                    ProtectedFolderService.EnsureAllowed(settings, categoryFolder);
+                    Directory.CreateDirectory(categoryFolder);
+                }
             }
         }
         else if (!Directory.Exists(destinationRoot))
@@ -258,6 +267,19 @@ public sealed class OrganizationExecutionService
             return;
         }
 
+        try
+        {
+            ProtectedFolderService.EnsureAllowed(
+                settings,
+                item.OriginalPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            item.Status = OrganizationExecutionItemStatus.Error;
+            item.Message = ex.Message;
+            return;
+        }
+
         if (item.IsDirectory)
         {
             await ExecuteDirectoryItemAsync(
@@ -318,7 +340,20 @@ public sealed class OrganizationExecutionService
 
         if (settings.CreateFolders)
         {
-            Directory.CreateDirectory(categoryFolder);
+            if (!Directory.Exists(categoryFolder))
+            {
+                try
+                {
+                    ProtectedFolderService.EnsureAllowed(settings, categoryFolder);
+                    Directory.CreateDirectory(categoryFolder);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    item.Status = OrganizationExecutionItemStatus.Error;
+                    item.Message = ex.Message;
+                    return;
+                }
+            }
         }
         else if (!Directory.Exists(categoryFolder))
         {
@@ -350,6 +385,17 @@ public sealed class OrganizationExecutionService
         }
 
         EnsurePathInsideRoot(target, destinationRoot);
+
+        try
+        {
+            ProtectedFolderService.EnsureAllowed(settings, target);
+        }
+        catch (InvalidOperationException ex)
+        {
+            item.Status = OrganizationExecutionItemStatus.Error;
+            item.Message = ex.Message;
+            return;
+        }
 
         item.FinalPath = target;
         item.Status = OrganizationExecutionItemStatus.Moving;
@@ -527,8 +573,20 @@ public sealed class OrganizationExecutionService
 
         if (settings.CreateFolders)
         {
-            Directory.CreateDirectory(
-                categoryFolder);
+            if (!Directory.Exists(categoryFolder))
+            {
+                try
+                {
+                    ProtectedFolderService.EnsureAllowed(settings, categoryFolder);
+                    Directory.CreateDirectory(categoryFolder);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    item.Status = OrganizationExecutionItemStatus.Error;
+                    item.Message = ex.Message;
+                    return;
+                }
+            }
         }
         else if (!Directory.Exists(
                      categoryFolder))
@@ -567,6 +625,17 @@ public sealed class OrganizationExecutionService
         EnsurePathInsideRoot(
             target,
             destinationRoot);
+
+        try
+        {
+            ProtectedFolderService.EnsureAllowed(settings, target);
+        }
+        catch (InvalidOperationException ex)
+        {
+            item.Status = OrganizationExecutionItemStatus.Error;
+            item.Message = ex.Message;
+            return;
+        }
 
         item.FinalPath =
             target;
