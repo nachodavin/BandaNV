@@ -223,7 +223,7 @@ Esas carpetas no forman parte del paquete administrado por el updater.
         }
 
         $manifestEntry = $zip.GetEntry('BandaNV/bandanv_update_manifest.json')
-        $reader = New-Object System.IO.StreamReader($manifestEntry.Open(), [Text.Encoding]::UTF8)
+        $reader = [IO.StreamReader]::new($manifestEntry.Open(), [Text.Encoding]::UTF8)
         try {
             $packedManifest = $reader.ReadToEnd() | ConvertFrom-Json
         }
