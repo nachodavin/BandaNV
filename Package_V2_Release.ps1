@@ -204,6 +204,7 @@ Esas carpetas no forman parte del paquete administrado por el updater.
     # Revisamos el ZIP final, no sólo los archivos de staging,
     # antes de declararlo listo para publicar.
     Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [IO.Compression.ZipFile]::OpenRead($packagePath)
     try {
         $entries = @($zip.Entries | Where-Object { $_.Name })
