@@ -1,8 +1,18 @@
-# BandaNV v2.0.2 — Corrección de acciones en Organizar
+# BandaNV v2.0.2 — Menús contextuales y correcciones en Organizar
 
-**Primera actualización correctiva de BandaNV 2.0.** Soluciona un problema en la sección **Organizar** que impedía ejecutar acciones sobre archivos seleccionados.
+**Primera actualización de mantenimiento de BandaNV 2.0.** Incorpora menús contextuales con clic derecho en Organizar y Buscar, y corrige el manejo de la selección de archivos en Organizar.
 
-## Corrección principal
+## Nuevo: menús contextuales en Organizar y Buscar
+
+- Acceso a las acciones de archivos y carpetas mediante **clic derecho**, inspirado en el Explorador de Windows 11.
+- Disponibles en los listados principales y al navegar por carpetas y subcarpetas.
+- Acciones según el elemento seleccionado: **Abrir archivo o contenido, Abrir ubicación, Copiar ruta, Cambiar categoría, Renombrar y Eliminar**.
+- Opciones adaptadas a la **selección múltiple**; las acciones que requieren un elemento individual no se ofrecen para varios archivos.
+- Diseño integrado con BandaNV: íconos, separadores, esquinas redondeadas, aparición junto al cursor y hover con el color secundario y texto negro.
+- Los nombres de las opciones coinciden con los botones del panel lateral.
+- Reutiliza las mismas acciones, confirmaciones y reglas de seguridad que ya utiliza el panel lateral.
+
+## Corrección principal en Organizar
 
 - Se corrigió un error por el que el panel de detalle podía limpiar la selección al visualizar un archivo.
 - Se corrigió el mismo comportamiento al seleccionar varios archivos simultáneamente.
@@ -23,6 +33,7 @@
 ## Validación
 
 - La corrección de selección y botones en **Organizar** se comprobó manualmente en Windows antes de su integración en `main`.
+- Los nuevos menús contextuales y sus ajustes visuales se probaron manualmente en Windows, incluyendo la apertura, el hover y las acciones.
 - El paquete oficial v2.0.2 debe pasar los smoke tests del motor y la validación del ZIP antes de su publicación.
 
 Para todas las novedades de la versión principal, consultá [BandaNV v2.0 — Notas de versión](RELEASE_NOTES_v2.0.md).
