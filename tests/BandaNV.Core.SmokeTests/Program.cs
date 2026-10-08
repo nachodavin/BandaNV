@@ -127,6 +127,34 @@ internal static class Program
             "Carpeta huérfana vacía se conserva en Off y se limpia al activar",
             OrphanFolderRespectsCleanupToggleAsync);
 
+        await RunAsync(
+            "Carpetas protegidas cubren hijos y padres sin bloquear carpetas vecinas",
+            ProtectedFolderPathPolicyAsync);
+
+        await RunAsync(
+            "Organizar no mueve carpeta que contiene una carpeta protegida",
+            OrganizeSkipsProtectedNestedFolderAsync);
+
+        await RunAsync(
+            "Organizar no reemplaza contenido de una categoría protegida",
+            OrganizeSkipsProtectedDestinationAsync);
+
+        await RunAsync(
+            "Buscar no elimina carpetas protegidas y sí puede eliminar vecinas",
+            SearchActionsRespectProtectedFoldersAsync);
+
+        await RunAsync(
+            "Renombrar desde Organizar respeta las carpetas protegidas",
+            SourceActionsRespectProtectedFoldersAsync);
+
+        await RunAsync(
+            "Sincronización de categorías no mueve carpetas protegidas",
+            CategorySyncRespectsProtectedFoldersAsync);
+
+        await RunAsync(
+            "Deshacer no modifica una carpeta protegida",
+            UndoRespectsProtectedFoldersAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -2217,6 +2245,299 @@ internal static class Program
         catch
         {
         }
+    }
+
+    private static Task ProtectedFolderPathPolicyAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var protectedFolder =
+            Path.Combine(workspace.Source, "Privado");
+
+        var settings = CreateSettings(workspace, "Preguntar");
+        settings.ProtectedFolders = [protectedFolder];
+
+        True(
+            ProtectedFolderService.IsProtected(settings, protectedFolder),
+            "La carpeta elegida debe quedar protegida.");
+
+        True(
+            ProtectedFolderService.IsProtected(
+                settings,
+                Path.Combine(protectedFolder, "nivel", "archivo.txt")),
+            "Los descendientes deben quedar protegidos.");
+
+        True(
+            ProtectedFolderService.IsProtected(settings, workspace.Source),
+            "Mover una carpeta madre que contenga una protegida debe bloquearse.");
+
+        True(
+            !ProtectedFolderService.IsProtected(
+                settings,
+                Path.Combine(workspace.Source, "Privado2", "vecino.txt")),
+            "La comparación no debe confundir prefijos de carpeta.");
+
+        True(
+            !ProtectedFolderService.IsProtected(settings, workspace.Destination),
+            "Un destino independiente no debe bloquearse.");
+
+        var normalized = ProtectedFolderService.NormalizePaths(
+        [
+            protectedFolder,
+            Path.Combine(protectedFolder, "nivel"),
+            protectedFolder + Path.DirectorySeparatorChar
+        ]);
+
+        Equal(
+            1,
+            normalized.Count,
+            "Las protecciones superpuestas deberían unificarse.");
+
+        return Task.CompletedTask;
+    }
+
+    private static async Task OrganizeSkipsProtectedNestedFolderAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+        var mother = Path.Combine(workspace.Source, "Madre");
+        var protectedChild = Path.Combine(mother, "Reservado");
+        WriteFile(Path.Combine(protectedChild, "foto.jpg"), "contenido");
+
+        var settings = CreateSettings(
+            workspace,
+            "Renombrar automáticamente");
+        settings.ProtectedFolders = [protectedChild];
+
+        var analysis = await new OrganizationAnalysisService()
+            .AnalyzeAsync(settings);
+
+        var folder = AssignFolderToImagesForTest(
+            workspace,
+            SingleFolder(analysis, "Madre"));
+
+        var result = await new OrganizationExecutionService()
+            .ExecuteAsync(settings, [ToExecutionRequest(folder)]);
+
+        _generatedExecutionArtifacts.Add(result);
+
+        Equal(
+            OrganizationExecutionItemStatus.Error,
+            result.Record.Items.Single().Status,
+            "Organizar debe omitir cualquier carpeta que contiene una protegida.");
+
+        True(Directory.Exists(mother),
+            "La carpeta madre debe permanecer en origen.");
+
+        True(
+            !Directory.Exists(GetDesiredTarget(workspace, folder)),
+            "La carpeta protegida no debe terminar movida.");
+    }
+
+    private static async Task OrganizeSkipsProtectedDestinationAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+        var source = Path.Combine(workspace.Source, "archivo.txt");
+        WriteFile(source, "nuevo");
+
+        var settings = CreateSettings(workspace, "Reemplazar");
+        settings.ConfirmDestructiveActions = false;
+
+        var analysis = await new OrganizationAnalysisService()
+            .AnalyzeAsync(settings);
+        var item = SingleFile(analysis, "archivo.txt");
+        var target = GetDesiredTarget(workspace, item);
+
+        WriteFile(target, "anterior");
+        settings.ProtectedFolders = [Path.GetDirectoryName(target)!];
+
+        var result = await new OrganizationExecutionService()
+            .ExecuteAsync(settings, [ToExecutionRequest(item)]);
+
+        _generatedExecutionArtifacts.Add(result);
+
+        Equal(
+            OrganizationExecutionItemStatus.Error,
+            result.Record.Items.Single().Status,
+            "No se debe reemplazar un archivo dentro de una carpeta protegida.");
+
+        True(File.Exists(source),
+            "El archivo original debe seguir en origen.");
+
+        Equal("anterior", File.ReadAllText(target),
+            "El destino protegido debe conservar el contenido anterior.");
+    }
+
+    private static async Task SearchActionsRespectProtectedFoldersAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var protectedFolder = Path.Combine(
+            workspace.Destination,
+            "Privado");
+
+        var protectedFile = Path.Combine(
+            protectedFolder,
+            "importante.txt");
+
+        var neighboringFile = Path.Combine(
+            workspace.Destination,
+            "Vecino",
+            "temporal.txt");
+
+        WriteFile(protectedFile, "importante");
+        WriteFile(neighboringFile, "temporal");
+
+        var settings = CreateSettings(workspace, "Preguntar");
+        settings.UseRecycleBin = false;
+        settings.ProtectedFolders = [protectedFolder];
+
+        var actions = new SearchFileActionService();
+
+        var blocked = await actions.DeleteAsync(
+            settings,
+            [protectedFolder]);
+
+        Equal(
+            SearchFileActionStatus.Error,
+            blocked.Items.Single().Status,
+            "Buscar no debe eliminar una carpeta protegida.");
+
+        True(File.Exists(protectedFile),
+            "El contenido protegido debe permanecer intacto.");
+
+        var allowed = await actions.DeleteAsync(
+            settings,
+            [neighboringFile]);
+
+        Equal(
+            SearchFileActionStatus.Completed,
+            allowed.Items.Single().Status,
+            "Las rutas vecinas deben poder modificarse.");
+
+        True(!File.Exists(neighboringFile),
+            "La eliminación de la ruta vecina debería completarse.");
+    }
+
+    private static async Task SourceActionsRespectProtectedFoldersAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var root = Path.Combine(workspace.Source, "Proyecto");
+        var child = Path.Combine(root, "Reservado");
+
+        WriteFile(Path.Combine(child, "documento.txt"), "contenido");
+
+        var settings = CreateSettings(workspace, "Preguntar");
+        settings.ProtectedFolders = [child];
+
+        var threw = false;
+
+        try
+        {
+            await new OrganizationSourceActionService()
+                .RenameAsync(settings, root, "NuevoProyecto");
+        }
+        catch (InvalidOperationException)
+        {
+            threw = true;
+        }
+
+        True(threw,
+            "Renombrar la carpeta superior a una protegida debe bloquearse.");
+
+        True(Directory.Exists(root),
+            "La carpeta madre no debe cambiar de nombre.");
+    }
+
+    private static async Task CategorySyncRespectsProtectedFoldersAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var previous = CreateTwoCategorySet();
+        var next = new List<CategorySettings>
+        {
+            new(
+                previous[0].Id,
+                previous[0].Name,
+                previous[0].Extensions,
+                2,
+                previous[0].ColorHex),
+            new(
+                previous[1].Id,
+                previous[1].Name,
+                previous[1].Extensions,
+                1,
+                previous[1].ColorHex)
+        };
+
+        var existingFolder = CategoryService.GetFolderPath(
+            workspace.Destination,
+            previous[0].Order,
+            previous[0].Name);
+
+        WriteFile(Path.Combine(existingFolder, "conservar.txt"), "seguro");
+
+        var settings = CreateCategorySyncSettings(
+            workspace,
+            deleteUnusedFolders: true);
+
+        settings.ProtectedFolders = [existingFolder];
+
+        var result = await new CategoryFolderSyncService()
+            .SynchronizeAsync(settings, previous, next);
+
+        True(!result.Success,
+            "La sincronización no puede renombrar una categoría protegida.");
+
+        True(File.Exists(Path.Combine(existingFolder, "conservar.txt")),
+            "El contenido de la carpeta protegida debe conservarse.");
+    }
+
+    private static async Task UndoRespectsProtectedFoldersAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        WriteFile(
+            Path.Combine(workspace.Source, "volver.txt"),
+            "archivo");
+
+        var settings = CreateSettings(workspace, "Preguntar");
+        var analyzed = await new OrganizationAnalysisService()
+            .AnalyzeAsync(settings);
+        var item = SingleFile(analyzed, "volver.txt");
+
+        var execution = await new OrganizationExecutionService()
+            .ExecuteAsync(settings, [ToExecutionRequest(item)]);
+
+        _generatedExecutionArtifacts.Add(execution);
+
+        Equal(
+            OrganizationExecutionItemStatus.Moved,
+            execution.Record.Items.Single().Status,
+            "La organización inicial debe completarse.");
+
+        var movedPath = execution.Record.Items.Single().FinalPath!;
+
+        settings.ProtectedFolders =
+        [
+            Path.GetDirectoryName(movedPath)!
+        ];
+
+        var undo = await new UndoService()
+            .UndoAsync(settings, execution.Record);
+
+        _generatedExecutionArtifacts.Add(undo);
+
+        Equal(
+            OrganizationExecutionItemStatus.Error,
+            undo.Record.Items.Single().Status,
+            "Undo debe bloquear un movimiento desde la carpeta protegida.");
+
+        True(File.Exists(movedPath),
+            "El archivo debe conservarse en el destino protegido.");
+
+        True(!File.Exists(item.FullPath),
+            "Undo no debe restaurar el archivo en origen.");
     }
 
     private static OrganizationExecutionRequestItem ToExecutionRequest(
