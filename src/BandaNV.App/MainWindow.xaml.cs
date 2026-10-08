@@ -1,5 +1,6 @@
 using BandaNV.App.Pages;
 using BandaNV.App.Services;
+using BandaNV.Core.Infrastructure;
 using BandaNV.Core.Models;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -24,6 +25,8 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        SidebarVersionText.Text = AppVersionInfo.Tag;
 
         _activeTheme =
             App.Settings.Current.Theme;
