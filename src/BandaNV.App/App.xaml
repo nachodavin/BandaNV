@@ -88,13 +88,9 @@
                 <Setter Property="CornerRadius" Value="16" />
             </Style>
 
-            <!-- Menú contextual estilo Explorador: hover secundario y texto negro. -->
-            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
-            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
-            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#07110F" />
-            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="#07110F" />
-
-            <Style x:Key="BandaContextMenuPresenterStyle" TargetType="MenuFlyoutPresenter">
+            <!-- Menú contextual propio: usa Flyout (ya probado por BandaNV)
+                 para evitar los cierres observados con MenuFlyout nativo. -->
+            <Style x:Key="BandaContextMenuPresenterStyle" TargetType="FlyoutPresenter">
                 <Setter Property="Padding" Value="6" />
                 <Setter Property="MinWidth" Value="232" />
                 <Setter Property="Background" Value="{StaticResource BandaPopupSurfaceBrush}" />
@@ -103,11 +99,15 @@
                 <Setter Property="CornerRadius" Value="14" />
             </Style>
 
-            <Style x:Key="BandaContextMenuItemStyle" TargetType="MenuFlyoutItem">
+            <Style x:Key="BandaContextMenuItemStyle" TargetType="Button">
                 <Setter Property="MinHeight" Value="38" />
-                <Setter Property="Padding" Value="12,7" />
+                <Setter Property="Padding" Value="11,6" />
                 <Setter Property="FontSize" Value="13" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="CornerRadius" Value="9" />
             </Style>
 
