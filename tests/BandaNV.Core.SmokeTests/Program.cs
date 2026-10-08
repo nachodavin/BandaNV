@@ -1202,9 +1202,11 @@ internal static class Program
                 workspace);
 
         var item =
-            SingleFolder(
-                analysis,
-                "Fotos");
+            AssignFolderToImagesForTest(
+                workspace,
+                SingleFolder(
+                    analysis,
+                    "Fotos"));
 
         var desiredTarget =
             GetDesiredTarget(
@@ -1356,9 +1358,11 @@ internal static class Program
                 workspace);
 
         var item =
-            SingleFolder(
-                analysis,
-                "Album");
+            AssignFolderToImagesForTest(
+                workspace,
+                SingleFolder(
+                    analysis,
+                    "Album"));
 
         var desiredTarget =
             GetDesiredTarget(
@@ -1994,7 +1998,7 @@ internal static class Program
                 "nuevo.txt");
 
         Equal(
-            "DOCUMENTS",
+            "DOCUMENTOS",
             file.CategoryName,
             "El archivo agregado debería clasificarse al reanalizar.");
     }
@@ -2228,6 +2232,45 @@ internal static class Program
             item.Kind,
             item.ContainedFileCount,
             item.ContentFingerprint);
+
+    private static OrganizationAnalysisFile AssignFolderToImagesForTest(
+        TestWorkspace workspace,
+        OrganizationAnalysisFile folder)
+    {
+        True(
+            folder.IsDirectory,
+            "La asignación manual de prueba requiere una carpeta.");
+
+        True(
+            !folder.IsClassified,
+            "La carpeta debe llegar sin clasificar: el motor no debe autoclasificar carpetas completas.");
+
+        var imagesCategory =
+            AppSettings.CreateDefault().Categories
+                .Single(category =>
+                    category.Extensions.Contains(
+                        ".jpg",
+                        StringComparer.OrdinalIgnoreCase));
+
+        var destinationPath =
+            Path.Combine(
+                CategoryService.GetFolderPath(
+                    workspace.Destination,
+                    imagesCategory.Order,
+                    imagesCategory.Name),
+                folder.FileName);
+
+        // Reproduce la asignación manual en la vista previa sin
+        // modificar el contrato del analizador ni el motor.
+        return folder with
+        {
+            CategoryId = imagesCategory.Id,
+            CategoryName = imagesCategory.Name,
+            CategoryOrder = imagesCategory.Order,
+            DestinationPath = destinationPath,
+            HasDestinationConflict = false
+        };
+    }
 
     private static string GetDesiredTarget(
         TestWorkspace workspace,
