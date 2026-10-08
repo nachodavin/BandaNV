@@ -22,10 +22,15 @@ function Write-Utf8([string]$path, [string]$contents) {
 }
 
 function Get-RelativeUnixPath([string]$base, [string]$path) {
-    return [IO.Path]::GetRelativePath(
-        [IO.Path]::GetFullPath($base),
-        [IO.Path]::GetFullPath($path)
-    ).Replace('\', '/')
+    # Compatible con Windows PowerShell 5.1 (.NET Framework).
+    $baseFull = [IO.Path]::GetFullPath($base).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
+    $pathFull = [IO.Path]::GetFullPath($path)
+    $baseUri = New-Object System.Uri($baseFull)
+    $pathUri = New-Object System.Uri($pathFull)
+    $relative = [Uri]::UnescapeDataString(
+        $baseUri.MakeRelativeUri($pathUri).ToString()
+    )
+    return $relative.Replace('\', '/')
 }
 
 function Write-Package(
