@@ -2547,7 +2547,11 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         if (!item.IsDirectory)
         {
-            if (!preserveFolderContext)
+            // El detalle de un archivo no debe vaciar la selección del
+            // listado principal. Solo desmontamos la navegación cuando
+            // existe un contexto de carpeta previo.
+            if (!preserveFolderContext &&
+                _folderDetailRoot is not null)
             {
                 ResetFolderDetailNavigation();
             }
@@ -2581,7 +2585,14 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private void ShowMultipleOrganizeDetails(
         IReadOnlyList<OrganizePreviewFile> files)
     {
-        ResetFolderDetailNavigation();
+        // Limpiar la navegación incondicionalmente borraba SelectedItems
+        // en cada selección múltiple. Preservar la selección principal
+        // permite que Eliminar, Copiar rutas y Cambiar categoría funcionen.
+        if (_folderDetailRoot is not null)
+        {
+            ResetFolderDetailNavigation();
+        }
+
         OrganizeFolderContentsPanel.Visibility =
             Visibility.Collapsed;
 
