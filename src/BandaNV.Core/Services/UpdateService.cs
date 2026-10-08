@@ -20,6 +20,11 @@ public sealed class UpdateService
         WriteIndented = true
     };
 
+#if BANDANV_UPDATER_E2E_BASE
+    // No se compila en el ejecutable de producción ni en la build destino.
+    public bool UseE2EPrereleaseChannel { get; set; }
+#endif
+
     public async Task<UpdateCheckResult> CheckAsync(
         CancellationToken cancellationToken = default)
     {

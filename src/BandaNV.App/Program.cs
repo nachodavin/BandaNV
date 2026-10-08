@@ -6,8 +6,12 @@ namespace BandaNV.App;
 
 public static class Program
 {
-    private const string InstanceKey =
-        "BandaNV.MainInstance";
+#if BANDANV_UPDATER_E2E_BASE || BANDANV_UPDATER_E2E_TARGET
+    // Las builds de ensayo no se redirigen a BandaNV oficial.
+    private const string InstanceKey = "BandaNV.UpdaterE2ETestInstance";
+#else
+    private const string InstanceKey = "BandaNV.MainInstance";
+#endif
 
     [STAThread]
     public static async Task Main(string[] args)

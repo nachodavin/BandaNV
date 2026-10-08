@@ -5,4 +5,11 @@
     <Nullable>enable</Nullable>
     <RootNamespace>BandaNV.Core</RootNamespace>
   </PropertyGroup>
+  <!-- Flags exclusivas de paquetes de prueba. No afectan Release oficial. -->
+  <PropertyGroup Condition="'$(BandaNVUpdaterE2EBase)' == 'true'">
+    <DefineConstants>$(DefineConstants);BANDANV_UPDATER_E2E_BASE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(BandaNVUpdaterE2ETarget)' == 'true'">
+    <DefineConstants>$(DefineConstants);BANDANV_UPDATER_E2E_TARGET</DefineConstants>
+  </PropertyGroup>
 </Project>

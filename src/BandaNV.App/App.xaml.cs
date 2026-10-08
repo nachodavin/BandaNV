@@ -49,6 +49,14 @@ public partial class App : Application
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
+#if BANDANV_UPDATER_E2E_BASE
+        // El canal de prueba sólo existe en el ejecutable tester y
+        // requiere iniciarlo explícitamente con este argumento.
+        Updates.UseE2EPrereleaseChannel =
+            Environment.GetCommandLineArgs().Contains(
+                "--test-updates",
+                StringComparer.OrdinalIgnoreCase);
+#endif
         await Settings.LoadAsync();
 
         AppearanceService.ApplySettings(
