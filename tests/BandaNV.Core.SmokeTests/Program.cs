@@ -155,6 +155,26 @@ internal static class Program
             "Deshacer no modifica una carpeta protegida",
             UndoRespectsProtectedFoldersAsync);
 
+        await RunAsync(
+            "Backup válido permite importar categorías y carpetas protegidas",
+            SettingsBackupValidPayloadAsync);
+
+        await RunAsync(
+            "Backup dañado o incompatible se rechaza",
+            SettingsBackupRejectsInvalidJsonAndFormatAsync);
+
+        await RunAsync(
+            "Backup sin categorías o con categorías duplicadas se rechaza",
+            SettingsBackupRejectsInvalidCategoriesAsync);
+
+        await RunAsync(
+            "Backup con rutas de protección inválidas se rechaza",
+            SettingsBackupRejectsInvalidProtectedPathsAsync);
+
+        await RunAsync(
+            "Backup antiguo sin lista de carpetas protegidas sigue siendo válido",
+            SettingsBackupAcceptsLegacyProtectedFoldersAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -2543,6 +2563,218 @@ internal static class Program
 
         True(!File.Exists(item.FullPath),
             "Undo no debe restaurar el archivo en origen.");
+    }
+
+    private static Task SettingsBackupValidPayloadAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+        var json = BuildTestSettingsBackupJson(
+            workspace.Source,
+            workspace.Destination,
+            includeProtectedFolders: true);
+
+        True(
+            SettingsBackupValidationService.TryValidate(
+                json,
+                out var error),
+            $"Un backup bien formado debe validarse: {error}");
+
+        return Task.CompletedTask;
+    }
+
+    private static Task SettingsBackupRejectsInvalidJsonAndFormatAsync()
+    {
+        True(
+            !SettingsBackupValidationService.TryValidate(
+                "{ configuración rota",
+                out _),
+            "El JSON dañado debe rechazarse.");
+
+        var wrongVersion =
+            "{\"Format\":\"BandaNV.SettingsBackup.v999\",\"SourceFolder\":\"\",\"DestinationFolder\":\"\",\"PrimaryColor\":\"#123A34\",\"Categories\":[]}";
+
+        True(
+            !SettingsBackupValidationService.TryValidate(
+                wrongVersion,
+                out _),
+            "Los backups con formato incompatible deben rechazarse.");
+
+        return Task.CompletedTask;
+    }
+
+    private static Task SettingsBackupRejectsInvalidCategoriesAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var valid = BuildTestSettingsBackupJson(
+            workspace.Source,
+            workspace.Destination,
+            includeProtectedFolders: false);
+
+        using var document =
+            System.Text.Json.JsonDocument.Parse(valid);
+
+        var root = document.RootElement;
+
+        var missingCategories = System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                Format = SettingsBackupValidationService.Format,
+                SourceFolder = workspace.Source,
+                DestinationFolder = workspace.Destination,
+                PrimaryColor = "#123A34"
+            });
+
+        True(
+            !SettingsBackupValidationService.TryValidate(
+                missingCategories,
+                out _),
+            "Un backup sin categorías no puede reemplazar las categorías actuales.");
+
+        var duplicated = System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                Format = SettingsBackupValidationService.Format,
+                SourceFolder = workspace.Source,
+                DestinationFolder = workspace.Destination,
+                PrimaryColor = "#123A34",
+                Categories = new[]
+                {
+                    new
+                    {
+                        Id = "misma-id",
+                        Name = "IMAGENES",
+                        Order = 1,
+                        ColorHex = "#33B2EB",
+                        Extensions = new[] { ".jpg" }
+                    },
+                    new
+                    {
+                        Id = "misma-id",
+                        Name = "DOCUMENTOS",
+                        Order = 2,
+                        ColorHex = "#FFFFFF",
+                        Extensions = new[] { ".pdf" }
+                    }
+                }
+            });
+
+        True(
+            !SettingsBackupValidationService.TryValidate(
+                duplicated,
+                out _),
+            "Las categorías con el mismo identificador deben rechazarse.");
+
+        return Task.CompletedTask;
+    }
+
+    private static Task SettingsBackupRejectsInvalidProtectedPathsAsync()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                Format = SettingsBackupValidationService.Format,
+                SourceFolder = string.Empty,
+                DestinationFolder = string.Empty,
+                PrimaryColor = "#123A34",
+                Categories = new[]
+                {
+                    new
+                    {
+                        Id = "id-imagenes",
+                        Name = "IMAGENES",
+                        Order = 1,
+                        ColorHex = "#33B2EB",
+                        Extensions = new[] { ".jpg" }
+                    }
+                },
+                ProtectedFolders = new[] { "ruta\\relativa" }
+            });
+
+        True(
+            !SettingsBackupValidationService.TryValidate(
+                json,
+                out _),
+            "La lista de carpetas protegidas no debe aceptar rutas relativas.");
+
+        return Task.CompletedTask;
+    }
+
+    private static Task SettingsBackupAcceptsLegacyProtectedFoldersAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var json = BuildTestSettingsBackupJson(
+            workspace.Source,
+            workspace.Destination,
+            includeProtectedFolders: false);
+
+        True(
+            SettingsBackupValidationService.TryValidate(
+                json,
+                out var error),
+            $"Un backup de versión anterior sin ProtectedFolders debe seguir siendo compatible: {error}");
+
+        return Task.CompletedTask;
+    }
+
+    private static string BuildTestSettingsBackupJson(
+        string source,
+        string destination,
+        bool includeProtectedFolders)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                Format = SettingsBackupValidationService.Format,
+                CreatedAt = DateTime.Now,
+                SourceFolder = source,
+                DestinationFolder = destination,
+                PrimaryColor = "#123A34",
+                SecondaryColor = "#4FE0C6",
+                Categories = new[]
+                {
+                    new
+                    {
+                        Id = "id-imagenes",
+                        Name = "IMAGENES",
+                        Order = 1,
+                        ColorHex = "#33B2EB",
+                        Extensions = new[] { ".jpg", ".png" }
+                    }
+                },
+                ProtectedFolders = includeProtectedFolders
+                    ? new[] { source }
+                    : null
+            });
+
+        if (includeProtectedFolders)
+        {
+            return json;
+        }
+
+        using var doc =
+            System.Text.Json.JsonDocument.Parse(json);
+
+        return System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                Format = SettingsBackupValidationService.Format,
+                SourceFolder = source,
+                DestinationFolder = destination,
+                PrimaryColor = "#123A34",
+                Categories = new[]
+                {
+                    new
+                    {
+                        Id = "id-imagenes",
+                        Name = "IMAGENES",
+                        Order = 1,
+                        ColorHex = "#33B2EB",
+                        Extensions = new[] { ".jpg", ".png" }
+                    }
+                }
+            });
     }
 
     private static OrganizationExecutionRequestItem ToExecutionRequest(
