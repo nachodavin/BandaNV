@@ -222,17 +222,42 @@ Esas carpetas no forman parte del paquete administrado por el updater.
             }
         }
 
-        $manifestEntry = $zip.GetEntry('BandaNV/bandanv_update_manifest.json')
+        # ZipFile.GetEntry requiere una coincidencia textual exacta.
+        # Compress-Archive en Windows puede crear entradas con '\' en
+        # FullName. Buscamos sobre rutas normalizadas para ambos casos.
+        $manifestEntry = $entries |
+            Where-Object {
+                $_.FullName.Replace('\','/') -eq 'BandaNV/bandanv_update_manifest.json'
+            } |
+            Select-Object -First 1
+
+        if($null -eq $manifestEntry) {
+            throw 'El ZIP no contiene una entrada legible para bandanv_update_manifest.json.'
+        }
+
         $reader = [IO.StreamReader]::new($manifestEntry.Open(), [Text.Encoding]::UTF8)
         try {
-            $packedManifest = $reader.ReadToEnd() | ConvertFrom-Json
+            $packedManifest = $reader.ReadToEnd() | ConvertFrom-Json -ErrorAction Stop
         }
         finally {
             $reader.Dispose()
         }
-        if($packedManifest.Format -ne 'BandaNV.UpdateManifest.v1' -or
+        if($null -eq $packedManifest -or
+           $packedManifest.Format -ne 'BandaNV.UpdateManifest.v1' -or
            $packedManifest.Version -ne 'v2.0') {
             throw 'El manifest interno del ZIP no corresponde a BandaNV v2.0.'
+        }
+
+        $expectedFiles = @(
+            $packedManifest.Files |
+                ForEach-Object { 'BandaNV/' + $_.Replace('\','/') }
+        )
+        if(@($expectedFiles).Count -eq 0 -or
+           @($expectedFiles | Where-Object { $entryPaths -notcontains $_ }).Count -gt 0 -or
+           @($entryPaths | Where-Object {
+               $_ -like 'BandaNV/*' -and $expectedFiles -notcontains $_
+           }).Count -gt 0) {
+            throw 'Los archivos del ZIP no coinciden con el manifest de actualización.'
         }
     }
     finally {
@@ -259,6 +284,10 @@ catch {
     Write-Host ''
     Write-Host 'ERROR: no se pudo generar el paquete de Release.' -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
+    if($_.InvocationInfo -and $_.InvocationInfo.ScriptLineNumber) {
+        Write-Host ("Línea del script: " + $_.InvocationInfo.ScriptLineNumber) -ForegroundColor Yellow
+        Write-Host $_.InvocationInfo.Line.Trim() -ForegroundColor Yellow
+    }
     exit 1
 }
 finally {
