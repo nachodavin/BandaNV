@@ -24,14 +24,22 @@ public sealed class RecoveryService
     };
 
     public Task<StartupRecoveryResult> RecoverAsync(
+        CancellationToken cancellationToken = default) =>
+        RecoverAsync(
+            settings: null,
+            cancellationToken);
+
+    public Task<StartupRecoveryResult> RecoverAsync(
+        AppSettings? settings,
         CancellationToken cancellationToken = default)
     {
         return Task.Run(
-            () => RecoverCoreAsync(cancellationToken),
+            () => RecoverCoreAsync(settings, cancellationToken),
             cancellationToken);
     }
 
     private static async Task<StartupRecoveryResult> RecoverCoreAsync(
+        AppSettings? settings,
         CancellationToken cancellationToken)
     {
         PortablePaths.EnsureDirectories();
@@ -70,9 +78,11 @@ public sealed class RecoveryService
                 ? await RecoverUndoAsync(
                     record,
                     byExecutionId,
+                    settings,
                     cancellationToken)
                 : await RecoverOrganizationAsync(
                     record,
+                    settings,
                     cancellationToken);
 
             FinalizeRecoveredRecord(record, stats);
@@ -146,6 +156,7 @@ public sealed class RecoveryService
 
     private static async Task<RecoveryStats> RecoverOrganizationAsync(
         OrganizationExecutionRecord record,
+        AppSettings? settings,
         CancellationToken cancellationToken)
     {
         var stats =
@@ -188,6 +199,17 @@ public sealed class RecoveryService
                 item.Message =
                     "La ejecución se interrumpió y las rutas registradas no permiten una recuperación automática segura.";
 
+                stats.InterruptedItems++;
+                continue;
+            }
+
+            if (settings is not null &&
+                (ProtectedFolderService.IsProtected(settings, item.OriginalPath) ||
+                 ProtectedFolderService.IsProtected(settings, item.FinalPath)))
+            {
+                MarkInterrupted(
+                    item,
+                    "La recuperación automática se detuvo porque la ejecución afecta una carpeta protegida.");
                 stats.InterruptedItems++;
                 continue;
             }
@@ -402,6 +424,7 @@ public sealed class RecoveryService
     private static async Task<RecoveryStats> RecoverUndoAsync(
         OrganizationExecutionRecord undoRecord,
         IReadOnlyDictionary<string, RecoveryEntry> recordsByExecutionId,
+        AppSettings? settings,
         CancellationToken cancellationToken)
     {
         var stats =
@@ -479,6 +502,17 @@ public sealed class RecoveryService
                 undoItem.Message =
                     "El Undo se interrumpió y las rutas registradas no permiten una recuperación automática segura.";
 
+                stats.InterruptedItems++;
+                continue;
+            }
+
+            if (settings is not null &&
+                (ProtectedFolderService.IsProtected(settings, undoItem.OriginalPath) ||
+                 ProtectedFolderService.IsProtected(settings, undoItem.FinalPath)))
+            {
+                MarkInterrupted(
+                    undoItem,
+                    "La recuperación del Undo se detuvo porque afecta una carpeta protegida.");
                 stats.InterruptedItems++;
                 continue;
             }

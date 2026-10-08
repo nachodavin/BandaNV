@@ -90,7 +90,8 @@ public partial class App : Application
         try
         {
             LastStartupRecovery =
-                await Recovery.RecoverAsync();
+                await Recovery.RecoverAsync(
+                    Settings.Current);
         }
         catch
         {
