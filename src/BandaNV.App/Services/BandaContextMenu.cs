@@ -102,14 +102,15 @@ internal static class BandaContextMenu
         button.Resources["ButtonBorderBrushPressed"] = normalBackground;
 
         var isPointerOver = false;
-        var isFocused = false;
 
         void RefreshVisualState()
         {
-            var active = enabled && (isPointerOver || isFocused);
-            hoverSurface.Background = active ? hoverBackground : normalBackground;
-            label.Foreground = active ? hoverText : normalText;
-            icon.Foreground = active ? hoverText : normalIcon;
+            // El primer botón recibe foco automáticamente al abrir el Flyout.
+            // El destacado teal debe responder solamente al mouse.
+            var hovered = enabled && isPointerOver;
+            hoverSurface.Background = hovered ? hoverBackground : normalBackground;
+            label.Foreground = hovered ? hoverText : normalText;
+            icon.Foreground = hovered ? hoverText : normalIcon;
         }
 
         button.PointerEntered += (_, _) =>
@@ -120,16 +121,6 @@ internal static class BandaContextMenu
         button.PointerExited += (_, _) =>
         {
             isPointerOver = false;
-            RefreshVisualState();
-        };
-        button.GotFocus += (_, _) =>
-        {
-            isFocused = true;
-            RefreshVisualState();
-        };
-        button.LostFocus += (_, _) =>
-        {
-            isFocused = false;
             RefreshVisualState();
         };
 
