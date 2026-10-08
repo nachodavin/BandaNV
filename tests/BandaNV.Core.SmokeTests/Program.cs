@@ -2606,16 +2606,6 @@ internal static class Program
     {
         using var workspace = TestWorkspace.Create();
 
-        var valid = BuildTestSettingsBackupJson(
-            workspace.Source,
-            workspace.Destination,
-            includeProtectedFolders: false);
-
-        using var document =
-            System.Text.Json.JsonDocument.Parse(valid);
-
-        var root = document.RootElement;
-
         var missingCategories = System.Text.Json.JsonSerializer.Serialize(
             new
             {
@@ -2752,9 +2742,6 @@ internal static class Program
         {
             return json;
         }
-
-        using var doc =
-            System.Text.Json.JsonDocument.Parse(json);
 
         return System.Text.Json.JsonSerializer.Serialize(
             new

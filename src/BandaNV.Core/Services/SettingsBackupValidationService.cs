@@ -92,8 +92,13 @@ public static class SettingsBackupValidationService
                 return false;
             }
 
-            if (!TryGetString(root, "PrimaryColor", out var primaryColor) ||
-                !IsHexColor(primaryColor) ||
+            // Las primeras copias v1 podían tener sólo AccentColor.
+            // Se conserva su compatibilidad sin aceptar colores corruptos.
+            var hasPrimary = TryGetString(root, "PrimaryColor", out var primaryColor);
+            var hasLegacyAccent = TryGetString(root, "AccentColor", out var accentColor);
+            if ((!hasPrimary && !hasLegacyAccent) ||
+                (hasPrimary && !IsHexColor(primaryColor)) ||
+                (!hasPrimary && !IsHexColor(accentColor)) ||
                 (root.TryGetProperty("SecondaryColor", out var secondary) &&
                  secondary.ValueKind == JsonValueKind.String &&
                  !string.IsNullOrWhiteSpace(secondary.GetString()) &&
@@ -190,6 +195,13 @@ public static class SettingsBackupValidationService
                         return false;
                     }
                 }
+            }
+
+            if (orders.Min() != 1 ||
+                orders.Max() != categories.GetArrayLength())
+            {
+                error = "El orden de las categorías no es consecutivo.";
+                return false;
             }
 
             return true;

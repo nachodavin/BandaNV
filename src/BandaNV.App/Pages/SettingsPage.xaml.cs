@@ -845,7 +845,9 @@ public sealed partial class SettingsPage : Page
             SettingsImportFileText.Text = file.Name;
             SettingsImportSummaryText.Text =
                 $"{backup.Categories.Count} categorías · " +
-                $"{(backup.ProtectedFolders?.Count.ToString() ?? "Protecciones actuales")} carpetas protegidas\n" +
+                (backup.ProtectedFolders is null
+                    ? "Se conservarán las carpetas protegidas actuales\n"
+                    : $"{backup.ProtectedFolders.Count} carpetas protegidas\n") +
                 $"Origen: {(string.IsNullOrWhiteSpace(backup.SourceFolder) ? "Sin seleccionar" : backup.SourceFolder)}\n" +
                 $"Destino: {(string.IsNullOrWhiteSpace(backup.DestinationFolder) ? "Sin seleccionar" : backup.DestinationFolder)}";
 
