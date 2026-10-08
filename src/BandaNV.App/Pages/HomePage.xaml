@@ -65,7 +65,7 @@
                             VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="7" Height="7" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
+                                <TextBlock x:Name="HomeVersionText" Text="BandaNV v2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
                             </StackPanel>
                         </Border>
                     </Grid>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using BandaNV.Core.Infrastructure;
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
@@ -29,6 +30,7 @@ public sealed partial class HomePage : Page
     public HomePage()
     {
         InitializeComponent();
+        HomeVersionText.Text = $"BandaNV {AppVersionInfo.Tag}";
         Loaded += HomePage_Loaded;
         Unloaded += HomePage_Unloaded;
     }

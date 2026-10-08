@@ -25,6 +25,9 @@ public sealed partial class SettingsPage : Page
     public SettingsPage()
     {
         InitializeComponent();
+        SettingsVersionText.Text = AppVersionInfo.Version;
+        AboutVersionDescriptionText.Text =
+            $"Organizador de archivos · versión {AppVersionInfo.Version}";
 
         _isPageReady = false;
         LoadPersistentSettingsIntoUi(global::BandaNV.App.App.Settings.Current);

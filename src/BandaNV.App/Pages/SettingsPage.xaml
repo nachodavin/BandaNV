@@ -1172,7 +1172,7 @@
                                         <Ellipse Width="9" Height="9" Fill="{StaticResource BandaAccentBrush}" VerticalAlignment="Center" />
                                         <TextBlock Text="BandaNV by Nacho" Foreground="{StaticResource BandaTextBrush}" FontSize="26" FontWeight="SemiBold" />
                                     </StackPanel>
-                                    <TextBlock Text="Organizador de archivos · versión 2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
+                                    <TextBlock x:Name="AboutVersionDescriptionText" Text="Organizador de archivos · versión 2.0" Foreground="{StaticResource BandaMutedStrongBrush}" FontSize="14" />
                                     <TextBlock
                                         Text="Esta versión reconstruye BandaNV alrededor de un flujo más visual, reversible y consistente entre Organizar, Buscar, Historial y Categorías."
                                         Style="{StaticResource BandaMutedTextStyle}"
