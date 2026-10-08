@@ -28,18 +28,6 @@
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
 
-  <!-- La identidad del test se compila sólo con flags explícitas. -->
-  <PropertyGroup Condition="'$(BandaNVUpdaterE2EBase)' == 'true'">
-    <DefineConstants>$(DefineConstants);BANDANV_UPDATER_E2E_BASE</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(BandaNVUpdaterE2ETarget)' == 'true'">
-    <DefineConstants>$(DefineConstants);BANDANV_UPDATER_E2E_TARGET</DefineConstants>
-    <Version>2.0.1</Version>
-    <AssemblyVersion>2.0.1.0</AssemblyVersion>
-    <FileVersion>2.0.1.0</FileVersion>
-    <InformationalVersion>2.0.1</InformationalVersion>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
   </ItemGroup>
