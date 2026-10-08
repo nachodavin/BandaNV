@@ -33,11 +33,6 @@ public sealed partial class MainWindow : Window
                 _activeTheme);
 
         Title = "BandaNV";
-#if BANDANV_UPDATER_E2E_BASE
-        Title = "BandaNV — TESTER v2.0";
-#elif BANDANV_UPDATER_E2E_TARGET
-        Title = "BandaNV — TESTER v2.0.1";
-#endif
         ApplyStartupPage();
 
         Activated += MainWindow_Activated;
