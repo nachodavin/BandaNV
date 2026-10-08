@@ -1087,7 +1087,8 @@
                             BorderThickness="0"
                             Padding="6,6,6,8"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                            RightTapped="PreviewFilesList_RightTapped">
 
                             <ListView.GroupStyle>
                                 <GroupStyle>
@@ -1562,7 +1563,8 @@
                                             MinHeight="170"
                                             Padding="6,6,6,8"
                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                            RightTapped="FolderDetailFilesList_RightTapped">
 
                                             <ListView.GroupStyle>
                                                 <GroupStyle>

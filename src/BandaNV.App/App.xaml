@@ -88,6 +88,29 @@
                 <Setter Property="CornerRadius" Value="16" />
             </Style>
 
+            <!-- Menú contextual estilo Explorador: hover secundario y texto negro. -->
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource BandaActionHoverColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource BandaActionPressedColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#07110F" />
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="#07110F" />
+
+            <Style x:Key="BandaContextMenuPresenterStyle" TargetType="MenuFlyoutPresenter">
+                <Setter Property="Padding" Value="6" />
+                <Setter Property="MinWidth" Value="232" />
+                <Setter Property="Background" Value="{StaticResource BandaPopupSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BandaBorderStrongBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="14" />
+            </Style>
+
+            <Style x:Key="BandaContextMenuItemStyle" TargetType="MenuFlyoutItem">
+                <Setter Property="MinHeight" Value="38" />
+                <Setter Property="Padding" Value="12,7" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{StaticResource BandaTextBrush}" />
+                <Setter Property="CornerRadius" Value="9" />
+            </Style>
+
             <Style x:Key="BandaPopupOptionButtonStyle" TargetType="Button">
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                 <Setter Property="HorizontalContentAlignment" Value="Left" />

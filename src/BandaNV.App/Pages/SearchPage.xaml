@@ -634,7 +634,8 @@
                                     Tapped="SearchResultsList_Tapped"
                                     DoubleTapped="SearchResultsList_DoubleTapped"
                                     HorizontalContentAlignment="Stretch"
-                                    Padding="8,0,8,8">
+                                    Padding="8,0,8,8"
+                                            RightTapped="SearchResultsList_RightTapped">
                                     <ListView.KeyboardAccelerators>
                                         <KeyboardAccelerator
                                             Key="A"
@@ -1009,7 +1010,8 @@
                                             MinHeight="170"
                                             Padding="6,6,6,8"
                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                            RightTapped="SearchFolderContentList_RightTapped">
 
                                             <ListView.Resources>
                                                 <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="{StaticResource BandaSelectionColor}" />
