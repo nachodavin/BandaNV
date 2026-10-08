@@ -2,7 +2,7 @@ namespace BandaNV.Core.Models;
 
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -28,6 +28,10 @@ public sealed class AppSettings
 
     public bool UseRecycleBin { get; set; } = true;
     public bool ConfirmDestructiveActions { get; set; } = true;
+
+    // Rutas protegidas por el usuario; la protección abarca todo su árbol
+    // y también operaciones sobre carpetas superiores que lo afectarían.
+    public List<string> ProtectedFolders { get; set; } = [];
 
     public bool SaveHistory { get; set; } = true;
     public bool SaveOrganizeHistory { get; set; } = true;
