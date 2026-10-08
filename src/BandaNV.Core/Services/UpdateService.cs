@@ -20,11 +20,6 @@ public sealed class UpdateService
         WriteIndented = true
     };
 
-#if BANDANV_UPDATER_E2E_BASE
-    // No se compila en el ejecutable de producción ni en la build destino.
-    public bool UseE2EPrereleaseChannel { get; set; }
-#endif
-
     public async Task<UpdateCheckResult> CheckAsync(
         CancellationToken cancellationToken = default)
     {
@@ -39,23 +34,9 @@ public sealed class UpdateService
             requestTimeout.CancelAfter(
                 TimeSpan.FromSeconds(10));
 
-            var releaseEndpoint =
-                $"{AppVersionInfo.GitHubApiBase}/releases/latest";
-
-#if BANDANV_UPDATER_E2E_BASE
-            if (UseE2EPrereleaseChannel)
-            {
-                // Sólo la build tester, lanzada con --test-updates, busca
-                // la prerelease fija de ensayo; producción no conoce
-                // ni consulta este canal.
-                releaseEndpoint =
-                    $"{AppVersionInfo.GitHubApiBase}/releases/tags/v2.0.1";
-            }
-#endif
-
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                releaseEndpoint);
+                $"{AppVersionInfo.GitHubApiBase}/releases/latest");
 
             using var response =
                 await HttpClient.SendAsync(
@@ -75,31 +56,13 @@ public sealed class UpdateService
                     JsonOptions,
                     requestTimeout.Token);
 
-            var wrongReleaseChannel =
-                release?.Prerelease == true;
-
-#if BANDANV_UPDATER_E2E_BASE
-            if (UseE2EPrereleaseChannel)
-            {
-                // Nunca aceptar una release estable u otro tag desde
-                // el endpoint de prueba, aun si GitHub responde 200.
-                wrongReleaseChannel =
-                    release is null ||
-                    !release.Prerelease ||
-                    !string.Equals(
-                        release.TagName,
-                        "v2.0.1",
-                        StringComparison.OrdinalIgnoreCase);
-            }
-#endif
-
             if (release is null ||
                 release.Draft ||
-                wrongReleaseChannel ||
+                release.Prerelease ||
                 string.IsNullOrWhiteSpace(release.TagName))
             {
                 return Error(
-                    "GitHub no devolvió una Release compatible con el canal seleccionado.");
+                    "GitHub no devolvió una Release estable compatible de BandaNV.");
             }
 
             if (!TryParseStableVersion(
