@@ -26,6 +26,11 @@ public sealed partial class SettingsPage : Page
     {
         InitializeComponent();
 
+#if BANDANV_UPDATER_E2E_BASE
+        SettingsVersionText.Text = "2.0 · TESTER";
+#elif BANDANV_UPDATER_E2E_TARGET
+        SettingsVersionText.Text = "2.0.1 · TESTER";
+#endif
         _isPageReady = false;
         LoadPersistentSettingsIntoUi(global::BandaNV.App.App.Settings.Current);
         UpdateHistoryDependentVisibility();
