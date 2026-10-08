@@ -50,14 +50,21 @@ try {
     $version = [string]$Matches['version']
     $tag = 'v' + $version
 
-    # El paquete oficial inicial sólo puede ser v2.0. Las pruebas
-    # experimentales y versiones posteriores requieren un plan específico.
-    if($version -ne '2.0' -or $tag -ne 'v2.0') {
-        throw "La versión detectada ($tag) no corresponde a la Release oficial v2.0."
+    # Version y Tag deben coincidir en cada Release estable.
+    $tagMatch = [regex]::Match(
+        $versionRaw,
+        'public const string Tag = "v(?<tagVersion>\d+\.\d+(?:\.\d+)?)";'
+    )
+    if(-not $tagMatch.Success -or
+       $tagMatch.Groups['tagVersion'].Value -ne $version) {
+        throw "AppVersionInfo.Tag no coincide con AppVersionInfo.Version ($version)."
     }
 
-    if($versionRaw -notmatch 'public const string Tag = "v2\.0";') {
-        throw 'AppVersionInfo.Tag no coincide con el tag oficial v2.0.'
+    # Evita mezclar un tag nuevo con un binario que conserva metadatos viejos.
+    $appProjectRaw = Get-Content -LiteralPath $appProject -Raw -Encoding UTF8
+    if($appProjectRaw -notmatch [regex]::Escape("<Version>$version</Version>") -or
+       $appProjectRaw -notmatch [regex]::Escape("<InformationalVersion>$version</InformationalVersion>")) {
+        throw "Los metadatos del proyecto BandaNV.App no coinciden con $tag."
     }
 
     # Evita distribuir accidentalmente código de la build E2E.
@@ -178,7 +185,7 @@ Instalación manual:
 3. Ejecutá BandaNV.exe.
 
 Actualizaciones:
-BandaNV consulta GitHub Releases cuando la opción de actualización automática está activa.
+BandaNV consulta GitHub Releases para comprobar si existe una versión estable más reciente.
 El paquete se verifica mediante SHA-256 antes de instalarse.
 NVupdate realiza backup y rollback automático si la nueva versión no confirma un inicio correcto.
 
@@ -244,8 +251,8 @@ Esas carpetas no forman parte del paquete administrado por el updater.
         }
         if($null -eq $packedManifest -or
            $packedManifest.Format -ne 'BandaNV.UpdateManifest.v1' -or
-           $packedManifest.Version -ne 'v2.0') {
-            throw 'El manifest interno del ZIP no corresponde a BandaNV v2.0.'
+           $packedManifest.Version -ne $tag) {
+            throw "El manifest interno del ZIP no corresponde a BandaNV $tag."
         }
 
         $expectedFiles = @(
