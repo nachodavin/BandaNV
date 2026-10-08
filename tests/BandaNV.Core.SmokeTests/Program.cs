@@ -2699,11 +2699,17 @@ internal static class Program
             workspace.Destination,
             includeProtectedFolders: false);
 
+        // Las primeras versiones tenían AccentColor en lugar de PrimaryColor.
+        var legacyJson = json.Replace(
+            "\"PrimaryColor\"",
+            "\"AccentColor\"",
+            StringComparison.Ordinal);
+
         True(
             SettingsBackupValidationService.TryValidate(
-                json,
+                legacyJson,
                 out var error),
-            $"Un backup de versión anterior sin ProtectedFolders debe seguir siendo compatible: {error}");
+            $"Un backup v1 antiguo sin ProtectedFolders y con AccentColor debe seguir siendo compatible: {error}");
 
         return Task.CompletedTask;
     }

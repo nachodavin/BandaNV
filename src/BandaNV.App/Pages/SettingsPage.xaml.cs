@@ -973,7 +973,12 @@ public sealed partial class SettingsPage : Page
                         CreateFolders = backup.CreateFolders,
                         DeleteUnusedCategoryFolders =
                             backup.DeleteUnusedCategoryFolders,
-                        ProtectedFolders = importProtectedFolders,
+                        // Durante la transición siguen vigentes tanto las
+                        // protecciones actuales como las del backup.
+                        ProtectedFolders =
+                            ProtectedFolderService.NormalizePaths(
+                                _protectedFolderPaths.Concat(
+                                    importProtectedFolders)),
                         OrphanedCategoryFolders = syncedOrphans
                     };
 
