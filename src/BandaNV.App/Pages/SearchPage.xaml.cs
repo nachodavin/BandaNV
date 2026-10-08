@@ -1426,19 +1426,18 @@ public sealed partial class SearchPage : Page
 
         var menu = BandaContextMenu.Create();
         var one = files.Count == 1;
-        var only = one ? files[0] : null;
 
         if (one)
         {
             BandaContextMenu.Add(
                 menu,
-                only!.IsDirectory ? "Explorar contenido" : "Abrir archivo",
+                SearchOpenFileButton.Content?.ToString() ?? "Abrir archivo",
                 "\uE8E5",
                 SearchOpenFileButton_Click,
                 enabled: SearchOpenFileButton.IsEnabled);
             BandaContextMenu.Add(
                 menu,
-                "Abrir ubicación",
+                SearchOpenLocationButton.Content?.ToString() ?? "Abrir ubicación",
                 "\uE8B7",
                 SearchOpenLocationButton_Click,
                 enabled: SearchOpenLocationButton.IsEnabled);
@@ -1447,13 +1446,13 @@ public sealed partial class SearchPage : Page
 
         BandaContextMenu.Add(
             menu,
-            one ? "Copiar ruta" : $"Copiar {files.Count} rutas",
+            SearchCopyPathButton.Content?.ToString() ?? "Copiar ruta",
             "\uE8C8",
             SearchCopyPathButton_Click,
             enabled: SearchCopyPathButton.IsEnabled);
         BandaContextMenu.Add(
             menu,
-            "Cambiar categoría",
+            SearchChangeCategoryButton.Content?.ToString() ?? "Cambiar categoría",
             "\uE8EC",
             SearchChangeCategoryButton_Click,
             enabled: SearchChangeCategoryButton.IsEnabled);
@@ -1462,7 +1461,7 @@ public sealed partial class SearchPage : Page
         {
             BandaContextMenu.Add(
                 menu,
-                only!.IsDirectory ? "Renombrar carpeta" : "Renombrar archivo",
+                SearchRenameButton.Content?.ToString() ?? "Renombrar",
                 "\uE8AC",
                 SearchRenameButton_Click,
                 enabled: SearchRenameButton.IsEnabled);
@@ -1471,9 +1470,7 @@ public sealed partial class SearchPage : Page
         BandaContextMenu.Separator(menu);
         BandaContextMenu.Add(
             menu,
-            one
-                ? only!.IsDirectory ? "Eliminar carpeta" : "Eliminar archivo"
-                : $"Eliminar {files.Count} elementos",
+            SearchDeleteButton.Content?.ToString() ?? "Eliminar archivo",
             "\uE74D",
             SearchDeleteButton_Click,
             enabled: SearchDeleteButton.IsEnabled,

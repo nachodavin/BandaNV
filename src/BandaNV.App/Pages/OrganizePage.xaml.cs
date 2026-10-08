@@ -1990,19 +1990,18 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         var menu = BandaContextMenu.Create();
         var one = targets.Count == 1;
-        var only = one ? targets[0] : null;
 
         if (one)
         {
             BandaContextMenu.Add(
                 menu,
-                only!.IsDirectory ? "Explorar contenido" : "Abrir archivo",
+                OrganizeOpenButton.Content?.ToString() ?? "Abrir archivo",
                 "\uE8E5",
                 OrganizeOpenButton_Click,
                 enabled: OrganizeOpenButton.IsEnabled);
             BandaContextMenu.Add(
                 menu,
-                "Abrir ubicación",
+                OrganizeOpenLocationButton.Content?.ToString() ?? "Abrir ubicación",
                 "\uE8B7",
                 OrganizeOpenLocationButton_Click,
                 enabled: OrganizeOpenLocationButton.IsEnabled);
@@ -2011,13 +2010,13 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         BandaContextMenu.Add(
             menu,
-            one ? "Copiar ruta" : $"Copiar {targets.Count} rutas",
+            OrganizeCopyPathButton.Content?.ToString() ?? "Copiar ruta",
             "\uE8C8",
             OrganizeCopyPathButton_Click,
             enabled: OrganizeCopyPathButton.IsEnabled);
         BandaContextMenu.Add(
             menu,
-            "Cambiar categoría",
+            OrganizeChangeCategoryButton.Content?.ToString() ?? "Cambiar categoría",
             "\uE8EC",
             OrganizeChangeCategoryButton_Click,
             enabled: OrganizeChangeCategoryButton.IsEnabled);
@@ -2026,7 +2025,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         {
             BandaContextMenu.Add(
                 menu,
-                only!.IsDirectory ? "Renombrar carpeta" : "Renombrar archivo",
+                OrganizeRenameButton.Content?.ToString() ?? "Renombrar",
                 "\uE8AC",
                 OrganizeRenameButton_Click,
                 enabled: OrganizeRenameButton.IsEnabled);
@@ -2035,9 +2034,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         BandaContextMenu.Separator(menu);
         BandaContextMenu.Add(
             menu,
-            one
-                ? only!.IsDirectory ? "Eliminar carpeta" : "Eliminar archivo"
-                : $"Eliminar {targets.Count} elementos",
+            OrganizeDeleteButton.Content?.ToString() ?? "Eliminar archivo",
             "\uE74D",
             OrganizeDeleteButton_Click,
             enabled: OrganizeDeleteButton.IsEnabled,
