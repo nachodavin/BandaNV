@@ -141,8 +141,11 @@ public sealed class SearchFileActionService
 
         if (settings.CreateFolders)
         {
-            Directory.CreateDirectory(
-                targetFolder);
+            if (!Directory.Exists(targetFolder))
+            {
+                ProtectedFolderService.EnsureAllowed(settings, targetFolder);
+                Directory.CreateDirectory(targetFolder);
+            }
         }
         else if (!Directory.Exists(
                      targetFolder))
@@ -228,6 +231,8 @@ public sealed class SearchFileActionService
 
             try
             {
+                ProtectedFolderService.EnsureAllowed(settings, source, target);
+
                 OrganizationEntrySafety.MoveEntrySafely(
                     source,
                     target,
@@ -350,6 +355,8 @@ public sealed class SearchFileActionService
             ]);
         }
 
+        ProtectedFolderService.EnsureAllowed(settings, source, target);
+
         if (OrganizationEntrySafety.Exists(
                 target))
         {
@@ -439,6 +446,8 @@ public sealed class SearchFileActionService
 
             try
             {
+                ProtectedFolderService.EnsureAllowed(settings, path);
+
                 if (settings.UseRecycleBin)
                 {
                     if (isDirectory)

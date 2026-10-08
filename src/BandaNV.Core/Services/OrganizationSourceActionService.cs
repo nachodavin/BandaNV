@@ -182,6 +182,11 @@ public sealed class OrganizationSourceActionService
             ]);
         }
 
+        ProtectedFolderService.EnsureAllowed(
+            settings,
+            source,
+            target);
+
         if (OrganizationEntrySafety.Exists(
                 target))
         {
@@ -272,6 +277,8 @@ public sealed class OrganizationSourceActionService
 
             try
             {
+                ProtectedFolderService.EnsureAllowed(settings, path);
+
                 if (settings.UseRecycleBin)
                 {
                     if (isDirectory)
