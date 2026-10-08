@@ -178,14 +178,12 @@ public sealed partial class CategoriesPage : Page
                         ? 2
                         : 1;
 
-        const double spacing = 20;
-
+        // ItemWidth ya incluye el margen derecho de 20 px del contenedor.
+        // Descontarlo de nuevo deja un hueco innecesario tras la última card.
         wrapGrid.ItemWidth =
             Math.Max(
                 300,
-                (availableWidth -
-                 (spacing * columns)) /
-                columns);
+                availableWidth / columns);
     }
 
     private void CategoryCard_PointerPressed(

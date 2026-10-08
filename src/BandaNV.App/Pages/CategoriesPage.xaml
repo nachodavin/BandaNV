@@ -231,6 +231,7 @@
                         SizeChanged="CategoryList_SizeChanged"
                         HorizontalContentAlignment="Stretch"
                         VerticalContentAlignment="Stretch"
+                        Margin="0,0,-20,0"
                         Padding="0">
 
                         <GridView.Resources>
