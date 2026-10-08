@@ -118,7 +118,9 @@ function Invoke-UpdateScenario([string]$name, [string]$mode, [bool]$badManifest)
 
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $runner
-    $psi.WorkingDirectory = $workspace
+    # El runner no debe usar el propio workspace como directorio
+    # de trabajo: así la limpieza final puede eliminarlo.
+    $psi.WorkingDirectory = $script:updaterPublish
     $psi.Arguments = $arguments
     $psi.UseShellExecute = $false
 

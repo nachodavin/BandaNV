@@ -318,8 +318,10 @@ public sealed class UpdateService
             {
                 FileName =
                     prepared.UpdaterPath,
+                // NVupdate elimina el workspace al terminar. El runner
+                // vive fuera de él para que Windows no bloquee su limpieza.
                 WorkingDirectory =
-                    prepared.WorkspaceRoot,
+                    Path.GetDirectoryName(prepared.UpdaterPath)!,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
