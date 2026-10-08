@@ -82,27 +82,57 @@ internal static class BandaContextMenu
             IsEnabled = enabled
         };
 
-        // Escopados a cada botón: los recursos globales de WinUI no se
-        // modifican en caliente al abrir el menú.
-        button.Resources["ButtonBackgroundPointerOver"] = hoverBackground;
-        button.Resources["ButtonBackgroundPressed"] = pressedBackground;
-        button.Resources["ButtonForegroundPointerOver"] = hoverText;
-        button.Resources["ButtonForegroundPressed"] = hoverText;
-        button.Resources["ButtonBorderBrushPointerOver"] = hoverBackground;
-        button.Resources["ButtonBorderBrushPressed"] = pressedBackground;
-
-        // La etiqueta está dentro de un StackPanel. Su color se sincroniza
-        // con el fondo teal para evitar texto negro sobre un fondo oscuro.
-        void SetHovered(bool hovered)
+        // La superficie de selección es independiente del template
+        // de Button. WinUI puede enfocar automáticamente la primera
+        // opción al abrir; antes el texto pasaba a negro sin que el
+        // template pintara el hover, y la opción parecía invisible.
+        var normalBackground = new SolidColorBrush(
+            Microsoft.UI.Colors.Transparent);
+        var hoverSurface = new Border
         {
-            label.Foreground = hovered ? hoverText : normalText;
-            icon.Foreground = hovered ? hoverText : normalIcon;
+            Background = normalBackground,
+            CornerRadius = new CornerRadius(9),
+            Child = button
+        };
+
+        // Evitar que los estados propios del Button oculten el fondo
+        // que administra el contenedor. No modificamos recursos globales.
+        button.Resources["ButtonBackgroundPointerOver"] = normalBackground;
+        button.Resources["ButtonBackgroundPressed"] = normalBackground;
+        button.Resources["ButtonBorderBrushPointerOver"] = normalBackground;
+        button.Resources["ButtonBorderBrushPressed"] = normalBackground;
+
+        var isPointerOver = false;
+        var isFocused = false;
+
+        void RefreshVisualState()
+        {
+            var active = enabled && (isPointerOver || isFocused);
+            hoverSurface.Background = active ? hoverBackground : normalBackground;
+            label.Foreground = active ? hoverText : normalText;
+            icon.Foreground = active ? hoverText : normalIcon;
         }
 
-        button.PointerEntered += (_, _) => SetHovered(true);
-        button.PointerExited += (_, _) => SetHovered(false);
-        button.GotFocus += (_, _) => SetHovered(true);
-        button.LostFocus += (_, _) => SetHovered(false);
+        button.PointerEntered += (_, _) =>
+        {
+            isPointerOver = true;
+            RefreshVisualState();
+        };
+        button.PointerExited += (_, _) =>
+        {
+            isPointerOver = false;
+            RefreshVisualState();
+        };
+        button.GotFocus += (_, _) =>
+        {
+            isFocused = true;
+            RefreshVisualState();
+        };
+        button.LostFocus += (_, _) =>
+        {
+            isFocused = false;
+            RefreshVisualState();
+        };
 
         button.Click += (sender, args) =>
         {
@@ -120,7 +150,7 @@ internal static class BandaContextMenu
             menu.Hide();
         };
 
-        ((StackPanel)menu.Content).Children.Add(button);
+        ((StackPanel)menu.Content).Children.Add(hoverSurface);
     }
 
     public static void Separator(Flyout menu)
@@ -180,11 +210,20 @@ internal static class BandaContextMenu
         ListView list,
         RightTappedRoutedEventArgs e)
     {
+        var click = e.GetPosition(list);
+
+        // La posición refiere al clic derecho. Con la alineación
+        // inferior-izquierda, el menú nace inmediatamente abajo y
+        // a la derecha del puntero, como en el Explorador de Windows.
+        // WinUI ajustará la ubicación cerca de los bordes de pantalla.
         menu.ShowAt(
             list,
             new FlyoutShowOptions
             {
-                Position = e.GetPosition(list)
+                Position = new Windows.Foundation.Point(
+                    click.X + 2,
+                    click.Y + 2),
+                Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft
             });
 
         e.Handled = true;
