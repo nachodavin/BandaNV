@@ -274,6 +274,7 @@
                                     BorderBrush="{x:Bind ColorBrush}"
                                     BorderThickness="1"
                                     PointerPressed="CategoryCard_PointerPressed"
+                                    RightTapped="CategoryCard_RightTapped"
                                     PointerMoved="CategoryCard_PointerMoved"
                                     PointerReleased="CategoryCard_PointerReleased"
                                     PointerCanceled="CategoryCard_PointerCanceled"

@@ -242,6 +242,68 @@ public sealed partial class CategoriesPage : Page
             true;
     }
 
+    private void CategoryCard_RightTapped(
+        object sender,
+        RightTappedRoutedEventArgs e)
+    {
+        if (_pointerDragActive ||
+            sender is not FrameworkElement
+            {
+                Tag: string categoryId
+            } card)
+        {
+            return;
+        }
+
+        // Reutilizamos el mismo Flyout del botón de tres puntos:
+        // no duplicamos acciones ni creamos un menú distinto.
+        var actionsButton =
+            FindCategoryActionsButton(
+                card,
+                categoryId);
+
+        if (actionsButton?.Flyout is null)
+        {
+            return;
+        }
+
+        actionsButton.Flyout.ShowAt(actionsButton);
+        e.Handled = true;
+    }
+
+    private static Button? FindCategoryActionsButton(
+        DependencyObject element,
+        string categoryId)
+    {
+        if (element is Button
+            {
+                Tag: string buttonCategoryId,
+                Flyout: not null
+            } button &&
+            buttonCategoryId.Equals(
+                categoryId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return button;
+        }
+
+        for (var index = 0;
+             index < VisualTreeHelper.GetChildrenCount(element);
+             index++)
+        {
+            var result = FindCategoryActionsButton(
+                VisualTreeHelper.GetChild(element, index),
+                categoryId);
+
+            if (result is not null)
+            {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
     private void CategoryCard_PointerMoved(
         object sender,
         PointerRoutedEventArgs e)
