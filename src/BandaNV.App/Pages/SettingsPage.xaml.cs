@@ -1022,7 +1022,7 @@ public sealed partial class SettingsPage : Page
             SettingsConfirmMode.ResetSettings,
             "Restablecer configuración",
             "Volver a las preferencias predeterminadas",
-            "Se restablecerán las preferencias de BandaNV a sus valores predeterminados. No se eliminarán categorías, historial, logs ni archivos organizados.",
+            "Se restablecerán las preferencias de BandaNV a sus valores predeterminados, incluida la lista de carpetas protegidas, que quedará vacía. No se eliminarán categorías, historial, logs, carpetas ni archivos organizados.",
             "Restablecer");
     }
 
@@ -1303,10 +1303,7 @@ public sealed partial class SettingsPage : Page
             global::BandaNV.App.App.Settings.Current
                 .OrphanedCategoryFolders
                 .ToList();
-        defaults.ProtectedFolders =
-            global::BandaNV.App.App.Settings.Current
-                .ProtectedFolders
-                .ToList();
+        // El valor predeterminado es no tener carpetas protegidas.
 
         _isPageReady = false;
 

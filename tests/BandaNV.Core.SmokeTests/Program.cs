@@ -248,6 +248,11 @@ internal static class Program
             settings.ConfirmDestructiveActions,
             "Las confirmaciones destructivas deberían venir activadas.");
 
+        Equal(
+            0,
+            settings.ProtectedFolders.Count,
+            "No debería haber carpetas protegidas por defecto.");
+
         True(
             settings.SaveHistory &&
             settings.SaveOrganizeHistory &&

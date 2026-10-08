@@ -103,10 +103,8 @@ public sealed class SettingsService
         defaults.OrphanedCategoryFolders =
             Current.OrphanedCategoryFolders.ToList();
 
-        // La protección de carpetas es una preferencia de seguridad y
-        // no debe perderse al restablecer las opciones visuales.
-        defaults.ProtectedFolders =
-            Current.ProtectedFolders.ToList();
+        // Restablecer configuración recupera también la lista vacía
+        // de carpetas protegidas definida por los valores de fábrica.
 
         await SaveAsync(defaults, cancellationToken);
     }
