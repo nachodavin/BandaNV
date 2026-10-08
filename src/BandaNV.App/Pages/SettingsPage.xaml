@@ -1265,6 +1265,106 @@
             </Grid>
         </Grid>
 
+        <!-- Confirmación de importación de configuración -->
+        <Grid
+            x:Name="SettingsImportOverlay"
+            Canvas.ZIndex="130"
+            Visibility="Collapsed">
+            <Border
+                Background="{StaticResource BandaPopupBackdropBrush}"
+                Tapped="SettingsImportBackdrop_Tapped" />
+
+            <Border
+                Width="580"
+                MaxWidth="580"
+                Style="{StaticResource BandaPopupCardStyle}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <StackPanel Spacing="18">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Width="46"
+                            Height="46"
+                            CornerRadius="14"
+                            Background="{StaticResource BandaAccentSoftBrush}">
+                            <SymbolIcon
+                                Symbol="OpenFile"
+                                Foreground="{StaticResource BandaAccentBrush}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
+                            <TextBlock Text="Importar configuración" Foreground="{StaticResource BandaTextBrush}" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="SettingsImportFileText"
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="13"
+                                TextWrapping="Wrap"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="2"
+                            Content="×"
+                            Click="CancelSettingsImportButton_Click"
+                            Style="{StaticResource BandaPopupCloseButtonStyle}"
+                            VerticalAlignment="Top" />
+                    </Grid>
+
+                    <Border
+                        Background="{StaticResource BandaCardBrush}"
+                        BorderBrush="{StaticResource BandaBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock
+                                Text="¿Querés reemplazar la configuración actual por la del archivo seleccionado?"
+                                Foreground="{StaticResource BandaTextBrush}"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="SettingsImportSummaryText"
+                                Foreground="{StaticResource BandaMutedStrongBrush}"
+                                FontSize="13"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                Text="Se restaurarán las preferencias y categorías del backup. Las carpetas físicas de categorías pueden sincronizarse en el destino seleccionado. No se copiarán ni borrarán archivos personales, historial o logs como parte del backup."
+                                Foreground="{StaticResource BandaMutedBrush}"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button
+                            x:Name="SettingsImportCancelButton"
+                            Grid.Column="1"
+                            Content="Cancelar"
+                            Click="CancelSettingsImportButton_Click"
+                            Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+                        <Button
+                            x:Name="SettingsImportConfirmButton"
+                            Grid.Column="2"
+                            Content="Importar configuración"
+                            Click="ConfirmSettingsImportButton_Click"
+                            Style="{StaticResource BandaPopupPrimaryButtonStyle}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <!-- Confirmación destructiva -->
         <Grid
             x:Name="SettingsConfirmOverlay"
