@@ -27,7 +27,7 @@ public sealed class RecoveryService
         CancellationToken cancellationToken = default) =>
         RecoverAsync(
             settings: null,
-            cancellationToken);
+            cancellationToken: cancellationToken);
 
     public Task<StartupRecoveryResult> RecoverAsync(
         AppSettings? settings,

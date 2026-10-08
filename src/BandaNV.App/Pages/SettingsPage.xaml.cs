@@ -228,6 +228,22 @@ public sealed partial class SettingsPage : Page
                 ProtectedFolderService.NormalizePath(
                     folder.Path);
 
+            // La instalación portable contiene configuración y registros
+            // que BandaNV necesita seguir escribiendo para funcionar.
+            var candidateSettings = new AppSettings
+            {
+                ProtectedFolders = [normalized]
+            };
+
+            if (ProtectedFolderService.IsProtected(
+                    candidateSettings,
+                    PortablePaths.RootDirectory))
+            {
+                ShowSettingsFeedback(
+                    "No se puede proteger la carpeta portable de BandaNV ni una ruta que la contenga.");
+                return;
+            }
+
             if (_protectedFolderPaths.Any(path =>
                     ProtectedFolderService.TryGetProtectedFolder(
                         new AppSettings { ProtectedFolders = [path] },
@@ -908,6 +924,9 @@ public sealed partial class SettingsPage : Page
             ProtectedFolderService.NormalizePaths(
                 backup.ProtectedFolders));
         RefreshProtectedFoldersList();
+
+        global::BandaNV.App.App.Settings.Current.ProtectedFolders =
+            _protectedFolderPaths.ToList();
         SaveHistoryToggle.IsOn = backup.SaveHistory;
         SaveOrganizeHistoryToggle.IsOn = backup.SaveOrganizeHistory;
         SaveSearchHistoryToggle.IsOn = backup.SaveSearchHistory;
