@@ -1,3 +1,4 @@
+using BandaNV.App.Services;
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using System.Collections.ObjectModel;
@@ -1380,6 +1381,105 @@ public sealed partial class SearchPage : Page
         return content;
     }
 
+
+    private void SearchResultsList_RightTapped(
+        object sender,
+        RightTappedRoutedEventArgs e)
+    {
+        if (!BandaContextMenu.SelectForRightClick<SearchFileResult>(
+                SearchResultsList, e.OriginalSource))
+        {
+            return;
+        }
+
+        // Evita arrastrar una selección residual del sublistado lateral.
+        if (SearchFolderContentList.SelectedItems.Count > 0)
+        {
+            SearchFolderContentList.SelectedItems.Clear();
+        }
+
+        ShowSearchContextMenu(SearchResultsList, e);
+    }
+
+    private void SearchFolderContentList_RightTapped(
+        object sender,
+        RightTappedRoutedEventArgs e)
+    {
+        if (BandaContextMenu.SelectForRightClick<SearchFolderContentItem>(
+                SearchFolderContentList, e.OriginalSource))
+        {
+            ShowSearchContextMenu(SearchFolderContentList, e);
+        }
+    }
+
+    private void ShowSearchContextMenu(
+        ListView list,
+        RightTappedRoutedEventArgs e)
+    {
+        var files = GetSelectedSearchFiles();
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        var menu = BandaContextMenu.Create();
+        var one = files.Count == 1;
+        var only = one ? files[0] : null;
+
+        if (one)
+        {
+            BandaContextMenu.Add(
+                menu,
+                only!.IsDirectory ? "Explorar contenido" : "Abrir archivo",
+                "\\uE8E5",
+                SearchOpenFileButton_Click,
+                enabled: SearchOpenFileButton.IsEnabled);
+            BandaContextMenu.Add(
+                menu,
+                "Abrir ubicación",
+                "\\uE8B7",
+                SearchOpenLocationButton_Click,
+                enabled: SearchOpenLocationButton.IsEnabled);
+            BandaContextMenu.Separator(menu);
+        }
+
+        BandaContextMenu.Add(
+            menu,
+            one ? "Copiar ruta" : $"Copiar {files.Count} rutas",
+            "\\uE8C8",
+            SearchCopyPathButton_Click,
+            enabled: SearchCopyPathButton.IsEnabled);
+        BandaContextMenu.Add(
+            menu,
+            "Cambiar categoría",
+            "\\uE8EC",
+            SearchChangeCategoryButton_Click,
+            enabled: SearchChangeCategoryButton.IsEnabled);
+
+        if (one)
+        {
+            BandaContextMenu.Add(
+                menu,
+                only!.IsDirectory ? "Renombrar carpeta" : "Renombrar archivo",
+                "\\uE8AC",
+                SearchRenameButton_Click,
+                enabled: SearchRenameButton.IsEnabled);
+        }
+
+        BandaContextMenu.Separator(menu);
+        BandaContextMenu.Add(
+            menu,
+            one
+                ? only!.IsDirectory ? "Eliminar carpeta" : "Eliminar archivo"
+                : $"Eliminar {files.Count} elementos",
+            "\\uE74D",
+            SearchDeleteButton_Click,
+            enabled: SearchDeleteButton.IsEnabled,
+            danger: true);
+
+        BandaContextMenu.Show(menu, list, e);
+    }
+
     private void SearchResultsList_SelectionChanged(
         object sender,
         SelectionChangedEventArgs e)
@@ -1895,6 +1995,15 @@ public sealed partial class SearchPage : Page
 
     private List<SearchFileResult> GetSelectedSearchFiles()
     {
+        if (SearchFolderContentsPanel.Visibility == Visibility.Visible)
+        {
+            var nestedSelection = GetSelectedFolderContentFiles();
+            if (nestedSelection.Count > 0)
+            {
+                return nestedSelection;
+            }
+        }
+
         var selected =
             GetSelectedMainSearchFiles();
 

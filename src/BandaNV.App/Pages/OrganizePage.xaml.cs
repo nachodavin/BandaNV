@@ -1,3 +1,4 @@
+using BandaNV.App.Services;
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using System.Collections.ObjectModel;
@@ -1948,6 +1949,103 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         RefreshPreview();
     }
 
+
+    private void PreviewFilesList_RightTapped(
+        object sender,
+        RightTappedRoutedEventArgs e)
+    {
+        var selected =
+            IsOrganizeFolderNavigationActive
+                ? BandaContextMenu.SelectForRightClick<FolderContentPreviewItem>(
+                    PreviewFilesList, e.OriginalSource)
+                : BandaContextMenu.SelectForRightClick<OrganizePreviewFile>(
+                    PreviewFilesList, e.OriginalSource);
+
+        if (selected)
+        {
+            ShowOrganizeContextMenu(PreviewFilesList, e);
+        }
+    }
+
+    private void FolderDetailFilesList_RightTapped(
+        object sender,
+        RightTappedRoutedEventArgs e)
+    {
+        if (BandaContextMenu.SelectForRightClick<FolderContentPreviewItem>(
+                FolderDetailFilesList, e.OriginalSource))
+        {
+            ShowOrganizeContextMenu(FolderDetailFilesList, e);
+        }
+    }
+
+    private void ShowOrganizeContextMenu(
+        ListView list,
+        RightTappedRoutedEventArgs e)
+    {
+        var targets = GetActiveOrganizeActionTargets();
+        if (targets.Count == 0)
+        {
+            return;
+        }
+
+        var menu = BandaContextMenu.Create();
+        var one = targets.Count == 1;
+        var only = one ? targets[0] : null;
+
+        if (one)
+        {
+            BandaContextMenu.Add(
+                menu,
+                only!.IsDirectory ? "Explorar contenido" : "Abrir archivo",
+                "\\uE8E5",
+                OrganizeOpenButton_Click,
+                enabled: OrganizeOpenButton.IsEnabled);
+            BandaContextMenu.Add(
+                menu,
+                "Abrir ubicación",
+                "\\uE8B7",
+                OrganizeOpenLocationButton_Click,
+                enabled: OrganizeOpenLocationButton.IsEnabled);
+            BandaContextMenu.Separator(menu);
+        }
+
+        BandaContextMenu.Add(
+            menu,
+            one ? "Copiar ruta" : $"Copiar {targets.Count} rutas",
+            "\\uE8C8",
+            OrganizeCopyPathButton_Click,
+            enabled: OrganizeCopyPathButton.IsEnabled);
+        BandaContextMenu.Add(
+            menu,
+            "Cambiar categoría",
+            "\\uE8EC",
+            OrganizeChangeCategoryButton_Click,
+            enabled: OrganizeChangeCategoryButton.IsEnabled);
+
+        if (one)
+        {
+            BandaContextMenu.Add(
+                menu,
+                only!.IsDirectory ? "Renombrar carpeta" : "Renombrar archivo",
+                "\\uE8AC",
+                OrganizeRenameButton_Click,
+                enabled: OrganizeRenameButton.IsEnabled);
+        }
+
+        BandaContextMenu.Separator(menu);
+        BandaContextMenu.Add(
+            menu,
+            one
+                ? only!.IsDirectory ? "Eliminar carpeta" : "Eliminar archivo"
+                : $"Eliminar {targets.Count} elementos",
+            "\\uE74D",
+            OrganizeDeleteButton_Click,
+            enabled: OrganizeDeleteButton.IsEnabled,
+            danger: true);
+
+        BandaContextMenu.Show(menu, list, e);
+    }
+
     private void PreviewFilesList_SelectionChanged(
         object sender,
         SelectionChangedEventArgs e)
@@ -2925,12 +3023,23 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
             true;
     }
 
-    private List<FolderContentPreviewItem> GetSelectedFolderContentItems() =>
-        IsOrganizeFolderNavigationActive
-            ? PreviewFilesList.SelectedItems
-                .OfType<FolderContentPreviewItem>()
-                .ToList()
-            : [];
+    private List<FolderContentPreviewItem> GetSelectedFolderContentItems()
+    {
+        if (!IsOrganizeFolderNavigationActive)
+        {
+            return [];
+        }
+
+        // La navegación principal es la vista activa; mantenemos también
+        // compatibilidad con el sublistado lateral cuando está visible.
+        var list = OrganizeFolderContentsPanel.Visibility == Visibility.Visible
+            ? FolderDetailFilesList
+            : PreviewFilesList;
+
+        return list.SelectedItems
+            .OfType<FolderContentPreviewItem>()
+            .ToList();
+    }
 
     private FolderContentPreviewItem? GetFolderContentItemFromEventSource(
         object? source)
