@@ -72,6 +72,7 @@ public sealed class CategoryFolderSyncService
                 return CategoryFolderSyncResult.DeferredSync();
             }
 
+            ProtectedFolderService.EnsureAllowed(settings, destinationRoot);
             Directory.CreateDirectory(destinationRoot);
         }
 
@@ -162,6 +163,7 @@ public sealed class CategoryFolderSyncService
         try
         {
             ValidateTargets(
+                settings,
                 destinationRoot,
                 moves,
                 deletedMoves,
@@ -234,6 +236,7 @@ public sealed class CategoryFolderSyncService
                             continue;
                         }
 
+                        ProtectedFolderService.EnsureAllowed(settings, folder);
                         Directory.CreateDirectory(folder);
                         createdFolders.Add(folder);
                         createdCount++;
@@ -272,6 +275,10 @@ public sealed class CategoryFolderSyncService
                     EnsurePathInsideRoot(
                         orphanTarget,
                         destinationRoot);
+
+                    ProtectedFolderService.EnsureAllowed(
+                        settings,
+                        orphanTarget);
 
                     Directory.Move(
                         deleted.Temporary,
@@ -382,6 +389,7 @@ public sealed class CategoryFolderSyncService
     }
 
     private static void ValidateTargets(
+        AppSettings settings,
         string destinationRoot,
         IReadOnlyList<FolderMove> moves,
         IReadOnlyList<DeletedFolderMove> deletedMoves,
@@ -402,6 +410,11 @@ public sealed class CategoryFolderSyncService
             EnsurePathInsideRoot(
                 deleted.Temporary,
                 destinationRoot);
+
+            ProtectedFolderService.EnsureAllowed(
+                settings,
+                deleted.Source,
+                deleted.Temporary);
         }
 
         foreach (var move in moves)
@@ -415,6 +428,12 @@ public sealed class CategoryFolderSyncService
             EnsurePathInsideRoot(
                 move.Temporary,
                 destinationRoot);
+
+            ProtectedFolderService.EnsureAllowed(
+                settings,
+                move.Source,
+                move.Target,
+                move.Temporary);
 
             if (File.Exists(move.Target))
             {
@@ -496,7 +515,8 @@ public sealed class CategoryFolderSyncService
                 continue;
             }
 
-            if (!deleteEmpty)
+            if (!deleteEmpty ||
+                ProtectedFolderService.IsProtected(settings, normalized))
             {
                 retained.Add(normalized);
                 continue;

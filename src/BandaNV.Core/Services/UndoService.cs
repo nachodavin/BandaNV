@@ -359,6 +359,20 @@ public sealed class UndoService
             return;
         }
 
+        try
+        {
+            ProtectedFolderService.EnsureAllowed(
+                settings,
+                organizedPath,
+                originalItem.OriginalPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            undoItem.Status = OrganizationExecutionItemStatus.Error;
+            undoItem.Message = ex.Message;
+            return;
+        }
+
         if (OrganizationEntrySafety.Exists(
                 originalItem.OriginalPath))
         {
