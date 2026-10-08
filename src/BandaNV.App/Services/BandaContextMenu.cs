@@ -45,7 +45,6 @@ internal static class BandaContextMenu
         var normalIcon =
             (Brush)resources[danger ? "BandaDangerBrush" : "BandaMutedStrongBrush"];
         var hoverBackground = (Brush)resources["BandaActionHoverBrush"];
-        var pressedBackground = (Brush)resources["BandaActionPressedBrush"];
 
         var row = new StackPanel
         {
