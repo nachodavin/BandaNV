@@ -3,6 +3,7 @@ BandaNV.exe
 build/
 dist/
 dist-v2/
+dist-updater-e2e/
 
 # Runtime
 config/
