@@ -1041,10 +1041,13 @@
                                 </Border>
                             </Grid>
 
+                            <!-- Controles de acciones conservados para los menús contextuales:
+                                 mantienen textos, estados y handlers, sin ocupar lugar en el panel. -->
                             <StackPanel
                                 Grid.Row="3"
                                 Spacing="8"
-                                Margin="0,16,0,0">
+                                Margin="0,16,0,0"
+                                Visibility="Collapsed">
                                 <Button
                                     x:Name="SearchOpenFileButton"
                                     Content="Abrir archivo"
