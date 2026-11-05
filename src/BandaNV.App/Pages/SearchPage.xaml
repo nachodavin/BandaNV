@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:BandaNV.App.Pages"
+    xmlns:controls="using:BandaNV.App.Controls"
     Background="Transparent">
 
     <Page.Resources>
@@ -747,6 +748,7 @@
                             </Grid.RowDefinitions>
 
                             <StackPanel Spacing="4">
+                                <controls:BandaImagePreview x:Name="SearchImagePreview" />
                                 <TextBlock
                                     x:Name="SearchDetailTitleText"
                                     Text="Detalle del elemento"

@@ -2555,6 +2555,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
     private void ShowOrganizeSummary()
     {
+        OrganizeImagePreview.Clear();
         OrganizeDetailPanel.Visibility =
             Visibility.Collapsed;
         OrganizeSummaryPanel.Visibility =
@@ -2579,6 +2580,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
 
         OrganizeDetailFileNameText.Text =
             item.FileName;
+
+        OrganizeImagePreview.Show(item.FullPath, item.IsDirectory);
 
         OrganizeDetailCategoryText.Text =
             item.IsClassified
@@ -2680,6 +2683,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private void ShowMultipleOrganizeDetails(
         IReadOnlyList<OrganizePreviewFile> files)
     {
+        OrganizeImagePreview.Clear();
         // Limpiar la navegación incondicionalmente borraba SelectedItems
         // en cada selección múltiple. Preservar la selección principal
         // permite que Eliminar, Copiar rutas y Cambiar categoría funcionen.
@@ -3134,6 +3138,8 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         OrganizeDetailFileNameText.Text =
             item.FileName;
 
+        OrganizeImagePreview.Show(GetFolderContentFullPath(item), item.IsDirectory);
+
         OrganizeDetailCategoryText.Text =
             item.CategoryDisplay;
 
@@ -3193,6 +3199,7 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
     private void ShowMultipleFolderContentDetails(
         IReadOnlyList<FolderContentPreviewItem> items)
     {
+        OrganizeImagePreview.Clear();
         if (_folderDetailRoot is null)
         {
             return;
