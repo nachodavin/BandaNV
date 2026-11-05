@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage;
+using Windows.Graphics.Imaging;
+using System.Diagnostics;
 
 namespace BandaNV.App.Controls;
 
@@ -163,6 +165,8 @@ public sealed class BandaImagePreview : UserControl
 
     private async Task LoadImageAsync(string filePath, int version)
     {
+        // Cada selección obtiene su propia decodificación, sin reutilizar
+        // BitmapImage ni modificar el origen de la imagen anterior.
         var loadTask = DecodeImageAsync(filePath, version);
         using var timeoutCancellation = new CancellationTokenSource();
 
@@ -171,44 +175,70 @@ public sealed class BandaImagePreview : UserControl
             var timeoutTask = Task.Delay(ImageLoadTimeout, timeoutCancellation.Token);
             if (await Task.WhenAny(loadTask, timeoutTask) != loadTask)
             {
-                // Si Windows no responde, mostrar un estado de error y
-                // descartar cualquier resultado que llegue demasiado tarde.
                 _ = ObserveLateCompletionAsync(loadTask);
                 ShowLoadError(version, "La vista previa tardó demasiado en cargar.");
                 return;
             }
 
             timeoutCancellation.Cancel();
-            await loadTask;
+            var source = await loadTask;
+
+            // Una carga vieja nunca puede alterar la selección actual.
+            if (version != _loadVersion || source is null)
+            {
+                return;
+            }
+
+            _image.Source = source;
+            _image.Visibility = Visibility.Visible;
+            _status.Visibility = Visibility.Collapsed;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"BandaNV - vista previa de imagen ({filePath}): {ex}");
             ShowLoadError(version, "No se pudo mostrar la vista previa.");
         }
     }
 
-    private async Task DecodeImageAsync(string filePath, int version)
+    private async Task<SoftwareBitmapSource?> DecodeImageAsync(string filePath, int version)
     {
         var file = await StorageFile.GetFileFromPathAsync(filePath);
         using var stream = await file.OpenReadAsync();
+        var decoder = await BitmapDecoder.CreateAsync(stream);
 
         if (version != _loadVersion)
         {
-            return;
+            return null;
         }
 
-        var bitmap = new BitmapImage { DecodePixelWidth = 1600 };
-
-        // Conectar primero la imagen al árbol visual. Esperar SetSourceAsync
-        // antes de asignar Source puede impedir que termine la decodificación.
-        _image.Source = bitmap;
-        _image.Visibility = Visibility.Visible;
-        await bitmap.SetSourceAsync(stream);
-
-        if (version == _loadVersion)
+        // Decodificar a 1600 px máximo en el lado mayor, conservando
+        // proporciones y la orientación EXIF de fotografías.
+        var width = Math.Max(1u, decoder.PixelWidth);
+        var height = Math.Max(1u, decoder.PixelHeight);
+        var scale = Math.Min(1d, 1600d / Math.Max(width, height));
+        var transform = new BitmapTransform
         {
-            _status.Visibility = Visibility.Collapsed;
+            ScaledWidth = (uint)Math.Max(1d, Math.Round(width * scale)),
+            ScaledHeight = (uint)Math.Max(1d, Math.Round(height * scale))
+        };
+
+        using var softwareBitmap = await decoder.GetSoftwareBitmapAsync(
+            BitmapPixelFormat.Bgra8,
+            BitmapAlphaMode.Premultiplied,
+            transform,
+            ExifOrientationMode.RespectExifOrientation,
+            ColorManagementMode.ColorManageToSRgb);
+
+        if (version != _loadVersion)
+        {
+            return null;
         }
+
+        // SoftwareBitmapSource evita la cadena BitmapImage.SetSourceAsync
+        // que podía quedar pendiente al cambiar de archivo.
+        var source = new SoftwareBitmapSource();
+        await source.SetBitmapAsync(softwareBitmap);
+        return version == _loadVersion ? source : null;
     }
 
     private void ShowLoadError(int version, string message)
