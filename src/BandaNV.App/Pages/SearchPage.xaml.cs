@@ -2091,6 +2091,8 @@ public sealed partial class SearchPage : Page
         SearchDetailFileNameText.Text =
             file.Name;
 
+        SearchImagePreview.Show(file.FilePath, file.IsDirectory);
+
         SearchDetailCategoryText.Text =
             file.Category;
 
@@ -2152,6 +2154,7 @@ public sealed partial class SearchPage : Page
         IReadOnlyList<SearchFileResult> files,
         bool preserveFolderContext = false)
     {
+        SearchImagePreview.Clear();
         var categoryCount =
             files
                 .Select(file =>
@@ -2680,6 +2683,7 @@ public sealed partial class SearchPage : Page
 
     private void ClearSearchFileDetails()
     {
+        SearchImagePreview.Clear();
         SearchDetailTitleText.Text =
             "Detalle del elemento";
 
