@@ -56,4 +56,4 @@ powershell -ExecutionPolicy Bypass -File .\Package_V2_Release.ps1
 
 El empaquetador ejecuta los smoke tests y valida la estructura del ZIP antes de indicar el SHA-256. **No publica automáticamente la release.**
 
-Para conocer los cambios más recientes, consultá [las notas de BandaNV v2.0.3](RELEASE_NOTES_v2.0.3.md). El detalle de la renovación completa está en [las notas de BandaNV v2.0](RELEASE_NOTES_v2.0.md).
+Para consultar las novedades de todas las versiones oficiales, visitá el [historial de cambios (CHANGELOG.md)](CHANGELOG.md).

@@ -1,10 +1,91 @@
-# BandaNV v2.0 — Notas oficiales de versión
+# Historial de cambios de BandaNV
+
+Este documento reúne las novedades, mejoras y correcciones de las versiones oficiales de BandaNV, ordenadas de la más reciente a la más antigua. Los títulos enlazan a las releases correspondientes de GitHub.
+
+---
+
+## [v2.0.3](https://github.com/nachodavin/BandaNV/releases/tag/v2.0.3) — Vista previa de archivos
+
+Esta actualización incorpora un visor integrado en los paneles de detalle de **Buscar** y **Organizar**, que permite consultar el contenido de archivos sin abrir ventanas adicionales. Está disponible también dentro de carpetas y subcarpetas.
+
+### Nuevo: vista previa integrada
+
+- **Imágenes:** PNG, JPG, JPEG, BMP, GIF y WebP. Ajuste al espacio disponible sin recortar ni deformar. Los GIF se muestran como imagen fija.
+- **PDF:** visualización de páginas dentro del panel, con botones **Anterior** y **Siguiente** e indicador de página actual.
+- **TXT:** lectura con desplazamiento y selección de texto. Para archivos grandes, se muestran hasta los primeros 150.000 caracteres.
+- **SVG:** visualización mediante el componente vectorial nativo de Windows.
+- El visor aprovecha el espacio vertical disponible y adapta su altura al panel lateral.
+- Al seleccionar otro archivo, la vista previa se actualiza sin que las cargas antiguas sustituyan al elemento actual.
+- La vista previa se oculta para carpetas, selecciones múltiples y formatos no admitidos.
+- **Ningún archivo original se modifica** al obtener su vista previa.
+
+### Estabilidad y correcciones
+
+- Se corrigió una carga de imágenes que podía quedarse en «Cargando vista previa…» tras cambiar de archivo.
+- Se implementó la decodificación independiente de imágenes con `SoftwareBitmapSource`.
+- Se limita la resolución de imágenes y páginas PDF para controlar el consumo de memoria.
+- Se manejan errores de lectura y cargas prolongadas sin cerrar la aplicación.
+
+### Instalación y actualización
+
+- **Instalación nueva:** descargá `BandaNV_v2.0.3.zip` de la release oficial estable, extraé la carpeta `BandaNV` y ejecutá `BandaNV.exe`.
+- **Actualización:** desde v2.0.2 podés utilizar el sistema de actualizaciones integrado después de que la release v2.0.3 publique su ZIP oficial con SHA-256.
+- El actualizador conserva los datos portables del usuario en `config/`, `logs/` y `history/`.
+
+### Validación
+
+- Se probaron manualmente en Windows los cambios entre imágenes y la vista previa de PDF, TXT y SVG.
+- Antes de publicar la release oficial debe ejecutarse `Package_V2_Release.ps1` en Windows, que realiza los smoke tests, compila la aplicación y NVupdate en Release, y valida el paquete y su manifiesto.
+
+---
+
+## [v2.0.2](https://github.com/nachodavin/BandaNV/releases/tag/v2.0.2) — Menús contextuales y correcciones en Organizar
+
+**Primera actualización de mantenimiento de BandaNV 2.0.** Incorpora menús contextuales con clic derecho en Organizar y Buscar, y corrige el manejo de la selección de archivos en Organizar.
+
+### Nuevo: menús contextuales en Organizar y Buscar
+
+- Acceso a las acciones de archivos y carpetas mediante **clic derecho**, inspirado en el Explorador de Windows 11.
+- Disponibles en los listados principales y al navegar por carpetas y subcarpetas.
+- Acciones según el elemento seleccionado: **Abrir archivo o contenido, Abrir ubicación, Copiar ruta, Cambiar categoría, Renombrar y Eliminar**.
+- Opciones adaptadas a la **selección múltiple**; las acciones que requieren un elemento individual no se ofrecen para varios archivos.
+- Diseño integrado con BandaNV: íconos, separadores, esquinas redondeadas, aparición junto al cursor y hover con el color secundario y texto negro.
+- Los nombres de las opciones coinciden con los botones del panel lateral.
+- Reutiliza las mismas acciones, confirmaciones y reglas de seguridad que ya utiliza el panel lateral.
+
+### Corrección principal en Organizar
+
+- Se corrigió un error por el que el panel de detalle podía limpiar la selección al visualizar un archivo.
+- Se corrigió el mismo comportamiento al seleccionar varios archivos simultáneamente.
+- Los botones **Eliminar**, **Renombrar**, **Copiar ruta** y **Cambiar categoría**, entre otras acciones contextuales, vuelven a recibir correctamente los archivos seleccionados.
+- Se conserva el comportamiento de navegación en carpetas y subcarpetas.
+
+### Mejoras adicionales
+
+- **Inicio** y **Configuración > Acerca de** ahora muestran la versión a partir de los datos internos de la aplicación, evitando etiquetas de versión desactualizadas.
+- El empaquetador de releases verifica que la versión del ejecutable, el tag y el manifiesto coincidan, facilitando las futuras actualizaciones correctivas.
+
+### Instalación y actualización
+
+- Para una instalación nueva, descargá `BandaNV_v2.0.2.zip` desde la release estable oficial, extraé la carpeta `BandaNV` y ejecutá `BandaNV.exe`.
+- Si ya tenés BandaNV v2.0 y el sistema de actualizaciones está disponible, podés actualizar desde **Configuración > Acerca de > Buscar actualizaciones**, una vez publicada la release estable v2.0.2.
+- Las carpetas portables `config/`, `logs/` y `history/` se conservan durante las actualizaciones gestionadas por BandaNV.
+
+### Validación
+
+- La corrección de selección y botones en **Organizar** se comprobó manualmente en Windows antes de su integración en `main`.
+- Los nuevos menús contextuales y sus ajustes visuales se probaron manualmente en Windows, incluyendo la apertura, el hover y las acciones.
+- El paquete oficial v2.0.2 debe pasar los smoke tests del motor y la validación del ZIP antes de su publicación.
+
+---
+
+## [v2.0](https://github.com/nachodavin/BandaNV/releases/tag/v2.0) — Renovación integral de BandaNV
 
 **BandaNV 2.0 es una renovación integral del organizador de archivos para Windows.** La aplicación fue reconstruida con una interfaz moderna, un motor de organización más seguro, búsqueda y gestión de archivos reales, historial con operaciones reversibles y un sistema propio de actualizaciones.
 
 La versión mantiene la idea original de BandaNV: **organizar tus archivos por categorías sin perder el control sobre lo que se mueve, modifica o elimina**.
 
-## Principales novedades
+### Principales novedades
 
 - **Interfaz completamente rediseñada** en WinUI 3, con seis secciones integradas y personalización visual.
 - **Nuevo motor de organización** con análisis previo, carpetas completas, resolución de conflictos y recuperación de operaciones interrumpidas.
@@ -14,9 +95,8 @@ La versión mantiene la idea original de BandaNV: **organizar tus archivos por c
 - **Protección de carpetas, backups de configuración y actualizaciones automáticas verificadas**.
 - **Distribución 100 % portable** para Windows x64, sin instalador ni dependencia de AppData para los datos de BandaNV.
 
----
 
-## 1. Nueva interfaz y experiencia de uso
+### 1. Nueva interfaz y experiencia de uso
 
 BandaNV deja atrás la interfaz de la versión anterior y adopta un entorno de escritorio basado en **C#, .NET 10 y WinUI 3**.
 
@@ -29,7 +109,7 @@ BandaNV deja atrás la interfaz de la versión anterior y adopta un entorno de e
 - Nueva jerarquía visual, mayor legibilidad de textos y estados más claros durante las operaciones.
 - Posibilidad de usar temas **Oscuro, Claro o Sistema**, además de colores personalizados.
 
-## 2. Inicio: un panel de control real
+### 2. Inicio: un panel de control real
 
 La sección **Inicio** muestra información actual de la organización, sin depender de valores de demostración.
 
@@ -42,11 +122,11 @@ La sección **Inicio** muestra información actual de la organización, sin depe
 - Gráfico de dona **Uso por categoría**, con distribución de los archivos entre las categorías.
 - Actualización de las métricas ante cambios relevantes en archivos, categorías o ejecuciones.
 
-## 3. Organizar: análisis, control y movimientos seguros
+### 3. Organizar: análisis, control y movimientos seguros
 
 La sección **Organizar** se conecta con un motor real de análisis y ejecución.
 
-### Vista previa y clasificación
+#### Vista previa y clasificación
 
 - Análisis de los elementos pendientes **sin moverlos durante la exploración**.
 - Vista previa con nombre, categoría, tamaño, modificación, destino y resumen general.
@@ -57,7 +137,7 @@ La sección **Organizar** se conecta con un motor real de análisis y ejecución
 - Selección múltiple y panel de información contextual.
 - Reanálisis de cambios externos para evitar trabajar con resultados desactualizados.
 
-### Carpetas completas y subcarpetas
+#### Carpetas completas y subcarpetas
 
 - Opción **Detectar carpetas completas**: cada carpeta puede organizarse como una sola unidad, conservando su estructura interna.
 - Análisis del contenido de carpetas anidadas, incluyendo sus archivos y subcarpetas.
@@ -66,7 +146,7 @@ La sección **Organizar** se conecta con un motor real de análisis y ejecución
 - Detección de carpetas y subcarpetas vacías, incorporadas a las comprobaciones de seguridad.
 - Navegación por el contenido de carpetas desde el propio listado y panel de detalle.
 
-### Conflictos y ejecución
+#### Conflictos y ejecución
 
 - Opciones configurables cuando ya existe un nombre en destino: **Preguntar, Renombrar automáticamente, Omitir elemento o Reemplazar**.
 - Resolución de conflictos entre archivos y carpetas, incluidos elementos de distinto tipo que comparten nombre.
@@ -75,7 +155,7 @@ La sección **Organizar** se conecta con un motor real de análisis y ejecución
 - Registro técnico de la operación para permitir la recuperación y el deshacer cuando sea seguro.
 - Acciones contextuales sobre elementos del origen, como abrir, copiar ruta, cambiar categoría, renombrar o eliminar, según corresponda.
 
-## 4. Buscar: explorador y gestor de archivos organizados
+### 4. Buscar: explorador y gestor de archivos organizados
 
 La sección **Buscar** pasa a trabajar con los archivos y carpetas reales que existen dentro del destino configurado.
 
@@ -91,7 +171,7 @@ La sección **Buscar** pasa a trabajar con los archivos y carpetas reales que ex
 - Acciones como **abrir archivo, abrir ubicación, copiar ruta, cambiar categoría, renombrar y eliminar**, con controles de seguridad.
 - Posibilidad de registrar por separado las acciones realizadas desde Buscar en el Historial.
 
-## 5. Historial y Deshacer
+### 5. Historial y Deshacer
 
 El historial se convierte en una sección de consulta y recuperación conectada con las operaciones reales de BandaNV.
 
@@ -107,7 +187,7 @@ El historial se convierte en una sección de consulta y recuperación conectada 
 - Separación entre el **historial visible** y los **registros técnicos necesarios para Deshacer**: desactivar el historial no deshabilita por sí mismo la recuperación técnica.
 - Opciones para conservar, limitar y limpiar el historial según las preferencias configuradas.
 
-## 6. Categorías: más control y personalización
+### 6. Categorías: más control y personalización
 
 La administración de categorías fue rediseñada como una grilla de cards.
 
@@ -124,11 +204,11 @@ La administración de categorías fue rediseñada como una grilla de cards.
 
 La instalación nueva incluye categorías iniciales para archivos comprimidos, instaladores, documentos, imágenes, GIF, videos, audio y editables. Todas se pueden personalizar.
 
-## 7. Configuración: preferencias completas y portables
+### 7. Configuración: preferencias completas y portables
 
 La configuración se reorganiza en pestañas: **General, Apariencia, Organización, Historial y seguridad, Avanzado y Acerca de**.
 
-### Aplicación y apariencia
+#### Aplicación y apariencia
 
 - Selección de las carpetas de **origen** y **destino**.
 - Elección de la página que se abre al iniciar.
@@ -138,7 +218,7 @@ La configuración se reorganiza en pestañas: **General, Apariencia, Organizaci�
 - Temas visuales **Claro, Oscuro o Sistema**.
 - **Color primario** para fondos y superficies y **color secundario** para botones, selección y acciones, con vista previa y restablecimiento.
 
-### Organización, historial y seguridad
+#### Organización, historial y seguridad
 
 - Activar o desactivar la vista previa y la detección de carpetas completas.
 - Elegir la creación de carpetas de categoría y la limpieza segura de carpetas de categorías eliminadas.
@@ -148,14 +228,14 @@ La configuración se reorganiza en pestañas: **General, Apariencia, Organizaci�
 - Definir una política de conservación de registros.
 - Guardar filtros, orden y agrupación de las listas entre sesiones.
 
-### Carpetas protegidas
+#### Carpetas protegidas
 
 - Incorporar rutas a una lista de **carpetas protegidas**.
 - Impedir que BandaNV las mueva, renombre, reemplace o elimine, así como a su contenido.
 - Bloquear también operaciones sobre carpetas superiores cuando pudieran afectar una ubicación protegida.
 - Aplicar estas protecciones a **Organizar, Buscar, sincronización de categorías, Deshacer y recuperación de inicio**.
 
-### Copias de seguridad de configuración
+#### Copias de seguridad de configuración
 
 - **Exportar e importar** preferencias mediante archivos `.bandanv`.
 - Incluir categorías, extensiones, colores, ubicaciones, apariencia, comportamiento y carpetas protegidas.
@@ -166,7 +246,7 @@ La configuración se reorganiza en pestañas: **General, Apariencia, Organizaci�
 
 **Importante:** los backups `.bandanv` son de **configuración**. No contienen los archivos personales que organizaste ni sustituyen una copia completa de `logs/` e `history/`.
 
-## 8. Seguridad y recuperación de operaciones
+### 8. Seguridad y recuperación de operaciones
 
 BandaNV 2.0 incorpora comprobaciones para reducir el riesgo de pérdida o modificación inesperada de datos.
 
@@ -181,7 +261,7 @@ BandaNV 2.0 incorpora comprobaciones para reducir el riesgo de pérdida o modifi
 
 **Nota:** eliminar archivos de forma permanente, reemplazar contenido o modificar elementos externamente puede limitar la posibilidad de deshacer una acción. BandaNV verifica cada caso antes de ofrecerla.
 
-## 9. Sistema propio de actualizaciones
+### 9. Sistema propio de actualizaciones
 
 La versión 2.0 incorpora un sistema de actualizaciones integrado con **GitHub Releases**.
 
@@ -195,7 +275,7 @@ La versión 2.0 incorpora un sistema de actualizaciones integrado con **GitHub R
 - Confirmación de inicio correcto; si falla, el actualizador intenta **restaurar la instalación anterior**.
 - Conservación de las carpetas portables del usuario durante el reemplazo.
 
-## 10. Distribución portable y compatibilidad
+### 10. Distribución portable y compatibilidad
 
 - Compilación para **Windows x64**, sin instalador.
 - Paquete **self-contained** con las dependencias de ejecución necesarias.
@@ -208,7 +288,7 @@ La versión 2.0 incorpora un sistema de actualizaciones integrado con **GitHub R
 
 **Para quienes vienen de v1.0:** hacé una copia de tus datos portables antes de migrar. Si querés conservar una instalación existente, probá inicialmente v2.0 en una carpeta separada. No se presupone una actualización automática directa entre arquitecturas.
 
-## 11. Instalación de BandaNV v2.0
+### 11. Instalación de BandaNV v2.0
 
 1. Descargá **`BandaNV_v2.0.zip`** desde la release oficial.
 2. Extraé completamente la carpeta **`BandaNV`** donde tengas permisos de escritura.
@@ -217,7 +297,7 @@ La versión 2.0 incorpora un sistema de actualizaciones integrado con **GitHub R
 
 No requiere instalador. Para preservar el comportamiento portable, evitá ubicaciones protegidas del sistema como `Program Files`.
 
-## 12. Pruebas y validaciones previas al lanzamiento
+### 12. Pruebas y validaciones previas al lanzamiento
 
 - **Motor de organización:** **39 pruebas OK, 0 errores**, incluyendo carpetas completas, conflictos, reanálisis, categorías, contadores recursivos, protecciones, Deshacer y validación de backups.
 - **Actualizador independiente:** **3 pruebas OK, 0 errores**, cubriendo instalación, restauración y validación de paquetes.
@@ -226,7 +306,6 @@ No requiere instalador. Para preservar el comportamiento portable, evitá ubicac
 
 Las herramientas y el canal usados exclusivamente en la prueba TESTER se retiraron del código oficial antes del lanzamiento.
 
----
 
 **BandaNV v2.0** reúne una nueva experiencia visual con un motor más robusto, mayor control sobre los archivos y una base preparada para próximas versiones.
 
