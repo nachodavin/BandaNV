@@ -4,18 +4,21 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:BandaNV.Core.Models"
     xmlns:controls="using:BandaNV.App.Controls"
+    xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     Background="Transparent"
     Loaded="ExplorerPage_Loaded"
     Unloaded="ExplorerPage_Unloaded">
 
     <Page.Resources>
+        <!-- Un mismo ancho para el encabezado y cada fila virtualizada. -->
+        <controls:ExplorerColumnLayout x:Key="ExplorerColumnLayout" />
         <DataTemplate x:Key="ExplorerFileTemplate" x:DataType="models:ExplorerItem">
             <Grid Padding="10,4" ColumnSpacing="12" Height="{x:Bind RowHeight}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.2*" />
-                    <ColumnDefinition Width="1.1*" />
-                    <ColumnDefinition Width="1.15*" />
-                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition MinWidth="180" Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=NameWidth}" />
+                    <ColumnDefinition MinWidth="130" Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=ModifiedWidth}" />
+                    <ColumnDefinition MinWidth="100" Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=TypeWidth}" />
+                    <ColumnDefinition MinWidth="85" Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=SizeWidth}" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Spacing="11" VerticalAlignment="Center">
@@ -721,24 +724,111 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Grid Padding="14,8" ColumnSpacing="12">
+                    <!-- Encabezados redimensionables con zonas de arrastre. -->
+                    <Grid x:Name="ExplorerColumnHeaders"
+                          Padding="14,8" ColumnSpacing="12" MinWidth="590">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2.2*" />
-                            <ColumnDefinition Width="1.1*" />
-                            <ColumnDefinition Width="1.15*" />
-                            <ColumnDefinition Width="0.8*" />
+                            <ColumnDefinition x:Name="ExplorerHeaderNameColumn"
+                                              MinWidth="180"
+                                              Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=NameWidth}" />
+                            <ColumnDefinition x:Name="ExplorerHeaderModifiedColumn"
+                                              MinWidth="130"
+                                              Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=ModifiedWidth}" />
+                            <ColumnDefinition x:Name="ExplorerHeaderTypeColumn"
+                                              MinWidth="100"
+                                              Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=TypeWidth}" />
+                            <ColumnDefinition x:Name="ExplorerHeaderSizeColumn"
+                                              MinWidth="85"
+                                              Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=SizeWidth}" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Nombre" Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="Modificación"
+                        <TextBlock Grid.Column="0"
+                                   Text="Nombre"
                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="Tipo"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,12,0" />
+                        <primitives:Thumb Grid.Column="0" Tag="name"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Stretch"
+                                          Width="10" Margin="0,0,-6,0"
+                                          DragDelta="ExplorerColumnResize_DragDelta"
+                                          ToolTipService.ToolTip="Arrastrar para ajustar ancho de nombre">
+                            <primitives:Thumb.Template>
+                                <ControlTemplate TargetType="primitives:Thumb">
+                                    <Grid Background="Transparent">
+                                        <Rectangle Width="1" HorizontalAlignment="Center"
+                                                   Fill="{StaticResource BandaBorderBrush}" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </primitives:Thumb.Template>
+                        </primitives:Thumb>
+                        <TextBlock Grid.Column="1"
+                                   Text="Modificación"
                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="3" Text="Tamaño"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,12,0" />
+                        <primitives:Thumb Grid.Column="1" Tag="modified"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Stretch"
+                                          Width="10" Margin="0,0,-6,0"
+                                          DragDelta="ExplorerColumnResize_DragDelta"
+                                          ToolTipService.ToolTip="Arrastrar para ajustar ancho de modificación">
+                            <primitives:Thumb.Template>
+                                <ControlTemplate TargetType="primitives:Thumb">
+                                    <Grid Background="Transparent">
+                                        <Rectangle Width="1" HorizontalAlignment="Center"
+                                                   Fill="{StaticResource BandaBorderBrush}" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </primitives:Thumb.Template>
+                        </primitives:Thumb>
+                        <TextBlock Grid.Column="2"
+                                   Text="Tipo"
                                    Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                   FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,12,0" />
+                        <primitives:Thumb Grid.Column="2" Tag="type"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Stretch"
+                                          Width="10" Margin="0,0,-6,0"
+                                          DragDelta="ExplorerColumnResize_DragDelta"
+                                          ToolTipService.ToolTip="Arrastrar para ajustar ancho de tipo">
+                            <primitives:Thumb.Template>
+                                <ControlTemplate TargetType="primitives:Thumb">
+                                    <Grid Background="Transparent">
+                                        <Rectangle Width="1" HorizontalAlignment="Center"
+                                                   Fill="{StaticResource BandaBorderBrush}" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </primitives:Thumb.Template>
+                        </primitives:Thumb>
+                        <TextBlock Grid.Column="3"
+                                   Text="Tamaño"
+                                   Foreground="{StaticResource BandaMutedStrongBrush}"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,12,0" />
+                        <primitives:Thumb Grid.Column="3" Tag="size"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Stretch"
+                                          Width="10" Margin="0,0,-6,0"
+                                          DragDelta="ExplorerColumnResize_DragDelta"
+                                          ToolTipService.ToolTip="Arrastrar para ajustar ancho de tamaño">
+                            <primitives:Thumb.Template>
+                                <ControlTemplate TargetType="primitives:Thumb">
+                                    <Grid Background="Transparent">
+                                        <Rectangle Width="1" HorizontalAlignment="Center"
+                                                   Fill="{StaticResource BandaBorderBrush}" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </primitives:Thumb.Template>
+                        </primitives:Thumb>
                     </Grid>
                     <ListView
                         x:Name="ExplorerFilesList"
