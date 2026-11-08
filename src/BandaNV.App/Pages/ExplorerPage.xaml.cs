@@ -533,6 +533,22 @@ public sealed partial class ExplorerPage : Page
         return _sortDescending ? -result : result;
     }
 
+    /// <summary>
+    /// Los botones de estas ventanas son controles WinUI dentro de Flyout.
+    /// A diferencia de MenuFlyoutItem, no cierran automáticamente su menú.
+    /// Cerrar de adentro hacia afuera al escoger una opción final.
+    /// Los botones intermedios (Más, Agrupar por, Mostrar) no lo llaman.
+    /// </summary>
+    private void CloseExplorerMenus()
+    {
+        ExplorerSortMoreFlyout.Hide();
+        ExplorerGroupFlyout.Hide();
+        ExplorerShowFlyout.Hide();
+        ExplorerSortFlyout.Hide();
+        ExplorerViewFlyout.Hide();
+        ExplorerMoreFlyout.Hide();
+    }
+
     private void ExplorerSortFieldButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string field })
@@ -545,6 +561,7 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
+        CloseExplorerMenus();
         _sortField = field;
         UpdateSortLabel();
         ApplyFilter();
@@ -558,6 +575,7 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
+        CloseExplorerMenus();
         _sortDescending = direction == "desc";
         UpdateSortLabel();
         ApplyFilter();
@@ -585,6 +603,7 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
+        CloseExplorerMenus();
         _groupField = group;
         ApplyFilter();
     }
@@ -593,16 +612,19 @@ public sealed partial class ExplorerPage : Page
     {
         // La vista Detalles está implementada; los demás modos se irán
         // habilitando a medida que estén disponibles.
+        CloseExplorerMenus();
         ExplorerFilesList.Focus(FocusState.Programmatic);
     }
 
     private void ExplorerViewDetailsMenuButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         SetRightPane(visible: !_detailsVisible || _previewOnly, previewOnly: false);
     }
 
     private void ExplorerViewPreviewMenuButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         SetRightPane(visible: !_detailsVisible || !_previewOnly, previewOnly: true);
     }
 
@@ -613,6 +635,7 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
+        CloseExplorerMenus();
         switch (option)
         {
             case "navigation":
@@ -675,6 +698,7 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerSelectAllButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         if (_visibleItems.Length > 0)
         {
             ExplorerFilesList.SelectAll();
@@ -683,11 +707,13 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerSelectNoneButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         ExplorerFilesList.SelectedItems.Clear();
     }
 
     private void ExplorerInvertSelectionButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         var previouslySelected = ExplorerFilesList.SelectedItems
             .OfType<ExplorerItem>()
             .ToHashSet();
@@ -713,6 +739,7 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerPropertiesButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         if (ExplorerFilesList.SelectedItems.Count != 1 ||
             ExplorerFilesList.SelectedItems[0] is not ExplorerItem item)
         {
@@ -738,6 +765,7 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerOptionsButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         App.MainWindowInstance?.OpenSettingsFromExplorer();
     }
 
@@ -904,6 +932,7 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerCopyPathButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         var selected = ExplorerFilesList.SelectedItems
             .OfType<ExplorerItem>()
             .ToArray();
@@ -1223,6 +1252,7 @@ public sealed partial class ExplorerPage : Page
 
     private async void ExplorerOpenSelectionButton_Click(object sender, RoutedEventArgs e)
     {
+        CloseExplorerMenus();
         if (ExplorerFilesList.SelectedItems.Count == 1 &&
             ExplorerFilesList.SelectedItems[0] is ExplorerItem item)
         {
