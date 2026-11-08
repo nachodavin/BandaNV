@@ -82,6 +82,13 @@ public sealed partial class ExplorerPage : Page
             new PointerEventHandler(ExplorerFilesList_PointerPressed),
             handledEventsToo: true);
 
+        // El área vacía de la ruta entra en edición como en Windows.
+        // Los botones de las migas mantienen su navegación habitual.
+        ExplorerAddressSurface.AddHandler(
+            UIElement.PointerPressedEvent,
+            new PointerEventHandler(ExplorerAddressSurface_PointerPressed),
+            handledEventsToo: true);
+
         UpdateNavigationButtons();
         UpdateSelectionDetails();
     }
@@ -1010,6 +1017,19 @@ public sealed partial class ExplorerPage : Page
     {
         ExplorerBreadcrumbPanel.Children.Clear();
 
+        // Texto contextual como en el Explorador de Windows:
+        // «Buscar en 1 - RAR», «Buscar en Imágenes», etc.
+        var searchFolder = "Este equipo";
+        if (!string.IsNullOrWhiteSpace(_currentLocation) && _currentLocation != ThisPc)
+        {
+            var normalized = Path.TrimEndingDirectorySeparator(_currentLocation);
+            var folderName = Path.GetFileName(normalized);
+            searchFolder = string.IsNullOrWhiteSpace(folderName)
+                ? normalized
+                : folderName;
+        }
+        ExplorerFilterBox.PlaceholderText = $"Buscar en {searchFolder}";
+
         AddBreadcrumb("Este equipo", ThisPc);
 
         if (_currentLocation is null || _currentLocation == ThisPc)
@@ -1177,7 +1197,33 @@ public sealed partial class ExplorerPage : Page
         await NavigateAsync(path);
     }
 
-    private void ExplorerEditAddressButton_Click(object sender, RoutedEventArgs e)
+    private void ExplorerAddressSurface_PointerPressed(
+        object sender, PointerRoutedEventArgs e)
+    {
+        if (ExplorerAddressBox.Visibility == Visibility.Visible ||
+            !e.GetCurrentPoint(ExplorerAddressSurface).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        // No interceptar los botones de navegación de la ruta; solamente
+        // los espacios libres de la barra activan el editor de texto.
+        var source = e.OriginalSource as DependencyObject;
+        while (source is not null && source != ExplorerAddressSurface)
+        {
+            if (source is ButtonBase or ScrollBar or Thumb or TextBox)
+            {
+                return;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        BeginAddressEditing();
+        e.Handled = true;
+    }
+
+    private void BeginAddressEditing()
     {
         ExplorerAddressBox.Text = _currentLocation == ThisPc
             ? "Este equipo"
