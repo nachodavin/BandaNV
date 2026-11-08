@@ -125,6 +125,18 @@ El diseño conserva el panel de detalles a la derecha, sin modificar las funcion
 - [ ] Validación real en Windows: nitidez con ZIP/RAR y asociaciones instaladas, vista previa de PDF/imagen, metadatos y selección múltiple.
 - [ ] **Limitación externa:** Windows puede devolver una miniatura inferior al tamaño solicitado si el programa asociado no ofrece una fuente de alta resolución; no se puede garantizar nitidez absoluta para todos los formatos.
 
+### BUILD 7A.7 — Selección por clic y atajos sin globos
+
+**Estado:** implementado en la rama experimental; pendiente de prueba en Windows.
+
+- [x] Ocultar el globo automático `Ctrl+C` (y equivalentes) del listado usando `KeyboardAcceleratorPlacementMode="Hidden"`, sin eliminar los atajos `Ctrl+C`, `Ctrl+X` y `Ctrl+A`.
+- [x] Clic izquierdo en el fondo vacío del listado: deseleccionar archivos.
+- [x] Clic izquierdo a la derecha de la última columna, incluso si la fila ocupa todo el ancho del panel: deseleccionar, como en Windows.
+- [x] Mantener selección habitual al pulsar dentro de la fila y preservar Ctrl+clic, Shift+clic y clic derecho.
+- [x] No interpretar el uso de la barra de desplazamiento como clic en una zona vacía.
+- [x] Usar los anchos actuales de las columnas para identificar el espacio libre cuando el usuario las redimensiona.
+- [ ] Verificar con clics en filas, encabezados de grupo, zona vacía inferior, zona vacía a la derecha, Ctrl+clic, Shift+clic y scrollbar en el equipo de desarrollo.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
