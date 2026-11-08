@@ -197,13 +197,12 @@
                         HorizontalScrollMode="Auto">
                         <StackPanel x:Name="ExplorerBreadcrumbPanel" Orientation="Horizontal" Spacing="2" />
                     </ScrollViewer>
+                    <!-- WinUI 3 no respeta siempre VerticalContentAlignment.
+                         Centramos físicamente el campo nativo de 26 px dentro
+                         de la barra, conservando selección y pegado. -->
                     <TextBox
                         x:Name="ExplorerAddressBox"
                         Visibility="Collapsed"
-                        <!-- WinUI 3 no respeta siempre VerticalContentAlignment.
-                             Centrar el TextBox nativo de 26 px dentro de la barra
-                             coloca el texto al mismo eje que las migas, sin
-                             perder selección, pegado ni controles nativos. -->
                         Height="26"
                         MinHeight="0"
                         Margin="0"
