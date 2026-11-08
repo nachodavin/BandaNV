@@ -68,6 +68,21 @@ Evolucionar la sección **Buscar** hacia **Explorar**, con una experiencia cotid
 
 **Regla de diseño:** ningún botón cambia de lugar ni desaparece por la selección. Los controles no operativos nunca deben aparentar estar activos.
 
+### BUILD 7A.3 — Submenús del Explorador (referencia Windows 11)
+
+**Estado:** integrado en rama experimental; pendiente de compilación y validación visual en Windows.
+
+- [x] **Ordenar:** Nombre, Fecha de modificación, Tipo y Tamaño; Ascendente/Descendente.
+- [x] **Agrupar por:** Nombre, Fecha de modificación, Tipo, Tamaño o Ninguno; encabezados de grupo reales en el listado. Inicialmente se ordena y agrupa por fecha de modificación, descendente.
+- [x] **Ver:** modo Detalles, panel de detalles y panel de vista previa; alternar panel de navegación, vista compacta, casillas de selección, extensiones de nombre y elementos ocultos.
+- [x] **Más:** Seleccionar todo (también Ctrl+A), Deseleccionar e Invertir selección; Propiedades mediante Windows; Opciones de BandaNV.
+- [x] La navegación y el filtro local siguen sin modificar archivos; mostrar ocultos excluye archivos de sistema por seguridad y conserva el filtro al actualizar.
+- [x] Pruebas adicionales del motor: ocultos, extensiones y densidad de filas.
+- [ ] Validar interacción y posición de submenús anidados en WinUI, agrupaciones con carpetas extensas, estados visuales de las casillas y funcionamiento del diálogo de Propiedades.
+- [ ] **Pendiente:** modos de iconos y mosaicos, agrupación por metadatos extendidos (fecha de creación, autores, categorías, etiquetas, título), anclado a Acceso rápido y funcionamiento completo de la vista previa en pantalla completa. No habilitar opciones sin implementación.
+
+Los controles no implementados se muestran deshabilitados. La versión estable v2.0.3 no se modifica.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
