@@ -54,6 +54,20 @@ Evolucionar la sección **Buscar** hacia **Explorar**, con una experiencia cotid
 
 **Criterio de salida:** recorrer carpetas reales y volver por el historial sin movimientos de archivos, sin congelamiento de UI y sin perder las capacidades actuales de Buscar.
 
+### BUILD 7A.2 — Barra de comandos estilo Windows 11
+
+**Estado:** implementada en la rama experimental; pendiente de compilar y comprobar en Windows.
+
+- [x] Barra fija debajo de la ruta con los comandos Nuevo, Cortar, Copiar, Pegar, Renombrar, Compartir, Eliminar, Organizar, Ordenar, Ver, Más y panel Detalles.
+- [x] Mantener posiciones e íconos al seleccionar y deseleccionar elementos; controles deshabilitados se presentan atenuados.
+- [x] Copiar y Cortar archivos/carpetas reales al portapapeles de Windows, interoperable con otras aplicaciones; atajos Ctrl+C y Ctrl+X cuando la lista tiene el foco.
+- [x] Copiar ruta y Abrir desde el menú «Más»; Ordenar y alternar panel de Detalles siguen funcionando.
+- [x] Evitar habilitar Cortar para unidades o rutas protegidas por BandaNV.
+- [ ] Habilitar Nuevo, Pegar, Renombrar, Eliminar, Compartir y «Organizar selección» **solo después de implementar y probar sus operaciones**. Permanecen visibles y atenuados por ahora.
+- [ ] Validación visual y compilación en Windows: estados sin selección / uno / múltiples / unidad, atajos y portapapeles.
+
+**Regla de diseño:** ningún botón cambia de lugar ni desaparece por la selección. Los controles no operativos nunca deben aparentar estar activos.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
