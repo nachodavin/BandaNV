@@ -35,6 +35,22 @@ public sealed partial class HistoryPage : Page
         Loaded += HistoryPage_Loaded;
     }
 
+    private void HistoryPage_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // La tabla necesita ancho para sus siete columnas. Cuando no entra
+        // cómodamente junto al detalle, mostrar ambos en filas consecutivas.
+        var narrow = e.NewSize.Width < 1110;
+        HistoryResultsAndDetailGrid.ColumnDefinitions[0].Width =
+            new GridLength(narrow ? 1 : 1.75, GridUnitType.Star);
+        HistoryResultsAndDetailGrid.ColumnDefinitions[1].Width =
+            narrow ? new GridLength(0) :
+                     new GridLength(0.85, GridUnitType.Star);
+        Grid.SetColumn(HistoryDetailPanel, narrow ? 0 : 1);
+        Grid.SetRow(HistoryDetailPanel, narrow ? 1 : 0);
+        Grid.SetRow(HistoryExecutionsPanel, 0);
+        HistoryDetailPanel.MinHeight = narrow ? 270 : 0;
+    }
+
     private void LoadSavedViewPreferences()
     {
         var settings =
