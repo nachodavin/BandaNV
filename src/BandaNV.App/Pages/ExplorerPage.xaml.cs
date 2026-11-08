@@ -71,6 +71,15 @@ public sealed partial class ExplorerPage : Page
     public ExplorerPage()
     {
         InitializeComponent();
+
+        // ListView puede consumir PointerPressed al seleccionar elementos.
+        // Capturamos también eventos ya manejados para detectar clics en el
+        // fondo o a la derecha de las columnas, sin alterar clics sobre filas.
+        ExplorerFilesList.AddHandler(
+            UIElement.PointerPressedEvent,
+            new PointerEventHandler(ExplorerFilesList_PointerPressed),
+            handledEventsToo: true);
+
         UpdateNavigationButtons();
         UpdateSelectionDetails();
     }
@@ -1184,6 +1193,67 @@ public sealed partial class ExplorerPage : Page
             Debug.WriteLine($"BandaNV Explorer - no se pudo abrir {item.FullPath}: {ex}");
             ExplorerStatusText.Text = "No se pudo abrir el archivo con la aplicación asociada.";
         }
+    }
+
+    private void ExplorerFilesList_PointerPressed(
+        object sender, PointerRoutedEventArgs e)
+    {
+        var pointer = e.GetCurrentPoint(ExplorerFilesList);
+        if (!pointer.Properties.IsLeftButtonPressed ||
+            e.KeyModifiers.HasFlag(VirtualKeyModifiers.Control) ||
+            e.KeyModifiers.HasFlag(VirtualKeyModifiers.Shift))
+        {
+            // No interrumpir botón derecho, Ctrl+clic ni Shift+clic.
+            return;
+        }
+
+        var source = e.OriginalSource as DependencyObject;
+        var overItem = false;
+
+        while (source is not null && source != ExplorerFilesList)
+        {
+            // El scrollbar tiene su propio comportamiento; no se considera
+            // superficie vacía aunque esté después de la última columna.
+            if (source is ScrollBar or Thumb)
+            {
+                return;
+            }
+
+            if (source is ListViewItem)
+            {
+                overItem = true;
+                break;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        // ListViewItem se estira a todo el ancho de la vista. Windows, en
+        // cambio, considera vacío el espacio a la derecha de la última
+        // columna: un clic allí debe quitar la selección.
+        const double cellLeftPadding = 10;
+        const double columnSpacing = 12 * 3;
+        const double tolerance = 18;
+        var lastColumnRight = cellLeftPadding + columnSpacing + tolerance +
+            ExplorerHeaderNameColumn.ActualWidth +
+            ExplorerHeaderModifiedColumn.ActualWidth +
+            ExplorerHeaderTypeColumn.ActualWidth +
+            ExplorerHeaderSizeColumn.ActualWidth;
+
+        var blankArea = !overItem || pointer.Position.X > lastColumnRight;
+        if (!blankArea)
+        {
+            return;
+        }
+
+        if (ExplorerFilesList.SelectedItems.Count > 0)
+        {
+            ExplorerFilesList.SelectedItems.Clear();
+        }
+
+        // Evitar que un ListViewItem extendido vuelva a seleccionarse tras
+        // hacer clic en su porción vacía a la derecha de las columnas.
+        e.Handled = true;
     }
 
     private void ExplorerFilesList_SelectionChanged(
