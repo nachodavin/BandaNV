@@ -12,7 +12,7 @@ public sealed class ExplorerColumnLayout : DependencyObject
     public static readonly DependencyProperty NameWidthProperty =
         DependencyProperty.Register(
             nameof(NameWidth), typeof(GridLength), typeof(ExplorerColumnLayout),
-            new PropertyMetadata(new GridLength(1, GridUnitType.Star)));
+            new PropertyMetadata(new GridLength(320)));
 
     public static readonly DependencyProperty ModifiedWidthProperty =
         DependencyProperty.Register(
@@ -28,6 +28,22 @@ public sealed class ExplorerColumnLayout : DependencyObject
         DependencyProperty.Register(
             nameof(SizeWidth), typeof(GridLength), typeof(ExplorerColumnLayout),
             new PropertyMetadata(new GridLength(125)));
+
+    // Los cuatro anchos de columna son píxeles, no estrellas: la fila
+    // seleccionable termina en Tamaño y deja libre el resto del listado.
+    // Incluye 20 px de padding y 3 separaciones de 12 px.
+    private const double CellPaddingAndSpacing = 56;
+
+    public static readonly DependencyProperty RowWidthProperty =
+        DependencyProperty.Register(
+            nameof(RowWidth), typeof(double), typeof(ExplorerColumnLayout),
+            new PropertyMetadata(876d));
+
+    public double RowWidth
+    {
+        get => (double)GetValue(RowWidthProperty);
+        private set => SetValue(RowWidthProperty, value);
+    }
 
     public GridLength NameWidth
     {
@@ -51,6 +67,12 @@ public sealed class ExplorerColumnLayout : DependencyObject
     {
         get => (GridLength)GetValue(SizeWidthProperty);
         set => SetValue(SizeWidthProperty, value);
+    }
+
+    private void RecalculateRowWidth()
+    {
+        RowWidth = NameWidth.Value + ModifiedWidth.Value + TypeWidth.Value +
+                   SizeWidth.Value + CellPaddingAndSpacing;
     }
 
     public void Resize(string column, double actualWidth, double delta)
@@ -91,5 +113,7 @@ public sealed class ExplorerColumnLayout : DependencyObject
                 SizeWidth = newWidth;
                 break;
         }
+
+        RecalculateRowWidth();
     }
 }
