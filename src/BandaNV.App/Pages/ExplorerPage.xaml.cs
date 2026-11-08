@@ -386,6 +386,160 @@ public sealed partial class ExplorerPage : Page
         ExplorerSortLabel.Text = $"Ordenar: {label}";
     }
 
+    private void ExplorerGroupFieldButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string group } ||
+            group is not ("none" or "name" or "modified" or "type" or "size"))
+        {
+            return;
+        }
+
+        _groupField = group;
+        ApplyFilter();
+    }
+
+    private void ExplorerViewModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        // La vista Detalles está implementada; los demás modos se irán
+        // habilitando a medida que estén disponibles.
+        ExplorerFilesList.Focus(FocusState.Programmatic);
+    }
+
+    private void ExplorerViewDetailsMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetRightPane(visible: !_detailsVisible || _previewOnly, previewOnly: false);
+    }
+
+    private void ExplorerViewPreviewMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetRightPane(visible: !_detailsVisible || !_previewOnly, previewOnly: true);
+    }
+
+    private async void ExplorerViewShowOption_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string option })
+        {
+            return;
+        }
+
+        switch (option)
+        {
+            case "navigation":
+                _navigationPaneVisible = !_navigationPaneVisible;
+                ExplorerLocationsPane.Visibility = _navigationPaneVisible
+                    ? Visibility.Visible : Visibility.Collapsed;
+                ExplorerLocationsColumn.Width = new GridLength(
+                    _navigationPaneVisible ? 185 : 0);
+                break;
+            case "compact":
+                _compactRows = !_compactRows;
+                ApplyFilter();
+                break;
+            case "checkboxes":
+                _showItemCheckboxes = !_showItemCheckboxes;
+                ExplorerFilesList.IsMultiSelectCheckBoxEnabled = _showItemCheckboxes;
+                break;
+            case "extensions":
+                _showFileExtensions = !_showFileExtensions;
+                ApplyFilter();
+                break;
+            case "hidden":
+                _showHiddenItems = !_showHiddenItems;
+                UpdateViewMenuChecks();
+                await NavigateAsync(_currentLocation ?? ThisPc, HistoryAction.Refresh);
+                return;
+        }
+
+        UpdateViewMenuChecks();
+    }
+
+    private void UpdateViewMenuChecks()
+    {
+        ExplorerShowNavigationButton.Content = (_navigationPaneVisible ? "✓ " : "") +
+            "Panel de navegación";
+        ExplorerShowCompactButton.Content = (_compactRows ? "✓ " : "") +
+            "Vista compacta";
+        ExplorerShowCheckboxesButton.Content = (_showItemCheckboxes ? "✓ " : "") +
+            "Casillas de selección";
+        ExplorerShowExtensionsButton.Content = (_showFileExtensions ? "✓ " : "") +
+            "Extensiones de nombre";
+        ExplorerShowHiddenButton.Content = (_showHiddenItems ? "✓ " : "") +
+            "Elementos ocultos";
+
+        ExplorerViewDetailsMenuButton.Content = (_detailsVisible && !_previewOnly ? "✓ " : "") +
+            "Panel de detalles";
+        ExplorerViewPreviewMenuButton.Content = (_detailsVisible && _previewOnly ? "✓ " : "") +
+            "Panel de vista previa";
+    }
+
+    private void ExplorerSelectAllButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_visibleItems.Length > 0)
+        {
+            ExplorerFilesList.SelectAll();
+        }
+    }
+
+    private void ExplorerSelectNoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        ExplorerFilesList.SelectedItems.Clear();
+    }
+
+    private void ExplorerInvertSelectionButton_Click(object sender, RoutedEventArgs e)
+    {
+        var previouslySelected = ExplorerFilesList.SelectedItems
+            .OfType<ExplorerItem>()
+            .ToHashSet();
+
+        _selectionBatch = true;
+        try
+        {
+            ExplorerFilesList.SelectedItems.Clear();
+            foreach (var item in _visibleItems)
+            {
+                if (!previouslySelected.Contains(item))
+                {
+                    ExplorerFilesList.SelectedItems.Add(item);
+                }
+            }
+        }
+        finally
+        {
+            _selectionBatch = false;
+            UpdateSelectionDetails();
+        }
+    }
+
+    private void ExplorerPropertiesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExplorerFilesList.SelectedItems.Count != 1 ||
+            ExplorerFilesList.SelectedItems[0] is not ExplorerItem item)
+        {
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = item.FullPath,
+                Verb = "properties",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"BandaNV Explorer - propiedades: {ex}");
+            ExplorerStatusText.Text =
+                "Windows no pudo abrir las propiedades de este elemento.";
+        }
+    }
+
+    private void ExplorerOptionsButton_Click(object sender, RoutedEventArgs e)
+    {
+        App.MainWindowInstance?.OpenSettingsFromExplorer();
+    }
+
     private bool CanCutSelection()
     {
         var selected = ExplorerFilesList.SelectedItems.OfType<ExplorerItem>().ToArray();
@@ -420,6 +574,11 @@ public sealed partial class ExplorerPage : Page
         ExplorerToolbarCopyPathButton.IsEnabled = selected.Length > 0;
         ExplorerToolbarOpenButton.IsEnabled = canOpen;
         ExplorerOpenSelectionButton.IsEnabled = canOpen;
+
+        ExplorerSelectAllButton.IsEnabled = _visibleItems.Length > 0;
+        ExplorerSelectNoneButton.IsEnabled = selected.Length > 0;
+        ExplorerInvertSelectionButton.IsEnabled = _visibleItems.Length > 0;
+        ExplorerPropertiesButton.IsEnabled = !_isNavigating && selected.Length == 1;
 
         // Los botones de la BUILD 7B permanecen visibles pero deshabilitados
         // hasta disponer del motor de operaciones, validaciones y deshacer.
@@ -507,17 +666,27 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerToggleDetailsButton_Click(object sender, RoutedEventArgs e)
     {
-        _detailsVisible = !_detailsVisible;
-        ExplorerDetailsPane.Visibility = _detailsVisible
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        ExplorerDetailsColumn.Width = _detailsVisible
-            ? new GridLength(280)
-            : new GridLength(0);
+        SetRightPane(visible: !_detailsVisible, previewOnly: _previewOnly);
+    }
 
-        ExplorerViewDetailsMenuButton.Content = _detailsVisible
-            ? "Ocultar panel de detalles"
-            : "Mostrar panel de detalles";
+    private void SetRightPane(bool visible, bool previewOnly)
+    {
+        _detailsVisible = visible;
+        _previewOnly = previewOnly;
+
+        ExplorerDetailsPane.Visibility = visible
+            ? Visibility.Visible : Visibility.Collapsed;
+        ExplorerDetailsColumn.Width = new GridLength(visible ? 280 : 0);
+
+        var metadataVisibility = previewOnly
+            ? Visibility.Collapsed : Visibility.Visible;
+        ExplorerDetailType.Visibility = metadataVisibility;
+        ExplorerDetailSize.Visibility = metadataVisibility;
+        ExplorerDetailModified.Visibility = metadataVisibility;
+        ExplorerDetailPath.Visibility = metadataVisibility;
+        ExplorerOpenSelectionButton.Visibility = metadataVisibility;
+
+        UpdateViewMenuChecks();
 
         if (_detailsVisible)
         {
@@ -883,7 +1052,10 @@ public sealed partial class ExplorerPage : Page
     private void ExplorerFilesList_SelectionChanged(
         object sender, SelectionChangedEventArgs e)
     {
-        UpdateSelectionDetails();
+        if (!_selectionBatch)
+        {
+            UpdateSelectionDetails();
+        }
     }
 
     private void UpdateSelectionDetails()
