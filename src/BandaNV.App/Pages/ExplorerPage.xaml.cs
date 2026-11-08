@@ -195,6 +195,10 @@ public sealed partial class ExplorerPage : Page
                 _isNavigating = false;
                 ExplorerLoadingRing.IsActive = false;
                 ExplorerLoadingRing.Visibility = Visibility.Collapsed;
+                if (_currentLocation == location)
+                {
+                    UpdateCountText();
+                }
                 UpdateSelectionDetails();
             }
         }
