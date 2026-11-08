@@ -58,49 +58,61 @@
         </DataTemplate>
     </Page.Resources>
 
-    <Grid Padding="18,16,18,12" RowSpacing="12">
+    <Grid Padding="0" RowSpacing="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="42" />
+            <RowDefinition Height="52" />
+            <RowDefinition Height="48" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="27" />
         </Grid.RowDefinitions>
 
-        <!-- Encabezado compacto: navegación similar al Explorador de Windows. -->
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Spacing="3">
-                <TextBlock
-                    Text="Explorar"
-                    FontSize="25"
-                    FontWeight="SemiBold"
-                    Foreground="{StaticResource BandaTextBrush}" />
-                <TextBlock
-                    Text="Recorré tus unidades y archivos. Vista experimental de solo lectura."
-                    FontSize="12"
-                    Foreground="{StaticResource BandaMutedBrush}" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <!-- Pestaña visual de explorador: menos encabezados, más espacio para archivos. -->
+        <Grid Background="{StaticResource BandaSidebarBrush}">
+            <Border Width="205"
+                    Margin="10,5,0,0"
+                    HorizontalAlignment="Left"
+                    CornerRadius="9,9,0,0"
+                    Background="{StaticResource BandaCardBrush}"
+                    BorderBrush="{StaticResource BandaBorderBrush}"
+                    BorderThickness="1,1,1,0">
+                <Grid Padding="13,0" ColumnSpacing="9">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon Glyph="&#xE8B7;" FontSize="16"
+                              Foreground="{StaticResource BandaAccentBrush}"
+                              VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="Explorar"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               Foreground="{StaticResource BandaTextBrush}"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <StackPanel HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Margin="0,0,16,0">
                 <ProgressRing
                     x:Name="ExplorerLoadingRing"
-                    Width="19"
-                    Height="19"
+                    Width="17" Height="17"
                     IsActive="False"
                     Visibility="Collapsed" />
-                <TextBlock
-                    Text="BUILD 7A"
-                    Foreground="{StaticResource BandaAccentBrush}"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    VerticalAlignment="Center" />
+                <TextBlock Text="Solo lectura · BUILD 7A"
+                           FontSize="11"
+                           Foreground="{StaticResource BandaMutedBrush}"
+                           VerticalAlignment="Center" />
             </StackPanel>
         </Grid>
 
         <!-- Barra de navegación, ruta y búsqueda local. -->
-        <Grid Grid.Row="1" ColumnSpacing="8">
+        <Grid Grid.Row="1" ColumnSpacing="8"
+              Padding="12,7"
+              Background="{StaticResource BandaCardBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -192,20 +204,119 @@
                 FontSize="13" />
         </Grid>
 
-        <!-- Paneles: ubicaciones, archivos y detalles -->
-        <Grid Grid.Row="2" ColumnSpacing="10">
+        <!-- Barra de comandos: solo acciones reales, sin botones simulados. -->
+        <Grid Grid.Row="2" Background="{StaticResource BandaCardBrush}"
+              Padding="12,4" ColumnSpacing="8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="170" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="255" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="ExplorerToolbarOpenButton"
+                    Click="ExplorerOpenSelectionButton_Click"
+                    IsEnabled="False"
+                    ToolTipService.ToolTip="Abrir el elemento seleccionado"
+                    Padding="12,6"
+                    CornerRadius="7"
+                    Background="Transparent"
+                    BorderThickness="0">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <FontIcon Glyph="&#xE8E5;" FontSize="14" />
+                    <TextBlock Text="Abrir" FontSize="13" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="1"
+                    x:Name="ExplorerToolbarCopyPathButton"
+                    Click="ExplorerCopyPathButton_Click"
+                    IsEnabled="False"
+                    ToolTipService.ToolTip="Copiar la ruta de los elementos seleccionados"
+                    Padding="12,6"
+                    CornerRadius="7"
+                    Background="Transparent"
+                    BorderThickness="0">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                    <TextBlock Text="Copiar ruta" FontSize="13" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Column="2"
+                    Padding="12,6"
+                    CornerRadius="7"
+                    Background="Transparent"
+                    BorderThickness="0">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <FontIcon Glyph="&#xE8CB;" FontSize="14" />
+                    <TextBlock x:Name="ExplorerSortLabel"
+                               Text="Ordenar: Nombre"
+                               FontSize="13"
+                               VerticalAlignment="Center" />
+                    <FontIcon Glyph="&#xE70D;" FontSize="10" />
+                </StackPanel>
+                <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft">
+                        <StackPanel Padding="5" Spacing="2" Width="195">
+                            <TextBlock Text="ORDENAR POR"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BandaMutedStrongBrush}"
+                                       Margin="8,4,0,5" />
+                            <Button Content="Nombre" Tag="name"
+                                    Click="ExplorerSortFieldButton_Click"
+                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            <Button Content="Fecha de modificación" Tag="modified"
+                                    Click="ExplorerSortFieldButton_Click"
+                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            <Button Content="Tipo" Tag="type"
+                                    Click="ExplorerSortFieldButton_Click"
+                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            <Button Content="Tamaño" Tag="size"
+                                    Click="ExplorerSortFieldButton_Click"
+                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}"
+                                       Margin="6,5" />
+                            <Button Content="Ascendente" Tag="asc"
+                                    Click="ExplorerSortDirectionButton_Click"
+                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                            <Button Content="Descendente" Tag="desc"
+                                    Click="ExplorerSortDirectionButton_Click"
+                                    Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                        </StackPanel>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
+
+            <Button Grid.Column="4"
+                    x:Name="ExplorerToggleDetailsButton"
+                    Click="ExplorerToggleDetailsButton_Click"
+                    Padding="12,6"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="7"
+                    ToolTipService.ToolTip="Mostrar u ocultar el panel derecho">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <FontIcon Glyph="&#xE8A7;" FontSize="14" />
+                    <TextBlock Text="Detalles" FontSize="13" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Paneles: ubicaciones, archivos y detalles -->
+        <Grid Grid.Row="3" ColumnSpacing="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="185" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="ExplorerDetailsColumn" Width="280" />
             </Grid.ColumnDefinitions>
 
             <Border
                 Grid.Column="0"
-                Background="{StaticResource BandaCardBrush}"
+                Background="{StaticResource BandaBackgroundBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
+                BorderThickness="0,0,1,0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Padding="10,14" Spacing="4">
                         <TextBlock Text="UBICACIONES" Margin="8,0,0,8"
@@ -242,10 +353,9 @@
 
             <Border
                 Grid.Column="1"
-                Background="{StaticResource BandaCardBrush}"
+                Background="{StaticResource BandaBackgroundBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
+                BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="44" />
@@ -292,16 +402,27 @@
             </Border>
 
             <Border
+                x:Name="ExplorerDetailsPane"
                 Grid.Column="2"
-                Background="{StaticResource BandaCardBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
+                Background="{StaticResource BandaBackgroundBrush}"
+                BorderThickness="0">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Padding="14,16" Spacing="10">
-                        <TextBlock Text="DETALLES" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock Text="Detalles" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource BandaMutedBrush}" />
                         <controls:BandaImagePreview x:Name="ExplorerSelectedPreview" />
+                        <Border x:Name="ExplorerFileIconPanel"
+                                Height="105"
+                                CornerRadius="8"
+                                Background="{StaticResource BandaCardBrush}"
+                                HorizontalAlignment="Stretch">
+                            <FontIcon x:Name="ExplorerFileLargeIcon"
+                                      Glyph="&#xE8A5;"
+                                      FontSize="60"
+                                      Foreground="{StaticResource BandaMutedStrongBrush}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                        </Border>
                         <TextBlock x:Name="ExplorerDetailName"
                                    Text="Seleccioná un archivo o carpeta."
                                    FontSize="15" FontWeight="SemiBold"
@@ -320,7 +441,7 @@
                                    Foreground="{StaticResource BandaMutedBrush}"
                                    TextWrapping="Wrap" FontSize="11" IsTextSelectionEnabled="True" />
                         <Button x:Name="ExplorerOpenSelectionButton"
-                                Content="Abrir"
+                                Content="Abrir archivo"
                                 Click="ExplorerOpenSelectionButton_Click"
                                 IsEnabled="False"
                                 Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
@@ -329,7 +450,8 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4" Background="{StaticResource BandaSidebarBrush}"
+              Padding="12,5,12,3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
