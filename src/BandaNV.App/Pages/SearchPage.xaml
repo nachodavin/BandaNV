@@ -4,7 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:BandaNV.App.Pages"
     xmlns:controls="using:BandaNV.App.Controls"
-    Background="Transparent">
+    Background="Transparent"
+    SizeChanged="SearchPage_SizeChanged">
 
     <Page.Resources>
         <DataTemplate x:Key="CategoryCardTemplate" x:DataType="local:SearchCategorySummary">
@@ -558,9 +559,15 @@
 
                 <!-- Resultados + detalle del archivo seleccionado -->
                 <Grid
+                    x:Name="SearchResultsAndDetailGrid"
                     Grid.Row="1"
                     Margin="14,0,14,14"
-                    ColumnSpacing="12">
+                    ColumnSpacing="12"
+                    RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.55*" />
@@ -569,6 +576,7 @@
 
                     <!-- Lista de resultados -->
                     <Border
+                        x:Name="SearchResultsPanel"
                         Grid.Column="0"
                         CornerRadius="14"
                         Background="{StaticResource BandaCardAltBrush}"
@@ -740,6 +748,7 @@
 
                     <!-- Panel de detalle -->
                     <Border
+                        x:Name="SearchDetailPanel"
                         Grid.Column="1"
                         CornerRadius="14"
                         Background="{StaticResource BandaCardAltBrush}"
