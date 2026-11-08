@@ -51,6 +51,7 @@ public sealed partial class ExplorerPage : Page
     private bool _showItemCheckboxes = true;
     private bool _previewOnly;
     private bool _selectionBatch;
+    private int _detailTypeVersion;
 
     private static readonly HashSet<string> PreviewExtensions =
         new(StringComparer.OrdinalIgnoreCase)
@@ -92,6 +93,7 @@ public sealed partial class ExplorerPage : Page
         _navigationCts?.Dispose();
         _navigationCts = null;
         ExplorerSelectedPreview.Clear();
+        ++_detailTypeVersion;
     }
 
     private async Task<bool> NavigateAsync(
@@ -1247,8 +1249,36 @@ public sealed partial class ExplorerPage : Page
         }
     }
 
+    private async Task LoadWindowsDisplayTypeAsync(string path, int version)
+    {
+        try
+        {
+            // Mostrar la misma descripción del tipo que utiliza Windows
+            // para la asociación instalada (por ejemplo, WinRAR ZIP).
+            var file = await StorageFile.GetFileFromPathAsync(path);
+            var type = file.DisplayType;
+
+            if (version != _detailTypeVersion ||
+                string.IsNullOrWhiteSpace(type) ||
+                ExplorerFilesList.SelectedItems.Count != 1 ||
+                ExplorerFilesList.SelectedItems[0] is not ExplorerItem item ||
+                !string.Equals(item.FullPath, path, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            ExplorerDetailType.Text = type;
+        }
+        catch (Exception)
+        {
+            // Los accesos directos y los archivos no accesibles siguen
+            // mostrando el tipo genérico disponible en el listado.
+        }
+    }
+
     private void UpdateSelectionDetails()
     {
+        var detailVersion = ++_detailTypeVersion;
         UpdateCommandBarState();
         UpdateSelectionStatus();
 
@@ -1300,6 +1330,10 @@ public sealed partial class ExplorerPage : Page
 
         ExplorerDetailName.Text = item.Name;
         ExplorerDetailType.Text = item.TypeName;
+        if (!item.IsDirectory)
+        {
+            _ = LoadWindowsDisplayTypeAsync(item.FullPath, detailVersion);
+        }
         ExplorerDetailSize.Text = item.IsDirectory ? "—" : item.SizeText;
         ExplorerDetailModified.Text = item.ModifiedText;
 
