@@ -2,6 +2,24 @@
 
 **Estado:** planificación inicial · **Rama de desarrollo:** `feature/explorador-completo` · **Base estable:** v2.0.3 / `main`.
 
+## Visión de producto: BandaNV como explorador principal
+
+**Objetivo central acordado:** BandaNV debe poder usarse **todos los días en lugar de abrir el Explorador de archivos de Windows 11**. No basta con incluir un visor de carpetas dentro de la app: la exploración, la búsqueda y las operaciones cotidianas sobre archivos deben ser una experiencia de primera clase, familiar, rápida y completa. **Organizar** es la funcionalidad que la diferencia y debe estar disponible en todo el flujo, sin obligar al usuario a cambiar de aplicación.
+
+**Criterios de producto que guían cada etapa:**
+
+- **Paridad cotidiana con Windows 11:** navegación por la PC, discos y rutas reales, rutas UNC y ubicaciones sincronizadas cuando sean accesibles; abrir archivos, portapapeles interoperable, copiar/cortar/pegar, renombrar, eliminar, crear carpetas, arrastrar/soltar, búsqueda, vistas, pestañas, favoritos y panel de detalles.
+- **Familiaridad:** que una persona acostumbrada al Explorador de Windows entienda de inmediato dónde está cada función, pueda usar los mismos atajos y no tenga que aprender otro paradigma de navegación.
+- **Rendimiento:** carga bajo demanda, virtualización, listas grandes sin congelamientos, observación de cambios externos y manejo de errores de acceso sin bloquear la interfaz.
+- **Organizar como ventaja diferencial:** desde cualquier carpeta, seleccionar archivos y acceder a la clasificación por categoría, vista previa, resolución segura de conflictos, historial y recuperación. Diferenciar claramente organizar (enviar a categorías configuradas) de mover/copiar archivos comunes.
+- **BandaNV como una sola experiencia:** que Explorar sea protagonista y Organizar esté a un clic, manteniendo identidad visual y configuración portable.
+- **Compatibilidad práctica:** archivos asociados, accesos directos, unidades externas, permisos, carpetas de sistema, rutas largas, dispositivos y ubicaciones de red que el usuario realmente utilice. Las integraciones exclusivas del shell de Windows se documentan como limitaciones si no pueden ofrecerse de manera segura.
+- **Seguridad primero:** evitar pérdida de datos, revalidar rutas y operaciones, conservar las carpetas protegidas y las garantías de Deshacer cuando existan; no asumir permisos especiales.
+
+**Definición de éxito:** poder abrir BandaNV en lugar del Explorador de Windows para localizar, navegar, visualizar, abrir, copiar, mover, crear, renombrar, borrar y administrar los archivos del día a día **sin sentir que falta una operación básica**, y contar además con el sistema de organización propio de BandaNV.
+
+**Aclaración técnica:** ser la alternativa de uso diario al Explorador no implica sustituir `explorer.exe` como shell de Windows ni intervenir en componentes del sistema operativo. Es una aplicación independiente que busca la misma experiencia práctica y la mejora con organización inteligente.
+
 ## Objetivo
 
 Evolucionar la sección **Buscar** hacia **Explorar**, con una experiencia cotidiana comparable al Explorador de archivos de Windows 11: navegar por unidades y carpetas reales de la PC, ver y gestionar archivos, elegir modos de vista, usar portapapeles y atajos de teclado y conservar las funcionalidades propias de BandaNV.
