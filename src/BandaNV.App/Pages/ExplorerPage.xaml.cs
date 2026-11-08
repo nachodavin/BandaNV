@@ -704,7 +704,7 @@ public sealed partial class ExplorerPage : Page
         ExplorerToolbarCutButton.IsEnabled = canCut;
         ExplorerToolbarCopyPathButton.IsEnabled = selected.Length > 0;
         ExplorerToolbarOpenButton.IsEnabled = canOpen;
-        ExplorerOpenSelectionButton.IsEnabled = canOpen;
+        ExplorerDetailPropertiesButton.IsEnabled = canOpen;
 
         ExplorerSelectAllButton.IsEnabled = _visibleItems.Length > 0;
         ExplorerSelectNoneButton.IsEnabled = selected.Length > 0;
@@ -814,11 +814,11 @@ public sealed partial class ExplorerPage : Page
 
         var metadataVisibility = previewOnly
             ? Visibility.Collapsed : Visibility.Visible;
-        ExplorerDetailType.Visibility = metadataVisibility;
-        ExplorerDetailSize.Visibility = metadataVisibility;
-        ExplorerDetailModified.Visibility = metadataVisibility;
-        ExplorerDetailPath.Visibility = metadataVisibility;
-        ExplorerOpenSelectionButton.Visibility = metadataVisibility;
+        // El modo Vista previa conserva el visor, ocultando los metadatos.
+        ExplorerDetailsHeading.Visibility = metadataVisibility;
+        ExplorerMetadataGrid.Visibility = metadataVisibility;
+        ExplorerDetailShareButton.Visibility = metadataVisibility;
+        ExplorerDetailPropertiesButton.Visibility = metadataVisibility;
 
         UpdateViewMenuChecks();
 
@@ -897,13 +897,13 @@ public sealed partial class ExplorerPage : Page
         var shown = _visibleItems.Length;
 
         var text = ExplorerFilterBox.Text?.Trim();
-        ExplorerStatusText.Text = string.IsNullOrEmpty(text)
+        ExplorerTotalCountText.Text = string.IsNullOrEmpty(text)
             ? $"{shown:N0} elementos"
             : $"{shown:N0} de {_allItems.Count:N0} elementos";
 
         if (_truncated)
         {
-            ExplorerStatusText.Text += " · listado parcial";
+            ExplorerTotalCountText.Text += " · listado parcial";
         }
     }
 
@@ -1192,15 +1192,70 @@ public sealed partial class ExplorerPage : Page
         }
     }
 
+    private static string FormatSelectedFileSize(double bytes)
+    {
+        if (bytes <= 0)
+        {
+            return "0 KB";
+        }
+
+        string[] units = ["KB", "MB", "GB", "TB"];
+        var value = bytes / 1024d;
+        var unit = 0;
+
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024d;
+            unit++;
+        }
+
+        return value.ToString(value >= 100 ? "N0" : "N1") + " " + units[unit];
+    }
+
+    private void UpdateSelectionStatus()
+    {
+        var selected = ExplorerFilesList.SelectedItems.OfType<ExplorerItem>().ToArray();
+        var count = selected.Length;
+        var visible = count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        ExplorerSelectionDivider.Visibility = visible;
+        ExplorerSelectionCountText.Visibility = visible;
+        ExplorerSelectionCountText.Text = count == 1
+            ? "1 elemento seleccionado"
+            : $"{count:N0} elementos seleccionados";
+
+        // Las carpetas no tienen un tamaño disponible en este listado; no
+        // recorrerlas para calcularlo porque bloquearía la interfaz.
+        var files = selected.Where(item => !item.IsDirectory && item.SizeBytes.HasValue)
+            .ToArray();
+        var hasSize = files.Length > 0;
+        ExplorerSelectionSizeDivider.Visibility =
+            hasSize ? Visibility.Visible : Visibility.Collapsed;
+        ExplorerSelectionSizeText.Visibility =
+            hasSize ? Visibility.Visible : Visibility.Collapsed;
+
+        if (hasSize)
+        {
+            var sum = files.Sum(item => (double)Math.Max(0L, item.SizeBytes ?? 0));
+            ExplorerSelectionSizeText.Text = FormatSelectedFileSize(sum) +
+                (files.Length < count ? " (archivos)" : "");
+        }
+        else
+        {
+            ExplorerSelectionSizeText.Text = string.Empty;
+        }
+    }
+
     private void UpdateSelectionDetails()
     {
         UpdateCommandBarState();
+        UpdateSelectionStatus();
 
         if (ExplorerFilesList.SelectedItems.Count != 1 ||
             ExplorerFilesList.SelectedItems[0] is not ExplorerItem item)
         {
             ExplorerSelectedPreview.Clear();
-            ExplorerOpenSelectionButton.IsEnabled = false;
+            ExplorerDetailPropertiesButton.IsEnabled = false;
             ExplorerToolbarOpenButton.IsEnabled = false;
 
             var count = ExplorerFilesList.SelectedItems.Count;
@@ -1208,19 +1263,18 @@ public sealed partial class ExplorerPage : Page
             ExplorerDetailName.Text = count > 1
                 ? $"{count:N0} elementos seleccionados"
                 : "Seleccioná un archivo o carpeta.";
-            ExplorerFileIconPanel.Visibility = count == 0 && _detailsVisible
+
+            ExplorerFileIconPanel.Visibility = _detailsVisible
                 ? Visibility.Visible
                 : Visibility.Collapsed;
             ExplorerSelectedFileIcon.FilePath = string.Empty;
             ExplorerSelectedFileIcon.IsDirectory = false;
             ExplorerSelectedFileIcon.IsDrive = false;
-            ExplorerDetailType.Text = string.Empty;
-            ExplorerDetailSize.Text = string.Empty;
-            ExplorerDetailModified.Text = string.Empty;
-            ExplorerDetailPath.Text = string.Empty;
-            ExplorerSelectionCountText.Text = count > 0
-                ? $"{count:N0} seleccionados"
-                : string.Empty;
+
+            ExplorerDetailsHeading.Visibility = Visibility.Collapsed;
+            ExplorerMetadataGrid.Visibility = Visibility.Collapsed;
+            ExplorerDetailShareButton.Visibility = Visibility.Collapsed;
+            ExplorerDetailPropertiesButton.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -1228,7 +1282,8 @@ public sealed partial class ExplorerPage : Page
         {
             ExplorerSelectedPreview.Show(item.FullPath, item.IsDirectory);
         }
-        ExplorerOpenSelectionButton.IsEnabled = true;
+
+        ExplorerDetailPropertiesButton.IsEnabled = true;
         ExplorerToolbarOpenButton.IsEnabled = true;
         ExplorerToolbarCopyPathButton.IsEnabled = true;
 
@@ -1237,19 +1292,29 @@ public sealed partial class ExplorerPage : Page
         ExplorerFileIconPanel.Visibility = _detailsVisible && !canPreview
             ? Visibility.Visible
             : Visibility.Collapsed;
+
         ExplorerSelectedFileIcon.FilePath = item.FullPath;
         ExplorerSelectedFileIcon.IsDirectory = item.IsDirectory;
         ExplorerSelectedFileIcon.IsDrive = item.IsDrive;
 
         ExplorerDetailName.Text = item.Name;
         ExplorerDetailType.Text = item.TypeName;
-        ExplorerDetailSize.Text = item.IsDirectory
-            ? "Carpeta"
-            : $"Tamaño: {item.SizeText}";
-        ExplorerDetailModified.Text = $"Modificado: {item.ModifiedText}";
-        ExplorerDetailPath.Text = item.FullPath;
-        ExplorerSelectionCountText.Text = "1 seleccionado";
+        ExplorerDetailSize.Text = item.IsDirectory ? "—" : item.SizeText;
+        ExplorerDetailModified.Text = item.ModifiedText;
+
+        // En el panel de Windows «Ubicación» es la carpeta contenedora.
+        ExplorerDetailPath.Text = item.IsDrive
+            ? item.FullPath
+            : Path.GetDirectoryName(item.FullPath) ?? item.FullPath;
+
+        var metadataVisibility = _detailsVisible && !_previewOnly
+            ? Visibility.Visible : Visibility.Collapsed;
+        ExplorerDetailsHeading.Visibility = metadataVisibility;
+        ExplorerMetadataGrid.Visibility = metadataVisibility;
+        ExplorerDetailShareButton.Visibility = metadataVisibility;
+        ExplorerDetailPropertiesButton.Visibility = metadataVisibility;
     }
+
 }
 
 /// <summary>
