@@ -110,6 +110,21 @@ El diseño conserva el panel de detalles a la derecha, sin modificar las funcion
 - [x] Uso de `Thumb` estándar encapsulado en `ExplorerResizeZone`, ya que `Thumb` es una clase sellada en WinUI.
 - [ ] Comprobar en Windows el cursor, las zonas de agarre y la fluidez de redimensionar el panel y las cuatro columnas.
 
+### BUILD 7A.6 — Detalles y barra de estado fieles a Windows 11
+
+**Estado:** integrado en `feature/explorador-completo`; pendiente de compilar y revisar visualmente en Windows.
+
+- [x] Vista grande del archivo: miniatura independiente de **256 px**, en modo `SingleItem` de Windows y caché separada de la versión de 40 px del listado, para evitar ampliar iconos pequeños.
+- [x] La franja de vista previa se amplía a la anchura completa del panel, con altura fija y sin márgenes sobrantes. La vista previa compatible de imágenes, PDF, SVG y TXT continúa funcionando.
+- [x] Reorganizar **Detalles**: imagen grande arriba, nombre destacado, acción Compartir visible pero deshabilitada hasta la integración nativa, sección de metadatos y botón Propiedades.
+- [x] Metadatos de **Tipo, Tamaño, Ubicación y Modificado** en dos columnas con valores alineados a la derecha. Ubicación muestra la carpeta contenedora y conserva la ruta completa al pasar el mouse.
+- [x] El tipo de archivo se obtiene de la asociación nativa de Windows cuando está disponible, sin bloquear la selección.
+- [x] Barra de estado inferior con tres datos juntos a la izquierda: **total de elementos | elementos seleccionados | tamaño de archivos seleccionados**.
+- [x] Si se seleccionan carpetas, el tamaño no se calcula recursivamente; en selección mixta se identifica que el valor corresponde a los archivos.
+- [x] Conservar un área discreta a la derecha de la barra de estado para mensajes de operaciones o errores.
+- [ ] Validación real en Windows: nitidez con ZIP/RAR y asociaciones instaladas, vista previa de PDF/imagen, metadatos y selección múltiple.
+- [ ] **Limitación externa:** Windows puede devolver una miniatura inferior al tamaño solicitado si el programa asociado no ofrece una fuente de alta resolución; no se puede garantizar nitidez absoluta para todos los formatos.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
