@@ -18,7 +18,8 @@ public sealed class ExplorerFileSystemService
 
     public Task<ExplorerListing> GetFolderAsync(
         string path,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool includeHidden = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
@@ -29,7 +30,7 @@ public sealed class ExplorerFileSystemService
 
         var fullPath = Path.GetFullPath(path);
         return Task.Run(
-            () => GetFolder(fullPath, cancellationToken),
+            () => GetFolder(fullPath, cancellationToken, includeHidden),
             cancellationToken);
     }
 
@@ -75,7 +76,8 @@ public sealed class ExplorerFileSystemService
 
     private static ExplorerListing GetFolder(
         string path,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeHidden)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -84,7 +86,10 @@ public sealed class ExplorerFileSystemService
         {
             RecurseSubdirectories = false,
             IgnoreInaccessible = true,
-            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System,
+            // Los archivos de sistema siguen ocultos como medida de seguridad.
+            AttributesToSkip = includeHidden
+                ? FileAttributes.System
+                : FileAttributes.Hidden | FileAttributes.System,
             ReturnSpecialDirectories = false
         };
 
