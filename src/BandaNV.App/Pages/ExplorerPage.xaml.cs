@@ -99,6 +99,7 @@ public sealed partial class ExplorerPage : Page
         }
 
         var version = ++_navigationVersion;
+        var navigationSucceeded = false;
         _navigationCts?.Cancel();
         _navigationCts?.Dispose();
         var request = new CancellationTokenSource();
@@ -168,14 +169,14 @@ public sealed partial class ExplorerPage : Page
                 RenderDriveShortcuts(listing.Items);
             }
 
+            navigationSucceeded = true;
             return true;
         }
         catch (OperationCanceledException)
         {
             return false;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
-                                   or ArgumentException or NotSupportedException)
+        catch (Exception ex)
         {
             if (version == _navigationVersion)
             {
@@ -195,7 +196,7 @@ public sealed partial class ExplorerPage : Page
                 _isNavigating = false;
                 ExplorerLoadingRing.IsActive = false;
                 ExplorerLoadingRing.Visibility = Visibility.Collapsed;
-                if (_currentLocation == location)
+                if (navigationSucceeded)
                 {
                     UpdateCountText();
                 }
