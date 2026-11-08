@@ -245,6 +245,21 @@ Este trabajo no cambia el motor ni los registros de los usuarios. `main` contin�
 - [x] Conservar el filtro local existente sin introducir búsquedas en toda la computadora.
 - [ ] Comprobar en Windows clics en espacios libres de la ruta, selección de texto, pegar una ruta válida/inválida, navegación mediante migas y actualización de búsqueda al cambiar de carpeta.
 
+### BUILD 7A.16 — Cajas desenfocables, panel Detalles limpio y tipos de Windows
+
+**Estado:** integrado en `feature/explorador-completo`; pendiente de compilación y comprobación visual en Windows.
+
+- [x] Un clic izquierdo fuera de los campos de **ruta** y **Buscar en…** quita el foco y la selección de texto; la ruta vuelve a las migas de navegación.
+- [x] La búsqueda escrita **no se borra** al desenfocar: continúa filtrando la carpeta actual.
+- [x] Los clics dentro de los campos no interrumpen la edición y los botones de migas siguen navegando normalmente.
+- [x] Quitar el tooltip instructivo que aparecía al posar el mouse sobre la barra de ruta.
+- [x] Eliminar el botón **Compartir** deshabilitado del panel de Detalles, reajustando el espaciado; no eliminar otras acciones de la barra.
+- [x] Obtener el tipo descriptivo de cada extensión mediante `SHGetFileInfoW` (`SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES`), respetando las asociaciones instaladas y el idioma del sistema.
+- [x] Mantener **Carpeta** para directorios y **Unidad** para discos; usar solo la extensión si Windows no proporciona un nombre de tipo.
+- [x] Compartir el mismo nombre de tipo entre listado, agrupación/ordenamiento y panel de Detalles; guardar los resultados por extensión para evitar consultas repetidas.
+- [ ] Probar que el campo Buscar pierde foco al pulsar espacios vacíos sin perder su texto; y que la ruta vuelve a migas tras hacer clic fuera.
+- [ ] Comprobar los tipos de ZIP/RAR con WinRAR instalado, otros formatos, archivos sin extensión y carpetas.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
