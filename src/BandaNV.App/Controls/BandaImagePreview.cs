@@ -200,10 +200,11 @@ public sealed class BandaImagePreview : UserControl
     {
         if (UseCompactExplorerFrame)
         {
-            _frame.Height = 207;
+            _frame.Height = 215;
             _frame.Padding = new Thickness(10);
             _frame.CornerRadius = new CornerRadius(0);
             _frame.BorderThickness = new Thickness(0);
+            Margin = new Thickness(0);
             return;
         }
 
