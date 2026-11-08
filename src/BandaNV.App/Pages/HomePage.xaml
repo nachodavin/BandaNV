@@ -335,21 +335,17 @@
                                 <Grid
                                     x:Name="HomeDonutLayout"
                                     Grid.Row="1"
-                                    MinHeight="265"
-                                    ColumnSpacing="10"
-                                    RowSpacing="10">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                                    MinHeight="340"
+                                    ColumnSpacing="14">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="0" />
+                                        <ColumnDefinition Width="1.85*" />
+                                        <ColumnDefinition Width="1.15*" />
                                     </Grid.ColumnDefinitions>
 
                                     <Viewbox
                                         x:Name="HomeDonutViewbox"
-                                        Height="275"
+                                        Grid.Column="0"
+                                        Height="365"
                                         Stretch="Uniform"
                                         StretchDirection="DownOnly"
                                         HorizontalAlignment="Stretch"
@@ -384,7 +380,7 @@
                                                 x:Name="HomeDonutCenterCategoryText"
                                                 Text="TODAS LAS CATEGORÍAS"
                                                 Foreground="{StaticResource BandaMutedStrongBrush}"
-                                                FontSize="15"
+                                                FontSize="19"
                                                 FontWeight="SemiBold"
                                                 TextAlignment="Center"
                                                 TextWrapping="Wrap" />
@@ -393,7 +389,7 @@
                                                 x:Name="HomeDonutCenterCountText"
                                                 Text="0"
                                                 Foreground="{StaticResource BandaTextBrush}"
-                                                FontSize="58"
+                                                FontSize="68"
                                                 FontWeight="SemiBold"
                                                 TextAlignment="Center" />
 
@@ -401,7 +397,7 @@
                                                 x:Name="HomeDonutCenterFilesLabelText"
                                                 Text="Archivos organizados"
                                                 Foreground="{StaticResource BandaMutedBrush}"
-                                                FontSize="16"
+                                                FontSize="19"
                                                 TextAlignment="Center" />
 
                                             <TextBlock
@@ -427,16 +423,18 @@
 
                                     <ScrollViewer
                                         x:Name="HomeDonutLegendViewer"
-                                        Grid.Row="1"
-                                        Grid.Column="0"
+                                        Grid.Column="1"
+                                        MaxHeight="350"
+                                        MinWidth="150"
+                                        VerticalScrollMode="Auto"
                                         VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Disabled"
                                         VerticalAlignment="Center">
                                         <StackPanel
                                             x:Name="HomeDonutLegendPanel"
-                                            Margin="0,4,10,4"
+                                            Margin="0,4,6,4"
                                             Spacing="7"
-                                            HorizontalAlignment="Left" />
+                                            HorizontalAlignment="Stretch" />
                                     </ScrollViewer>
                                 </Grid>
                             </Grid>
