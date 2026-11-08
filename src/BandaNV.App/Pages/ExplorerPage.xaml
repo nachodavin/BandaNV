@@ -308,40 +308,111 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal"
                         VerticalAlignment="Center" Spacing="3">
+
                 <Button x:Name="ExplorerToolbarSortButton"
                         Padding="10,7" MinHeight="36"
                         Background="Transparent" BorderThickness="0"
-                        CornerRadius="7" ToolTipService.ToolTip="Ordenar elementos">
+                        CornerRadius="7" ToolTipService.ToolTip="Ordenar y agrupar">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                         <FontIcon Glyph="&#xE8CB;" FontSize="15" />
-                        <TextBlock x:Name="ExplorerSortLabel" Text="Ordenar: Nombre"
-                                   FontSize="13" VerticalAlignment="Center" />
+                        <TextBlock Text="Ordenar" FontSize="13" VerticalAlignment="Center" />
                         <FontIcon Glyph="&#xE70D;" FontSize="9" />
                     </StackPanel>
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedLeft"
                                 FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
-                            <Border Padding="6" Width="217" CornerRadius="12"
+                            <Border Padding="6" Width="210" CornerRadius="12"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
                                     BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                     BorderThickness="1">
                                 <StackPanel Spacing="2">
-                                    <TextBlock Text="ORDENAR POR" Margin="10,6,10,4"
-                                               FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock x:Name="ExplorerSortLabel"
+                                               Text="Ordenar: Nombre"
+                                               Margin="9,6,9,5" FontSize="11"
                                                Foreground="{StaticResource BandaMutedStrongBrush}" />
-                                    <Button Content="Nombre" Tag="name" Click="ExplorerSortFieldButton_Click"
+                                    <Button Content="Nombre" Tag="name"
+                                            Click="ExplorerSortFieldButton_Click"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Button Content="Fecha de modificación" Tag="modified" Click="ExplorerSortFieldButton_Click"
+                                    <Button Content="Fecha de modificación" Tag="modified"
+                                            Click="ExplorerSortFieldButton_Click"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Button Content="Tipo" Tag="type" Click="ExplorerSortFieldButton_Click"
+                                    <Button Content="Tipo" Tag="type"
+                                            Click="ExplorerSortFieldButton_Click"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Button Content="Tamaño" Tag="size" Click="ExplorerSortFieldButton_Click"
+                                    <Button Content="Más  ›"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}">
+                                        <Button.Flyout>
+                                            <Flyout Placement="RightEdgeAlignedTop"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Border Padding="6" Width="185"
+                                                        CornerRadius="12"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+                                                    <StackPanel Spacing="2">
+                                                        <Button Content="Tamaño" Tag="size"
+                                                                Click="ExplorerSortFieldButton_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Fecha de creación" IsEnabled="False"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}"
+                                               Margin="6,5" />
+                                    <Button Content="Ascendente" Tag="asc"
+                                            Click="ExplorerSortDirectionButton_Click"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="6,5" />
-                                    <Button Content="Ascendente" Tag="asc" Click="ExplorerSortDirectionButton_Click"
+                                    <Button Content="Descendente" Tag="desc"
+                                            Click="ExplorerSortDirectionButton_Click"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Button Content="Descendente" Tag="desc" Click="ExplorerSortDirectionButton_Click"
-                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}"
+                                               Margin="6,5" />
+                                    <Button Content="Agrupar por  ›"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}">
+                                        <Button.Flyout>
+                                            <Flyout Placement="RightEdgeAlignedTop"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Border Padding="6" Width="220"
+                                                        CornerRadius="12"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+                                                    <StackPanel Spacing="2">
+                                                        <Button Content="Nombre" Tag="name"
+                                                                Click="ExplorerGroupFieldButton_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Fecha de modificación" Tag="modified"
+                                                                Click="ExplorerGroupFieldButton_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Tipo" Tag="type"
+                                                                Click="ExplorerGroupFieldButton_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Tamaño" Tag="size"
+                                                                Click="ExplorerGroupFieldButton_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Fecha de creación" IsEnabled="False"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Autores" IsEnabled="False"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Categorías" IsEnabled="False"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Etiquetas" IsEnabled="False"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button Content="Título" IsEnabled="False"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}"
+                                                                   Margin="6,5" />
+                                                        <Button Content="(Ninguno)" Tag="none"
+                                                                Click="ExplorerGroupFieldButton_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
                                 </StackPanel>
                             </Border>
                         </Flyout>
@@ -361,23 +432,82 @@
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedLeft"
                                 FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
-                            <Border Padding="6" Width="225" CornerRadius="12"
+                            <Border Padding="6" Width="240" CornerRadius="12"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
                                     BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                     BorderThickness="1">
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="VISUALIZACIÓN" Margin="10,6,10,4"
-                                               FontSize="11" FontWeight="SemiBold"
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="MODO DE VISTA" Margin="9,6,9,4" FontSize="11"
                                                Foreground="{StaticResource BandaMutedStrongBrush}" />
-                                    <Button Content="Detalles (lista actual)" IsEnabled="False"
+                                    <Button Content="Íconos extragrandes" IsEnabled="False"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Button Content="Lista e íconos · Próximamente" IsEnabled="False"
+                                    <Button Content="Íconos grandes" IsEnabled="False"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
-                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="6,5" />
+                                    <Button Content="Íconos medianos" IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button Content="Íconos pequeños" IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button Content="Lista" IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button Content="✓ Detalles" Tag="details"
+                                            Click="ExplorerViewModeButton_Click"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button Content="Mosaicos" IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button Content="Contenido" IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}"
+                                               Margin="6,5" />
                                     <Button x:Name="ExplorerViewDetailsMenuButton"
-                                            Content="Ocultar panel de detalles"
-                                            Click="ExplorerToggleDetailsButton_Click"
+                                            Content="✓ Panel de detalles"
+                                            Click="ExplorerViewDetailsMenuButton_Click"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button x:Name="ExplorerViewPreviewMenuButton"
+                                            Content="Panel de vista previa"
+                                            Click="ExplorerViewPreviewMenuButton_Click"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}"
+                                               Margin="6,5" />
+                                    <Button Content="Mostrar  ›"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}">
+                                        <Button.Flyout>
+                                            <Flyout Placement="RightEdgeAlignedTop"
+                                                    FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
+                                                <Border Padding="6" Width="250" CornerRadius="12"
+                                                        Background="{StaticResource BandaPopupSurfaceBrush}"
+                                                        BorderBrush="{StaticResource BandaBorderStrongBrush}"
+                                                        BorderThickness="1">
+                                                    <StackPanel Spacing="2">
+                                                        <Button x:Name="ExplorerShowNavigationButton"
+                                                                Content="✓ Panel de navegación"
+                                                                Tag="navigation"
+                                                                Click="ExplorerViewShowOption_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button x:Name="ExplorerShowCompactButton"
+                                                                Content="Vista compacta"
+                                                                Tag="compact"
+                                                                Click="ExplorerViewShowOption_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button x:Name="ExplorerShowCheckboxesButton"
+                                                                Content="✓ Casillas de selección"
+                                                                Tag="checkboxes"
+                                                                Click="ExplorerViewShowOption_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button x:Name="ExplorerShowExtensionsButton"
+                                                                Content="✓ Extensiones de nombre"
+                                                                Tag="extensions"
+                                                                Click="ExplorerViewShowOption_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                        <Button x:Name="ExplorerShowHiddenButton"
+                                                                Content="Elementos ocultos"
+                                                                Tag="hidden"
+                                                                Click="ExplorerViewShowOption_Click"
+                                                                Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
                                 </StackPanel>
                             </Border>
                         </Flyout>
@@ -393,11 +523,38 @@
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedLeft"
                                 FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
-                            <Border Padding="6" Width="202" CornerRadius="12"
+                            <Border Padding="6" Width="240" CornerRadius="12"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
                                     BorderBrush="{StaticResource BandaBorderStrongBrush}"
                                     BorderThickness="1">
                                 <StackPanel Spacing="2">
+                                    <Button Content="Anclar a Acceso rápido"
+                                            IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="6,4" />
+                                    <Button x:Name="ExplorerSelectAllButton"
+                                            Content="Seleccionar todo"
+                                            Click="ExplorerSelectAllButton_Click"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button x:Name="ExplorerSelectNoneButton"
+                                            Content="No seleccionar nada"
+                                            Click="ExplorerSelectNoneButton_Click"
+                                            IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button x:Name="ExplorerInvertSelectionButton"
+                                            Content="Invertir selección"
+                                            Click="ExplorerInvertSelectionButton_Click"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="6,4" />
+                                    <Button x:Name="ExplorerPropertiesButton"
+                                            Content="Propiedades"
+                                            Click="ExplorerPropertiesButton_Click"
+                                            IsEnabled="False"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Button Content="Opciones de BandaNV"
+                                            Click="ExplorerOptionsButton_Click"
+                                            Style="{StaticResource BandaPopupOptionButtonStyle}" />
+                                    <Rectangle Height="1" Fill="{StaticResource BandaBorderBrush}" Margin="6,4" />
                                     <Button x:Name="ExplorerToolbarOpenButton"
                                             Content="Abrir"
                                             Click="ExplorerOpenSelectionButton_Click"
