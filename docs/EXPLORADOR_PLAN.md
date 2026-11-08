@@ -137,6 +137,19 @@ El diseño conserva el panel de detalles a la derecha, sin modificar las funcion
 - [x] Usar los anchos actuales de las columnas para identificar el espacio libre cuando el usuario las redimensiona.
 - [ ] Verificar con clics en filas, encabezados de grupo, zona vacía inferior, zona vacía a la derecha, Ctrl+clic, Shift+clic y scrollbar en el equipo de desarrollo.
 
+### BUILD 7A.8 — Zona seleccionable limitada y espacios muertos
+
+**Estado:** integrado en la rama experimental; pendiente de compilar y validar visualmente en Windows.
+
+- [x] Limitar el resaltado de cada archivo hasta el borde de la última columna (**Tamaño**), sin extenderlo hasta el panel Detalles.
+- [x] El encabezado y las filas usan un ancho común `RowWidth`, calculado a partir de Nombre, Modificación, Tipo, Tamaño, separaciones y padding.
+- [x] Pasar el ancho inicial de Nombre a píxeles (antes era `*`), para conservar un espacio libre real a la derecha de la tabla.
+- [x] Crear un margen muerto de 12 px a la izquierda y 4 px de separación entre filas, parecido al Explorador de Windows.
+- [x] Fondo del listado transparente y detección de clic fuera de filas para quitar selección, incluso en el espacio libre a la derecha, debajo de las filas y entre grupos.
+- [x] Preservar clics dentro de la fila, checkbox, clic derecho, Ctrl+clic, Shift+clic y barra de desplazamiento.
+- [x] Continuar sincronizando el ancho de encabezados y filas al redimensionar las columnas.
+- [ ] Verificar en WinUI real los límites de resaltado, la alineación de encabezados, los márgenes clickeables y la selección agrupada y sin agrupar.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
