@@ -54,7 +54,11 @@ public sealed partial class HomePage : Page
             ? new Thickness(0, 0, 0, 0)
             : new Thickness(0);
 
-        HomeDonutViewbox.Height = compact ? 360 : 400;
+        // Reservar espacio vertical para que el gráfico circular se vea
+        // completo al abrir BandaNV como ventana, sin obligar a maximizar.
+        // La leyenda sigue quedando disponible mediante el scroll natural.
+        HomeDonutViewbox.Height = Math.Clamp(
+            e.NewSize.Height - 545d, 240d, compact ? 305d : 370d);
     }
 
     private async void HomePage_Loaded(
