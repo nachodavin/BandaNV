@@ -163,6 +163,22 @@ El diseño conserva el panel de detalles a la derecha, sin modificar las funcion
 - [x] Preservar el modo de alta resolución independiente para el panel Detalles.
 - [ ] Verificar en Windows: abrir Explorar desde cero, navegar por una carpeta con muchos ZIP/RAR/7z, desplazar y volver al inicio, comprobar que todos los archivos de un mismo tipo utilicen su ícono asociado.
 
+### BUILD 7A.10 — Ventana de escritorio en lugar de maximizada
+
+**Estado:** implementado en `feature/explorador-completo`; pendiente de compilar y probar en Windows.
+
+- [x] Retirar la llamada a `OverlappedPresenter.Maximize()` que ampliaba BandaNV al iniciarse.
+- [x] Iniciar una ventana estándar, centrada en el área de trabajo del monitor y sin tapar la barra de tareas.
+- [x] Tamaño inicial moderado, aproximadamente el 60% del ancho y 62% del alto del monitor, con límites mínimos y máximos adaptados a la escala DPI.
+- [x] Conservar minimizar, maximizar, restaurar, mover y redimensionar mediante controles de Windows.
+- [x] Ajustar en Explorar la anchura del panel de ubicaciones, de la búsqueda y de Detalles cuando la ventana sea angosta.
+- [x] Ajustar de forma proporcional las columnas Nombre/Modificación/Tipo/Tamaño al ancho visible, sin perder la posibilidad de redimensionarlas manualmente.
+- [x] Al ampliar la ventana, recuperar proporciones de columnas predeterminadas si el usuario no las modificó; no pisar los anchos elegidos a mano.
+- [ ] Prueba real con monitor 1080p/1440p y distintas escalas DPI; navegar entre secciones, maximizar/restaurar y mover entre monitores.
+- [ ] Futuro: recordar el último tamaño y posición en preferencias portables, si se desea.
+
+La versión estable 2.0.3 en `main` permanece intacta.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
