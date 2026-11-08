@@ -179,6 +179,22 @@ El diseño conserva el panel de detalles a la derecha, sin modificar las funcion
 
 La versión estable 2.0.3 en `main` permanece intacta.
 
+### BUILD 7A.11 — Adaptación del resto de secciones al modo ventana
+
+**Estado:** implementado en `feature/explorador-completo`; pendiente de compilar y comprobar visualmente en Windows.
+
+- [x] **Inicio:** el gráfico de categorías se escala sin cortarse; la leyenda queda debajo y las métricas se apilan cuando falta ancho.
+- [x] **Organizar:** el contenido principal puede desplazarse verticalmente; la barra de filtros/orden/agrupación pasa a dos líneas y Resumen puede ubicarse debajo del listado en una ventana angosta.
+- [x] **Buscar:** el carrusel ajusta la cantidad de categorías visibles por tanda al ancho y preserva la selección de categorías; la tabla y Detalle se apilan si no hay espacio para ambas.
+- [x] **Historial:** el panel Detalle puede colocarse debajo de la tabla para que sus siete columnas tengan espacio suficiente.
+- [x] **Categorías:** el área principal permite desplazamiento, manteniendo el GridView y la reubicación de tarjetas accesibles.
+- [x] **Configuración:** las parejas de tarjetas de General, Apariencia, Organización, Historial y seguridad y Avanzado se apilan en ventanas normales; las pestañas siguen desplazándose horizontalmente.
+- [x] El contenido de las páginas complejas cuenta con desplazamiento vertical y horizontal de respaldo para ventanas especialmente reducidas, sin recortar botones u opciones.
+- [ ] Validar tamaños aprox. 1100×650, 1400×800 y pantalla maximizada; comprobar navegación, selección, filtros, drag de categorías, modales y operaciones de Organizar.
+- [ ] Revisar si alguna pantalla requiere ajustes adicionales de densidad de texto en ventanas extremadamente pequeñas.
+
+Este cambio no modifica el motor, la lógica de organización, el historial ni los ajustes portables. La rama estable sigue intacta.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
