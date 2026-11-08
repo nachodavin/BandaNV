@@ -175,6 +175,18 @@ internal static class Program
             "Backup antiguo sin lista de carpetas protegidas sigue siendo válido",
             SettingsBackupAcceptsLegacyProtectedFoldersAsync);
 
+        await RunAsync(
+            "Explorar enumera un nivel sin recorrer subcarpetas",
+            ExplorerEnumeratesOnlyImmediateChildrenAsync);
+
+        await RunAsync(
+            "Explorar no modifica archivos durante la consulta",
+            ExplorerReadOnlyDoesNotModifyFilesAsync);
+
+        await RunAsync(
+            "Explorar respeta cancelación y rechaza rutas relativas",
+            ExplorerValidatesPathsAndCancellationAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -737,6 +749,79 @@ internal static class Program
             2,
             "#4FE0C6")
     ];
+
+    private static async Task ExplorerEnumeratesOnlyImmediateChildrenAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+        var nested = Path.Combine(workspace.Source, "Carpeta");
+        Directory.CreateDirectory(nested);
+
+        WriteFile(Path.Combine(workspace.Source, "principal.txt"), "uno");
+        WriteFile(Path.Combine(nested, "interno.txt"), "dos");
+
+        var explorer = new ExplorerFileSystemService();
+        var listing = await explorer.GetFolderAsync(workspace.Source);
+
+        Equal(2, listing.Items.Count, "Se esperaban la carpeta y el archivo de primer nivel.");
+        True(listing.Items[0].IsDirectory, "Las carpetas deben aparecer antes que los archivos.");
+        True(listing.Items.Any(item => item.Name == "principal.txt" && !item.IsDirectory),
+            "No aparece el archivo de primer nivel.");
+        True(listing.Items.Any(item => item.Name == "Carpeta" && item.IsDirectory),
+            "No aparece la carpeta de primer nivel.");
+        True(!listing.Items.Any(item => item.Name == "interno.txt"),
+            "Explorar no debe recorrer subcarpetas recursivamente.");
+        True(!listing.Truncated, "El listado de prueba no debería truncarse.");
+    }
+
+    private static async Task ExplorerReadOnlyDoesNotModifyFilesAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+        var path = Path.Combine(workspace.Source, "prueba.txt");
+        WriteFile(path, "contenido original");
+
+        var before = File.GetLastWriteTimeUtc(path);
+        var explorer = new ExplorerFileSystemService();
+        var listing = await explorer.GetFolderAsync(workspace.Source);
+
+        True(listing.Items.Any(item => item.FullPath == path),
+            "La enumeración debe encontrar el archivo.");
+        Equal("contenido original", File.ReadAllText(path),
+            "Explorar no debe alterar el contenido.");
+        Equal(before, File.GetLastWriteTimeUtc(path),
+            "Explorar no debe modificar la fecha del archivo.");
+    }
+
+    private static async Task ExplorerValidatesPathsAndCancellationAsync()
+    {
+        var explorer = new ExplorerFileSystemService();
+        var rejectedRelative = false;
+        try
+        {
+            await explorer.GetFolderAsync("carpeta-relativa");
+        }
+        catch (ArgumentException)
+        {
+            rejectedRelative = true;
+        }
+
+        True(rejectedRelative, "Explorar debe rechazar rutas relativas.");
+
+        using var workspace = TestWorkspace.Create();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var cancelled = false;
+        try
+        {
+            await explorer.GetFolderAsync(workspace.Source, cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            cancelled = true;
+        }
+
+        True(cancelled, "Explorar debe respetar una cancelación previa.");
+    }
 
     private static async Task RunAsync(
         string name,
