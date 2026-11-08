@@ -260,6 +260,17 @@ Este trabajo no cambia el motor ni los registros de los usuarios. `main` contin�
 - [ ] Probar que el campo Buscar pierde foco al pulsar espacios vacíos sin perder su texto; y que la ruta vuelve a migas tras hacer clic fuera.
 - [ ] Comprobar los tipos de ZIP/RAR con WinRAR instalado, otros formatos, archivos sin extensión y carpetas.
 
+### BUILD 7A.17 — Editor de ruta alineado con el marco original
+
+**Estado:** implementado en la rama experimental; pendiente de compilación y revisión visual en Windows.
+
+- [x] Conservar el borde externo `ExplorerAddressSurface` como **único marco** de la barra de ubicación.
+- [x] Eliminar el padding del contenedor externo y asignar el espacio interior directamente a las migas de navegación y al `TextBox` de edición.
+- [x] Extender el `TextBox` a todo el espacio disponible, sin margen propio y sin modificar la altura ni la anchura del bloque al entrar en edición.
+- [x] Anular el borde enfocado interno y su línea inferior de acento mediante recursos locales de WinUI; mantener la selección y el foco del texto.
+- [x] Conservar clic en el espacio vacío, `Enter`, `Esc` y clic fuera como antes.
+- [ ] Validar visualmente en Windows que navegar y editar la ruta compartan **exactamente el mismo rectángulo** sin doble contorno ni salto de posición.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
