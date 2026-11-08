@@ -16,7 +16,7 @@ namespace BandaNV.App.Pages;
 
 public sealed partial class SearchPage : Page
 {
-    private const int CategoriesPerPage = 10;
+    private int _categoriesPerPage = 6;
     private const double DateWheelItemHeight = 36d;
 
     private readonly List<SearchCategorySummary> _allCategoryCards = new();
@@ -79,6 +79,26 @@ public sealed partial class SearchPage : Page
         InitializeSpecificDateWheels();
 
         Loaded += SearchPage_Loaded;
+    }
+
+    private void SearchPage_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // Un número de tarjetas adecuado para el ancho hace que
+        // los títulos puedan leerse también en ventanas más pequeñas.
+        var available = e.NewSize.Width;
+        var count = available >= 1450 ? 9 :
+                    available >= 1150 ? 6 :
+                    available >= 900 ? 5 : 4;
+        if (_categoriesPerPage == count)
+        {
+            return;
+        }
+
+        var firstVisible = _currentCategoryPage * _categoriesPerPage;
+        _categoriesPerPage = count;
+        _currentCategoryPage = Math.Min(
+            firstVisible / count, CategoryPageCount - 1);
+        UpdateCategoryPage();
     }
 
     private void LoadSavedViewPreferences()
@@ -279,14 +299,14 @@ public sealed partial class SearchPage : Page
     }
 
     private int CategoryPageCount =>
-        Math.Max(1, (int)Math.Ceiling(_allCategoryCards.Count / (double)CategoriesPerPage));
+        Math.Max(1, (int)Math.Ceiling(_allCategoryCards.Count / (double)_categoriesPerPage));
 
     private void UpdateCategoryPage()
     {
         CategoryCardsGrid.Children.Clear();
         CategoryCardsGrid.ColumnDefinitions.Clear();
 
-        for (var column = 0; column < CategoriesPerPage; column++)
+        for (var column = 0; column < _categoriesPerPage; column++)
         {
             CategoryCardsGrid.ColumnDefinitions.Add(new ColumnDefinition
             {
@@ -299,10 +319,10 @@ public sealed partial class SearchPage : Page
             category.IsSelected = _selectedCategoryNames.Contains(category.Name);
         }
 
-        var start = _currentCategoryPage * CategoriesPerPage;
+        var start = _currentCategoryPage * _categoriesPerPage;
         var visibleCategories = _allCategoryCards
             .Skip(start)
-            .Take(CategoriesPerPage)
+            .Take(_categoriesPerPage)
             .ToList();
 
         var template = (DataTemplate)Resources["CategoryCardTemplate"];
