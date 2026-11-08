@@ -86,7 +86,7 @@ public sealed partial class SearchPage : Page
         // Un número de tarjetas adecuado para el ancho hace que
         // los títulos puedan leerse también en ventanas más pequeñas.
         var available = e.NewSize.Width;
-        var narrow = available < 1100;
+        var narrow = available < 1280;
         SearchResultsAndDetailGrid.ColumnDefinitions[0].Width =
             new GridLength(narrow ? 1 : 1.55, GridUnitType.Star);
         SearchResultsAndDetailGrid.ColumnDefinitions[1].Width =
