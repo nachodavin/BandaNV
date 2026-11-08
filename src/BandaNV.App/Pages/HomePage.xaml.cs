@@ -35,6 +35,28 @@ public sealed partial class HomePage : Page
         Unloaded += HomePage_Unloaded;
     }
 
+    private void HomePage_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // No ampliar la ventana para mostrar el dashboard. El gráfico es
+        // vectorial y el Viewbox lo escala sin recortar contenidos.
+        var compact = e.NewSize.Width < 1080;
+
+        HomeDashboardGrid.ColumnDefinitions[0].Width =
+            compact ? new GridLength(1, GridUnitType.Star) :
+                      new GridLength(1.45, GridUnitType.Star);
+        HomeDashboardGrid.ColumnDefinitions[1].Width =
+            compact ? new GridLength(0) :
+                      new GridLength(1, GridUnitType.Star);
+
+        Grid.SetColumn(HomeDashboardMetrics, compact ? 0 : 1);
+        Grid.SetRow(HomeDashboardMetrics, compact ? 1 : 0);
+        HomeDashboardMetrics.Margin = compact
+            ? new Thickness(0, 0, 0, 0)
+            : new Thickness(0);
+
+        HomeDonutViewbox.Height = compact ? 360 : 400;
+    }
+
     private async void HomePage_Loaded(
         object sender,
         RoutedEventArgs e)
