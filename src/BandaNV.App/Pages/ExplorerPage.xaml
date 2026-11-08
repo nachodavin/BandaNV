@@ -956,20 +956,15 @@
                                        Margin="0,0,0,12" />
 
                             <Button x:Name="ExplorerDetailShareButton"
-                                    Content="Compartir"
                                     IsEnabled="False"
                                     ToolTipService.ToolTip="Compartir estará disponible en una próxima BUILD"
                                     HorizontalAlignment="Left"
                                     Margin="0,0,0,26"
                                     Style="{StaticResource BandaPopupSecondaryButtonStyle}">
-                                <Button.ContentTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon Glyph="&#xE72D;" FontSize="14" />
-                                            <TextBlock Text="Compartir" VerticalAlignment="Center" FontSize="12" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </Button.ContentTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE72D;" FontSize="14" />
+                                    <TextBlock Text="Compartir" VerticalAlignment="Center" FontSize="12" />
+                                </StackPanel>
                             </Button>
 
                             <TextBlock x:Name="ExplorerDetailsHeading"
