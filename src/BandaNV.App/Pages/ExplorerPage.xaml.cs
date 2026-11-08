@@ -707,7 +707,9 @@ public sealed partial class ExplorerPage : Page
             ExplorerFileIconPanel.Visibility = count == 0 && _detailsVisible
                 ? Visibility.Visible
                 : Visibility.Collapsed;
-            ExplorerFileLargeIcon.Glyph = "\uE8A5";
+            ExplorerSelectedFileIcon.FilePath = string.Empty;
+            ExplorerSelectedFileIcon.IsDirectory = false;
+            ExplorerSelectedFileIcon.IsDrive = false;
             ExplorerDetailType.Text = string.Empty;
             ExplorerDetailSize.Text = string.Empty;
             ExplorerDetailModified.Text = string.Empty;
@@ -731,7 +733,9 @@ public sealed partial class ExplorerPage : Page
         ExplorerFileIconPanel.Visibility = _detailsVisible && !canPreview
             ? Visibility.Visible
             : Visibility.Collapsed;
-        ExplorerFileLargeIcon.Glyph = item.IconGlyph;
+        ExplorerSelectedFileIcon.FilePath = item.FullPath;
+        ExplorerSelectedFileIcon.IsDirectory = item.IsDirectory;
+        ExplorerSelectedFileIcon.IsDrive = item.IsDrive;
 
         ExplorerDetailName.Text = item.Name;
         ExplorerDetailType.Text = item.TypeName;
