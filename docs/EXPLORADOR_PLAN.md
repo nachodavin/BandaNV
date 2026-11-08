@@ -41,14 +41,16 @@ Evolucionar la sección **Buscar** hacia **Explorar**, con una experiencia cotid
 
 ### BUILD 7A — Fundamentos y navegación (solo lectura)
 
-- [ ] Crear `ExplorerPage` sin modificar el flujo actual de Buscar.
-- [ ] Crear modelo `ExplorerItem`: ruta, nombre, tipo, tamaño, fecha, atributos e identificación de carpeta.
-- [ ] Crear `ExplorerFileSystemService` para enumerar directorios y unidades a demanda.
-- [ ] Pantalla de inicio del explorador: «Este equipo», unidades disponibles, ubicaciones personales, acceso al origen y destino configurados.
-- [ ] Barra de direcciones editable, migas de pan, Atrás, Adelante, Subir y Actualizar.
-- [ ] Tabla central en vista Detalles: nombre, fecha, tipo y tamaño; doble clic, selección múltiple y apertura de archivos.
-- [ ] Estado visible: carpeta, cantidad de elementos, selección y errores de permisos.
-- [ ] Probar con carpetas vacías, inaccesibles, rutas profundas, cambios durante el listado y unidades desconectadas.
+**Estado:** primera implementación integrada en la rama experimental; pendiente de compilar y validar visualmente en Windows antes de cerrar la etapa.
+
+- [x] Crear `ExplorerPage` sin modificar el flujo actual de Buscar. Disponible desde una entrada temporal «Explorar».
+- [x] Crear modelo `ExplorerItem`: ruta, nombre, tipo, tamaño, fecha, atributos e identificación de carpeta.
+- [x] Crear `ExplorerFileSystemService` para enumerar directorios y unidades a demanda.
+- [x] Pantalla de inicio del explorador: «Este equipo», unidades disponibles, ubicaciones personales, acceso al origen y destino configurados.
+- [x] Barra de direcciones editable, migas de pan, Atrás, Adelante, Subir y Actualizar.
+- [x] Tabla central en vista Detalles: nombre, fecha, tipo y tamaño; doble clic, selección múltiple y apertura de archivos.
+- [x] Estado visible: carpeta, cantidad de elementos, selección y errores de permisos.
+- [ ] Validar manualmente en Windows: carpetas vacías/inaccesibles, rutas profundas, cambios durante el listado, unidades desconectadas y rendimiento en carpetas grandes. Se agregaron tres smoke tests para el servicio, pendientes de ejecutar en el equipo de desarrollo.
 
 **Criterio de salida:** recorrer carpetas reales y volver por el historial sin movimientos de archivos, sin congelamiento de UI y sin perder las capacidades actuales de Buscar.
 
