@@ -3,6 +3,7 @@ using BandaNV.App.Services;
 using BandaNV.Core.Infrastructure;
 using BandaNV.Core.Models;
 using Microsoft.UI.Windowing;
+using Windows.Graphics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -77,10 +78,10 @@ public sealed partial class MainWindow : Window
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
         Activated -= MainWindow_Activated;
-        TryMaximizeWindow();
+        ConfigureInitialWindow();
     }
 
-    private void TryMaximizeWindow()
+    private void ConfigureInitialWindow()
     {
         try
         {
@@ -93,17 +94,58 @@ public sealed partial class MainWindow : Window
             ConfigureWindowIcon();
             ConfigureTrayIcon(hwnd);
 
+            // BandaNV abre como una ventana común: puede moverse,
+            // redimensionarse y maximizarse manualmente, como el Explorador.
             if (_appWindow.Presenter is OverlappedPresenter presenter)
             {
-                presenter.Maximize();
+                presenter.IsResizable = true;
+                presenter.IsMaximizable = true;
+                presenter.IsMinimizable = true;
+                ConfigureDefaultBounds(_appWindow);
             }
         }
         catch
         {
-            // Si Windows no permite maximizar en este punto, la app sigue siendo usable.
+            // Si Windows no permite posicionarla, el estado normal del
+            // sistema sigue siendo válido. No maximizar automáticamente.
         }
     }
 
+
+    /// <summary>
+    /// Tamaño inicial inspirado en una ventana habitual del Explorador.
+    /// Usa el área de trabajo del monitor actual (sin tapar la barra de
+    /// tareas), con márgenes alrededor y centrado. AppWindow recibe píxeles
+    /// físicos, por lo que el valor se calcula desde DisplayArea.WorkArea.
+    /// </summary>
+    private static void ConfigureDefaultBounds(AppWindow window)
+    {
+        var display = DisplayArea.GetFromWindowId(
+            window.Id, DisplayAreaFallback.Nearest);
+        var area = display.WorkArea;
+
+        if (area.Width <= 0 || area.Height <= 0)
+        {
+            return;
+        }
+
+        // Alrededor del 60% de la pantalla, con límites razonables.
+        // En 2560×1440 será aproximadamente 1500×850.
+        // En 1920×1080 será aproximadamente 1150×670.
+        var availableWidth = Math.Max(1, area.Width - 48);
+        var availableHeight = Math.Max(1, area.Height - 48);
+        var width = Math.Min(
+            availableWidth,
+            Math.Clamp((int)Math.Round(area.Width * 0.60), 1050, 1500));
+        var height = Math.Min(
+            availableHeight,
+            Math.Clamp((int)Math.Round(area.Height * 0.62), 600, 850));
+
+        var x = area.X + (area.Width - width) / 2;
+        var y = area.Y + (area.Height - height) / 2;
+
+        window.MoveAndResize(new RectInt32(x, y, width, height));
+    }
 
     private void ConfigureTrayIcon(
         nint windowHandle)
