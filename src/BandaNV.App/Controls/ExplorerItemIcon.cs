@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -8,13 +9,26 @@ using Windows.Storage.FileProperties;
 namespace BandaNV.App.Controls;
 
 /// <summary>
-/// Muestra el ícono/miniatura que devuelve Windows para el archivo.
-/// Se carga al entrar en pantalla y se invalida si el ListView recicla la fila.
+/// Ícono nativo de un archivo. Las filas del ListView se reciclan, por eso
+/// cada instancia valida la versión del archivo antes de mostrar el resultado.
+/// Los íconos compartidos (ZIP/RAR/7z) se cargan una sola vez por extensión y
+/// resolución, incluso si muchas filas aparecen al mismo tiempo.
 /// </summary>
 public sealed class ExplorerItemIcon : UserControl
 {
-    private static readonly Dictionary<string, BitmapImage> ArchiveIcons =
+    private static readonly HashSet<string> SharedExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".zip", ".rar", ".7z" };
+
+    // Todas las operaciones de iconos parten del hilo UI de WinUI. Las tareas
+    // pendientes se conservan aunque la fila que inició la carga se recicle.
+    private static readonly Dictionary<string, Task<BitmapImage?>> PendingIcons =
         new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly Dictionary<string, BitmapImage> CachedIcons =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    // Evita una avalancha de solicitudes al Shell al abrir carpetas grandes.
+    private static readonly SemaphoreSlim ThumbnailSlots = new(6, 6);
 
     private readonly Image _image;
     private readonly FontIcon _fallback;
@@ -26,10 +40,6 @@ public sealed class ExplorerItemIcon : UserControl
             nameof(IsLargePreview), typeof(bool), typeof(ExplorerItemIcon),
             new PropertyMetadata(false, OnIconPropertyChanged));
 
-    /// <summary>
-    /// Solicita a Windows un ícono/miniatura de resolución alta en Detalles.
-    /// Las filas mantienen la versión liviana de 40 px.
-    /// </summary>
     public bool IsLargePreview
     {
         get => (bool)GetValue(IsLargePreviewProperty);
@@ -103,13 +113,37 @@ public sealed class ExplorerItemIcon : UserControl
             _isVisible = false;
             ++_loadVersion;
             _image.Source = null;
+            _image.Visibility = Visibility.Collapsed;
         };
+    }
+
+    /// <summary>
+    /// Da inicio a la carga de un único ícono pequeño por extensión compartida.
+    /// Se llama al abrir una carpeta para que la primera pantalla no cree
+    /// decenas de solicitudes simultáneas de ZIP o RAR.
+    /// </summary>
+    public static void WarmUpSharedIcons(IEnumerable<string> filePaths)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in filePaths)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                continue;
+            }
+
+            var extension = Path.GetExtension(path);
+            if (SharedExtensions.Contains(extension) && seen.Add(extension))
+            {
+                _ = GetSharedIconAsync(path, extension, largePreview: false);
+            }
+        }
     }
 
     private static void OnIconPropertyChanged(
         DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
-        if (target is ExplorerItemIcon icon && icon._isVisible)
+        if (target is ExplorerItemIcon { _isVisible: true } icon)
         {
             icon.Refresh();
         }
@@ -130,69 +164,96 @@ public sealed class ExplorerItemIcon : UserControl
             ? new SolidColorBrush(Microsoft.UI.Colors.Goldenrod)
             : (Brush)Application.Current.Resources["BandaMutedStrongBrush"];
 
-        if (!IsDirectory && !string.IsNullOrWhiteSpace(FilePath))
+        if (_isVisible && !IsDirectory && !IsDrive &&
+            !string.IsNullOrWhiteSpace(FilePath))
         {
-            _ = LoadThumbnailAsync(FilePath, version, IsLargePreview);
+            _ = LoadIconAsync(FilePath, version, IsLargePreview);
         }
     }
 
-    private async Task LoadThumbnailAsync(string path, int version, bool largePreview)
+    private async Task LoadIconAsync(string path, int version, bool largePreview)
     {
-        // La cache distingue la miniatura pequeña del ícono grande, de modo
-        // que nunca se amplíe accidentalmente una imagen de solo 40 píxeles.
         var extension = Path.GetExtension(path);
-        var cacheKey = extension + (largePreview ? "|large" : "|list");
-        var isArchive = extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
-                        extension.Equals(".rar", StringComparison.OrdinalIgnoreCase) ||
-                        extension.Equals(".7z", StringComparison.OrdinalIgnoreCase);
+        BitmapImage? icon;
 
-        if (isArchive && ArchiveIcons.TryGetValue(cacheKey, out var cached))
+        if (SharedExtensions.Contains(extension))
         {
-            ShowImage(cached, path, version);
-            return;
+            icon = await GetSharedIconAsync(path, extension, largePreview);
+        }
+        else
+        {
+            icon = await CreateBitmapAsync(path, largePreview);
         }
 
+        if (icon is not null && _isVisible && version == _loadVersion &&
+            string.Equals(FilePath, path, StringComparison.OrdinalIgnoreCase) &&
+            IsLargePreview == largePreview && !IsDirectory && !IsDrive)
+        {
+            _image.Source = icon;
+            _image.Visibility = Visibility.Visible;
+            _fallback.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private static async Task<BitmapImage?> GetSharedIconAsync(
+        string path, string extension, bool largePreview)
+    {
+        var key = extension + (largePreview ? "|large" : "|list");
+
+        if (CachedIcons.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        if (!PendingIcons.TryGetValue(key, out var pending))
+        {
+            pending = CreateBitmapAsync(path, largePreview);
+            PendingIcons[key] = pending;
+        }
+
+        var icon = await pending;
+
+        if (icon is not null)
+        {
+            CachedIcons[key] = icon;
+        }
+
+        // Si la primera muestra no puede leerse, otra fila podrá reintentar
+        // con otro archivo de la misma extensión. No cachear fallos.
+        PendingIcons.Remove(key);
+        return icon;
+    }
+
+    private static async Task<BitmapImage?> CreateBitmapAsync(
+        string path, bool largePreview)
+    {
+        await ThumbnailSlots.WaitAsync();
         try
         {
             var file = await StorageFile.GetFileFromPathAsync(path);
-            // El panel derecho pide 256 px en modo SingleItem. La versión
-            // anterior ampliaba un icono de 40 px y por eso se veía borroso.
             using var thumbnail = await file.GetThumbnailAsync(
                 largePreview ? ThumbnailMode.SingleItem : ThumbnailMode.ListView,
                 largePreview ? 256u : 40u,
                 ThumbnailOptions.UseCurrentScale);
 
-            if (thumbnail is null || !_isVisible || version != _loadVersion)
+            if (thumbnail is null)
             {
-                return;
+                return null;
             }
 
             var source = new BitmapImage();
             await source.SetSourceAsync(thumbnail);
-
-            if (isArchive && !ArchiveIcons.ContainsKey(cacheKey))
-            {
-                ArchiveIcons[cacheKey] = source;
-            }
-
-            ShowImage(source, path, version);
+            return source;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Archivos protegidos, desconectados o sin miniatura: ícono genérico.
+            Debug.WriteLine(
+                $"BandaNV Explorer - ícono {Path.GetExtension(path)}: {ex.GetType().Name}");
+            return null;
         }
-    }
-
-    private void ShowImage(BitmapImage source, string path, int version)
-    {
-        if (!_isVisible || version != _loadVersion ||
-            !string.Equals(FilePath, path, StringComparison.OrdinalIgnoreCase))
+        finally
         {
-            return;
+            ThumbnailSlots.Release();
         }
-
-        _image.Source = source;
-        _image.Visibility = Visibility.Visible;
-        _fallback.Visibility = Visibility.Collapsed;
     }
 }
