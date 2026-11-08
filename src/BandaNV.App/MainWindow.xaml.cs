@@ -920,6 +920,12 @@ public sealed partial class MainWindow : Window
             : $"{value:0.##} {units[index]}";
     }
 
+    public void OpenSettingsFromExplorer()
+    {
+        NavigateTo("settings");
+        SetSelectedNavigationButton(SettingsButton);
+    }
+
     private void NavigationButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not string tag)
