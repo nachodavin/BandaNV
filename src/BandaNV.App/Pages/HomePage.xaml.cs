@@ -646,72 +646,81 @@ public sealed partial class HomePage : Page
         HomeCategoryUsageItem item,
         Brush brush)
     {
+        // El panel de leyenda está a la derecha de la dona: categoría y
+        // cantidad van en dos líneas, evitando que se recorten en ventanas.
         var row = new Border
         {
             Tag = item.Id,
-            Padding = new Thickness(12, 10, 12, 10),
+            Padding = new Thickness(10, 9, 10, 9),
             CornerRadius = new CornerRadius(10),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Background =
-                new SolidColorBrush(
-                    Microsoft.UI.Colors.Transparent)
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent)
         };
 
-        var content = new StackPanel
+        var content = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 12,
-            HorizontalAlignment = HorizontalAlignment.Left
+            ColumnSpacing = 9,
+            RowSpacing = 3,
+            HorizontalAlignment = HorizontalAlignment.Stretch
         };
+        content.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = GridLength.Auto
+        });
+        content.ColumnDefinitions.Add(new ColumnDefinition
+        {
+            Width = new GridLength(1, GridUnitType.Star)
+        });
+        content.RowDefinitions.Add(new RowDefinition
+        {
+            Height = GridLength.Auto
+        });
+        content.RowDefinitions.Add(new RowDefinition
+        {
+            Height = GridLength.Auto
+        });
 
         var dot = new Ellipse
         {
             Width = 11,
             Height = 11,
             Fill = brush,
-            VerticalAlignment =
-                VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center
         };
 
         var name = new TextBlock
         {
             Text = item.Name,
-            Foreground =
-                (Brush)Application.Current.Resources[
-                    "BandaMutedStrongBrush"],
-            FontSize = 16,
-            FontWeight =
-                Microsoft.UI.Text.FontWeights.SemiBold,
-            TextTrimming =
-                TextTrimming.CharacterEllipsis,
-            VerticalAlignment =
-                VerticalAlignment.Center
+            Foreground = (Brush)Application.Current.Resources[
+                "BandaMutedStrongBrush"],
+            FontSize = 14,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center
         };
+        Grid.SetColumn(name, 1);
 
         var count = new TextBlock
         {
-            Text =
-                item.FileCount == 1
-                    ? "1 archivo"
-                    : $"{item.FileCount} archivos",
-            Foreground =
-                (Brush)Application.Current.Resources[
-                    "BandaMutedBrush"],
-            FontSize = 14,
-            VerticalAlignment =
-                VerticalAlignment.Center
+            Text = item.FileCount == 1
+                ? "1 archivo"
+                : $"{item.FileCount} archivos",
+            Foreground = (Brush)Application.Current.Resources[
+                "BandaMutedBrush"],
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center
         };
+        Grid.SetColumn(count, 1);
+        Grid.SetRow(count, 1);
 
         content.Children.Add(dot);
         content.Children.Add(name);
         content.Children.Add(count);
-
         row.Child = content;
 
-        row.PointerEntered +=
-            (_, _) => HighlightDonutCategory(item.Id);
-        row.PointerExited +=
-            (_, _) => ResetDonutHighlight();
+        row.PointerEntered += (_, _) => HighlightDonutCategory(item.Id);
+        row.PointerExited += (_, _) => ResetDonutHighlight();
 
         return row;
     }
