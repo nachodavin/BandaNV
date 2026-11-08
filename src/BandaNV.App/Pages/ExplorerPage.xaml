@@ -181,7 +181,6 @@
                 x:Name="ExplorerAddressSurface"
                 Grid.Column="1"
                 CornerRadius="10"
-                ToolTipService.ToolTip="Hacé clic en el espacio libre para editar o pegar una ruta"
                 Background="{StaticResource BandaCardAltBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
                 BorderThickness="1"
@@ -957,19 +956,7 @@
                                        FontWeight="SemiBold"
                                        TextWrapping="Wrap"
                                        Foreground="{StaticResource BandaTextBrush}"
-                                       Margin="0,0,0,12" />
-
-                            <Button x:Name="ExplorerDetailShareButton"
-                                    IsEnabled="False"
-                                    ToolTipService.ToolTip="Compartir estará disponible en una próxima BUILD"
-                                    HorizontalAlignment="Left"
-                                    Margin="0,0,0,26"
-                                    Style="{StaticResource BandaPopupSecondaryButtonStyle}">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE72D;" FontSize="14" />
-                                    <TextBlock Text="Compartir" VerticalAlignment="Center" FontSize="12" />
-                                </StackPanel>
-                            </Button>
+                                       Margin="0,0,0,24" />
 
                             <TextBlock x:Name="ExplorerDetailsHeading"
                                        Text="Detalles"
