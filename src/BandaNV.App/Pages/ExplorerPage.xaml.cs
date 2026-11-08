@@ -410,8 +410,13 @@ public sealed partial class ExplorerPage : Page
         // necesario, reduciendo las vecinas hasta sus mínimos. Así el
         // encabezado sigue alineado con todas las filas del listado.
         const double spacingAndPadding = 56; // 10 + 10 + (12 * 3)
+        // El encabezado ahora termina en Tamaño; medimos el espacio total
+        // del listado, no el ancho actual del encabezado, para permitir
+        // ampliar columnas hacia la derecha sin perder la zona vacía.
+        const double deadZone = 34;
         var available = Math.Max(
-            minimums.Sum(), ExplorerColumnHeaders.ActualWidth - spacingAndPadding);
+            minimums.Sum(),
+            ExplorerFilesList.ActualWidth - spacingAndPadding - deadZone);
         var need = Math.Max(0, widths.Sum() + desired - widths[index] - available);
 
         var neighbors = index switch
@@ -1208,39 +1213,45 @@ public sealed partial class ExplorerPage : Page
         }
 
         var source = e.OriginalSource as DependencyObject;
-        var overItem = false;
+        ListViewItem? hoveredRow = null;
 
         while (source is not null && source != ExplorerFilesList)
         {
-            // El scrollbar tiene su propio comportamiento; no se considera
-            // superficie vacía aunque esté después de la última columna.
+            // No alterar los controles de desplazamiento ni sus thumbs.
             if (source is ScrollBar or Thumb)
             {
                 return;
             }
 
-            if (source is ListViewItem)
+            if (source is ListViewItem item)
             {
-                overItem = true;
+                hoveredRow = item;
                 break;
             }
 
             source = VisualTreeHelper.GetParent(source);
         }
 
-        // ListViewItem se estira a todo el ancho de la vista. Windows, en
-        // cambio, considera vacío el espacio a la derecha de la última
-        // columna: un clic allí debe quitar la selección.
-        const double cellLeftPadding = 10;
-        const double columnSpacing = 12 * 3;
-        const double tolerance = 18;
-        var lastColumnRight = cellLeftPadding + columnSpacing + tolerance +
-            ExplorerHeaderNameColumn.ActualWidth +
-            ExplorerHeaderModifiedColumn.ActualWidth +
-            ExplorerHeaderTypeColumn.ActualWidth +
-            ExplorerHeaderSizeColumn.ActualWidth;
+        // La fila tiene ancho propio, exactamente hasta la última columna.
+        // Como defensa frente a estilos nativos que expandan el hit-test de
+        // ListViewItem, validamos también el punto dentro del área del archivo.
+        var overSelectableRow = false;
+        if (hoveredRow is not null)
+        {
+            var pointInRow = e.GetCurrentPoint(hoveredRow).Position;
+            var layout = (ExplorerColumnLayout)Resources["ExplorerColumnLayout"];
 
-        var blankArea = !overItem || pointer.Position.X > lastColumnRight;
+            // El checkbox nativo puede agregar hasta 32px antes del contenido.
+            var contentEnd = Math.Min(
+                hoveredRow.ActualWidth, layout.RowWidth + 32);
+            overSelectableRow =
+                pointInRow.X >= 0 && pointInRow.X <= contentEnd &&
+                pointInRow.Y >= 0 && pointInRow.Y <= hoveredRow.ActualHeight;
+        }
+
+        // Fuera de las filas: margen izquierdo, separaciones entre filas,
+        // encabezados de grupos, espacio inferior o derecha de Tamaño.
+        var blankArea = !overSelectableRow;
         if (!blankArea)
         {
             return;
@@ -1251,8 +1262,8 @@ public sealed partial class ExplorerPage : Page
             ExplorerFilesList.SelectedItems.Clear();
         }
 
-        // Evitar que un ListViewItem extendido vuelva a seleccionarse tras
-        // hacer clic en su porción vacía a la derecha de las columnas.
+        // Evitar que una fila extendida por el estilo nativo vuelva a
+        // seleccionarse cuando el clic fue sobre su zona no seleccionable.
         e.Handled = true;
     }
 
