@@ -215,8 +215,13 @@
         <!-- Barra única, alineada a la izquierda, igual que en el Explorador de Windows. -->
         <Grid Grid.Row="2"
               Background="{StaticResource BandaCardBrush}"
-              Padding="12,3">
-            <ScrollViewer
+              Padding="12,3"
+              ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ScrollViewer Grid.Column="0"
                           HorizontalAlignment="Stretch"
                           VerticalScrollBarVisibility="Disabled"
                           HorizontalScrollBarVisibility="Hidden"
@@ -565,6 +570,12 @@
                     </Button.Flyout>
                 </Button>
 
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Solo Detalles queda fijo a la derecha, fuera del área desplazable. -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                        VerticalAlignment="Center" Spacing="3">
                 <Rectangle Width="1" Height="22" Margin="7,0"
                            Fill="{StaticResource BandaBorderBrush}" />
                 <Button x:Name="ExplorerToggleDetailsButton"
@@ -578,8 +589,7 @@
                         <TextBlock Text="Detalles" FontSize="13" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                </StackPanel>
-            </ScrollViewer>
+            </StackPanel>
         </Grid>
 
         <!-- Paneles: ubicaciones, archivos y detalles -->
