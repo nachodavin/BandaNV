@@ -846,6 +846,7 @@
                         Grid.Row="1"
                         Margin="4,0,4,4"
                         SelectionMode="Extended"
+                        KeyboardAcceleratorPlacementMode="Hidden"
                         ItemTemplate="{StaticResource ExplorerFileTemplate}"
                         SelectionChanged="ExplorerFilesList_SelectionChanged"
                         DoubleTapped="ExplorerFilesList_DoubleTapped"
