@@ -98,6 +98,24 @@
                         </Grid>
                     </Button>
 
+                    <!-- Explorador completo experimental: Buscar original sigue disponible. -->
+                    <Button
+                        x:Name="ExploreButton"
+                        Tag="explore"
+                        Click="NavigationButton_Click"
+                        Style="{StaticResource BandaNavButtonStyle}">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
+                                <SymbolIcon Symbol="Folder" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="Explorar" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
                     <Button
                         x:Name="SearchButton"
                         Tag="search"
