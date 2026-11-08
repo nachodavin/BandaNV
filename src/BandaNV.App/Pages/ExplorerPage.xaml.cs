@@ -233,6 +233,7 @@ public sealed partial class ExplorerPage : Page
                 ExplorerLoadingRing.Visibility = Visibility.Collapsed;
                 if (navigationSucceeded)
                 {
+                    ExplorerStatusText.Text = string.Empty;
                     UpdateCountText();
                 }
                 UpdateSelectionDetails();
