@@ -330,7 +330,7 @@
                         <FontIcon Glyph="&#xE70D;" FontSize="9" />
                     </StackPanel>
                     <Button.Flyout>
-                        <Flyout Placement="BottomEdgeAlignedLeft"
+                        <Flyout x:Name="ExplorerSortFlyout" Placement="BottomEdgeAlignedLeft"
                                 FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                             <Border Padding="6" Width="210" CornerRadius="12"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
@@ -353,7 +353,7 @@
                                     <Button Content="Más  ›"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}">
                                         <Button.Flyout>
-                                            <Flyout Placement="RightEdgeAlignedTop"
+                                            <Flyout x:Name="ExplorerSortMoreFlyout" Placement="RightEdgeAlignedTop"
                                                     FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                 <Border Padding="6" Width="185"
                                                         CornerRadius="12"
@@ -384,7 +384,7 @@
                                     <Button Content="Agrupar por  ›"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}">
                                         <Button.Flyout>
-                                            <Flyout Placement="RightEdgeAlignedTop"
+                                            <Flyout x:Name="ExplorerGroupFlyout" Placement="RightEdgeAlignedTop"
                                                     FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                 <Border Padding="6" Width="220"
                                                         CornerRadius="12"
@@ -441,7 +441,7 @@
                         <FontIcon Glyph="&#xE70D;" FontSize="9" />
                     </StackPanel>
                     <Button.Flyout>
-                        <Flyout Placement="BottomEdgeAlignedLeft"
+                        <Flyout x:Name="ExplorerViewFlyout" Placement="BottomEdgeAlignedLeft"
                                 FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                             <Border Padding="6" Width="240" CornerRadius="12"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
@@ -482,7 +482,7 @@
                                     <Button Content="Mostrar  ›"
                                             Style="{StaticResource BandaPopupOptionButtonStyle}">
                                         <Button.Flyout>
-                                            <Flyout Placement="RightEdgeAlignedTop"
+                                            <Flyout x:Name="ExplorerShowFlyout" Placement="RightEdgeAlignedTop"
                                                     FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                                                 <Border Padding="6" Width="250" CornerRadius="12"
                                                         Background="{StaticResource BandaPopupSurfaceBrush}"
@@ -532,7 +532,7 @@
                         CornerRadius="7">
                     <FontIcon Glyph="&#xE712;" FontSize="18" />
                     <Button.Flyout>
-                        <Flyout Placement="BottomEdgeAlignedLeft"
+                        <Flyout x:Name="ExplorerMoreFlyout" Placement="BottomEdgeAlignedLeft"
                                 FlyoutPresenterStyle="{StaticResource BandaPopupFlyoutPresenterStyle}">
                             <Border Padding="6" Width="240" CornerRadius="12"
                                     Background="{StaticResource BandaPopupSurfaceBrush}"
