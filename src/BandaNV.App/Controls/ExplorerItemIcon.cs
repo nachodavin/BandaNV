@@ -220,7 +220,13 @@ public sealed class ExplorerItemIcon : UserControl
 
         // Si la primera muestra no puede leerse, otra fila podrá reintentar
         // con otro archivo de la misma extensión. No cachear fallos.
-        PendingIcons.Remove(key);
+        // No quitar una tarea nueva si otro control ya inició el reintento.
+        if (PendingIcons.TryGetValue(key, out var current) &&
+            ReferenceEquals(current, pending))
+        {
+            PendingIcons.Remove(key);
+        }
+
         return icon;
     }
 
