@@ -150,6 +150,19 @@ El diseño conserva el panel de detalles a la derecha, sin modificar las funcion
 - [x] Continuar sincronizando el ancho de encabezados y filas al redimensionar las columnas.
 - [ ] Verificar en WinUI real los límites de resaltado, la alineación de encabezados, los márgenes clickeables y la selección agrupada y sin agrupar.
 
+### BUILD 7A.9 — Carga estable de íconos al entrar en Explorar
+
+**Estado:** implementada en la rama experimental; pendiente de compilación y prueba en Windows.
+
+- [x] Unificar la carga de íconos para formatos con asociaciones compartidas (ZIP, RAR y 7z), evitando que cada fila consulte Windows por separado.
+- [x] Compartir una misma tarea en curso por extensión y resolución (lista de 40 px / Detalles de 256 px).
+- [x] Mantener la tarea activa aunque el elemento de la lista se recicle mientras se carga, mostrando el resultado únicamente si coincide la ruta y versión de la fila.
+- [x] Precargar asociaciones al ingresar a una carpeta, sin bloquear la navegación.
+- [x] Limitar a seis operaciones de íconos simultáneas para no sobrecargar el proveedor de miniaturas de Windows.
+- [x] Si la primera muestra falla, probar hasta tres archivos del mismo tipo sin guardar fallos en caché; notificar a las filas visibles cuando se recupera el ícono.
+- [x] Preservar el modo de alta resolución independiente para el panel Detalles.
+- [ ] Verificar en Windows: abrir Explorar desde cero, navegar por una carpeta con muchos ZIP/RAR/7z, desplazar y volver al inicio, comprobar que todos los archivos de un mismo tipo utilicen su ícono asociado.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
