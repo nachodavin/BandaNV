@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Windows.ApplicationModel.DataTransfer;
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
@@ -28,6 +29,16 @@ public sealed partial class ExplorerPage : Page
     private bool _isNavigating;
     private int _skippedCount;
     private bool _truncated;
+    private bool _detailsVisible = true;
+    private string _sortField = "name";
+    private bool _sortDescending;
+
+    private static readonly HashSet<string> PreviewExtensions =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp",
+            ".pdf", ".txt", ".svg"
+        };
 
     private enum HistoryAction
     {
@@ -208,16 +219,16 @@ public sealed partial class ExplorerPage : Page
     private void ApplyFilter()
     {
         var query = ExplorerFilterBox.Text?.Trim() ?? string.Empty;
-        var visible = string.IsNullOrEmpty(query)
-            ? _allItems
-            : _allItems
-                .Where(item => item.Name.Contains(
-                    query, StringComparison.CurrentCultureIgnoreCase))
-                .ToArray();
+        var visible = (string.IsNullOrEmpty(query)
+                ? _allItems
+                : _allItems.Where(item => item.Name.Contains(
+                    query, StringComparison.CurrentCultureIgnoreCase)))
+            .OrderBy(item => item, Comparer<ExplorerItem>.Create(CompareExplorerItems))
+            .ToArray();
 
         ExplorerFilesList.ItemsSource = visible;
 
-        var count = visible.Count;
+        var count = visible.Length;
         var total = _allItems.Count;
 
         if (!_isNavigating)
@@ -229,6 +240,123 @@ public sealed partial class ExplorerPage : Page
 
         ExplorerSelectionCountText.Text = string.Empty;
         UpdateSelectionDetails();
+    }
+
+    private int CompareExplorerItems(ExplorerItem left, ExplorerItem right)
+    {
+        // Windows Explorer conserva las carpetas primero, sea cual sea el orden.
+        var foldersFirst = right.IsDirectory.CompareTo(left.IsDirectory);
+        if (foldersFirst != 0)
+        {
+            return foldersFirst;
+        }
+
+        var result = _sortField switch
+        {
+            "modified" => Comparer<DateTime?>.Default.Compare(left.ModifiedAt, right.ModifiedAt),
+            "type" => StringComparer.CurrentCultureIgnoreCase.Compare(left.TypeName, right.TypeName),
+            "size" => Comparer<long?>.Default.Compare(left.SizeBytes, right.SizeBytes),
+            _ => StringComparer.CurrentCultureIgnoreCase.Compare(left.Name, right.Name)
+        };
+
+        if (result == 0)
+        {
+            result = StringComparer.CurrentCultureIgnoreCase.Compare(left.Name, right.Name);
+        }
+
+        return _sortDescending ? -result : result;
+    }
+
+    private void ExplorerSortFieldButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string field })
+        {
+            return;
+        }
+
+        if (field is not ("name" or "modified" or "type" or "size"))
+        {
+            return;
+        }
+
+        _sortField = field;
+        UpdateSortLabel();
+        ApplyFilter();
+        UpdateCountText();
+    }
+
+    private void ExplorerSortDirectionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string direction })
+        {
+            return;
+        }
+
+        _sortDescending = direction == "desc";
+        UpdateSortLabel();
+        ApplyFilter();
+        UpdateCountText();
+    }
+
+    private void UpdateSortLabel()
+    {
+        var label = _sortField switch
+        {
+            "modified" => "Fecha",
+            "type" => "Tipo",
+            "size" => "Tamaño",
+            _ => "Nombre"
+        };
+
+        ExplorerSortLabel.Text = $"Ordenar: {label}";
+    }
+
+    private void ExplorerToggleDetailsButton_Click(object sender, RoutedEventArgs e)
+    {
+        _detailsVisible = !_detailsVisible;
+        ExplorerDetailsPane.Visibility = _detailsVisible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ExplorerDetailsColumn.Width = _detailsVisible
+            ? new GridLength(280)
+            : new GridLength(0);
+
+        if (_detailsVisible)
+        {
+            UpdateSelectionDetails();
+        }
+        else
+        {
+            ExplorerSelectedPreview.Clear();
+        }
+    }
+
+    private void ExplorerCopyPathButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = ExplorerFilesList.SelectedItems
+            .OfType<ExplorerItem>()
+            .ToArray();
+
+        if (selected.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var content = new DataPackage();
+            content.SetText(string.Join(Environment.NewLine,
+                selected.Select(item => item.FullPath)));
+            Clipboard.SetContent(content);
+            ExplorerStatusText.Text = selected.Length == 1
+                ? "Ruta copiada al portapapeles."
+                : $"{selected.Length:N0} rutas copiadas al portapapeles.";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"BandaNV Explorer - no se pudo copiar la ruta: {ex}");
+            ExplorerStatusText.Text = "No se pudo copiar la ruta al portapapeles.";
+        }
     }
 
     private void UpdateFolderNotice()
@@ -569,11 +697,17 @@ public sealed partial class ExplorerPage : Page
         {
             ExplorerSelectedPreview.Clear();
             ExplorerOpenSelectionButton.IsEnabled = false;
+            ExplorerToolbarOpenButton.IsEnabled = false;
 
             var count = ExplorerFilesList.SelectedItems.Count;
+            ExplorerToolbarCopyPathButton.IsEnabled = count > 0;
             ExplorerDetailName.Text = count > 1
                 ? $"{count:N0} elementos seleccionados"
                 : "Seleccioná un archivo o carpeta.";
+            ExplorerFileIconPanel.Visibility = count == 0 && _detailsVisible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            ExplorerFileLargeIcon.Glyph = "\uE8A5";
             ExplorerDetailType.Text = string.Empty;
             ExplorerDetailSize.Text = string.Empty;
             ExplorerDetailModified.Text = string.Empty;
@@ -584,8 +718,21 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
-        ExplorerSelectedPreview.Show(item.FullPath, item.IsDirectory);
+        if (_detailsVisible)
+        {
+            ExplorerSelectedPreview.Show(item.FullPath, item.IsDirectory);
+        }
         ExplorerOpenSelectionButton.IsEnabled = true;
+        ExplorerToolbarOpenButton.IsEnabled = true;
+        ExplorerToolbarCopyPathButton.IsEnabled = true;
+
+        var canPreview = !item.IsDirectory &&
+            PreviewExtensions.Contains(Path.GetExtension(item.FullPath));
+        ExplorerFileIconPanel.Visibility = _detailsVisible && !canPreview
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ExplorerFileLargeIcon.Glyph = item.IconGlyph;
+
         ExplorerDetailName.Text = item.Name;
         ExplorerDetailType.Text = item.TypeName;
         ExplorerDetailSize.Text = item.IsDirectory
