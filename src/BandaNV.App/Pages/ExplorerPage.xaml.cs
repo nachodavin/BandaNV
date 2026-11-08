@@ -41,6 +41,8 @@ public sealed partial class ExplorerPage : Page
     private bool _truncated;
     private bool _detailsVisible = true;
     private double _detailsWidth = 280;
+    private bool _detailsWidthCustomized;
+    private bool _columnsCustomized;
     private string _sortField = "modified";
     private bool _sortDescending = true;
     private string _groupField = "modified";
@@ -93,6 +95,46 @@ public sealed partial class ExplorerPage : Page
 
         _started = true;
         await NavigateAsync(ThisPc);
+    }
+
+    private void ExplorerPage_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.NewSize.Width <= 0)
+        {
+            return;
+        }
+
+        // En una ventana reducida mantenemos los tres paneles, pero
+        // estrechamos las ubicaciones, la búsqueda y los detalles.
+        // No sobrescribir el ancho elegido manualmente por el usuario.
+        var compact = e.NewSize.Width < 1170;
+        ExplorerLocationsColumn.Width = new GridLength(
+            _navigationPaneVisible ? (compact ? 148 : 185) : 0);
+        ExplorerSearchColumn.Width = new GridLength(compact ? 158 : 220);
+
+        if (!_detailsWidthCustomized)
+        {
+            _detailsWidth = compact ? 225 : 280;
+        }
+
+        if (_detailsVisible)
+        {
+            ExplorerDetailsColumn.Width = new GridLength(_detailsWidth);
+        }
+    }
+
+    private void ExplorerFilesList_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.NewSize.Width <= 0)
+        {
+            return;
+        }
+
+        // Restar el margen izquierdo de la fila y dejar algo de aire
+        // antes del borde derecho. El usuario sigue pudiendo ajustar
+        // columnas manualmente y estas mantienen su elección.
+        var columns = (ExplorerColumnLayout)Resources["ExplorerColumnLayout"];
+        columns.FitToViewport(e.NewSize.Width - 25, _columnsCustomized);
     }
 
     private void ExplorerPage_Unloaded(object sender, RoutedEventArgs e)
@@ -369,6 +411,7 @@ public sealed partial class ExplorerPage : Page
 
         _detailsWidth = Math.Clamp(
             _detailsWidth - e.HorizontalChange, minDetails, allowedMaximum);
+        _detailsWidthCustomized = true;
 
         ExplorerDetailsColumn.Width = new GridLength(_detailsWidth);
     }
@@ -399,6 +442,7 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
+        _columnsCustomized = true;
         var layout = (ExplorerColumnLayout)Resources["ExplorerColumnLayout"];
 
         if (e.HorizontalChange < 0)
