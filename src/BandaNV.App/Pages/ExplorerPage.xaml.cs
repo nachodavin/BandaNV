@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
@@ -311,6 +312,125 @@ public sealed partial class ExplorerPage : Page
         ExplorerSortLabel.Text = $"Ordenar: {label}";
     }
 
+    private bool CanCutSelection()
+    {
+        var selected = ExplorerFilesList.SelectedItems.OfType<ExplorerItem>().ToArray();
+
+        if (selected.Length == 0 || selected.Any(item => item.IsDrive))
+        {
+            return false;
+        }
+
+        // Cortar representa mover el archivo; una selección protegida no debe
+        // ofrecer operaciones que la modifiquen.
+        try
+        {
+            return selected.All(item => !ProtectedFolderService.IsProtected(
+                App.Settings.Current, item.FullPath));
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private void UpdateCommandBarState()
+    {
+        var selected = ExplorerFilesList.SelectedItems.OfType<ExplorerItem>().ToArray();
+        var canCopy = selected.Length > 0 && selected.All(item => !item.IsDrive);
+        var canOpen = selected.Length == 1;
+        var canCut = !_isNavigating && CanCutSelection();
+
+        ExplorerToolbarCopyButton.IsEnabled = !_isNavigating && canCopy;
+        ExplorerToolbarCutButton.IsEnabled = canCut;
+        ExplorerToolbarCopyPathButton.IsEnabled = selected.Length > 0;
+        ExplorerToolbarOpenButton.IsEnabled = canOpen;
+        ExplorerOpenSelectionButton.IsEnabled = canOpen;
+
+        // Los botones de la BUILD 7B permanecen visibles pero deshabilitados
+        // hasta disponer del motor de operaciones, validaciones y deshacer.
+        ExplorerToolbarNewButton.IsEnabled = false;
+        ExplorerToolbarPasteButton.IsEnabled = false;
+        ExplorerToolbarRenameButton.IsEnabled = false;
+        ExplorerToolbarShareButton.IsEnabled = false;
+        ExplorerToolbarDeleteButton.IsEnabled = false;
+        ExplorerToolbarOrganizeButton.IsEnabled = false;
+    }
+
+    private async void ExplorerToolbarCopyButton_Click(object sender, RoutedEventArgs e)
+    {
+        await SendSelectionToClipboardAsync(cut: false);
+    }
+
+    private async void ExplorerToolbarCutButton_Click(object sender, RoutedEventArgs e)
+    {
+        await SendSelectionToClipboardAsync(cut: true);
+    }
+
+    private async void ExplorerCopyShortcut_Invoked(
+        KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        if (ExplorerToolbarCopyButton.IsEnabled)
+        {
+            await SendSelectionToClipboardAsync(cut: false);
+        }
+    }
+
+    private async void ExplorerCutShortcut_Invoked(
+        KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        if (ExplorerToolbarCutButton.IsEnabled)
+        {
+            await SendSelectionToClipboardAsync(cut: true);
+        }
+    }
+
+    private async Task SendSelectionToClipboardAsync(bool cut)
+    {
+        var selected = ExplorerFilesList.SelectedItems.OfType<ExplorerItem>().ToArray();
+        if (_isNavigating || selected.Length == 0 ||
+            selected.Any(item => item.IsDrive) ||
+            cut && !CanCutSelection())
+        {
+            return;
+        }
+
+        // El portapapeles almacena elementos físicos y la operación solicitada,
+        // como el Explorador de Windows. No movemos ni borramos ningún archivo acá.
+        try
+        {
+            var storageItems = new List<IStorageItem>();
+            foreach (var item in selected)
+            {
+                IStorageItem storageItem = item.IsDirectory
+                    ? await StorageFolder.GetFolderFromPathAsync(item.FullPath)
+                    : await StorageFile.GetFileFromPathAsync(item.FullPath);
+                storageItems.Add(storageItem);
+            }
+
+            var package = new DataPackage
+            {
+                RequestedOperation = cut
+                    ? DataPackageOperation.Move
+                    : DataPackageOperation.Copy
+            };
+            package.SetStorageItems(storageItems);
+            Clipboard.SetContent(package);
+            Clipboard.Flush();
+
+            ExplorerStatusText.Text = cut
+                ? $"{selected.Length:N0} elemento(s) preparado(s) para mover."
+                : $"{selected.Length:N0} elemento(s) copiado(s) al portapapeles.";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"BandaNV Explorer - no se pudo preparar el portapapeles: {ex}");
+            ExplorerStatusText.Text = "No se pudo copiar la selección al portapapeles.";
+        }
+    }
+
     private void ExplorerToggleDetailsButton_Click(object sender, RoutedEventArgs e)
     {
         _detailsVisible = !_detailsVisible;
@@ -320,6 +440,10 @@ public sealed partial class ExplorerPage : Page
         ExplorerDetailsColumn.Width = _detailsVisible
             ? new GridLength(280)
             : new GridLength(0);
+
+        ExplorerViewDetailsMenuButton.Content = _detailsVisible
+            ? "Ocultar panel de detalles"
+            : "Mostrar panel de detalles";
 
         if (_detailsVisible)
         {
@@ -692,6 +816,8 @@ public sealed partial class ExplorerPage : Page
 
     private void UpdateSelectionDetails()
     {
+        UpdateCommandBarState();
+
         if (ExplorerFilesList.SelectedItems.Count != 1 ||
             ExplorerFilesList.SelectedItems[0] is not ExplorerItem item)
         {
