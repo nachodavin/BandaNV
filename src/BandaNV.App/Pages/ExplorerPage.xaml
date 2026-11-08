@@ -745,6 +745,14 @@
                         DoubleTapped="ExplorerFilesList_DoubleTapped"
                         IsMultiSelectCheckBoxEnabled="True"
                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="MinHeight" Value="0" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
                         <ListView.KeyboardAccelerators>
                             <KeyboardAccelerator Key="C" Modifiers="Control"
                                                  Invoked="ExplorerCopyShortcut_Invoked" />
