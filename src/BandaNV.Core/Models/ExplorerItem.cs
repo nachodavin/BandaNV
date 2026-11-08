@@ -16,6 +16,17 @@ public sealed record ExplorerItem(
     bool IsDrive = false,
     bool IsReparsePoint = false)
 {
+    // Propiedades de presentación: permiten cambiar Ver sin tocar el archivo.
+    public bool ShowFileExtension { get; init; } = true;
+    public bool CompactMode { get; init; }
+
+    public string DisplayName =>
+        ShowFileExtension || IsDirectory
+            ? Name
+            : Path.GetFileNameWithoutExtension(Name);
+
+    public double RowHeight => CompactMode ? 30 : 41;
+
     public string IconGlyph =>
         IsDrive ? "\uE7F1" : IsDirectory ? "\uE8B7" : "\uE8A5";
 
