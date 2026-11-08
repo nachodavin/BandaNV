@@ -128,7 +128,6 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition x:Name="ExplorerSearchColumn" Width="220" />
             </Grid.ColumnDefinitions>
 
@@ -179,13 +178,15 @@
             </StackPanel>
 
             <Border
+                x:Name="ExplorerAddressSurface"
                 Grid.Column="1"
                 CornerRadius="10"
+                ToolTipService.ToolTip="Hacé clic en el espacio libre para editar o pegar una ruta"
                 Background="{StaticResource BandaCardAltBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
                 BorderThickness="1"
                 Padding="8,2">
-                <Grid>
+                <Grid Background="Transparent">
                     <ScrollViewer
                         x:Name="ExplorerBreadcrumbScroll"
                         VerticalScrollBarVisibility="Disabled"
@@ -205,20 +206,10 @@
                 </Grid>
             </Border>
 
-            <Button
-                Grid.Column="2"
-                Content="Ruta"
-                Click="ExplorerEditAddressButton_Click"
-                Padding="10,6"
-                CornerRadius="10"
-                Background="{StaticResource BandaCardBrush}"
-                BorderBrush="{StaticResource BandaBorderBrush}"
-                BorderThickness="1" />
-
             <TextBox
                 x:Name="ExplorerFilterBox"
-                Grid.Column="3"
-                PlaceholderText="Filtrar esta carpeta..."
+                Grid.Column="2"
+                PlaceholderText="Buscar en Este equipo"
                 TextChanged="ExplorerFilterBox_TextChanged"
                 VerticalAlignment="Center"
                 FontSize="13" />
