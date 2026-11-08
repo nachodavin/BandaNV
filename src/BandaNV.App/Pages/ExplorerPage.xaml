@@ -19,11 +19,11 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Spacing="11" VerticalAlignment="Center">
-                    <TextBlock
-                        Text="{x:Bind IconGlyph}"
-                        FontFamily="Segoe Fluent Icons"
-                        FontSize="18"
-                        Foreground="{StaticResource BandaMutedStrongBrush}"
+                    <controls:ExplorerItemIcon
+                        FilePath="{x:Bind FullPath}"
+                        IsDirectory="{x:Bind IsDirectory}"
+                        IsDrive="{x:Bind IsDrive}"
+                        Width="23" Height="23"
                         VerticalAlignment="Center" />
                     <TextBlock
                         Text="{x:Bind Name}"
@@ -494,12 +494,10 @@
                                 CornerRadius="8"
                                 Background="{StaticResource BandaCardBrush}"
                                 HorizontalAlignment="Stretch">
-                            <FontIcon x:Name="ExplorerFileLargeIcon"
-                                      Glyph="&#xE8A5;"
-                                      FontSize="60"
-                                      Foreground="{StaticResource BandaMutedStrongBrush}"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center" />
+                            <controls:ExplorerItemIcon x:Name="ExplorerSelectedFileIcon"
+                                                       Width="84" Height="84"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
                         </Border>
                         <TextBlock x:Name="ExplorerDetailName"
                                    Text="Seleccioná un archivo o carpeta."
