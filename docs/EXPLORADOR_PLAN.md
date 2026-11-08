@@ -195,6 +195,19 @@ La versión estable 2.0.3 en `main` permanece intacta.
 
 Este cambio no modifica el motor, la lógica de organización, el historial ni los ajustes portables. La rama estable sigue intacta.
 
+### BUILD 7A.12 — Estabilidad de páginas y corrección del gráfico de Inicio
+
+**Estado:** corrección aplicada en la rama experimental; pendiente de compilar y validar en Windows.
+
+- [x] **Prioridad estabilidad:** revertir las modificaciones de layout de Historial y Categorías introducidas en la BUILD 7A.11, restaurando exactamente su XAML estable. Historial recupera también su código anterior al controlador de SizeChanged.
+- [x] Mantener los datos, acciones, filtros, gestión de categorías y el motor sin cambios.
+- [x] Reducir la altura mínima del gráfico de Inicio y calcular su escala según el alto disponible de la ventana, para evitar el recorte al abrir en modo ventana.
+- [ ] Confirmar con la compilación real que Historial y Categorías abren sin cerrar la aplicación.
+- [ ] Revisar en Windows que el gráfico de Inicio sea completamente visible y que las demás páginas sigan funcionando.
+- [ ] Volver a planear la adaptación responsive de Historial y Categorías de forma aislada y con pruebas de navegación, evitando el ScrollViewer anidado que causó la regresión.
+
+**Nota:** los cambios a Historial y Categorías de la BUILD 7A.11 quedan temporalmente revertidos para priorizar la estabilidad. No asumir que la excepción de WinUI quedó confirmada hasta disponer de logs o prueba local.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
