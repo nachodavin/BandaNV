@@ -209,9 +209,17 @@
     </Page.Resources>
 
     <Grid>
-        <Grid
+                <!-- Contenedor vertical: las secciones siguen accesibles en ventanas normales. -->
+        <ScrollViewer x:Name="PageViewport"
+                      VerticalScrollMode="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollMode="Auto"
+                      HorizontalScrollBarVisibility="Auto"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Stretch">
+<Grid
             Padding="34,32,34,40"
-            RowSpacing="16">
+            RowSpacing="16" MinHeight="{Binding ActualHeight, ElementName=PageViewport}" MinWidth="870">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -1179,6 +1187,7 @@
             </Grid>
         </Border>
         </Grid>
+        </ScrollViewer>
 
         <!-- Gestión del elemento seleccionado -->
         <Grid
