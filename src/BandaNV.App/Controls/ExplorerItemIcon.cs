@@ -21,6 +21,21 @@ public sealed class ExplorerItemIcon : UserControl
     private bool _isVisible;
     private int _loadVersion;
 
+    public static readonly DependencyProperty IsLargePreviewProperty =
+        DependencyProperty.Register(
+            nameof(IsLargePreview), typeof(bool), typeof(ExplorerItemIcon),
+            new PropertyMetadata(false, OnIconPropertyChanged));
+
+    /// <summary>
+    /// Solicita a Windows un ícono/miniatura de resolución alta en Detalles.
+    /// Las filas mantienen la versión liviana de 40 px.
+    /// </summary>
+    public bool IsLargePreview
+    {
+        get => (bool)GetValue(IsLargePreviewProperty);
+        set => SetValue(IsLargePreviewProperty, value);
+    }
+
     public static readonly DependencyProperty FilePathProperty =
         DependencyProperty.Register(
             nameof(FilePath), typeof(string), typeof(ExplorerItemIcon),
@@ -117,19 +132,21 @@ public sealed class ExplorerItemIcon : UserControl
 
         if (!IsDirectory && !string.IsNullOrWhiteSpace(FilePath))
         {
-            _ = LoadThumbnailAsync(FilePath, version);
+            _ = LoadThumbnailAsync(FilePath, version, IsLargePreview);
         }
     }
 
-    private async Task LoadThumbnailAsync(string path, int version)
+    private async Task LoadThumbnailAsync(string path, int version, bool largePreview)
     {
-        // Muchos archivos comprimidos comparten el ícono del programa asociado.
+        // La cache distingue la miniatura pequeña del ícono grande, de modo
+        // que nunca se amplíe accidentalmente una imagen de solo 40 píxeles.
         var extension = Path.GetExtension(path);
+        var cacheKey = extension + (largePreview ? "|large" : "|list");
         var isArchive = extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
                         extension.Equals(".rar", StringComparison.OrdinalIgnoreCase) ||
                         extension.Equals(".7z", StringComparison.OrdinalIgnoreCase);
 
-        if (isArchive && ArchiveIcons.TryGetValue(extension, out var cached))
+        if (isArchive && ArchiveIcons.TryGetValue(cacheKey, out var cached))
         {
             ShowImage(cached, path, version);
             return;
@@ -138,8 +155,12 @@ public sealed class ExplorerItemIcon : UserControl
         try
         {
             var file = await StorageFile.GetFileFromPathAsync(path);
+            // El panel derecho pide 256 px en modo SingleItem. La versión
+            // anterior ampliaba un icono de 40 px y por eso se veía borroso.
             using var thumbnail = await file.GetThumbnailAsync(
-                ThumbnailMode.ListView, 40, ThumbnailOptions.UseCurrentScale);
+                largePreview ? ThumbnailMode.SingleItem : ThumbnailMode.ListView,
+                largePreview ? 256u : 40u,
+                ThumbnailOptions.UseCurrentScale);
 
             if (thumbnail is null || !_isVisible || version != _loadVersion)
             {
@@ -149,9 +170,9 @@ public sealed class ExplorerItemIcon : UserControl
             var source = new BitmapImage();
             await source.SetSourceAsync(thumbnail);
 
-            if (isArchive && !ArchiveIcons.ContainsKey(extension))
+            if (isArchive && !ArchiveIcons.ContainsKey(cacheKey))
             {
-                ArchiveIcons[extension] = source;
+                ArchiveIcons[cacheKey] = source;
             }
 
             ShowImage(source, path, version);
