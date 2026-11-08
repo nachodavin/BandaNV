@@ -56,6 +56,8 @@ public sealed partial class MainWindow : Window
                     (typeof(OrganizePage), OrganizeButton),
                 "buscar" =>
                     (typeof(SearchPage), SearchButton),
+                "explorar" =>
+                    (typeof(ExplorerPage), ExploreButton),
                 _ =>
                     (typeof(HomePage), HomeButton)
             };
@@ -934,6 +936,7 @@ public sealed partial class MainWindow : Window
             "home" => typeof(HomePage),
             "organize" => typeof(OrganizePage),
             "search" => typeof(SearchPage),
+            "explore" => typeof(ExplorerPage),
             "history" => typeof(HistoryPage),
             "categories" => typeof(CategoriesPage),
             "settings" => typeof(SettingsPage),
@@ -958,6 +961,7 @@ public sealed partial class MainWindow : Window
                      HomeButton,
                      OrganizeButton,
                      SearchButton,
+                     ExploreButton,
                      HistoryButton,
                      CategoriesButton,
                      SettingsButton
