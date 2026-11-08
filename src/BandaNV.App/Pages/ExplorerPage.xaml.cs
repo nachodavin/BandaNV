@@ -38,9 +38,9 @@ public sealed partial class ExplorerPage : Page
     private int _skippedCount;
     private bool _truncated;
     private bool _detailsVisible = true;
-    private string _sortField = "name";
-    private bool _sortDescending;
-    private string _groupField = "none";
+    private string _sortField = "modified";
+    private bool _sortDescending = true;
+    private string _groupField = "modified";
     private bool _navigationPaneVisible = true;
     private bool _showHiddenItems;
     private bool _showFileExtensions = true;
@@ -258,9 +258,9 @@ public sealed partial class ExplorerPage : Page
         {
             var groups = visible
                 .GroupBy(GetGroupKey)
-                .OrderBy(group => group.Key.Order)
-                .ThenBy(group => group.Key.Label, StringComparer.CurrentCultureIgnoreCase)
-                .Select(group => new ExplorerGroup(group.Key.Label, group.ToList()))
+                .OrderBy(group => group.Key.Item1)
+                .ThenBy(group => group.Key.Item2, StringComparer.CurrentCultureIgnoreCase)
+                .Select(group => new ExplorerGroup(group.Key.Item2, group.ToList()))
                 .ToArray();
 
             _groupedView.Source = groups;
@@ -470,6 +470,16 @@ public sealed partial class ExplorerPage : Page
             "Panel de detalles";
         ExplorerViewPreviewMenuButton.Content = (_detailsVisible && _previewOnly ? "✓ " : "") +
             "Panel de vista previa";
+    }
+
+    private void ExplorerSelectAllShortcut_Invoked(
+        KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        if (_visibleItems.Length > 0)
+        {
+            ExplorerFilesList.SelectAll();
+        }
     }
 
     private void ExplorerSelectAllButton_Click(object sender, RoutedEventArgs e)
