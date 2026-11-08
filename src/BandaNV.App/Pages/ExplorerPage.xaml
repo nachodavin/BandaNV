@@ -206,7 +206,7 @@
                         Height="26"
                         MinHeight="0"
                         Margin="0"
-                        Padding="8,0,8,0"
+                        Padding="8,5,8,0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Center"
                         BorderThickness="0"
