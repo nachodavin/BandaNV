@@ -10,7 +10,7 @@
 
     <Page.Resources>
         <DataTemplate x:Key="ExplorerFileTemplate" x:DataType="models:ExplorerItem">
-            <Grid Padding="10,9" ColumnSpacing="12">
+            <Grid Padding="10,4" ColumnSpacing="12" Height="{x:Bind RowHeight}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2.2*" />
                     <ColumnDefinition Width="1.1*" />
@@ -26,7 +26,7 @@
                         Width="23" Height="23"
                         VerticalAlignment="Center" />
                     <TextBlock
-                        Text="{x:Bind Name}"
+                        Text="{x:Bind DisplayName}"
                         FontSize="13"
                         TextTrimming="CharacterEllipsis"
                         Foreground="{StaticResource BandaTextBrush}"
@@ -590,12 +590,13 @@
         <!-- Paneles: ubicaciones, archivos y detalles -->
         <Grid Grid.Row="3" ColumnSpacing="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="185" />
+                <ColumnDefinition x:Name="ExplorerLocationsColumn" Width="185" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition x:Name="ExplorerDetailsColumn" Width="280" />
             </Grid.ColumnDefinitions>
 
             <Border
+                x:Name="ExplorerLocationsPane"
                 Grid.Column="0"
                 Background="{StaticResource BandaBackgroundBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
@@ -742,6 +743,7 @@
                         ItemTemplate="{StaticResource ExplorerFileTemplate}"
                         SelectionChanged="ExplorerFilesList_SelectionChanged"
                         DoubleTapped="ExplorerFilesList_DoubleTapped"
+                        IsMultiSelectCheckBoxEnabled="True"
                         ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListView.KeyboardAccelerators>
                             <KeyboardAccelerator Key="C" Modifiers="Control"
@@ -749,6 +751,20 @@
                             <KeyboardAccelerator Key="X" Modifiers="Control"
                                                  Invoked="ExplorerCutShortcut_Invoked" />
                         </ListView.KeyboardAccelerators>
+                        <ListView.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="12,9,10,5">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListView.GroupStyle>
                     </ListView>
                     <TextBlock
                         x:Name="ExplorerFolderNotice"
