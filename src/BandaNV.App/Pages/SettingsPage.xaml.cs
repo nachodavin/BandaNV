@@ -65,10 +65,13 @@ public sealed partial class SettingsPage : Page
             ? new GridLength(0)
             : new GridLength(1, GridUnitType.Star);
 
-        // La segunda tarjeta es la que ocupaba la columna derecha.
-        var secondaryCard = section.Children[1];
-        Grid.SetColumn(secondaryCard, stacked ? 0 : 1);
-        Grid.SetRow(secondaryCard, stacked ? 1 : 0);
+        // Grid.Children devuelve UIElement, pero Grid.SetColumn/SetRow
+        // en WinUI 3 requieren FrameworkElement.
+        if (section.Children[1] is FrameworkElement secondaryCard)
+        {
+            Grid.SetColumn(secondaryCard, stacked ? 0 : 1);
+            Grid.SetRow(secondaryCard, stacked ? 1 : 0);
+        }
     }
 
     public void SyncUpdateStartupNoticeToggle(
