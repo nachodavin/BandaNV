@@ -271,6 +271,16 @@ Este trabajo no cambia el motor ni los registros de los usuarios. `main` contin�
 - [x] Conservar clic en el espacio vacío, `Enter`, `Esc` y clic fuera como antes.
 - [ ] Validar visualmente en Windows que navegar y editar la ruta compartan **exactamente el mismo rectángulo** sin doble contorno ni salto de posición.
 
+### BUILD 7A.18 — Centrado real del editor de ruta
+
+**Estado:** ajuste implementado en rama experimental, pendiente de inspección visual en Windows.
+
+- [x] Corregir la alineación superior que persiste en WinUI 3 a pesar de `VerticalContentAlignment="Center"`.
+- [x] Mantener la plantilla nativa del TextBox, incluida selección de texto, portapapeles y navegación por teclado.
+- [x] Centrar el **control compacto** dentro del marco de la ruta y compensar la posición interna del texto con padding superior, sin crear un borde adicional.
+- [x] Mantener intacto el tamaño de la barra externa y los eventos Enter/Esc/clic fuera.
+- [ ] Validar que la selección del texto quede centrada a la misma altura que las migas y que el botón de limpiar no se corte.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
