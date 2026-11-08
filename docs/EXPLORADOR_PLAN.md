@@ -97,6 +97,19 @@ Los controles no implementados se muestran deshabilitados. La versión estable v
 
 El diseño conserva el panel de detalles a la derecha, sin modificar las funciones del motor.
 
+### BUILD 7A.5 — Panel Detalles redimensionable y cursor de ajuste
+
+**Estado:** integrado en la rama experimental; pendiente de compilación y prueba visual en Windows.
+
+- [x] El borde izquierdo de **Detalles** permite modificar su ancho arrastrando horizontalmente.
+- [x] Ancho de Detalles limitado entre 220 y 800 píxeles, respetando un mínimo de espacio para la lista.
+- [x] Al ocultar y volver a mostrar el panel se conserva su último ancho durante la sesión.
+- [x] Los cuatro bordes entre columnas tienen una zona de agarre mayor (18 píxeles).
+- [x] Cursor horizontal de doble flecha de Windows (`SizeWestEast`) en los cinco separadores.
+- [x] Guía vertical discreta en reposo, que cambia al color de acento de BandaNV al pasar el mouse o arrastrar.
+- [x] Uso de `Thumb` estándar encapsulado en `ExplorerResizeZone`, ya que `Thumb` es una clase sellada en WinUI.
+- [ ] Comprobar en Windows el cursor, las zonas de agarre y la fluidez de redimensionar el panel y las cuatro columnas.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
