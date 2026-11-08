@@ -1117,3 +1117,10 @@ public sealed partial class ExplorerPage : Page
         ExplorerSelectionCountText.Text = "1 seleccionado";
     }
 }
+
+/// <summary>
+/// Encabezado y elementos para las agrupaciones del explorador.
+/// </summary>
+public sealed record ExplorerGroup(
+    string Name,
+    IReadOnlyList<ExplorerItem> Items);
