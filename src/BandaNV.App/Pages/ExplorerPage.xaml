@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:BandaNV.Core.Models"
     xmlns:controls="using:BandaNV.App.Controls"
+    xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     Background="Transparent"
     Loaded="ExplorerPage_Loaded"
     Unloaded="ExplorerPage_Unloaded">
@@ -11,15 +12,10 @@
     <Page.Resources>
         <!-- Un mismo ancho para el encabezado y cada fila virtualizada. -->
         <controls:ExplorerColumnLayout x:Key="ExplorerColumnLayout" />
-        <!-- Área transparente de 16px: cursor de doble flecha y guía al hover. -->
-        <ControlTemplate x:Key="ExplorerResizeThumbTemplate"
-                         TargetType="controls:ExplorerResizeThumb">
-            <Grid Background="Transparent">
-                <Rectangle x:Name="ResizeGuide" Width="1"
-                           HorizontalAlignment="Center"
-                           Fill="{StaticResource BandaBorderStrongBrush}"
-                           Opacity="0.58" />
-            </Grid>
+        <!-- Thumb de WinUI: captura el arrastre; el Grid padre define el cursor. -->
+        <ControlTemplate x:Key="ExplorerTransparentThumbTemplate"
+                         TargetType="primitives:Thumb">
+            <Grid Background="Transparent" />
         </ControlTemplate>
         <DataTemplate x:Key="ExplorerFileTemplate" x:DataType="models:ExplorerItem">
             <Grid Padding="10,4" ColumnSpacing="12" Height="{x:Bind RowHeight}">
@@ -759,13 +755,22 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Margin="0,0,12,0" />
-                        <controls:ExplorerResizeThumb Grid.Column="0" Tag="name"
-                                                      HorizontalAlignment="Right"
-                                                      VerticalAlignment="Stretch"
-                                                      Width="16" Margin="0,0,-8,0"
-                                                      Template="{StaticResource ExplorerResizeThumbTemplate}"
-                                                      DragDelta="ExplorerColumnResize_DragDelta"
-                                                      ToolTipService.ToolTip="Arrastrar para ajustar ancho de nombre" />
+                        <controls:ExplorerResizeZone Grid.Column="0"
+                                                 Width="18" Margin="0,0,-9,0"
+                                                 HorizontalAlignment="Right"
+                                                 VerticalAlignment="Stretch"
+                                                 ToolTipService.ToolTip="Arrastrar para ajustar ancho de nombre">
+                            <primitives:Thumb Tag="name"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Template="{StaticResource ExplorerTransparentThumbTemplate}"
+                                              DragDelta="ExplorerColumnResize_DragDelta" />
+                            <Rectangle IsHitTestVisible="False"
+                                       Width="1"
+                                       HorizontalAlignment="Center"
+                                       Fill="{StaticResource BandaBorderStrongBrush}"
+                                       Opacity="0.58" />
+                        </controls:ExplorerResizeZone>
                         <TextBlock Grid.Column="1"
                                    Text="Modificación"
                                    Foreground="{StaticResource BandaMutedStrongBrush}"
@@ -773,13 +778,22 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Margin="0,0,12,0" />
-                        <controls:ExplorerResizeThumb Grid.Column="1" Tag="modified"
-                                                      HorizontalAlignment="Right"
-                                                      VerticalAlignment="Stretch"
-                                                      Width="16" Margin="0,0,-8,0"
-                                                      Template="{StaticResource ExplorerResizeThumbTemplate}"
-                                                      DragDelta="ExplorerColumnResize_DragDelta"
-                                                      ToolTipService.ToolTip="Arrastrar para ajustar ancho de modificación" />
+                        <controls:ExplorerResizeZone Grid.Column="1"
+                                                 Width="18" Margin="0,0,-9,0"
+                                                 HorizontalAlignment="Right"
+                                                 VerticalAlignment="Stretch"
+                                                 ToolTipService.ToolTip="Arrastrar para ajustar ancho de modificación">
+                            <primitives:Thumb Tag="modified"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Template="{StaticResource ExplorerTransparentThumbTemplate}"
+                                              DragDelta="ExplorerColumnResize_DragDelta" />
+                            <Rectangle IsHitTestVisible="False"
+                                       Width="1"
+                                       HorizontalAlignment="Center"
+                                       Fill="{StaticResource BandaBorderStrongBrush}"
+                                       Opacity="0.58" />
+                        </controls:ExplorerResizeZone>
                         <TextBlock Grid.Column="2"
                                    Text="Tipo"
                                    Foreground="{StaticResource BandaMutedStrongBrush}"
@@ -787,13 +801,22 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Margin="0,0,12,0" />
-                        <controls:ExplorerResizeThumb Grid.Column="2" Tag="type"
-                                                      HorizontalAlignment="Right"
-                                                      VerticalAlignment="Stretch"
-                                                      Width="16" Margin="0,0,-8,0"
-                                                      Template="{StaticResource ExplorerResizeThumbTemplate}"
-                                                      DragDelta="ExplorerColumnResize_DragDelta"
-                                                      ToolTipService.ToolTip="Arrastrar para ajustar ancho de tipo" />
+                        <controls:ExplorerResizeZone Grid.Column="2"
+                                                 Width="18" Margin="0,0,-9,0"
+                                                 HorizontalAlignment="Right"
+                                                 VerticalAlignment="Stretch"
+                                                 ToolTipService.ToolTip="Arrastrar para ajustar ancho de tipo">
+                            <primitives:Thumb Tag="type"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Template="{StaticResource ExplorerTransparentThumbTemplate}"
+                                              DragDelta="ExplorerColumnResize_DragDelta" />
+                            <Rectangle IsHitTestVisible="False"
+                                       Width="1"
+                                       HorizontalAlignment="Center"
+                                       Fill="{StaticResource BandaBorderStrongBrush}"
+                                       Opacity="0.58" />
+                        </controls:ExplorerResizeZone>
                         <TextBlock Grid.Column="3"
                                    Text="Tamaño"
                                    Foreground="{StaticResource BandaMutedStrongBrush}"
@@ -801,13 +824,22 @@
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Margin="0,0,12,0" />
-                        <controls:ExplorerResizeThumb Grid.Column="3" Tag="size"
-                                                      HorizontalAlignment="Right"
-                                                      VerticalAlignment="Stretch"
-                                                      Width="16" Margin="0,0,-8,0"
-                                                      Template="{StaticResource ExplorerResizeThumbTemplate}"
-                                                      DragDelta="ExplorerColumnResize_DragDelta"
-                                                      ToolTipService.ToolTip="Arrastrar para ajustar ancho de tamaño" />
+                        <controls:ExplorerResizeZone Grid.Column="3"
+                                                 Width="18" Margin="0,0,-9,0"
+                                                 HorizontalAlignment="Right"
+                                                 VerticalAlignment="Stretch"
+                                                 ToolTipService.ToolTip="Arrastrar para ajustar ancho de tamaño">
+                            <primitives:Thumb Tag="size"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Template="{StaticResource ExplorerTransparentThumbTemplate}"
+                                              DragDelta="ExplorerColumnResize_DragDelta" />
+                            <Rectangle IsHitTestVisible="False"
+                                       Width="1"
+                                       HorizontalAlignment="Center"
+                                       Fill="{StaticResource BandaBorderStrongBrush}"
+                                       Opacity="0.58" />
+                        </controls:ExplorerResizeZone>
                     </Grid>
                     <ListView
                         x:Name="ExplorerFilesList"
@@ -862,15 +894,24 @@
             </Border>
 
             <!-- Borde izquierdo del panel derecho: se arrastra como en Explorer. -->
-            <controls:ExplorerResizeThumb
+            <controls:ExplorerResizeZone
                 x:Name="ExplorerDetailsDivider"
                 Grid.Column="2"
                 Width="14"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Template="{StaticResource ExplorerResizeThumbTemplate}"
-                DragDelta="ExplorerDetailsResize_DragDelta"
-                ToolTipService.ToolTip="Arrastrar para ajustar el ancho de Detalles" />
+                ToolTipService.ToolTip="Arrastrar para ajustar el ancho de Detalles">
+                <primitives:Thumb
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Template="{StaticResource ExplorerTransparentThumbTemplate}"
+                    DragDelta="ExplorerDetailsResize_DragDelta" />
+                <Rectangle IsHitTestVisible="False"
+                           Width="1"
+                           HorizontalAlignment="Center"
+                           Fill="{StaticResource BandaBorderStrongBrush}"
+                           Opacity="0.58" />
+            </controls:ExplorerResizeZone>
 
             <Border
                 x:Name="ExplorerDetailsPane"
