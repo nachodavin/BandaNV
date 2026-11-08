@@ -46,7 +46,7 @@
                             VerticalAlignment="Center" />
                     </Border>
 
-                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" Spacing="1">
+                    <StackPanel x:Name="SidebarBrandInfo" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" Spacing="1">
                         <TextBlock
                             Text="BandaNV"
                             Foreground="{StaticResource BandaTextBrush}"
@@ -77,7 +77,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="Home" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Inicio" VerticalAlignment="Center" />
+                            <TextBlock x:Name="HomeNavLabel" Grid.Column="1" Text="Inicio" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
 
@@ -94,7 +94,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="Play" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Organizar" VerticalAlignment="Center" />
+                            <TextBlock x:Name="OrganizeNavLabel" Grid.Column="1" Text="Organizar" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
 
@@ -112,7 +112,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="Folder" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Explorar" VerticalAlignment="Center" />
+                            <TextBlock x:Name="ExploreNavLabel" Grid.Column="1" Text="Explorar" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
 
@@ -129,7 +129,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="Find" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Buscar" VerticalAlignment="Center" />
+                            <TextBlock x:Name="SearchNavLabel" Grid.Column="1" Text="Buscar" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
 
@@ -146,7 +146,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="Clock" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Historial" VerticalAlignment="Center" />
+                            <TextBlock x:Name="HistoryNavLabel" Grid.Column="1" Text="Historial" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
 
@@ -163,7 +163,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="List" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Categorías" VerticalAlignment="Center" />
+                            <TextBlock x:Name="CategoriesNavLabel" Grid.Column="1" Text="Categorías" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                 </StackPanel>
@@ -251,7 +251,7 @@
                             <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource BandaNavIconBrush}">
                                 <SymbolIcon Symbol="Setting" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock Grid.Column="1" Text="Configuración" VerticalAlignment="Center" />
+                            <TextBlock x:Name="SettingsNavLabel" Grid.Column="1" Text="Configuración" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                 </StackPanel>
