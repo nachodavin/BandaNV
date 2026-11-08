@@ -208,6 +208,21 @@ Este cambio no modifica el motor, la lógica de organización, el historial ni l
 
 **Nota:** los cambios a Historial y Categorías de la BUILD 7A.11 quedan temporalmente revertidos para priorizar la estabilidad. No asumir que la excepción de WinUI quedó confirmada hasta disponer de logs o prueba local.
 
+### BUILD 7A.13 — Inicio legible, Historial y Categorías sin cortes
+
+**Estado:** implementado en rama experimental; pendiente de compilar y verificar en Windows.
+
+- [x] **Inicio:** dona a la izquierda y leyendas a la derecha dentro de la misma tarjeta, con dimensiones para que las cifras centrales no se vuelvan diminutas.
+- [x] Las leyendas pasan a dos líneas por categoría (nombre y cantidad), y la lista de leyendas tiene desplazamiento vertical independiente para mostrar todas sin que queden debajo o cortadas.
+- [x] El tamaño de la dona depende del ancho disponible, no de la altura total de la ventana.
+- [x] **Historial:** se quita el mínimo de altura que sobrepasaba la ventana; el detalle tiene desplazamiento interno, mientras el título y el botón «Deshacer ejecución» se mantienen fijos y accesibles.
+- [x] La tabla de Historial reduce separaciones de columnas y abrevia dos encabezados con tooltips para aprovechar mejor el ancho.
+- [x] **Categorías:** el GridView conserva su virtualización y la funcionalidad de arrastrar tarjetas, pero se adapta al espacio vertical disponible y habilita desplazamiento interno para alcanzar las tarjetas inferiores.
+- [x] No se introduce un ScrollViewer alrededor de toda la página ni un enlace circular a ActualHeight; así se evitan los cambios de diseño que hicieron fallar Historial y Categorías en BUILD 7A.11.
+- [ ] Validar compilación y funcionamiento real: Inicio con todos los nombres legibles; Historial con y sin registros, scroll del detalle y acción Deshacer; Categorías con 8+ tarjetas, scroll y reordenamiento.
+
+Este trabajo no cambia el motor ni los registros de los usuarios. `main` continúa sin cambios.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
