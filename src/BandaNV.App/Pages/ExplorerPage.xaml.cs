@@ -5,6 +5,7 @@ using BandaNV.Core.Models;
 using BandaNV.Core.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.System;
@@ -23,6 +24,12 @@ public sealed partial class ExplorerPage : Page
     private readonly Stack<string> _forward = new();
 
     private IReadOnlyList<ExplorerItem> _allItems = [];
+    private ExplorerItem[] _visibleItems = [];
+    private readonly CollectionViewSource _groupedView = new()
+    {
+        IsSourceGrouped = true,
+        ItemsPath = new PropertyPath(nameof(ExplorerGroup.Items))
+    };
     private string? _currentLocation;
     private CancellationTokenSource? _navigationCts;
     private int _navigationVersion;
@@ -33,6 +40,14 @@ public sealed partial class ExplorerPage : Page
     private bool _detailsVisible = true;
     private string _sortField = "name";
     private bool _sortDescending;
+    private string _groupField = "none";
+    private bool _navigationPaneVisible = true;
+    private bool _showHiddenItems;
+    private bool _showFileExtensions = true;
+    private bool _compactRows;
+    private bool _showItemCheckboxes = true;
+    private bool _previewOnly;
+    private bool _selectionBatch;
 
     private static readonly HashSet<string> PreviewExtensions =
         new(StringComparer.OrdinalIgnoreCase)
@@ -125,7 +140,8 @@ public sealed partial class ExplorerPage : Page
         {
             var listing = string.Equals(location, ThisPc, StringComparison.Ordinal)
                 ? await _fileSystem.GetDrivesAsync(request.Token)
-                : await _fileSystem.GetFolderAsync(location, request.Token);
+                : await _fileSystem.GetFolderAsync(
+                    location, request.Token, includeHidden: _showHiddenItems);
 
             if (version != _navigationVersion || request.IsCancellationRequested)
             {
@@ -225,22 +241,80 @@ public sealed partial class ExplorerPage : Page
                 : _allItems.Where(item => item.Name.Contains(
                     query, StringComparison.CurrentCultureIgnoreCase)))
             .OrderBy(item => item, Comparer<ExplorerItem>.Create(CompareExplorerItems))
+            .Select(item => item with
+            {
+                ShowFileExtension = _showFileExtensions,
+                CompactMode = _compactRows
+            })
             .ToArray();
 
-        ExplorerFilesList.ItemsSource = visible;
+        _visibleItems = visible;
 
-        var count = visible.Length;
-        var total = _allItems.Count;
-
-        if (!_isNavigating)
+        if (_groupField == "none")
         {
-            ExplorerStatusText.Text = string.IsNullOrEmpty(query)
-                ? $"{total:N0} elementos"
-                : $"{count:N0} de {total:N0} elementos";
+            ExplorerFilesList.ItemsSource = visible;
+        }
+        else
+        {
+            var groups = visible
+                .GroupBy(GetGroupKey)
+                .OrderBy(group => group.Key.Order)
+                .ThenBy(group => group.Key.Label, StringComparer.CurrentCultureIgnoreCase)
+                .Select(group => new ExplorerGroup(group.Key.Label, group.ToList()))
+                .ToArray();
+
+            _groupedView.Source = groups;
+            ExplorerFilesList.ItemsSource = _groupedView.View;
         }
 
-        ExplorerSelectionCountText.Text = string.Empty;
+        UpdateCountText();
         UpdateSelectionDetails();
+    }
+
+    private (int Order, string Label) GetGroupKey(ExplorerItem item)
+    {
+        if (_groupField == "name")
+        {
+            var first = item.Name.Length == 0 ? '#' : char.ToUpperInvariant(item.Name[0]);
+            var label = char.IsLetter(first) ? first.ToString() : "#";
+            return (label == "#" ? 0 : first, label);
+        }
+
+        if (_groupField == "type")
+        {
+            return (0, item.TypeName);
+        }
+
+        if (_groupField == "size")
+        {
+            if (item.IsDirectory) return (0, "Carpetas");
+            var size = item.SizeBytes ?? 0;
+            return size switch
+            {
+                < 1024L * 1024 => (1, "Menos de 1 MB"),
+                < 100L * 1024 * 1024 => (2, "De 1 MB a 100 MB"),
+                < 1024L * 1024 * 1024 => (3, "De 100 MB a 1 GB"),
+                _ => (4, "Más de 1 GB")
+            };
+        }
+
+        var date = item.ModifiedAt?.Date;
+        if (!date.HasValue) return (999, "Sin fecha");
+
+        var today = DateTime.Today;
+        var firstOfWeek = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var firstOfMonth = new DateTime(today.Year, today.Month, 1);
+        var previousMonth = firstOfMonth.AddMonths(-1);
+
+        if (date.Value >= today) return (0, "Hoy");
+        if (date.Value >= today.AddDays(-1)) return (1, "Ayer");
+        if (date.Value >= firstOfWeek) return (2, "Esta semana");
+        if (date.Value >= firstOfWeek.AddDays(-7)) return (3, "La semana pasada");
+        if (date.Value >= firstOfMonth) return (4, "Este mes");
+        if (date.Value >= previousMonth) return (5, "El mes pasado");
+        if (date.Value.Year == today.Year) return (6, "Anteriormente este año");
+
+        return (10000 - date.Value.Year, date.Value.Year.ToString());
     }
 
     private int CompareExplorerItems(ExplorerItem left, ExplorerItem right)
@@ -517,9 +591,7 @@ public sealed partial class ExplorerPage : Page
             return;
         }
 
-        var shown = ExplorerFilesList.ItemsSource is IReadOnlyList<ExplorerItem> list
-            ? list.Count
-            : _allItems.Count;
+        var shown = _visibleItems.Length;
 
         var text = ExplorerFilterBox.Text?.Trim();
         ExplorerStatusText.Text = string.IsNullOrEmpty(text)
