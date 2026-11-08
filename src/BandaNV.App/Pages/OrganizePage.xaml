@@ -4,7 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:BandaNV.App.Pages"
     xmlns:controls="using:BandaNV.App.Controls"
-    Background="Transparent">
+    Background="Transparent"
+    SizeChanged="OrganizePage_SizeChanged">
 
     <Page.Resources>
         <SolidColorBrush x:Key="OrganizeWarningBrush" Color="#F2B85B" />
@@ -826,12 +827,14 @@
 
             <!-- Vista previa + resumen: ocupa todo el alto libre -->
             <Grid
+                x:Name="OrganizeResultsAndSummaryGrid"
                 Grid.Row="2"
                 ColumnSpacing="14"
                 RowSpacing="14"
                 MinHeight="300">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -840,6 +843,7 @@
                 </Grid.ColumnDefinitions>
 
                 <Border
+                    x:Name="OrganizeResultsPanel"
                     Style="{StaticResource BandaCardStyle}"
                     Padding="0"
                     MinHeight="300"
@@ -852,7 +856,12 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <Grid Padding="18,15" ColumnSpacing="10">
+                        <Grid x:Name="OrganizePreviewToolbar"
+                              Padding="18,15" ColumnSpacing="10" RowSpacing="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -860,7 +869,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="3">
+                            <StackPanel x:Name="OrganizePreviewHeading" Spacing="3">
                                 <TextBlock
                                     Text="Vista previa"
                                     Foreground="{StaticResource BandaTextBrush}"
@@ -1213,6 +1222,7 @@
                 </Grid>
 
                 <Border
+                    x:Name="OrganizePreviewSummary"
                     Grid.Column="1"
                     Grid.RowSpan="2"
                     CornerRadius="14"
