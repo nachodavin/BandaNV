@@ -7,7 +7,8 @@
     xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     Background="Transparent"
     Loaded="ExplorerPage_Loaded"
-    Unloaded="ExplorerPage_Unloaded">
+    Unloaded="ExplorerPage_Unloaded"
+    SizeChanged="ExplorerPage_SizeChanged">
 
     <Page.Resources>
         <!-- Un mismo ancho para el encabezado y cada fila virtualizada. -->
@@ -128,7 +129,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition x:Name="ExplorerSearchColumn" Width="220" />
             </Grid.ColumnDefinitions>
 
             <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
@@ -857,6 +858,7 @@
                         ItemTemplate="{StaticResource ExplorerFileTemplate}"
                         SelectionChanged="ExplorerFilesList_SelectionChanged"
                         DoubleTapped="ExplorerFilesList_DoubleTapped"
+                        SizeChanged="ExplorerFilesList_SizeChanged"
                         IsMultiSelectCheckBoxEnabled="True"
                         ScrollViewer.VerticalScrollBarVisibility="Auto">
                         <ListView.ItemContainerStyle>
