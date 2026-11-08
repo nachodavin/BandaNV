@@ -38,6 +38,39 @@ public sealed partial class SettingsPage : Page
         UpdateAppearancePreview();
     }
 
+    private void SettingsPage_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // Los formularios en dos columnas tenían etiquetas cortadas al usar
+        // BandaNV en ventana. En ancho reducido, ubicar las tarjetas una
+        // debajo de otra y dejar que el usuario se desplace normalmente.
+        var stackCards = e.NewSize.Width < 1330;
+
+        LayoutSettingsSection(GeneralSettingsColumns, stackCards);
+        LayoutSettingsSection(AppearanceSettingsColumns, stackCards);
+        LayoutSettingsSection(OrganizationSettingsColumns, stackCards);
+        LayoutSettingsSection(SecuritySettingsColumns, stackCards);
+        LayoutSettingsSection(AdvancedSettingsColumns, stackCards);
+    }
+
+    private static void LayoutSettingsSection(Grid section, bool stacked)
+    {
+        if (section.ColumnDefinitions.Count < 2 || section.Children.Count < 2)
+        {
+            return;
+        }
+
+        section.ColumnDefinitions[0].Width =
+            new GridLength(1, GridUnitType.Star);
+        section.ColumnDefinitions[1].Width = stacked
+            ? new GridLength(0)
+            : new GridLength(1, GridUnitType.Star);
+
+        // La segunda tarjeta es la que ocupaba la columna derecha.
+        var secondaryCard = section.Children[1];
+        Grid.SetColumn(secondaryCard, stacked ? 0 : 1);
+        Grid.SetRow(secondaryCard, stacked ? 1 : 0);
+    }
+
     public void SyncUpdateStartupNoticeToggle(
         bool enabled)
     {
