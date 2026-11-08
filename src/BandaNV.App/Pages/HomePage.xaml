@@ -16,7 +16,7 @@
         </Style>
     </Page.Resources>
 
-    <Grid x:Name="PageRoot">
+    <Grid x:Name="PageRoot" SizeChanged="HomePage_SizeChanged">
         <ScrollViewer
             HorizontalScrollMode="Disabled"
             HorizontalScrollBarVisibility="Disabled"
@@ -299,7 +299,11 @@
                     </Grid>
 
                     <!-- Estado actual de la biblioteca organizada -->
-                    <Grid Grid.Row="3" ColumnSpacing="16">
+                    <Grid x:Name="HomeDashboardGrid" Grid.Row="3" ColumnSpacing="16" RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1.45*" />
                             <ColumnDefinition Width="1*" />
@@ -329,14 +333,27 @@
                                 </StackPanel>
 
                                 <Grid
+                                    x:Name="HomeDonutLayout"
                                     Grid.Row="1"
-                                    MinHeight="620"
-                                    ColumnSpacing="34">
+                                    MinHeight="410"
+                                    ColumnSpacing="10"
+                                    RowSpacing="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="590" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="0" />
                                     </Grid.ColumnDefinitions>
 
+                                    <Viewbox
+                                        x:Name="HomeDonutViewbox"
+                                        Height="400"
+                                        Stretch="Uniform"
+                                        StretchDirection="DownOnly"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Center">
                                     <Grid
                                         Width="550"
                                         Height="550"
@@ -406,9 +423,12 @@
                                                 Visibility="Collapsed" />
                                         </StackPanel>
                                     </Grid>
+                                    </Viewbox>
 
                                     <ScrollViewer
-                                        Grid.Column="1"
+                                        x:Name="HomeDonutLegendViewer"
+                                        Grid.Row="1"
+                                        Grid.Column="0"
                                         VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Disabled"
                                         VerticalAlignment="Center">
@@ -424,6 +444,7 @@
 
                         <!-- Métricas del gráfico -->
                         <StackPanel
+                            x:Name="HomeDashboardMetrics"
                             Grid.Column="1"
                             Spacing="14"
                             VerticalAlignment="Top">
