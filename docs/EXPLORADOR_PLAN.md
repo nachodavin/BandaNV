@@ -223,6 +223,16 @@ Este cambio no modifica el motor, la lógica de organización, el historial ni l
 
 Este trabajo no cambia el motor ni los registros de los usuarios. `main` continúa sin cambios.
 
+### BUILD 7A.14 — Cierre automático de submenús al elegir una opción
+
+**Estado:** implementado en rama experimental, pendiente de prueba en Windows.
+
+- [x] Al escoger una opción final en **Ordenar**, **Más**, **Agrupar por**, **Ver** y **Mostrar**, cerrar tanto el submenú como el menú raíz.
+- [x] Las opciones de **Más opciones** (seleccionar todo, quitar/invertir selección, propiedades, configuración, abrir y copiar ruta) cierran el menú al ejecutarse.
+- [x] Conservar abiertos los menús intermedios cuando el usuario solamente despliega **Más**, **Agrupar por** o **Mostrar**.
+- [x] Reutilizar un único método de cierre para todos los manejadores, sin alterar filtros, agrupación, visualización ni selección.
+- [ ] Comprobar en Windows especialmente `Ordenar → Agrupar por → (Ninguno)`, `Ver → Mostrar → Extensiones de nombre` y el menú de tres puntos.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
