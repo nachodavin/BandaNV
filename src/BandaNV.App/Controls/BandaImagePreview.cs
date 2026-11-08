@@ -43,6 +43,10 @@ public sealed class BandaImagePreview : UserControl
     private string? _currentPath;
     private int _loadVersion;
 
+    // Solo Explorar utiliza una franja compacta de vista previa.
+    // Buscar y Organizar mantienen la altura adaptable habitual.
+    public bool UseCompactExplorerFrame { get; set; }
+
     public BandaImagePreview()
     {
         var resources = Application.Current.Resources;
@@ -194,6 +198,15 @@ public sealed class BandaImagePreview : UserControl
 
     private void ResizePreview(double panelHeight)
     {
+        if (UseCompactExplorerFrame)
+        {
+            _frame.Height = 207;
+            _frame.Padding = new Thickness(10);
+            _frame.CornerRadius = new CornerRadius(0);
+            _frame.BorderThickness = new Thickness(0);
+            return;
+        }
+
         if (double.IsNaN(panelHeight) || double.IsInfinity(panelHeight) ||
             panelHeight <= 0)
         {
@@ -236,6 +249,11 @@ public sealed class BandaImagePreview : UserControl
         _status.Text = "Cargando vista previa...";
         _status.Visibility = Visibility.Visible;
         Visibility = Visibility.Visible;
+
+        if (UseCompactExplorerFrame)
+        {
+            ResizePreview(207);
+        }
 
         if (ImageExtensions.Contains(extension))
         {
