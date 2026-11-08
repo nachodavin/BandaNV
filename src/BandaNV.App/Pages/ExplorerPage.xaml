@@ -913,69 +913,197 @@
                            Opacity="0.58" />
             </controls:ExplorerResizeZone>
 
+            <!-- Detalles: estructura como Windows 11: imagen, nombre,
+                 acción, tabla de metadatos y Propiedades. -->
             <Border
                 x:Name="ExplorerDetailsPane"
                 Grid.Column="3"
                 Background="{StaticResource BandaBackgroundBrush}"
                 BorderThickness="0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Padding="14,16" Spacing="10">
-                        <TextBlock Text="Detalles" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource BandaMutedBrush}" />
-                        <controls:BandaImagePreview x:Name="ExplorerSelectedPreview" />
-                        <Border x:Name="ExplorerFileIconPanel"
-                                Height="105"
-                                CornerRadius="8"
-                                Background="{StaticResource BandaCardBrush}"
-                                HorizontalAlignment="Stretch">
-                            <controls:ExplorerItemIcon x:Name="ExplorerSelectedFileIcon"
-                                                       Width="84" Height="84"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center" />
-                        </Border>
-                        <TextBlock x:Name="ExplorerDetailName"
-                                   Text="Seleccioná un archivo o carpeta."
-                                   FontSize="15" FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   Foreground="{StaticResource BandaTextBrush}" />
-                        <TextBlock x:Name="ExplorerDetailType"
-                                   Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   TextWrapping="Wrap" FontSize="12" />
-                        <TextBlock x:Name="ExplorerDetailSize"
-                                   Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   TextWrapping="Wrap" FontSize="12" />
-                        <TextBlock x:Name="ExplorerDetailModified"
-                                   Foreground="{StaticResource BandaMutedStrongBrush}"
-                                   TextWrapping="Wrap" FontSize="12" />
-                        <TextBlock x:Name="ExplorerDetailPath"
-                                   Foreground="{StaticResource BandaMutedBrush}"
-                                   TextWrapping="Wrap" FontSize="11" IsTextSelectionEnabled="True" />
-                        <Button x:Name="ExplorerOpenSelectionButton"
-                                Content="Abrir archivo"
-                                Click="ExplorerOpenSelectionButton_Click"
-                                IsEnabled="False"
-                                Style="{StaticResource BandaPopupSecondaryButtonStyle}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="0">
+                        <!-- Zona grande e independiente para miniaturas/íconos. -->
+                        <Grid Height="215"
+                              Background="{StaticResource BandaCardBrush}">
+                            <controls:BandaImagePreview
+                                x:Name="ExplorerSelectedPreview"
+                                UseCompactExplorerFrame="True"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch" />
+                            <Border x:Name="ExplorerFileIconPanel"
+                                    Background="Transparent"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch">
+                                <controls:ExplorerItemIcon
+                                    x:Name="ExplorerSelectedFileIcon"
+                                    IsLargePreview="True"
+                                    Width="112"
+                                    Height="112"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Datos de la selección con la jerarquía de Windows. -->
+                        <StackPanel Padding="18,23,18,22" Spacing="0">
+                            <TextBlock x:Name="ExplorerDetailName"
+                                       Text="Seleccioná un archivo o carpeta."
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap"
+                                       Foreground="{StaticResource BandaTextBrush}"
+                                       Margin="0,0,0,12" />
+
+                            <Button x:Name="ExplorerDetailShareButton"
+                                    Content="Compartir"
+                                    IsEnabled="False"
+                                    ToolTipService.ToolTip="Compartir estará disponible en una próxima BUILD"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,0,0,26"
+                                    Style="{StaticResource BandaPopupSecondaryButtonStyle}">
+                                <Button.ContentTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE72D;" FontSize="14" />
+                                            <TextBlock Text="Compartir" VerticalAlignment="Center" FontSize="12" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </Button.ContentTemplate>
+                            </Button>
+
+                            <TextBlock x:Name="ExplorerDetailsHeading"
+                                       Text="Detalles"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource BandaTextBrush}"
+                                       Margin="0,0,0,18" />
+
+                            <Grid x:Name="ExplorerMetadataGrid"
+                                  ColumnSpacing="10"
+                                  RowSpacing="13"
+                                  Margin="0,0,0,25">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Tipo"
+                                           Grid.Row="0"
+                                           FontSize="12"
+                                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                <TextBlock x:Name="ExplorerDetailType"
+                                           Grid.Row="0" Grid.Column="1"
+                                           TextAlignment="Right"
+                                           FontSize="12"
+                                           TextTrimming="CharacterEllipsis"
+                                           TextWrapping="NoWrap"
+                                           Foreground="{StaticResource BandaTextBrush}" />
+
+                                <TextBlock Text="Tamaño"
+                                           Grid.Row="1"
+                                           FontSize="12"
+                                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                <TextBlock x:Name="ExplorerDetailSize"
+                                           Grid.Row="1" Grid.Column="1"
+                                           TextAlignment="Right"
+                                           FontSize="12"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{StaticResource BandaTextBrush}" />
+
+                                <TextBlock Text="Ubicación"
+                                           Grid.Row="2"
+                                           FontSize="12"
+                                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                <TextBlock x:Name="ExplorerDetailPath"
+                                           Grid.Row="2" Grid.Column="1"
+                                           TextAlignment="Right"
+                                           FontSize="12"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTipService.ToolTip="{Binding Text, ElementName=ExplorerDetailPath}"
+                                           Foreground="{StaticResource BandaTextBrush}" />
+
+                                <TextBlock Text="Modificado"
+                                           Grid.Row="3"
+                                           FontSize="12"
+                                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+                                <TextBlock x:Name="ExplorerDetailModified"
+                                           Grid.Row="3" Grid.Column="1"
+                                           TextAlignment="Right"
+                                           FontSize="12"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{StaticResource BandaTextBrush}" />
+                            </Grid>
+
+                            <Button x:Name="ExplorerDetailPropertiesButton"
+                                    Click="ExplorerPropertiesButton_Click"
+                                    IsEnabled="False"
+                                    HorizontalAlignment="Left"
+                                    Padding="12,8"
+                                    Style="{StaticResource BandaPopupSecondaryButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE90F;" FontSize="15" />
+                                    <TextBlock Text="Propiedades" FontSize="12"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>
 
-        <Grid Grid.Row="4" Background="{StaticResource BandaSidebarBrush}"
-              Padding="12,5,12,3">
+        <!-- Windows 11: estado a la izquierda, con tres datos separados. -->
+        <Grid Grid.Row="4"
+              Background="{StaticResource BandaSidebarBrush}"
+              Padding="12,4,12,4"
+              ColumnSpacing="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal"
+                        Spacing="9" VerticalAlignment="Center">
+                <TextBlock x:Name="ExplorerTotalCountText"
+                           Text="0 elementos"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+                <TextBlock x:Name="ExplorerSelectionDivider"
+                           Text="|" Visibility="Collapsed"
+                           FontSize="12"
+                           Foreground="{StaticResource BandaMutedBrush}" />
+                <TextBlock x:Name="ExplorerSelectionCountText"
+                           Text="" Visibility="Collapsed"
+                           FontSize="12"
+                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+                <TextBlock x:Name="ExplorerSelectionSizeDivider"
+                           Text="|" Visibility="Collapsed"
+                           FontSize="12"
+                           Foreground="{StaticResource BandaMutedBrush}" />
+                <TextBlock x:Name="ExplorerSelectionSizeText"
+                           Text="" Visibility="Collapsed"
+                           FontSize="12"
+                           Foreground="{StaticResource BandaMutedStrongBrush}" />
+            </StackPanel>
+
             <TextBlock x:Name="ExplorerStatusText"
-                       Text="Preparando explorador..."
+                       Grid.Column="1"
+                       Text=""
+                       TextAlignment="Right"
+                       VerticalAlignment="Center"
                        FontSize="12"
                        Foreground="{StaticResource BandaMutedStrongBrush}"
                        TextTrimming="CharacterEllipsis" />
-            <TextBlock x:Name="ExplorerSelectionCountText"
-                       Grid.Column="1"
-                       Text=""
-                       FontSize="12"
-                       Foreground="{StaticResource BandaMutedStrongBrush}" />
         </Grid>
     </Grid>
 </Page>
