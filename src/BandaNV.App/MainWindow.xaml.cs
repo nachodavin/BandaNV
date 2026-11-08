@@ -118,7 +118,7 @@ public sealed partial class MainWindow : Window
     /// tareas), con márgenes alrededor y centrado. AppWindow recibe píxeles
     /// físicos, por lo que el valor se calcula desde DisplayArea.WorkArea.
     /// </summary>
-    private static void ConfigureDefaultBounds(AppWindow window)
+    private void ConfigureDefaultBounds(AppWindow window)
     {
         var display = DisplayArea.GetFromWindowId(
             window.Id, DisplayAreaFallback.Nearest);
@@ -129,17 +129,28 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        // Alrededor del 60% de la pantalla, con límites razonables.
-        // En 2560×1440 será aproximadamente 1500×850.
-        // En 1920×1080 será aproximadamente 1150×670.
+        // AppWindow usa píxeles físicos; WinUI mide la interfaz en DIPs.
+        // Ajustar el mínimo a la escala DPI evita que una ventana que parece
+        // grande en píxeles deje demasiado poco espacio para los paneles.
+        var scale = RootLayout.XamlRoot?.RasterizationScale ?? 1d;
+        if (!double.IsFinite(scale) || scale <= 0)
+        {
+            scale = 1d;
+        }
+
         var availableWidth = Math.Max(1, area.Width - 48);
         var availableHeight = Math.Max(1, area.Height - 48);
+        var minWidth = (int)Math.Round(1070 * scale);
+        var minHeight = (int)Math.Round(600 * scale);
+
         var width = Math.Min(
             availableWidth,
-            Math.Clamp((int)Math.Round(area.Width * 0.60), 1050, 1500));
+            Math.Clamp((int)Math.Round(area.Width * 0.60),
+                minWidth, Math.Max(1500, minWidth)));
         var height = Math.Min(
             availableHeight,
-            Math.Clamp((int)Math.Round(area.Height * 0.62), 600, 850));
+            Math.Clamp((int)Math.Round(area.Height * 0.62),
+                minHeight, Math.Max(850, minHeight)));
 
         var x = area.X + (area.Width - width) / 2;
         var y = area.Y + (area.Height - height) / 2;
