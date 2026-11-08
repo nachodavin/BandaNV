@@ -39,7 +39,7 @@ public sealed partial class HistoryPage : Page
     {
         // La tabla necesita ancho para sus siete columnas. Cuando no entra
         // cómodamente junto al detalle, mostrar ambos en filas consecutivas.
-        var narrow = e.NewSize.Width < 1110;
+        var narrow = e.NewSize.Width < 1400;
         HistoryResultsAndDetailGrid.ColumnDefinitions[0].Width =
             new GridLength(narrow ? 1 : 1.75, GridUnitType.Star);
         HistoryResultsAndDetailGrid.ColumnDefinitions[1].Width =
