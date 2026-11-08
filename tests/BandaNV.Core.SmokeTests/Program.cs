@@ -187,6 +187,14 @@ internal static class Program
             "Explorar respeta cancelación y rechaza rutas relativas",
             ExplorerValidatesPathsAndCancellationAsync);
 
+        await RunAsync(
+            "Explorar alterna archivos ocultos sin alterar su contenido",
+            ExplorerHiddenItemsOptionAsync);
+
+        await RunAsync(
+            "Explorar puede ocultar extensiones y compactar filas",
+            ExplorerDisplayOptionsAsync);
+
         Console.WriteLine();
         Console.WriteLine(
             $"Resultado: {_passed} OK · {_failed} error(es)");
@@ -789,6 +797,65 @@ internal static class Program
             "Explorar no debe alterar el contenido.");
         Equal(before, File.GetLastWriteTimeUtc(path),
             "Explorar no debe modificar la fecha del archivo.");
+    }
+
+    private static async Task ExplorerHiddenItemsOptionAsync()
+    {
+        using var workspace = TestWorkspace.Create();
+
+        var hiddenPath = Path.Combine(workspace.Source, "oculto.txt");
+        WriteFile(hiddenPath, "sin cambios");
+        File.SetAttributes(hiddenPath, FileAttributes.Hidden);
+
+        try
+        {
+            var explorer = new ExplorerFileSystemService();
+            var defaultListing = await explorer.GetFolderAsync(workspace.Source);
+            True(!defaultListing.Items.Any(item => item.Name == "oculto.txt"),
+                "Por defecto, los archivos ocultos no deben mostrarse.");
+
+            var listingWithHidden = await explorer.GetFolderAsync(
+                workspace.Source, includeHidden: true);
+            True(listingWithHidden.Items.Any(item => item.Name == "oculto.txt"),
+                "La opción Mostrar ocultos debe incluir el archivo.");
+            Equal("sin cambios", File.ReadAllText(hiddenPath),
+                "Mostrar ocultos no debe modificar el archivo.");
+        }
+        finally
+        {
+            File.SetAttributes(hiddenPath, FileAttributes.Normal);
+        }
+    }
+
+    private static Task ExplorerDisplayOptionsAsync()
+    {
+        var file = new ExplorerItem(
+            @"C:\\Prueba\\tema.version.pdf", "tema.version.pdf",
+            IsDirectory: false,
+            SizeBytes: 2048,
+            ModifiedAt: DateTime.Today,
+            TypeName: "PDF · Archivo");
+
+        Equal("tema.version.pdf", file.DisplayName,
+            "La extensión debe mostrarse por defecto.");
+
+        var hiddenExtension = file with { ShowFileExtension = false };
+        Equal("tema.version", hiddenExtension.DisplayName,
+            "Ocultar extensiones debe preservar el resto del nombre.");
+
+        True((file with { CompactMode = true }).RowHeight < file.RowHeight,
+            "Vista compacta debe reducir la altura de las filas.");
+
+        var folder = file with
+        {
+            IsDirectory = true,
+            Name = "Carpeta.zip",
+            ShowFileExtension = false
+        };
+        Equal("Carpeta.zip", folder.DisplayName,
+            "Ocultar extensiones no debe cambiar nombres de carpetas.");
+
+        return Task.CompletedTask;
     }
 
     private static async Task ExplorerValidatesPathsAndCancellationAsync()
