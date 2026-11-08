@@ -2,6 +2,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 
@@ -54,6 +55,8 @@ public sealed class ExplorerResizeZone : Grid
             {
                 _dragThumb.DragStarted += OnDragStarted;
                 _dragThumb.DragCompleted += OnDragCompleted;
+                _dragThumb.PointerEntered += OnThumbPointerEntered;
+                _dragThumb.PointerExited += OnThumbPointerExited;
             }
         }
 
@@ -73,8 +76,22 @@ public sealed class ExplorerResizeZone : Grid
         {
             _dragThumb.DragStarted -= OnDragStarted;
             _dragThumb.DragCompleted -= OnDragCompleted;
+            _dragThumb.PointerEntered -= OnThumbPointerEntered;
+            _dragThumb.PointerExited -= OnThumbPointerExited;
             _dragThumb = null;
         }
+    }
+
+    private void OnThumbPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _hovered = true;
+        UpdateGuide();
+    }
+
+    private void OnThumbPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        _hovered = false;
+        UpdateGuide();
     }
 
     private void OnDragStarted(object sender, DragStartedEventArgs e)
