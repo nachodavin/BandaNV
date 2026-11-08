@@ -196,6 +196,15 @@ public sealed partial class ExplorerPage : Page
 
             _currentLocation = location;
             _allItems = listing.Items;
+
+            // Cargar un único ícono de cada formato de archivo comprimido
+            // antes de que WinUI cree y recicle las filas virtualizadas.
+            // No bloquea la navegación ni abre los archivos.
+            ExplorerItemIcon.WarmUpSharedIcons(
+                listing.Items
+                    .Where(item => !item.IsDirectory)
+                    .Select(item => item.FullPath));
+
             _skippedCount = listing.SkippedCount;
             _truncated = listing.Truncated;
 
