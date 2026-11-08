@@ -327,7 +327,7 @@
                                     BorderThickness="1">
                                 <StackPanel Spacing="2">
                                     <TextBlock x:Name="ExplorerSortLabel"
-                                               Text="Ordenar: Nombre"
+                                               Text="Ordenar: Fecha"
                                                Margin="9,6,9,5" FontSize="11"
                                                Foreground="{StaticResource BandaMutedStrongBrush}" />
                                     <Button Content="Nombre" Tag="name"
@@ -750,6 +750,8 @@
                                                  Invoked="ExplorerCopyShortcut_Invoked" />
                             <KeyboardAccelerator Key="X" Modifiers="Control"
                                                  Invoked="ExplorerCutShortcut_Invoked" />
+                            <KeyboardAccelerator Key="A" Modifiers="Control"
+                                                 Invoked="ExplorerSelectAllShortcut_Invoked" />
                         </ListView.KeyboardAccelerators>
                         <ListView.GroupStyle>
                             <GroupStyle>
