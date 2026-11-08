@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using BandaNV.App.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using BandaNV.Core.Models;
@@ -321,6 +323,58 @@ public sealed partial class ExplorerPage : Page
         if (date.Value.Year == today.Year) return (6, "Anteriormente este año");
 
         return (10000 - date.Value.Year, date.Value.Year.ToString());
+    }
+
+    private void ExplorerColumnResize_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        if (sender is not Thumb { Tag: string column } || e.HorizontalChange == 0)
+        {
+            return;
+        }
+
+        var widths = new[]
+        {
+            ExplorerHeaderNameColumn.ActualWidth,
+            ExplorerHeaderModifiedColumn.ActualWidth,
+            ExplorerHeaderTypeColumn.ActualWidth,
+            ExplorerHeaderSizeColumn.ActualWidth
+        };
+
+        var index = column switch
+        {
+            "name" => 0,
+            "modified" => 1,
+            "type" => 2,
+            "size" => 3,
+            _ => -1
+        };
+
+        if (index == -1 || widths[index] <= 0)
+        {
+            return;
+        }
+
+        // La cabecera y las filas comparten el mismo estado de anchos.
+        // Se preserva un ancho mínimo para las otras columnas sin desplazar
+        // las cabeceras fuera del área disponible del listado.
+        const double horizontalPaddingAndSpacing = 64; // 14 + 14 + (12 * 3).
+        var available = Math.Max(0, ExplorerColumnHeaders.ActualWidth - horizontalPaddingAndSpacing);
+        var otherWidth = widths.Sum() - widths[index];
+        var room = Math.Max(widths[index], available - otherWidth);
+
+        var delta = e.HorizontalChange;
+        if (delta > 0)
+        {
+            delta = Math.Min(delta, Math.Max(0, room - widths[index]));
+        }
+
+        if (Math.Abs(delta) < 0.01)
+        {
+            return;
+        }
+
+        var columns = (ExplorerColumnLayout)Resources["ExplorerColumnLayout"];
+        columns.Resize(column, widths[index], delta);
     }
 
     private int CompareExplorerItems(ExplorerItem left, ExplorerItem right)
