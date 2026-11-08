@@ -335,7 +335,7 @@
                                 <Grid
                                     x:Name="HomeDonutLayout"
                                     Grid.Row="1"
-                                    MinHeight="410"
+                                    MinHeight="265"
                                     ColumnSpacing="10"
                                     RowSpacing="10">
                                     <Grid.RowDefinitions>
@@ -349,7 +349,7 @@
 
                                     <Viewbox
                                         x:Name="HomeDonutViewbox"
-                                        Height="400"
+                                        Height="275"
                                         Stretch="Uniform"
                                         StretchDirection="DownOnly"
                                         HorizontalAlignment="Stretch"
