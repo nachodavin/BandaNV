@@ -411,7 +411,15 @@
     </Page.Resources>
 
     <Grid>
-        <Grid Padding="34,32,34,40">
+                <!-- Contenedor vertical: las secciones siguen accesibles en ventanas normales. -->
+        <ScrollViewer x:Name="PageViewport"
+                      VerticalScrollMode="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollMode="Auto"
+                      HorizontalScrollBarVisibility="Auto"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Stretch">
+<Grid Padding="34,32,34,40" MinHeight="{Binding ActualHeight, ElementName=PageViewport}" MinWidth="870">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -1864,6 +1872,7 @@
             </Border>
         </Grid>
         </Grid>
+        </ScrollViewer>
 
         <!-- Popup BandaNV: filtros de Organizar -->
         <Grid
