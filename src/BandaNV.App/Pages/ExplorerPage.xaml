@@ -200,13 +200,16 @@
                     <TextBox
                         x:Name="ExplorerAddressBox"
                         Visibility="Collapsed"
-                        Height="35"
+                        <!-- WinUI 3 no respeta siempre VerticalContentAlignment.
+                             Centrar el TextBox nativo de 26 px dentro de la barra
+                             coloca el texto al mismo eje que las migas, sin
+                             perder selección, pegado ni controles nativos. -->
+                        Height="26"
                         MinHeight="0"
                         Margin="0"
-                        Padding="8,3,8,3"
+                        Padding="8,0,8,0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Center"
-                        VerticalContentAlignment="Center"
                         BorderThickness="0"
                         Background="Transparent"
                         FocusVisualPrimaryThickness="0"
