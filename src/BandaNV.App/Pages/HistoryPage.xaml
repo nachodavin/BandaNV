@@ -260,7 +260,7 @@
             Grid.Row="4"
             Style="{StaticResource BandaCardStyle}"
             Padding="0"
-            MinHeight="390">
+            MinHeight="0">
 
             <Grid>
                 <Grid.RowDefinitions>
@@ -431,7 +431,6 @@
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
@@ -474,9 +473,17 @@
                                 </Border>
                             </Grid>
 
+                            <!-- Detalles desplazables; título y Deshacer permanecen visibles.
+                                 No usamos scroll de página anidado ni dependencias de ActualHeight. -->
+                            <ScrollViewer Grid.Row="1"
+                                          VerticalScrollMode="Auto"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollMode="Disabled"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Spacing="6">
                             <!-- Resumen fijo -->
                             <StackPanel
-                                Grid.Row="1"
+                                
                                 Margin="0,16,0,14"
                                 Spacing="14">
 
@@ -530,31 +537,15 @@
                                 </StackPanel>
                             </StackPanel>
 
-                            <!-- Solo la lista de archivos scrollea; el título queda fijo -->
-                            <Grid
-                                Grid.Row="2"
-                                MinHeight="120">
 
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-
+                                    <StackPanel Spacing="8">
                                 <TextBlock
                                     x:Name="DetailFilesSectionTitleText"
                                     Text="ELEMENTOS DE LA EJECUCIÓN"
                                     Style="{StaticResource BandaMutedTextStyle}"
                                     FontSize="13"
                                     Margin="0,0,0,10" />
-
-                                <ScrollViewer
-                                    Grid.Row="1"
-                                    VerticalScrollMode="Enabled"
-                                    VerticalScrollBarVisibility="Auto"
-                                    HorizontalScrollMode="Disabled"
-                                    HorizontalScrollBarVisibility="Disabled">
-
-                                    <ItemsControl ItemsSource="{x:Bind SelectedFiles, Mode=OneWay}">
+<ItemsControl ItemsSource="{x:Bind SelectedFiles, Mode=OneWay}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="local:HistoryFilePreview">
                                                 <Border
@@ -614,13 +605,14 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                </ScrollViewer>
-                            </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
 
                             <!-- Acción principal fija -->
                             <Button
                                 x:Name="UndoPreviewButton"
-                                Grid.Row="3"
+                                Grid.Row="2"
                                 Content="Deshacer ejecución"
                                 Margin="0,14,0,0"
                                 FontSize="14"
