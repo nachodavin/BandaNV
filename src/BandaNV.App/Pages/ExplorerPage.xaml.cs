@@ -254,7 +254,9 @@ public sealed partial class ExplorerPage : Page
 
         _visibleItems = visible;
 
-        if (_groupField == "none")
+        // «Este equipo» contiene unidades sin fechas: se muestra como lista,
+        // sin crear un grupo artificial «Sin fecha».
+        if (_groupField == "none" || _currentLocation == ThisPc)
         {
             ExplorerFilesList.ItemsSource = visible;
         }
