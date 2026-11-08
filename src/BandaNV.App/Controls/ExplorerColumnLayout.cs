@@ -75,6 +75,54 @@ public sealed class ExplorerColumnLayout : DependencyObject
                    SizeWidth.Value + CellPaddingAndSpacing;
     }
 
+    /// <summary>
+    /// Ajusta las cuatro columnas cuando la ventana de Explorar es angosta.
+    /// Sin personalizaciones recupera las proporciones predeterminadas al
+    /// ampliar la ventana; después de un ajuste manual solo reduce si
+    /// resulta necesario, sin sobrescribir la elección del usuario.
+    /// </summary>
+    public void FitToViewport(double availableWidth, bool userResized)
+    {
+        if (!double.IsFinite(availableWidth) || availableWidth <= 0)
+        {
+            return;
+        }
+
+        double[] minimums = [180, 130, 100, 85];
+        double[] preferred = userResized
+            ? [NameWidth.Value, ModifiedWidth.Value, TypeWidth.Value, SizeWidth.Value]
+            : [320, 200, 175, 125];
+
+        var minTotal = minimums.Sum();
+        var desired = Math.Max(minTotal, availableWidth - CellPaddingAndSpacing);
+        var preferredTotal = preferred.Sum();
+
+        if (userResized && preferredTotal <= desired + 1)
+        {
+            return;
+        }
+
+        if (preferredTotal > desired)
+        {
+            var capacity = preferredTotal - minTotal;
+            var proportion = capacity <= 0
+                ? 0d
+                : Math.Clamp((desired - minTotal) / capacity, 0d, 1d);
+
+            for (var index = 0; index < preferred.Length; index++)
+            {
+                preferred[index] = minimums[index] +
+                    Math.Max(0d, preferred[index] - minimums[index]) * proportion;
+            }
+        }
+
+        NameWidth = new GridLength(preferred[0]);
+        ModifiedWidth = new GridLength(preferred[1]);
+        TypeWidth = new GridLength(preferred[2]);
+        SizeWidth = new GridLength(preferred[3]);
+        RecalculateRowWidth();
+    }
+
     public void Resize(string column, double actualWidth, double delta)
     {
         if (!double.IsFinite(actualWidth) || !double.IsFinite(delta))
