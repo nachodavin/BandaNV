@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window
     private CancellationTokenSource? _updateDownloadCts;
     private UpdateCheckResult? _availableUpdate;
     private bool _isUpdateModalBusy;
+    private bool _explorerSidebarCompact;
 
     public MainWindow()
     {
@@ -70,6 +71,7 @@ public sealed partial class MainWindow : Window
 
         SetSelectedNavigationButton(
             button);
+        SetExploreSidebarMode(pageType == typeof(ExplorerPage));
     }
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -445,7 +447,7 @@ public sealed partial class MainWindow : Window
         QuickUpdateSubtitle.Text =
             $"Disponible: {result.AvailableVersion}";
         QuickUpdateButton.Visibility =
-            Visibility.Visible;
+            _explorerSidebarCompact ? Visibility.Collapsed : Visibility.Visible;
 
         if (showModal)
         {
@@ -931,6 +933,8 @@ public sealed partial class MainWindow : Window
 
     private void NavigateTo(string tag)
     {
+        SetExploreSidebarMode(tag == "explore");
+
         var pageType = tag switch
         {
             "home" => typeof(HomePage),
@@ -947,6 +951,40 @@ public sealed partial class MainWindow : Window
         {
             ContentFrame.Navigate(pageType);
         }
+    }
+
+    private void SetExploreSidebarMode(bool compact)
+    {
+        if (_explorerSidebarCompact == compact)
+        {
+            return;
+        }
+
+        _explorerSidebarCompact = compact;
+
+        // La barra de BandaNV se convierte en un rail de íconos al explorar,
+        // sin bloquear el acceso a Organizar, Inicio y demás páginas.
+        RootLayout.ColumnDefinitions[0].Width =
+            new GridLength(compact ? 90 : 226);
+
+        var labelVisibility = compact
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        SidebarBrandInfo.Visibility = labelVisibility;
+        HomeNavLabel.Visibility = labelVisibility;
+        OrganizeNavLabel.Visibility = labelVisibility;
+        ExploreNavLabel.Visibility = labelVisibility;
+        SearchNavLabel.Visibility = labelVisibility;
+        HistoryNavLabel.Visibility = labelVisibility;
+        CategoriesNavLabel.Visibility = labelVisibility;
+        SettingsNavLabel.Visibility = labelVisibility;
+
+        // El aviso de actualización sigue accesible en modo normal
+        // y por Configuración > Acerca de.
+        QuickUpdateButton.Visibility = compact || _availableUpdate is null
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private void SetSelectedNavigationButton(Button button)
