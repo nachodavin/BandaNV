@@ -54,11 +54,12 @@ public sealed partial class HomePage : Page
             ? new Thickness(0, 0, 0, 0)
             : new Thickness(0);
 
-        // Reservar espacio vertical para que el gráfico circular se vea
-        // completo al abrir BandaNV como ventana, sin obligar a maximizar.
-        // La leyenda sigue quedando disponible mediante el scroll natural.
+        // Dona y leyenda siempre a la par: el ancho disponible determina
+        // la escala del gráfico y no la altura de la ventana. Así la dona
+        // conserva cifras legibles y la leyenda scrollea dentro de la tarjeta.
         HomeDonutViewbox.Height = Math.Clamp(
-            e.NewSize.Height - 545d, 240d, compact ? 305d : 370d);
+            (e.NewSize.Width - 120d) * 0.48d, 280d, 370d);
+        HomeDonutLegendViewer.MaxHeight = HomeDonutViewbox.Height - 12d;
     }
 
     private async void HomePage_Loaded(
