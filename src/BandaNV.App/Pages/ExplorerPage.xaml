@@ -585,7 +585,14 @@
                         ItemTemplate="{StaticResource ExplorerFileTemplate}"
                         SelectionChanged="ExplorerFilesList_SelectionChanged"
                         DoubleTapped="ExplorerFilesList_DoubleTapped"
-                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListView.KeyboardAccelerators>
+                            <KeyboardAccelerator Key="C" Modifiers="Control"
+                                                 Invoked="ExplorerCopyShortcut_Invoked" />
+                            <KeyboardAccelerator Key="X" Modifiers="Control"
+                                                 Invoked="ExplorerCutShortcut_Invoked" />
+                        </ListView.KeyboardAccelerators>
+                    </ListView>
                     <TextBlock
                         x:Name="ExplorerFolderNotice"
                         Grid.Row="2"
