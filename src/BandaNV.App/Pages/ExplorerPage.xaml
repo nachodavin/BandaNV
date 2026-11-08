@@ -184,10 +184,14 @@
                 Background="{StaticResource BandaCardAltBrush}"
                 BorderBrush="{StaticResource BandaBorderBrush}"
                 BorderThickness="1"
-                Padding="8,2">
+                Padding="0">
+                <!-- Mismo rectángulo en ambos modos: migas o texto editable.
+                     El TextBox no debe dibujar un segundo marco interno. -->
                 <Grid Background="Transparent">
                     <ScrollViewer
                         x:Name="ExplorerBreadcrumbScroll"
+                        Margin="8,2"
+                        VerticalAlignment="Center"
                         VerticalScrollBarVisibility="Disabled"
                         HorizontalScrollBarVisibility="Hidden"
                         HorizontalScrollMode="Auto">
@@ -196,12 +200,35 @@
                     <TextBox
                         x:Name="ExplorerAddressBox"
                         Visibility="Collapsed"
+                        MinHeight="0"
+                        Margin="0"
+                        Padding="8,0,8,0"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         BorderThickness="0"
                         Background="Transparent"
+                        FocusVisualPrimaryThickness="0"
+                        FocusVisualSecondaryThickness="0"
+                        UseSystemFocusVisuals="False"
                         FontSize="13"
-                        VerticalAlignment="Center"
                         KeyDown="ExplorerAddressBox_KeyDown"
-                        LostFocus="ExplorerAddressBox_LostFocus" />
+                        LostFocus="ExplorerAddressBox_LostFocus">
+                        <!-- Evitar el subrayado/borde de foco propio de WinUI.
+                             El borde externo de ExplorerAddressSurface permanece
+                             idéntico en edición y navegación. -->
+                        <TextBox.Resources>
+                            <Thickness x:Key="TextControlBorderThemeThickness">0</Thickness>
+                            <Thickness x:Key="TextControlBorderThemeThicknessFocused">0</Thickness>
+                            <SolidColorBrush x:Key="TextControlBorderBrushFocused"
+                                             Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver"
+                                             Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBackgroundFocused"
+                                             Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBackgroundPointerOver"
+                                             Color="Transparent" />
+                        </TextBox.Resources>
+                    </TextBox>
                 </Grid>
             </Border>
 
