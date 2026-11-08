@@ -30,6 +30,10 @@ public sealed class ExplorerItemIcon : UserControl
     // Evita una avalancha de solicitudes al Shell al abrir carpetas grandes.
     private static readonly SemaphoreSlim ThumbnailSlots = new(6, 6);
 
+    // Si el primer ZIP elegido como muestra falla, la precarga prueba
+    // otro archivo y notifica a las filas que habían quedado con fallback.
+    private static event Action<string, bool>? SharedIconAvailable;
+
     private readonly Image _image;
     private readonly FontIcon _fallback;
     private bool _isVisible;
@@ -105,12 +109,15 @@ public sealed class ExplorerItemIcon : UserControl
         Loaded += (_, _) =>
         {
             _isVisible = true;
+            SharedIconAvailable -= OnSharedIconAvailable;
+            SharedIconAvailable += OnSharedIconAvailable;
             Refresh();
         };
 
         Unloaded += (_, _) =>
         {
             _isVisible = false;
+            SharedIconAvailable -= OnSharedIconAvailable;
             ++_loadVersion;
             _image.Source = null;
             _image.Visibility = Visibility.Collapsed;
@@ -124,7 +131,9 @@ public sealed class ExplorerItemIcon : UserControl
     /// </summary>
     public static void WarmUpSharedIcons(IEnumerable<string> filePaths)
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var candidates = new Dictionary<string, List<string>>(
+            StringComparer.OrdinalIgnoreCase);
+
         foreach (var path in filePaths)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -133,10 +142,51 @@ public sealed class ExplorerItemIcon : UserControl
             }
 
             var extension = Path.GetExtension(path);
-            if (SharedExtensions.Contains(extension) && seen.Add(extension))
+            if (!SharedExtensions.Contains(extension))
             {
-                _ = GetSharedIconAsync(path, extension, largePreview: false);
+                continue;
             }
+
+            if (!candidates.TryGetValue(extension, out var samples))
+            {
+                samples = [];
+                candidates[extension] = samples;
+            }
+
+            // Tres muestras son suficientes para recuperarse si la primera
+            // está bloqueada, borrada o desconectada al cargar el listado.
+            if (samples.Count < 3)
+            {
+                samples.Add(path);
+            }
+        }
+
+        foreach (var pair in candidates)
+        {
+            _ = WarmUpCandidatesAsync(pair.Key, pair.Value);
+        }
+    }
+
+    private static async Task WarmUpCandidatesAsync(
+        string extension, IReadOnlyList<string> samples)
+    {
+        foreach (var path in samples)
+        {
+            if (await GetSharedIconAsync(path, extension, largePreview: false) is not null)
+            {
+                return;
+            }
+        }
+    }
+
+    private void OnSharedIconAvailable(string extension, bool largePreview)
+    {
+        if (_isVisible && IsLargePreview == largePreview &&
+            !IsDirectory && !IsDrive &&
+            string.Equals(Path.GetExtension(FilePath), extension,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Refresh();
         }
     }
 
@@ -213,9 +263,10 @@ public sealed class ExplorerItemIcon : UserControl
 
         var icon = await pending;
 
-        if (icon is not null)
+        if (icon is not null && !CachedIcons.ContainsKey(key))
         {
             CachedIcons[key] = icon;
+            SharedIconAvailable?.Invoke(extension, largePreview);
         }
 
         // Si la primera muestra no puede leerse, otra fila podrá reintentar
