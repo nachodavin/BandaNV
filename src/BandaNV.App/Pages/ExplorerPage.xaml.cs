@@ -40,6 +40,7 @@ public sealed partial class ExplorerPage : Page
     private int _skippedCount;
     private bool _truncated;
     private bool _detailsVisible = true;
+    private double _detailsWidth = 280;
     private string _sortField = "modified";
     private bool _sortDescending = true;
     private string _groupField = "modified";
@@ -325,6 +326,32 @@ public sealed partial class ExplorerPage : Page
         return (10000 - date.Value.Year, date.Value.Year.ToString());
     }
 
+    private void ExplorerDetailsResize_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        if (!_detailsVisible || Math.Abs(e.HorizontalChange) < 0.01)
+        {
+            return;
+        }
+
+        // El divisor está a la IZQUIERDA de Detalles: moverlo hacia la
+        // izquierda agranda el panel y hacia la derecha lo achica.
+        const double minDetails = 220;
+        const double maxDetails = 800;
+        const double minFileList = 400;
+
+        var remaining = ExplorerContentGrid.ActualWidth
+            - ExplorerLocationsColumn.ActualWidth
+            - ExplorerDetailsDividerColumn.ActualWidth
+            - minFileList;
+        var allowedMaximum = Math.Max(
+            minDetails, Math.Min(maxDetails, remaining));
+
+        _detailsWidth = Math.Clamp(
+            _detailsWidth - e.HorizontalChange, minDetails, allowedMaximum);
+
+        ExplorerDetailsColumn.Width = new GridLength(_detailsWidth);
+    }
+
     private void ExplorerColumnResize_DragDelta(object sender, DragDeltaEventArgs e)
     {
         if (sender is not Thumb { Tag: string column } ||
@@ -370,7 +397,7 @@ public sealed partial class ExplorerPage : Page
         // Una columna puede ampliarse usando espacio libre y, si es
         // necesario, reduciendo las vecinas hasta sus mínimos. Así el
         // encabezado sigue alineado con todas las filas del listado.
-        const double spacingAndPadding = 64; // 14 + 14 + (12 * 3)
+        const double spacingAndPadding = 56; // 10 + 10 + (12 * 3)
         var available = Math.Max(
             minimums.Sum(), ExplorerColumnHeaders.ActualWidth - spacingAndPadding);
         var need = Math.Max(0, widths.Sum() + desired - widths[index] - available);
@@ -780,7 +807,10 @@ public sealed partial class ExplorerPage : Page
 
         ExplorerDetailsPane.Visibility = visible
             ? Visibility.Visible : Visibility.Collapsed;
-        ExplorerDetailsColumn.Width = new GridLength(visible ? 280 : 0);
+        ExplorerDetailsDivider.Visibility = visible
+            ? Visibility.Visible : Visibility.Collapsed;
+        ExplorerDetailsDividerColumn.Width = new GridLength(visible ? 14 : 0);
+        ExplorerDetailsColumn.Width = new GridLength(visible ? _detailsWidth : 0);
 
         var metadataVisibility = previewOnly
             ? Visibility.Collapsed : Visibility.Visible;
