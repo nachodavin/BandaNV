@@ -83,6 +83,20 @@ Evolucionar la sección **Buscar** hacia **Explorar**, con una experiencia cotid
 
 Los controles no implementados se muestran deshabilitados. La versión estable v2.0.3 no se modifica.
 
+### BUILD 7A.4 — Ajustes de la barra y columnas
+
+**Estado:** integrado en rama experimental; pendiente de compilar y comprobar en Windows.
+
+- [x] **Detalles** queda fijo a la derecha de la barra de comandos, como en Windows 11, sin desplazarse con Ordenar, Ver y Más.
+- [x] **Nuevo, Cortar, Copiar, Pegar, Renombrar, Compartir, Eliminar, Organizar, Ordenar, Ver y Más** siguen agrupados a la izquierda.
+- [x] Agregar zonas de arrastre entre las columnas **Nombre, Modificación, Tipo y Tamaño**.
+- [x] Sincronizar anchos de cabecera y filas (incluso con virtualización, agrupación y selección múltiple) mediante `ExplorerColumnLayout`.
+- [x] Respetar mínimos de ancho y permitir ampliar una columna usando el espacio disponible o reduciendo columnas vecinas sin ocultarlas.
+- [ ] Comprobar en Windows el redimensionado de las cuatro columnas, la alineación de datos y el estado de los separadores en las vistas agrupada y sin agrupar.
+- [ ] Evaluar persistencia portable de anchos por usuario en una BUILD posterior.
+
+El diseño conserva el panel de detalles a la derecha, sin modificar las funciones del motor.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
