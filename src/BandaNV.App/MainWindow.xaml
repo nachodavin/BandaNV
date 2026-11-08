@@ -64,6 +64,7 @@
                 <StackPanel Grid.Row="1">
                     <Button
                         x:Name="HomeButton"
+                        ToolTipService.ToolTip="Inicio"
                         Tag="home"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}"
@@ -83,6 +84,7 @@
 
                     <Button
                         x:Name="OrganizeButton"
+                        ToolTipService.ToolTip="Organizar"
                         Tag="organize"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}">
@@ -101,6 +103,7 @@
                     <!-- Explorador completo experimental: Buscar original sigue disponible. -->
                     <Button
                         x:Name="ExploreButton"
+                        ToolTipService.ToolTip="Explorar"
                         Tag="explore"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}">
@@ -118,6 +121,7 @@
 
                     <Button
                         x:Name="SearchButton"
+                        ToolTipService.ToolTip="Buscar"
                         Tag="search"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}">
@@ -135,6 +139,7 @@
 
                     <Button
                         x:Name="HistoryButton"
+                        ToolTipService.ToolTip="Historial"
                         Tag="history"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}">
@@ -152,6 +157,7 @@
 
                     <Button
                         x:Name="CategoriesButton"
+                        ToolTipService.ToolTip="Categorías"
                         Tag="categories"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}">
@@ -240,6 +246,7 @@
 
                     <Button
                         x:Name="SettingsButton"
+                        ToolTipService.ToolTip="Configuración"
                         Tag="settings"
                         Click="NavigationButton_Click"
                         Style="{StaticResource BandaNavButtonStyle}">
