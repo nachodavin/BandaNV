@@ -126,6 +126,37 @@ public sealed partial class OrganizePage : Page, IOrganizationConflictResolver
         ShowInitialState();
     }
 
+    private void OrganizePage_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var width = e.NewSize.Width;
+        if (width <= 0)
+        {
+            return;
+        }
+
+        // La cabecera de Vista previa antes concentraba cuatro controles
+        // en una fila. En ventanas normales se mantienen accesibles en dos.
+        var wrapToolbar = width < 1410;
+        Grid.SetColumnSpan(OrganizePreviewHeading, wrapToolbar ? 4 : 1);
+        Grid.SetRow(OrganizeFiltersButton, wrapToolbar ? 1 : 0);
+        Grid.SetRow(OrganizeSortSelectorButton, wrapToolbar ? 1 : 0);
+        Grid.SetRow(OrganizeGroupSelectorButton, wrapToolbar ? 1 : 0);
+
+        // Cuando tampoco entran el listado y Resumen uno al lado del otro,
+        // apilar Resumen debajo de los botones de organización.
+        var stackSummary = width < 1040;
+        OrganizeResultsAndSummaryGrid.ColumnDefinitions[0].Width =
+            new GridLength(stackSummary ? 1 : 1.55, GridUnitType.Star);
+        OrganizeResultsAndSummaryGrid.ColumnDefinitions[1].Width =
+            stackSummary ? new GridLength(0) :
+                           new GridLength(0.95, GridUnitType.Star);
+
+        Grid.SetColumn(OrganizePreviewSummary, stackSummary ? 0 : 1);
+        Grid.SetRow(OrganizePreviewSummary, stackSummary ? 2 : 0);
+        Grid.SetRowSpan(OrganizePreviewSummary, stackSummary ? 1 : 2);
+        OrganizePreviewSummary.MinHeight = stackSummary ? 230 : 0;
+    }
+
     private void LoadSavedViewPreferences()
     {
         var settings =
