@@ -233,6 +233,18 @@ Este trabajo no cambia el motor ni los registros de los usuarios. `main` contin�
 - [x] Reutilizar un único método de cierre para todos los manejadores, sin alterar filtros, agrupación, visualización ni selección.
 - [ ] Comprobar en Windows especialmente `Ordenar → Agrupar por → (Ninguno)`, `Ver → Mostrar → Extensiones de nombre` y el menú de tres puntos.
 
+### BUILD 7A.15 — Barra de direcciones y búsqueda al estilo Windows
+
+**Estado:** implementado en `feature/explorador-completo`; pendiente de compilar y probar en Windows.
+
+- [x] Eliminar el botón independiente **Ruta** de la barra superior y liberar su columna para la dirección.
+- [x] Un clic izquierdo en un espacio vacío de la barra de ruta activa el editor, seleccionando la ruta completa para escribir o pegar otra dirección.
+- [x] Los botones de carpetas en la ruta conservan su navegación, sin activar el editor.
+- [x] `Enter` navega a la ruta ingresada y `Esc` cancela; al perder foco se vuelve a mostrar la ruta navegable.
+- [x] Actualizar el placeholder del buscador según la carpeta abierta, por ejemplo **Buscar en 1 - RAR**, **Buscar en Imágenes** o **Buscar en Este equipo**.
+- [x] Conservar el filtro local existente sin introducir búsquedas en toda la computadora.
+- [ ] Comprobar en Windows clics en espacios libres de la ruta, selección de texto, pegar una ruta válida/inválida, navegación mediante migas y actualización de búsqueda al cambiar de carpeta.
+
 ### BUILD 7B — Operaciones de archivos
 
 - [ ] Crear servicio de operaciones `ExplorerFileOperationsService`, separado de los handlers de interfaz.
