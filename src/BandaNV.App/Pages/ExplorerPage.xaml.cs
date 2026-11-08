@@ -327,7 +327,8 @@ public sealed partial class ExplorerPage : Page
 
     private void ExplorerColumnResize_DragDelta(object sender, DragDeltaEventArgs e)
     {
-        if (sender is not Thumb { Tag: string column } || e.HorizontalChange == 0)
+        if (sender is not Thumb { Tag: string column } ||
+            Math.Abs(e.HorizontalChange) < 0.01)
         {
             return;
         }
@@ -340,41 +341,74 @@ public sealed partial class ExplorerPage : Page
             ExplorerHeaderSizeColumn.ActualWidth
         };
 
-        var index = column switch
+        string[] keys = ["name", "modified", "type", "size"];
+        double[] minimums = [180, 130, 100, 85];
+        double[] maximums = [1400, 700, 650, 500];
+        var index = Array.IndexOf(keys, column);
+
+        if (index < 0 || widths.Any(width => width <= 0))
         {
-            "name" => 0,
-            "modified" => 1,
-            "type" => 2,
-            "size" => 3,
-            _ => -1
+            return;
+        }
+
+        var layout = (ExplorerColumnLayout)Resources["ExplorerColumnLayout"];
+
+        if (e.HorizontalChange < 0)
+        {
+            // Reducir una columna libera espacio para ampliar otra.
+            layout.Resize(column, widths[index], e.HorizontalChange);
+            return;
+        }
+
+        var desired = Math.Clamp(
+            widths[index] + e.HorizontalChange, minimums[index], maximums[index]);
+        if (desired <= widths[index])
+        {
+            return;
+        }
+
+        // Una columna puede ampliarse usando espacio libre y, si es
+        // necesario, reduciendo las vecinas hasta sus mínimos. Así el
+        // encabezado sigue alineado con todas las filas del listado.
+        const double spacingAndPadding = 64; // 14 + 14 + (12 * 3)
+        var available = Math.Max(
+            minimums.Sum(), ExplorerColumnHeaders.ActualWidth - spacingAndPadding);
+        var need = Math.Max(0, widths.Sum() + desired - widths[index] - available);
+
+        var neighbors = index switch
+        {
+            0 => new[] { 1, 2, 3 },
+            1 => new[] { 0, 2, 3 },
+            2 => new[] { 1, 0, 3 },
+            _ => new[] { 2, 1, 0 }
         };
 
-        if (index == -1 || widths[index] <= 0)
+        foreach (var neighbor in neighbors)
         {
-            return;
+            if (need <= 0)
+            {
+                break;
+            }
+
+            var shrink = Math.Min(need,
+                Math.Max(0, widths[neighbor] - minimums[neighbor]));
+
+            if (shrink <= 0)
+            {
+                continue;
+            }
+
+            layout.Resize(keys[neighbor], widths[neighbor], -shrink);
+            need -= shrink;
         }
 
-        // La cabecera y las filas comparten el mismo estado de anchos.
-        // Se preserva un ancho mínimo para las otras columnas sin desplazar
-        // las cabeceras fuera del área disponible del listado.
-        const double horizontalPaddingAndSpacing = 64; // 14 + 14 + (12 * 3).
-        var available = Math.Max(0, ExplorerColumnHeaders.ActualWidth - horizontalPaddingAndSpacing);
-        var otherWidth = widths.Sum() - widths[index];
-        var room = Math.Max(widths[index], available - otherWidth);
-
-        var delta = e.HorizontalChange;
-        if (delta > 0)
+        // Si todas las otras columnas llegaron al mínimo, el objetivo
+        // también se limita: no se pierden columnas por los bordes.
+        var appliedDelta = desired - widths[index] - need;
+        if (appliedDelta > 0)
         {
-            delta = Math.Min(delta, Math.Max(0, room - widths[index]));
+            layout.Resize(column, widths[index], appliedDelta);
         }
-
-        if (Math.Abs(delta) < 0.01)
-        {
-            return;
-        }
-
-        var columns = (ExplorerColumnLayout)Resources["ExplorerColumnLayout"];
-        columns.Resize(column, widths[index], delta);
     }
 
     private int CompareExplorerItems(ExplorerItem left, ExplorerItem right)
