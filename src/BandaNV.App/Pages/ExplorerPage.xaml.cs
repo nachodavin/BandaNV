@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using BandaNV.App.Controls;
+using BandaNV.App.Services;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -53,7 +54,6 @@ public sealed partial class ExplorerPage : Page
     private bool _showItemCheckboxes = true;
     private bool _previewOnly;
     private bool _selectionBatch;
-    private int _detailTypeVersion;
 
     private static readonly HashSet<string> PreviewExtensions =
         new(StringComparer.OrdinalIgnoreCase)
@@ -87,6 +87,13 @@ public sealed partial class ExplorerPage : Page
         ExplorerAddressSurface.AddHandler(
             UIElement.PointerPressedEvent,
             new PointerEventHandler(ExplorerAddressSurface_PointerPressed),
+            handledEventsToo: true);
+
+        // Al pulsar fuera de las dos cajas, quitar selección de texto/foco.
+        // Los botones de la ruta y la caja de búsqueda se mantienen editables.
+        AddHandler(
+            UIElement.PointerPressedEvent,
+            new PointerEventHandler(ExplorerPage_PointerPressed),
             handledEventsToo: true);
 
         UpdateNavigationButtons();
@@ -151,7 +158,6 @@ public sealed partial class ExplorerPage : Page
         _navigationCts?.Dispose();
         _navigationCts = null;
         ExplorerSelectedPreview.Clear();
-        ++_detailTypeVersion;
     }
 
     private async Task<bool> NavigateAsync(
@@ -244,7 +250,14 @@ public sealed partial class ExplorerPage : Page
             }
 
             _currentLocation = location;
-            _allItems = listing.Items;
+            // Windows determina los tipos según la asociación real instalada.
+            // El resultado se cachea por extensión, sin abrir los archivos.
+            _allItems = listing.Items
+                .Select(item => item with
+                {
+                    TypeName = ExplorerShellTypeService.GetDisplayType(item)
+                })
+                .ToArray();
 
             // Cargar un único ícono de cada formato de archivo comprimido
             // antes de que WinUI cree y recicle las filas virtualizadas.
@@ -922,7 +935,6 @@ public sealed partial class ExplorerPage : Page
         // El modo Vista previa conserva el visor, ocultando los metadatos.
         ExplorerDetailsHeading.Visibility = metadataVisibility;
         ExplorerMetadataGrid.Visibility = metadataVisibility;
-        ExplorerDetailShareButton.Visibility = metadataVisibility;
         ExplorerDetailPropertiesButton.Visibility = metadataVisibility;
 
         UpdateViewMenuChecks();
@@ -1197,6 +1209,48 @@ public sealed partial class ExplorerPage : Page
         await NavigateAsync(path);
     }
 
+    private void ExplorerPage_PointerPressed(
+        object sender, PointerRoutedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        // Un clic en cualquiera de las cajas (o sus controles internos)
+        // conserva el foco para permitir edición y selección de texto.
+        var source = e.OriginalSource as DependencyObject;
+        while (source is not null)
+        {
+            if (ReferenceEquals(source, ExplorerAddressSurface) ||
+                ReferenceEquals(source, ExplorerFilterBox))
+            {
+                return;
+            }
+
+            if (ReferenceEquals(source, this))
+            {
+                break;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        // No borrar el texto del buscador ni el filtro aplicado; solo
+        // retirar selección y foco cuando el clic fue fuera.
+        if (ExplorerAddressBox.Visibility == Visibility.Visible)
+        {
+            ExplorerAddressBox.SelectionLength = 0;
+            HideAddressEditor();
+        }
+
+        if (ExplorerFilterBox.FocusState != FocusState.Unfocused)
+        {
+            ExplorerFilterBox.SelectionLength = 0;
+            ExplorerFilesList.Focus(FocusState.Programmatic);
+        }
+    }
+
     private void ExplorerAddressSurface_PointerPressed(
         object sender, PointerRoutedEventArgs e)
     {
@@ -1459,36 +1513,8 @@ public sealed partial class ExplorerPage : Page
         }
     }
 
-    private async Task LoadWindowsDisplayTypeAsync(string path, int version)
-    {
-        try
-        {
-            // Mostrar la misma descripción del tipo que utiliza Windows
-            // para la asociación instalada (por ejemplo, WinRAR ZIP).
-            var file = await StorageFile.GetFileFromPathAsync(path);
-            var type = file.DisplayType;
-
-            if (version != _detailTypeVersion ||
-                string.IsNullOrWhiteSpace(type) ||
-                ExplorerFilesList.SelectedItems.Count != 1 ||
-                ExplorerFilesList.SelectedItems[0] is not ExplorerItem item ||
-                !string.Equals(item.FullPath, path, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            ExplorerDetailType.Text = type;
-        }
-        catch (Exception)
-        {
-            // Los accesos directos y los archivos no accesibles siguen
-            // mostrando el tipo genérico disponible en el listado.
-        }
-    }
-
     private void UpdateSelectionDetails()
     {
-        var detailVersion = ++_detailTypeVersion;
         UpdateCommandBarState();
         UpdateSelectionStatus();
 
@@ -1514,7 +1540,6 @@ public sealed partial class ExplorerPage : Page
 
             ExplorerDetailsHeading.Visibility = Visibility.Collapsed;
             ExplorerMetadataGrid.Visibility = Visibility.Collapsed;
-            ExplorerDetailShareButton.Visibility = Visibility.Collapsed;
             ExplorerDetailPropertiesButton.Visibility = Visibility.Collapsed;
             return;
         }
@@ -1540,10 +1565,6 @@ public sealed partial class ExplorerPage : Page
 
         ExplorerDetailName.Text = item.Name;
         ExplorerDetailType.Text = item.TypeName;
-        if (!item.IsDirectory)
-        {
-            _ = LoadWindowsDisplayTypeAsync(item.FullPath, detailVersion);
-        }
         ExplorerDetailSize.Text = item.IsDirectory ? "—" : item.SizeText;
         ExplorerDetailModified.Text = item.ModifiedText;
 
@@ -1556,7 +1577,6 @@ public sealed partial class ExplorerPage : Page
             ? Visibility.Visible : Visibility.Collapsed;
         ExplorerDetailsHeading.Visibility = metadataVisibility;
         ExplorerMetadataGrid.Visibility = metadataVisibility;
-        ExplorerDetailShareButton.Visibility = metadataVisibility;
         ExplorerDetailPropertiesButton.Visibility = metadataVisibility;
     }
 
