@@ -186,7 +186,11 @@ public sealed partial class ExplorerPage : Page
             _truncated = listing.Truncated;
 
             // El filtro se aplica solo a esta carpeta; no se hace escaneo global.
-            ExplorerFilterBox.Text = string.Empty;
+            // Actualizar o cambiar visibilidad no debe borrar el filtro actual.
+            if (action != HistoryAction.Refresh)
+            {
+                ExplorerFilterBox.Text = string.Empty;
+            }
             ApplyFilter();
             RenderBreadcrumbs();
             UpdateNavigationButtons();
