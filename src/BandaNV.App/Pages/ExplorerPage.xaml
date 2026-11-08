@@ -18,7 +18,10 @@
             <Grid Background="Transparent" />
         </ControlTemplate>
         <DataTemplate x:Key="ExplorerFileTemplate" x:DataType="models:ExplorerItem">
-            <Grid Padding="10,4" ColumnSpacing="12" Height="{x:Bind RowHeight}">
+            <Grid Padding="10,4" ColumnSpacing="12"
+                  Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=RowWidth}"
+                  Height="{x:Bind RowHeight}"
+                  HorizontalAlignment="Left">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition MinWidth="180" Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=NameWidth}" />
                     <ColumnDefinition MinWidth="130" Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=ModifiedWidth}" />
@@ -732,8 +735,10 @@
                     </Grid.RowDefinitions>
                     <!-- Encabezados redimensionables con zonas de arrastre. -->
                     <Grid x:Name="ExplorerColumnHeaders"
-                          Padding="10,8" Margin="4,0,4,0"
-                          ColumnSpacing="12" MinWidth="590">
+                          Padding="10,8" Margin="16,0,4,0"
+                          ColumnSpacing="12"
+                          Width="{Binding Source={StaticResource ExplorerColumnLayout}, Path=RowWidth}"
+                          HorizontalAlignment="Left" MinWidth="590">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition x:Name="ExplorerHeaderNameColumn"
                                               MinWidth="180"
@@ -845,6 +850,8 @@
                         x:Name="ExplorerFilesList"
                         Grid.Row="1"
                         Margin="4,0,4,4"
+                        Padding="0"
+                        Background="Transparent"
                         SelectionMode="Extended"
                         KeyboardAcceleratorPlacementMode="Hidden"
                         ItemTemplate="{StaticResource ExplorerFileTemplate}"
@@ -856,8 +863,11 @@
                             <Style TargetType="ListViewItem">
                                 <Setter Property="MinHeight" Value="0" />
                                 <Setter Property="Padding" Value="0" />
-                                <Setter Property="Margin" Value="0" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <!-- El margen izquierdo y el espacio entre filas son clickeables
+                                     para quitar selección, como en el Explorador Windows. -->
+                                <Setter Property="Margin" Value="12,2,0,2" />
+                                <Setter Property="HorizontalAlignment" Value="Left" />
+                                <Setter Property="HorizontalContentAlignment" Value="Left" />
                             </Style>
                         </ListView.ItemContainerStyle>
                         <ListView.KeyboardAccelerators>
